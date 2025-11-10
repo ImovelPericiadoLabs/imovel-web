@@ -253,7 +253,7 @@ Pure and reusable utility functions.
 
 1. **Update the main branch**  
    ```bash
-   git checkout main && git pull
+   git checkout dev && git pull
    ```
 
 2. **Create a new branch**  

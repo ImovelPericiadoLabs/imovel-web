@@ -253,7 +253,7 @@ Funções puras e reutilizáveis.
 
 1. **Atualize a branch principal**  
    ```bash
-   git checkout main && git pull
+   git checkout dev && git pull
    ```
 
 2. **Crie uma nova branch**  
