@@ -302,11 +302,3 @@ Funções puras e reutilizáveis.
 - Use **Tailwind** para consistência visual.  
 
 ---
-
-## Contribuição
-
-Contribuições são bem-vindas!  
-Envie PRs com descrições detalhadas, capturas de tela (para alterações de UI) e passos de reprodução.
-
-Repositório oficial:  
-👉 [https://github.com/roxygens/imovel-web](https://github.com/roxygens/imovel-web)
