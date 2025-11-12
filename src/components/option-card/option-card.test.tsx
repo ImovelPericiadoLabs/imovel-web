@@ -3,13 +3,10 @@ import { describe, it, expect, vi } from 'vitest'
 import OptionCard from '@/components/option-card/option-card.tsx'
 import { Users } from 'lucide-react'
 
-// Mock do ícone para não depender da implementação real
 vi.mock('lucide-react', () => ({
   Users: () => <span data-testid="icon-mock" />,
 }))
 
-// --- Função Setup ---
-// Helper para renderizar o componente com props padrão e mocks
 const setup = (props: Partial<React.ComponentProps<typeof OptionCard>> = {}) => {
   const onClickMock = vi.fn()
 
@@ -24,7 +21,8 @@ const setup = (props: Partial<React.ComponentProps<typeof OptionCard>> = {}) => 
   render(<OptionCard {...defaultProps} {...props} />)
 
   return {
-    card: screen.getByText('Título de Teste').closest('div')!,
+    // 👇 CORRIGIDO: Seleciona pelo data-testid
+    card: screen.getByTestId('option-card'),
     onClickMock,
   }
 }
@@ -39,9 +37,7 @@ describe('OptionCard', () => {
 
   it('should call onClick when the card is clicked', () => {
     const { card, onClickMock } = setup()
-
     fireEvent.click(card)
-
     expect(onClickMock).toHaveBeenCalledTimes(1)
   })
 

@@ -1,72 +1,134 @@
-'use client'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { describe, it, expect, vi } from 'vitest'
+import { DocumentTypeStep } from './document-type-step'
 
-import { useState } from 'react'
-import { useFormContext } from 'react-hook-form'
-import { Users, FileText, FileSignature } from 'lucide-react'
-import OptionCard from '@/components/option-card/option-card.tsx'
-import TextTitle from '@/components/text-title'
-import TextSubtitle from '@/components/text-subtitle'
-import Button from '@/components/button'
-import type { FormContextWithSteps } from '@/sections/consult-property/types'
+// --- Mocks ---
+const setValueMock = vi.fn()
+const handleNextStepMock = vi.fn()
 
-type DocumentType = 'contract' | 'registration' | 'deed'
+vi.mock('react-hook-form', () => ({
+  useFormContext: () => ({
+    setValue: setValueMock,
+    handleNextStep: handleNextStepMock,
+  }),
+}))
 
-export function DocumentTypeStep() {
-  const [selectedOption, setSelectedOption] = useState<DocumentType | null>(
-    null,
-  )
-
-  const { setValue, handleNextStep } =
-    useFormContext() as FormContextWithSteps
-
-  function handleSubmit() {
-    if (!selectedOption) return
-    setValue('documentType', selectedOption)
-    handleNextStep()
-  }
-
-  return (
-    <div className="relative flex-1">
-      <div className="flex flex-col gap-5 pb-32">
-        <div className="flex flex-col gap-2">
-          <TextTitle>Qual documento você tem?</TextTitle>
-          <TextSubtitle>Selecione uma das opções abaixo</TextSubtitle>
-        </div>
-
-        <div className="grid auto-rows-fr gap-4">
-          <OptionCard
-            icon={Users}
-            title="Contrato de compra e venda"
-            subtitle="Acordo particular entre comprador e vendedor."
-            onClick={() => setSelectedOption('contract')}
-            isSelected={selectedOption === 'contract'}
-          />
-          <OptionCard
-            icon={FileText}
-            title="Matrícula"
-            subtitle="Documento principal do imóvel."
-            onClick={() => setSelectedOption('registration')}
-            isSelected={selectedOption === 'registration'}
-          />
-          <OptionCard
-            icon={FileSignature}
-            title="Escritura"
-            subtitle="Contrato oficial registrado no cartório."
-            onClick={() => setSelectedOption('deed')}
-            isSelected={selectedOption === 'deed'}
-          />
-        </div>
-      </div>
-
-      <div className="fixed bottom-0 left-0 right-0 bg-white px-4 py-4 shadow-[0_-2px_8px_rgba(0,0,0,0.08)]">
-        <Button
-          onClick={handleSubmit}
-          disabled={!selectedOption}
-          className="w-full"
-        >
-          Continuar
-        </Button>
-      </div>
-    </div>
-  )
+type TextTitleProps = {
+  children: React.ReactNode
 }
+vi.mock('@/components/text-title', () => ({
+  __esModule: true,
+  default: ({ children }: TextTitleProps) => (
+    <h1 data-testid="text-title">{children}</h1>
+  ),
+}))
+
+type TextSubtitleProps = {
+  children: React.ReactNode
+}
+vi.mock('@/components/text-subtitle', () => ({
+  __esModule: true,
+  default: ({ children }: TextSubtitleProps) => (
+    <h2 data-testid="text-subtitle">{children}</h2>
+  ),
+}))
+
+vi.mock('@/components/button', () => ({
+  __esModule: true,
+  default: ({ children, onClick, disabled }: any) => (
+    <button data-testid="button-continuar" onClick={onClick} disabled={disabled}>
+      {children}
+    </button>
+  ),
+}))
+
+// Mock de ícones e OptionCard (não precisamos do card real)
+vi.mock('lucide-react', () => ({
+  Users: () => <span />,
+  FileText: () => <span />,
+  FileSignature: () => <span />,
+}))
+
+// --- Setup ---
+const setup = () => {
+  setValueMock.mockClear()
+  handleNextStepMock.mockClear()
+  render(<DocumentTypeStep />)
+
+  return {
+    optionContract: screen
+      .getByText('Contrato de compra e venda')
+      .closest('[data-testid="option-card"]')!,
+    optionRegistration: screen
+      .getByText('Matrícula')
+      .closest('[data-testid="option-card"]')!,
+    optionDeed: screen
+      .getByText('Escritura')
+      .closest('[data-testid="option-card"]')!,
+    continueButton: screen.getByTestId('button-continuar'),
+    setValueMock,
+    handleNextStepMock,
+  }
+}
+
+describe('DocumentTypeStep', () => {
+  it('should render titles and all options', () => {
+    setup()
+    expect(screen.getByTestId('text-title')).toHaveTextContent(
+      'Qual documento você tem?',
+    )
+    expect(screen.getByTestId('text-subtitle')).toHaveTextContent(
+      'Selecione uma das opções abaixo',
+    )
+    expect(screen.getByText('Contrato de compra e venda')).toBeInTheDocument()
+    expect(screen.getByText('Matrícula')).toBeInTheDocument()
+    expect(screen.getByText('Escritura')).toBeInTheDocument()
+  })
+
+  it('should start with continue button disabled', () => {
+    const { continueButton } = setup()
+    expect(continueButton).toBeDisabled()
+  })
+
+  it('should enable button and set value when "Contrato" is selected', async () => {
+    const {
+      optionContract,
+      continueButton,
+      setValueMock,
+      handleNextStepMock,
+    } = setup()
+
+    expect(continueButton).toBeDisabled()
+    fireEvent.click(optionContract)
+
+    await waitFor(() => {
+      expect(continueButton).toBeEnabled()
+    })
+
+    fireEvent.click(continueButton)
+
+    expect(setValueMock).toHaveBeenCalledWith('documentType', 'contract')
+    expect(handleNextStepMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('should enable button and set value when "Matrícula" is selected', async () => {
+    const {
+      optionRegistration,
+      continueButton,
+      setValueMock,
+      handleNextStepMock,
+    } = setup()
+
+    expect(continueButton).toBeDisabled()
+    fireEvent.click(optionRegistration)
+
+    await waitFor(() => {
+      expect(continueButton).toBeEnabled()
+    })
+
+    fireEvent.click(continueButton)
+
+    expect(setValueMock).toHaveBeenCalledWith('documentType', 'registration')
+    expect(handleNextStepMock).toHaveBeenCalledTimes(1)
+  })
+})

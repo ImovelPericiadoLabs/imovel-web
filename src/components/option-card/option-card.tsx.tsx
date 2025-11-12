@@ -4,25 +4,10 @@ import type { ElementType } from 'react'
 import { cn } from '@/utils/tailwind'
 
 interface OptionCardProps {
-  /**
-   * O ícone a ser exibido (ex: Users, ThumbsUp).
-   */
   icon: ElementType
-  /**
-   * O título principal do card.
-   */
   title: string
-  /**
-   * O texto secundário (subtítulo) do card.
-   */
   subtitle: string
-  /**
-   * Função chamada quando o card é clicado.
-   */
   onClick: () => void
-  /**
-   * Se true, aplica o estilo de "selecionado".
-   */
   isSelected: boolean
 }
 
@@ -40,6 +25,9 @@ export default function OptionCard({
   return (
     <div
       onClick={onClick}
+      // 👇 ADICIONADO role e data-testid para testes mais fáceis
+      role="button"
+      data-testid="option-card"
       className={cn(
         'flex items-center gap-4 p-4 bg-white rounded-lg border border-[#E7E7E7] cursor-pointer transition-all duration-200 h-full',
         'shadow-[0_1px_2px_rgba(10,13,18,0.05)]',
