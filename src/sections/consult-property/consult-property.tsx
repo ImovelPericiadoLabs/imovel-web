@@ -72,11 +72,13 @@ export default function ConsultProperty() {
           </Activity>
 
           <Activity mode={step === 2 ? 'visible' : 'hidden'}>
-            <DocumentConfirmationStep />
+            <DocumentConfirmationStep/>
           </Activity>
 
           <Activity mode={step === 3 ? 'visible' : 'hidden'}>
-            <DocumentTypeStep />
+            <Activity mode={step === 3 ? 'visible' : 'hidden'}>
+              <DocumentTypeStep/>
+            </Activity>
           </Activity>
 
           <Activity mode={step === 4 ? 'visible' : 'hidden'}>

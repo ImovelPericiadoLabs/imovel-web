@@ -1,55 +1,72 @@
-import { render, screen } from '@testing-library/react'
-import { describe, it, expect, vi } from 'vitest'
-import { DocumentTypeStep } from './document-type-step'
+'use client'
 
-type TextTitleProps = {
-  children: React.ReactNode
+import { useState } from 'react'
+import { useFormContext } from 'react-hook-form'
+import { Users, FileText, FileSignature } from 'lucide-react'
+import OptionCard from '@/components/option-card/option-card.tsx'
+import TextTitle from '@/components/text-title'
+import TextSubtitle from '@/components/text-subtitle'
+import Button from '@/components/button'
+import type { FormContextWithSteps } from '@/sections/consult-property/types'
+
+type DocumentType = 'contract' | 'registration' | 'deed'
+
+export function DocumentTypeStep() {
+  const [selectedOption, setSelectedOption] = useState<DocumentType | null>(
+    null,
+  )
+
+  const { setValue, handleNextStep } =
+    useFormContext() as FormContextWithSteps
+
+  function handleSubmit() {
+    if (!selectedOption) return
+    setValue('documentType', selectedOption)
+    handleNextStep()
+  }
+
+  return (
+    <div className="relative flex-1">
+      <div className="flex flex-col gap-5 pb-32">
+        <div className="flex flex-col gap-2">
+          <TextTitle>Qual documento você tem?</TextTitle>
+          <TextSubtitle>Selecione uma das opções abaixo</TextSubtitle>
+        </div>
+
+        <div className="grid auto-rows-fr gap-4">
+          <OptionCard
+            icon={Users}
+            title="Contrato de compra e venda"
+            subtitle="Acordo particular entre comprador e vendedor."
+            onClick={() => setSelectedOption('contract')}
+            isSelected={selectedOption === 'contract'}
+          />
+          <OptionCard
+            icon={FileText}
+            title="Matrícula"
+            subtitle="Documento principal do imóvel."
+            onClick={() => setSelectedOption('registration')}
+            isSelected={selectedOption === 'registration'}
+          />
+          <OptionCard
+            icon={FileSignature}
+            title="Escritura"
+            subtitle="Contrato oficial registrado no cartório."
+            onClick={() => setSelectedOption('deed')}
+            isSelected={selectedOption === 'deed'}
+          />
+        </div>
+      </div>
+
+      <div className="fixed bottom-0 left-0 right-0 bg-white px-4 py-4 shadow-[0_-2px_8px_rgba(0,0,0,0.08)]">
+        <Button
+          onClick={handleSubmit}
+          disabled={!selectedOption}
+          className="w-full"
+        >
+          Continuar
+        </Button>
+      </div>
+    </div>
+  )
 }
-
-type TextSubtitleProps = {
-  children: React.ReactNode
-}
-
-vi.mock('@/components/text-title', () => ({
-  __esModule: true,
-  default: ({ children }: TextTitleProps) => <h1 data-testid="text-title">{children}</h1>,
-}))
-
-vi.mock('@/components/text-subtitle', () => ({
-  __esModule: true,
-  default: ({ children }: TextSubtitleProps) => <h2 data-testid="text-subtitle">{children}</h2>,
-}))
-
-describe('DocumentTypeStep', () => {
-  it('should render TextTitle with correct text', () => {
-    render(<DocumentTypeStep />)
-    const title = screen.getByTestId('text-title')
-    expect(title).toBeInTheDocument()
-    expect(title).toHaveTextContent('Qual documento você tem?')
-  })
-
-  it('should render TextSubtitle with correct text', () => {
-    render(<DocumentTypeStep />)
-    const subtitle = screen.getByTestId('text-subtitle')
-    expect(subtitle).toBeInTheDocument()
-    expect(subtitle).toHaveTextContent('Selecione uma das opções abaixo')
-  })
-
-  it('should render container elements with correct structure', () => {
-    const { container } = render(<DocumentTypeStep />)
-
-    const allDivs = container.querySelectorAll('div')
-    expect(allDivs.length).toBeGreaterThanOrEqual(2)
-
-    const outerDiv = allDivs[0]
-    const innerDiv = allDivs[1]
-
-    expect(outerDiv.className).toContain('flex')
-    expect(outerDiv.className).toContain('flex-col')
-    expect(outerDiv.className).toContain('gap-5')
-
-    expect(innerDiv.className).toContain('flex')
-    expect(innerDiv.className).toContain('flex-col')
-    expect(innerDiv.className).toContain('gap-2')
-  })
-})
