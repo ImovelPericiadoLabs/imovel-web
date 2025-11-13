@@ -5,7 +5,7 @@ import { useFormContext } from 'react-hook-form'
 import { Users, FileText, FileSignature } from 'lucide-react'
 import TextTitle from '@/components/text-title'
 import TextSubtitle from '@/components/text-subtitle'
-import Button from '@/components/button'
+import FormFooterButton from '@/components/form-footer-button'
 import type { FormContextWithSteps } from '@/sections/consult-property/types'
 import OptionCard from '@/components/option-card/option-card.tsx'
 
@@ -28,7 +28,7 @@ export function DocumentTypeStep() {
 
   return (
     <div className="relative flex-1">
-      <div className="flex flex-col gap-5 pb-32">
+      <div className="flex flex-col gap-5 pb-24 md:pb-0">
         <div className="flex flex-col gap-2">
           <TextTitle>Qual documento você tem?</TextTitle>
           <TextSubtitle>Selecione uma das opções abaixo</TextSubtitle>
@@ -59,15 +59,13 @@ export function DocumentTypeStep() {
         </div>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 bg-white px-4 py-4 shadow-[0_-2px_8px_rgba(0,0,0,0.08)]">
-        <Button
-          onClick={handleSubmit}
-          disabled={!selectedOption}
-          className="w-full"
-        >
-          Continuar
-        </Button>
-      </div>
+      <FormFooterButton
+        onClick={handleSubmit}
+        disabled={!selectedOption}
+        type="button"
+      >
+        Continuar
+      </FormFooterButton>
     </div>
   )
 }
