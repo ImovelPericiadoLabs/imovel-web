@@ -1,24 +1,33 @@
 'use client'
-import { useState } from 'react'
+
+import { useState, useRef, useEffect } from 'react'
 import { Search, X, MapPin } from 'lucide-react'
 import { cn } from '@/utils/tailwind'
 import Button from '@/components/button'
 import TextTitle from '@/components/text-title'
+import Skeleton from '@/components/skeleton'
 
 type Option = {
-  street: string
-  city: string
-  value: string
+  street?: string
+  city?: string
+  value?: string
 }
 
 interface Props extends React.InputHTMLAttributes<HTMLInputElement> {
-  options: Option[]
+  options?: Option[]
+  isLoading?: boolean
   onConfirm: (address: string) => void
 }
 
-export default function AutoCompleteInput({ options, onConfirm, ...props }: Props) {
+const loadingOptions = Array.from({ length: 5 }, (_, i) => ({
+  value: i,
+}))
+
+export default function AutoCompleteInput({ options, isLoading, onConfirm, ...props }: Props) {
   const [value, setValue] = useState('')
   const [isOpenAddressSheet, setIsOpenAddressSheet] = useState(false)
+
+  const inputRef = useRef<HTMLInputElement>(null)
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     if (props.onChange) {
@@ -45,10 +54,18 @@ export default function AutoCompleteInput({ options, onConfirm, ...props }: Prop
     setIsOpenAddressSheet(false)
   }
 
-  function handleChangeAddres() {
-    handleClearInput()
+  function handleChangeAddress() {
+    const el = inputRef?.current
+
+    el?.focus()
+    el?.setSelectionRange(el.value.length, el.value.length)
+
     handleCloseAddressSheet()
   }
+
+  useEffect(() => {
+    inputRef.current?.focus()
+  }, [])
 
   return (
     <div
@@ -67,8 +84,9 @@ export default function AutoCompleteInput({ options, onConfirm, ...props }: Prop
         )}
 
         <input
+          ref={inputRef}
           className="
-            pl-9.5 pr-3.5 py-4 bg-white w-full rounded-[6rem] border 
+            px-9.5  py-4 bg-white w-full rounded-[6rem] border 
             border-input-border shadow-[0_1px_2px_rgba(10,13,18,0.05)] 
              placeholder:text-gray placeholder:text-base placeholder:font-normal placeholder:leading-6
             focus:border-primary focus:ring-1 focus:ring-primary outline-none
@@ -80,10 +98,30 @@ export default function AutoCompleteInput({ options, onConfirm, ...props }: Prop
         />
       </div>
 
+      {isLoading && (
+        <div className="w-full space-y-4 mt-3.5">
+          {loadingOptions?.map((address) => (
+            <div
+              key={address.value}
+              className="flex items-start gap-4 pb-4 border-b border-hr last:border-b-0 cursor-pointer"
+            >
+              <div className="shrink-0 mt-1">
+                <MapPin className="size-6" />
+              </div>
+              <div className="flex-1 text-start min-w-0">
+                <Skeleton className="w-64 h-4 rounded-full" />
+
+                <Skeleton className="w-32 h-4 rounded-full mt-2" />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {!!value?.length && (
         <div className="w-full space-y-4 mt-3.5">
-          {options.map((address) => (
-            <div
+          {options?.map((address) => (
+            <button
               key={address.value}
               className="flex items-start gap-4 pb-4 border-b border-hr last:border-b-0 cursor-pointer"
               onClick={() => handleSelectAddress(`${address.street}, ${address.city}`)}
@@ -91,19 +129,23 @@ export default function AutoCompleteInput({ options, onConfirm, ...props }: Prop
               <div className="shrink-0 mt-1">
                 <MapPin className="size-6" />
               </div>
-              <div className="flex-1 min-w-0">
+              <div className="flex-1 text-start min-w-0">
                 <h3 className="text-sm font-medium leading-[130%]">{address.city}</h3>
+
                 <p className="text-xs font-normal leading-[130%] text-gray mt-1">
                   {address.street}
                 </p>
               </div>
-            </div>
+            </button>
           ))}
         </div>
       )}
 
       {isOpenAddressSheet && (
-        <div className="fixed inset-0 bg-black/50 z-40 transition-opacity duration-500" />
+        <div
+          className="fixed inset-0 bg-black/50 z-40 transition-opacity duration-500"
+          onClick={handleChangeAddress}
+        />
       )}
 
       <div
@@ -123,7 +165,7 @@ export default function AutoCompleteInput({ options, onConfirm, ...props }: Prop
               <MapPin className="size- text-dark mb-2" />
               <p className="text-dark font-medium text-base leading-6 mb-3">{value}</p>
               <button
-                onClick={handleChangeAddres}
+                onClick={handleChangeAddress}
                 className="cursor-pointer text-primary font-semibold text-sm transition-colors"
               >
                 Mudar
