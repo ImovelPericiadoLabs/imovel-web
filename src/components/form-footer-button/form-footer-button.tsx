@@ -19,18 +19,17 @@ export default function FormFooterButton({
   return (
     <div
       className="
-        fixed bottom-0 left-0 right-0 z-10 bg-white px-4 py-4
-        shadow-[0_-2px_8px_rgba(0,0,0,0.08)]
-        md:static md:mt-6 md:p-0 md:shadow-none
+        fixed bottom-0 left-0 right-0 z-10 px-4 py-4
+        md:static md:mt-6 md:p-0
       "
       data-testid="footer-container"
     >
       <Button
         className={cn(
           'h-13 md:w-auto md:px-10',
-          className, 
+          className,
         )}
-        {...rest} 
+        {...rest}
       >
         {children}
       </Button>
