@@ -123,7 +123,7 @@ export default function AutoCompleteInput({ options, isLoading, onConfirm, ...pr
           {options?.map((address) => (
             <button
               key={address.value}
-              className="flex items-start gap-4 pb-4 border-b border-hr last:border-b-0 cursor-pointer"
+              className="w-full flex items-start gap-4 pb-4 border-b border-hr last:border-b-0 cursor-pointer"
               onClick={() => handleSelectAddress(`${address.street}, ${address.city}`)}
             >
               <div className="shrink-0 mt-1">
