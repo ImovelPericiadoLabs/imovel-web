@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 import { useFormContext } from 'react-hook-form'
 import { Users, FileText, FileSignature } from 'lucide-react'
 import TextTitle from '@/components/text-title'
@@ -12,18 +11,26 @@ import OptionCard from '@/components/option-card/option-card.tsx'
 type DocumentType = 'contract' | 'registration' | 'deed'
 
 export function DocumentTypeStep() {
-  const [selectedOption, setSelectedOption] = useState<DocumentType | null>(
-    null,
-  )
+  const {
+    setValue,
+    handleNextStep,
+    watch,
+    trigger,
+    formState: { errors },
+  } = useFormContext() as FormContextWithSteps
 
-  const { setValue, handleNextStep } =
-    useFormContext() as FormContextWithSteps
+  const documentType = watch('documentType')
 
-  function handleSubmit() {
-    if (!selectedOption) return
+  async function handleSubmit() {
+    const isValid = await trigger('documentType')
 
-    setValue('documentType', selectedOption)
-    handleNextStep()
+    if (isValid) {
+      handleNextStep()
+    }
+  }
+
+  function handleSelect(value: DocumentType) {
+    setValue('documentType', value, { shouldValidate: true })
   }
 
   return (
@@ -39,24 +46,30 @@ export function DocumentTypeStep() {
             icon={Users}
             title="Contrato de compra e venda"
             subtitle="Acordo particular entre comprador e vendedor."
-            onClick={() => setSelectedOption('contract')}
-            isSelected={selectedOption === 'contract'}
+            onClick={() => handleSelect('contract')}
+            isSelected={documentType === 'contract'}
           />
           <OptionCard
             icon={FileText}
             title="Matrícula"
             subtitle="Documento principal do imóvel."
-            onClick={() => setSelectedOption('registration')}
-            isSelected={selectedOption === 'registration'}
+            onClick={() => handleSelect('registration')}
+            isSelected={documentType === 'registration'}
           />
           <OptionCard
             icon={FileSignature}
             title="Escritura"
             subtitle="Contrato oficial registrado no cartório."
-            onClick={() => setSelectedOption('deed')}
-            isSelected={selectedOption === 'deed'}
+            onClick={() => handleSelect('deed')}
+            isSelected={documentType === 'deed'}
           />
         </div>
+
+        {errors.documentType && (
+          <p className="mt-2 text-sm text-red-600">
+            {String(errors.documentType.message)}
+          </p>
+        )}
       </div>
 
       <div
@@ -67,7 +80,6 @@ export function DocumentTypeStep() {
       >
         <Button
           onClick={handleSubmit}
-          disabled={!selectedOption}
           type="button"
           className="h-13 md:w-auto md:px-10"
         >

@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 import { useFormContext } from 'react-hook-form'
 import { ThumbsUp, ThumbsDown } from 'lucide-react'
 import OptionCard from '@/components/option-card/option-card.tsx'
@@ -8,19 +7,27 @@ import TextTitle from '@/components/text-title'
 import Button from '@/components/button'
 import type { FormContextWithSteps } from '@/sections/consult-property/types'
 
-type Selection = 'yes' | 'no'
-
 export function DocumentConfirmationStep() {
-  const [selectedOption, setSelectedOption] = useState<Selection | null>(null)
+  const {
+    setValue,
+    handleNextStep,
+    watch,
+    trigger,
+    formState: { errors },
+  } = useFormContext() as FormContextWithSteps
 
-  const { setValue, handleNextStep } =
-    useFormContext() as FormContextWithSteps
+  const hasDocument = watch('hasDocument')
 
-  function handleSubmit() {
-    if (!selectedOption) return
-    const hasDocument = selectedOption === 'yes'
-    setValue('hasDocument', hasDocument)
-    handleNextStep()
+  async function handleSubmit() {
+    const isValid = await trigger('hasDocument')
+
+    if (isValid) {
+      handleNextStep()
+    }
+  }
+
+  function handleSelect(value: boolean) {
+    setValue('hasDocument', value, { shouldValidate: true })
   }
 
   return (
@@ -33,18 +40,24 @@ export function DocumentConfirmationStep() {
             icon={ThumbsUp}
             title="Sim, eu tenho"
             subtitle="Aceitamos PDF, Imagem ou Word"
-            onClick={() => setSelectedOption('yes')}
-            isSelected={selectedOption === 'yes'}
+            onClick={() => handleSelect(true)}
+            isSelected={hasDocument === true}
           />
 
           <OptionCard
             icon={ThumbsDown}
             title="Não tenho"
             subtitle="Sem problemas, você pode continuar"
-            onClick={() => setSelectedOption('no')}
-            isSelected={selectedOption === 'no'}
+            onClick={() => handleSelect(false)}
+            isSelected={hasDocument === false}
           />
         </div>
+
+        {errors.hasDocument && (
+          <p className="mt-2 text-sm text-red-600">
+            {String(errors.hasDocument.message)}
+          </p>
+        )}
       </div>
 
       <div
@@ -55,7 +68,6 @@ export function DocumentConfirmationStep() {
       >
         <Button
           onClick={handleSubmit}
-          disabled={!selectedOption}
           type="button"
           className="h-13 md:w-auto md:px-10"
         >

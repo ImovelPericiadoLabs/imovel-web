@@ -5,32 +5,32 @@ import { DocumentConfirmationStep } from './document-confirmation-step'
 // --- Mocks ---
 const setValueMock = vi.fn()
 const handleNextStepMock = vi.fn()
+const triggerMock = vi.fn()
+
+let mockErrors: any = {}
+let mockWatchValue: boolean | undefined | null = null
 
 vi.mock('react-hook-form', () => ({
   useFormContext: () => ({
     setValue: setValueMock,
     handleNextStep: handleNextStepMock,
+    trigger: triggerMock,
+    watch: (field: string) =>
+      field === 'hasDocument' ? mockWatchValue : undefined,
+    formState: { errors: mockErrors },
   }),
 }))
 
-type TextTitleProps = {
-  children: React.ReactNode
-}
 vi.mock('@/components/text-title', () => ({
   __esModule: true,
-  default: ({ children }: TextTitleProps) => (
+  default: ({ children }: { children: React.ReactNode }) => (
     <h1 data-testid="text-title">{children}</h1>
   ),
 }))
 
-type ButtonProps = {
-  children: React.ReactNode
-  onClick: () => void
-  disabled?: boolean
-}
 vi.mock('@/components/button', () => ({
   __esModule: true,
-  default: ({ children, onClick, disabled }: ButtonProps) => (
+  default: ({ children, onClick, disabled }: any) => (
     <button data-testid="button-continuar" onClick={onClick} disabled={disabled}>
       {children}
     </button>
@@ -43,9 +43,15 @@ vi.mock('lucide-react', () => ({
 }))
 
 // --- Setup ---
-const setup = () => {
+const setup = (props?: {
+  watchValue?: boolean | null
+  errors?: any
+}) => {
   setValueMock.mockClear()
   handleNextStepMock.mockClear()
+  triggerMock.mockClear().mockResolvedValue(true)
+  mockWatchValue = props?.watchValue ?? null
+  mockErrors = props?.errors ?? {}
 
   render(<DocumentConfirmationStep />)
 
@@ -55,7 +61,7 @@ const setup = () => {
   const optionNo = screen
     .getByText('Não tenho')
     .closest('[data-testid="option-card"]')!
-  const continueButton = screen.getByTestId('button-continuar') 
+  const continueButton = screen.getByTestId('button-continuar')
 
   return {
     optionYes,
@@ -63,6 +69,7 @@ const setup = () => {
     continueButton,
     setValueMock,
     handleNextStepMock,
+    triggerMock,
   }
 }
 
@@ -75,86 +82,77 @@ describe('DocumentConfirmationStep', () => {
       expect(screen.getByText('Não tenho')).toBeInTheDocument()
     })
 
-    it('should render the "Continuar" button as disabled by default', () => {
+    it('should render the "Continuar" button as ENABLED by default', () => {
       const { continueButton } = setup()
-      expect(continueButton).toBeDisabled()
+      expect(continueButton).toBeEnabled()
+    })
+
+    it('should correctly show "Sim" as selected based on watch', () => {
+      const { optionYes, optionNo } = setup({ watchValue: true })
+      expect(optionYes).toHaveClass('border-primary')
+      expect(optionNo).not.toHaveClass('border-primary')
+    })
+
+    it('should correctly show "Não" as selected based on watch', () => {
+      const { optionYes, optionNo } = setup({ watchValue: false })
+      expect(optionYes).not.toHaveClass('border-primary')
+      expect(optionNo).toHaveClass('border-primary')
     })
   })
 
-  describe('Interação do Usuário', () => {
-    it('should enable the "Continuar" button when "Sim, eu tenho" is selected', async () => {
-      const { optionYes, continueButton } = setup()
+  describe('Interação do Usuário (setValue)', () => {
+    it('should call setValue when "Sim, eu tenho" is selected', () => {
+      const { optionYes, setValueMock } = setup()
 
-      expect(continueButton).toBeDisabled()
       fireEvent.click(optionYes)
 
-      await waitFor(() => {
-        expect(continueButton).toBeEnabled()
-        expect(optionYes).toHaveClass('border-primary')
+      expect(setValueMock).toHaveBeenCalledWith('hasDocument', true, {
+        shouldValidate: true,
       })
     })
 
-    it('should enable the "Continuar" button when "Não tenho" is selected', async () => {
-      const { optionNo, continueButton } = setup()
-
-      expect(continueButton).toBeDisabled()
-      fireEvent.click(optionNo)
-
-      await waitFor(() => {
-        expect(continueButton).toBeEnabled()
-        expect(optionNo).toHaveClass('border-primary')
-      })
-    })
-
-    it('should toggle selection correctly when changing options', async () => {
-      const { optionYes, optionNo } = setup()
-
-      fireEvent.click(optionYes)
-      await waitFor(() => {
-        expect(optionYes).toHaveClass('border-primary')
-        expect(optionNo).not.toHaveClass('border-primary')
-      })
+    it('should call setValue when "Não tenho" is selected', () => {
+      const { optionNo, setValueMock } = setup()
 
       fireEvent.click(optionNo)
-      await waitFor(() => {
-        expect(optionYes).not.toHaveClass('border-primary')
-        expect(optionNo).toHaveClass('border-primary')
+
+      expect(setValueMock).toHaveBeenCalledWith('hasDocument', false, {
+        shouldValidate: true,
       })
     })
   })
 
-  describe('Submissão (Form Context)', () => {
-    it('should call setValue and handleNextStep when "Sim" is selected', async () => {
-      const { optionYes, continueButton, setValueMock, handleNextStepMock } =
-        setup()
+  describe('Submissão (handleSubmit)', () => {
+    it('should call trigger and handleNextStep on valid submission', async () => {
+      const { continueButton, triggerMock, handleNextStepMock } = setup()
 
-      fireEvent.click(optionYes)
-      await waitFor(() => expect(continueButton).toBeEnabled())
+      triggerMock.mockResolvedValue(true)
       fireEvent.click(continueButton)
 
-      expect(setValueMock).toHaveBeenCalledWith('hasDocument', true)
-      expect(handleNextStepMock).toHaveBeenCalledTimes(1)
+      await waitFor(() => {
+        expect(triggerMock).toHaveBeenCalledWith('hasDocument')
+      })
+
+      await waitFor(() => {
+        expect(handleNextStepMock).toHaveBeenCalledTimes(1)
+      })
     })
 
-    it('should call setValue and handleNextStep when "Não" is selected', async () => {
-      const { optionNo, continueButton, setValueMock, handleNextStepMock } =
-        setup()
+    it('should call trigger, show error, and NOT call handleNextStep on invalid submission', async () => {
+      const error = { hasDocument: { message: 'Selecione uma opção' } }
+      const { continueButton, triggerMock, handleNextStepMock } = setup({
+        errors: error,
+      })
 
-      fireEvent.click(optionNo)
-      await waitFor(() => expect(continueButton).toBeEnabled())
+      triggerMock.mockResolvedValue(false)
       fireEvent.click(continueButton)
 
-      expect(setValueMock).toHaveBeenCalledWith('hasDocument', false)
-      expect(handleNextStepMock).toHaveBeenCalledTimes(1)
-    })
+      await waitFor(() => {
+        expect(triggerMock).toHaveBeenCalledWith('hasDocument')
+      })
 
-    it('should not call setValue or handleNextStep if no option is selected', () => {
-      const { continueButton, setValueMock, handleNextStepMock } = setup()
-
-      expect(continueButton).toBeDisabled()
-      fireEvent.click(continueButton)
-      expect(setValueMock).not.toHaveBeenCalled()
       expect(handleNextStepMock).not.toHaveBeenCalled()
+      expect(await screen.findByText('Selecione uma opção')).toBeInTheDocument()
     })
   })
 })
