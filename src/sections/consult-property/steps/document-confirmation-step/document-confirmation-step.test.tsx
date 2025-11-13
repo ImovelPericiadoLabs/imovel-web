@@ -49,14 +49,13 @@ const setup = () => {
 
   render(<DocumentConfirmationStep />)
 
-  // 👇 CORRIGIDO: Seletores mais robustos
   const optionYes = screen
     .getByText('Sim, eu tenho')
     .closest('[data-testid="option-card"]')!
   const optionNo = screen
     .getByText('Não tenho')
     .closest('[data-testid="option-card"]')!
-  const continueButton = screen.getByTestId('button-continuar') // <-- Mais específico
+  const continueButton = screen.getByTestId('button-continuar') 
 
   return {
     optionYes,

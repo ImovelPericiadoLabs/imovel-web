@@ -21,7 +21,6 @@ const setup = (props: Partial<React.ComponentProps<typeof OptionCard>> = {}) => 
   render(<OptionCard {...defaultProps} {...props} />)
 
   return {
-    // 👇 CORRIGIDO: Seleciona pelo data-testid
     card: screen.getByTestId('option-card'),
     onClickMock,
   }

@@ -24,14 +24,13 @@ export default function OptionCard({
 }: OptionCardProps) {
   return (
     <button
-      type="button" // Adicionado para garantir o comportamento correto dentro de formulários
+      type="button"
       onClick={onClick}
       data-testid="option-card"
       className={cn(
         'flex items-center gap-4 p-4 bg-white rounded-lg border border-[#E7E7E7] cursor-pointer transition-all duration-200 h-full',
         'shadow-[0_1px_2px_rgba(10,13,18,0.05)]',
         'h-full',
-        // O `text-left` é importante aqui, pois botões podem centralizar o texto por padrão
         'text-left',
         isSelected
           ? 'border-primary ring-2 ring-primary/20'
