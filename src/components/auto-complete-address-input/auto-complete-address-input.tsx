@@ -39,6 +39,7 @@ export default function AutoCompleteInput({ options, isLoading, onConfirm, ...pr
 
   function handleClearInput() {
     setValue('')
+    inputRef.current?.focus()
   }
 
   function handleSelectAddress(address: string) {
@@ -63,10 +64,6 @@ export default function AutoCompleteInput({ options, isLoading, onConfirm, ...pr
     handleCloseAddressSheet()
   }
 
-  useEffect(() => {
-    inputRef.current?.focus()
-  }, [])
-
   return (
     <div
       className={cn({
@@ -85,6 +82,7 @@ export default function AutoCompleteInput({ options, isLoading, onConfirm, ...pr
 
         <input
           ref={inputRef}
+          autoFocus
           className="
             px-9.5  py-4 bg-white w-full rounded-[6rem] border 
             border-input-border shadow-[0_1px_2px_rgba(10,13,18,0.05)] 
@@ -123,7 +121,7 @@ export default function AutoCompleteInput({ options, isLoading, onConfirm, ...pr
           {options?.map((address) => (
             <button
               key={address.value}
-              className="flex items-start gap-4 pb-4 border-b border-hr last:border-b-0 cursor-pointer"
+              className="w-full flex items-start gap-4 pb-4 border-b border-hr last:border-b-0 cursor-pointer"
               onClick={() => handleSelectAddress(`${address.street}, ${address.city}`)}
             >
               <div className="shrink-0 mt-1">
