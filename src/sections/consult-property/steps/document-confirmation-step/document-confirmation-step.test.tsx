@@ -7,7 +7,7 @@ const setValueMock = vi.fn()
 const handleNextStepMock = vi.fn()
 const triggerMock = vi.fn()
 
-let mockErrors: any = {}
+let mockErrors = {}
 let mockWatchValue: boolean | undefined | null = null
 
 vi.mock('react-hook-form', () => ({
@@ -15,8 +15,7 @@ vi.mock('react-hook-form', () => ({
     setValue: setValueMock,
     handleNextStep: handleNextStepMock,
     trigger: triggerMock,
-    watch: (field: string) =>
-      field === 'hasDocument' ? mockWatchValue : undefined,
+    watch: (field: string) => (field === 'hasDocument' ? mockWatchValue : undefined),
     formState: { errors: mockErrors },
   }),
 }))
@@ -30,7 +29,11 @@ vi.mock('@/components/text-title', () => ({
 
 vi.mock('@/components/button', () => ({
   __esModule: true,
-  default: ({ children, onClick, disabled }: any) => (
+  default: ({
+    children,
+    onClick,
+    disabled,
+  }: { onClick: () => void; disabled?: boolean } & React.PropsWithChildren) => (
     <button data-testid="button-continuar" onClick={onClick} disabled={disabled}>
       {children}
     </button>
@@ -43,10 +46,7 @@ vi.mock('lucide-react', () => ({
 }))
 
 // --- Setup ---
-const setup = (props?: {
-  watchValue?: boolean | null
-  errors?: any
-}) => {
+const setup = (props?: { watchValue?: boolean | null; errors?: any }) => {
   setValueMock.mockClear()
   handleNextStepMock.mockClear()
   triggerMock.mockClear().mockResolvedValue(true)
@@ -55,12 +55,8 @@ const setup = (props?: {
 
   render(<DocumentConfirmationStep />)
 
-  const optionYes = screen
-    .getByText('Sim, eu tenho')
-    .closest('[data-testid="option-card"]')!
-  const optionNo = screen
-    .getByText('Não tenho')
-    .closest('[data-testid="option-card"]')!
+  const optionYes = screen.getByText('Sim, eu tenho').closest('[data-testid="option-card"]')!
+  const optionNo = screen.getByText('Não tenho').closest('[data-testid="option-card"]')!
   const continueButton = screen.getByTestId('button-continuar')
 
   return {
