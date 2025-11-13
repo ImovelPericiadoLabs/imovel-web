@@ -23,15 +23,16 @@ export default function OptionCard({
   isSelected,
 }: OptionCardProps) {
   return (
-    <div
+    <button
+      type="button" // Adicionado para garantir o comportamento correto dentro de formulários
       onClick={onClick}
-      // 👇 ADICIONADO role e data-testid para testes mais fáceis
-      role="button"
       data-testid="option-card"
       className={cn(
         'flex items-center gap-4 p-4 bg-white rounded-lg border border-[#E7E7E7] cursor-pointer transition-all duration-200 h-full',
         'shadow-[0_1px_2px_rgba(10,13,18,0.05)]',
         'h-full',
+        // O `text-left` é importante aqui, pois botões podem centralizar o texto por padrão
+        'text-left',
         isSelected
           ? 'border-primary ring-2 ring-primary/20'
           : 'hover:border-gray-300',
@@ -43,6 +44,6 @@ export default function OptionCard({
         <h3 className="text-base font-medium text-dark">{title}</h3>
         <p className="text-xs font-normal text-gray">{subtitle}</p>
       </div>
-    </div>
+    </button>
   )
 }
