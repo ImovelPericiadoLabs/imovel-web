@@ -39,6 +39,7 @@ export default function AutoCompleteInput({ options, isLoading, onConfirm, ...pr
 
   function handleClearInput() {
     setValue('')
+    inputRef.current?.focus()
   }
 
   function handleSelectAddress(address: string) {
@@ -63,10 +64,6 @@ export default function AutoCompleteInput({ options, isLoading, onConfirm, ...pr
     handleCloseAddressSheet()
   }
 
-  useEffect(() => {
-    inputRef.current?.focus()
-  }, [])
-
   return (
     <div
       className={cn({
@@ -85,6 +82,7 @@ export default function AutoCompleteInput({ options, isLoading, onConfirm, ...pr
 
         <input
           ref={inputRef}
+          autoFocus
           className="
             px-9.5  py-4 bg-white w-full rounded-[6rem] border 
             border-input-border shadow-[0_1px_2px_rgba(10,13,18,0.05)] 
