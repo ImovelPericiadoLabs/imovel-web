@@ -5,7 +5,7 @@ import { useFormContext } from 'react-hook-form'
 import { ThumbsUp, ThumbsDown } from 'lucide-react'
 import OptionCard from '@/components/option-card/option-card.tsx'
 import TextTitle from '@/components/text-title'
-import FormFooterButton from '@/components/form-footer-button' // Importa o novo componente
+import Button from '@/components/button'
 import type { FormContextWithSteps } from '@/sections/consult-property/types'
 
 type Selection = 'yes' | 'no'
@@ -25,9 +25,6 @@ export function DocumentConfirmationStep() {
 
   return (
     <div className="relative flex-1">
-      {/* Padding-bottom no mobile (pb-24) para o conteúdo não ficar
-        atrás do botão fixo. No desktop (md:pb-0) é removido.
-      */}
       <div className="flex flex-col gap-5 pb-24 md:pb-0">
         <TextTitle>Você tem o documento do imóvel?</TextTitle>
 
@@ -50,14 +47,21 @@ export function DocumentConfirmationStep() {
         </div>
       </div>
 
-      {/* Usa o novo componente de botão */}
-      <FormFooterButton
-        onClick={handleSubmit}
-        disabled={!selectedOption}
-        type="button"
+      <div
+        className="
+          fixed bottom-0 left-0 right-0 z-10 px-4 py-4
+          md:static md:mt-6 md:p-0
+        "
       >
-        Continuar
-      </FormFooterButton>
+        <Button
+          onClick={handleSubmit}
+          disabled={!selectedOption}
+          type="button"
+          className="h-13 md:w-auto md:px-10"
+        >
+          Continuar
+        </Button>
+      </div>
     </div>
   )
 }

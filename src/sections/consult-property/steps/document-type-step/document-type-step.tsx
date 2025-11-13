@@ -5,7 +5,7 @@ import { useFormContext } from 'react-hook-form'
 import { Users, FileText, FileSignature } from 'lucide-react'
 import TextTitle from '@/components/text-title'
 import TextSubtitle from '@/components/text-subtitle'
-import FormFooterButton from '@/components/form-footer-button'
+import Button from '@/components/button'
 import type { FormContextWithSteps } from '@/sections/consult-property/types'
 import OptionCard from '@/components/option-card/option-card.tsx'
 
@@ -59,13 +59,21 @@ export function DocumentTypeStep() {
         </div>
       </div>
 
-      <FormFooterButton
-        onClick={handleSubmit}
-        disabled={!selectedOption}
-        type="button"
+      <div
+        className="
+          fixed bottom-0 left-0 right-0 z-10 px-4 py-4
+          md:static md:mt-6 md:p-0
+        "
       >
-        Continuar
-      </FormFooterButton>
+        <Button
+          onClick={handleSubmit}
+          disabled={!selectedOption}
+          type="button"
+          className="h-13 md:w-auto md:px-10"
+        >
+          Continuar
+        </Button>
+      </div>
     </div>
   )
 }
