@@ -8,7 +8,7 @@ export default function Button({ children, className, ...rest }: Props) {
     <button
       {...rest}
       className={cn(
-        'cursor-pointer w-full bg-primary hover:bg-primary-hover text-white text-base leading-6 font-semibold py-3 rounded-full shadow-lg',
+        'cursor-pointer w-full bg-primary hover:bg-primary-hover text-white text-base leading-6 font-semibold px-11 py-3 rounded-full shadow-lg',
         className,
       )}
     >

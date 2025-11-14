@@ -15,10 +15,11 @@ export function AddressStep() {
 
   const debouncedAddress = useDebounce(address, 500)
 
-  const { data, isFetching } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: [queryKey.getAddresses, debouncedAddress],
     queryFn: () => listAddresses(debouncedAddress),
     enabled: !!debouncedAddress,
+    refetchOnWindowFocus: false,
   })
 
   function handleChangeAddress(e: React.ChangeEvent<HTMLInputElement>) {
@@ -39,7 +40,7 @@ export function AddressStep() {
         options={data}
         onChange={handleChangeAddress}
         onConfirm={handleSubmit}
-        isLoading={isFetching}
+        isLoading={isLoading}
       />
     </div>
   )
