@@ -50,8 +50,8 @@ export default function ConsultProperty() {
   }
 
   return (
-    <section className="p-4">
-      <header className="flex flex-col">
+    <section className="min-h-screen">
+      <header className="flex flex-col px-4">
         <div className="flex py-4.5 gap-2 align-middle">
           <ChevronLeft onClick={handleGoBack} className="size-7 text-primary" />
           <h1 className="font-bold text-sm leading-6">Consultar Imóvel</h1>
@@ -66,7 +66,7 @@ export default function ConsultProperty() {
       </header>
 
       <FormProvider {...formContextValue}>
-        <main className="py-5">
+        <main className="pt-5">
           <Activity mode={step === 1 ? 'visible' : 'hidden'}>
             <AddressStep />
           </Activity>

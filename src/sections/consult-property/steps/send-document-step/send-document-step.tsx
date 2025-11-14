@@ -38,7 +38,7 @@ export function SendDocumentStep() {
   console.log(document)
 
   return (
-    <div className="flex flex-col h-full gap-5">
+    <div className="flex flex-col h-full gap-5 px-4">
       <TextTitle>Envie o documento</TextTitle>
 
       <DocumentUpload onFileSelect={handleFileSelect} />
