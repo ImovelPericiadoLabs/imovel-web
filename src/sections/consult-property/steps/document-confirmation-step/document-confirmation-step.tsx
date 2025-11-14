@@ -1,34 +1,31 @@
 'use client'
-
+import { useEffectEvent } from 'react'
 import { useFormContext } from 'react-hook-form'
 import { ThumbsUp, ThumbsDown } from 'lucide-react'
 import OptionCard from '@/components/option-card/option-card.tsx'
 import TextTitle from '@/components/text-title'
-import Button from '@/components/button'
 import type { FormContextWithSteps } from '@/sections/consult-property/types'
+import { useEffect } from 'react'
 
 export function DocumentConfirmationStep() {
-  const {
-    setValue,
-    handleNextStep,
-    watch,
-    trigger,
-    formState: { errors },
-  } = useFormContext() as FormContextWithSteps
+  const { setValue, handleNextStep } = useFormContext() as FormContextWithSteps
 
-  const hasDocument = watch('hasDocument')
-
-  async function handleSubmit() {
-    const isValid = await trigger('hasDocument')
-
-    if (isValid) {
+  function handleSelect(value: boolean) {
+    setValue('hasDocument', value, { shouldValidate: true })
+    handleNextStep()
+    if (!value) {
+      handleNextStep()
       handleNextStep()
     }
   }
 
-  function handleSelect(value: boolean) {
-    setValue('hasDocument', value, { shouldValidate: true })
-  }
+  const resetValue = useEffectEvent(() =>
+    setValue('hasDocument', undefined, { shouldValidate: true }),
+  )
+
+  useEffect(() => {
+    resetValue()
+  }, [])
 
   return (
     <div className="relative flex-1">
@@ -41,7 +38,6 @@ export function DocumentConfirmationStep() {
             title="Sim, eu tenho"
             subtitle="Aceitamos PDF, Imagem ou Word"
             onClick={() => handleSelect(true)}
-            isSelected={hasDocument === true}
           />
 
           <OptionCard
@@ -49,30 +45,8 @@ export function DocumentConfirmationStep() {
             title="Não tenho"
             subtitle="Sem problemas, você pode continuar"
             onClick={() => handleSelect(false)}
-            isSelected={hasDocument === false}
           />
         </div>
-
-        {errors.hasDocument && (
-          <p className="mt-2 text-sm text-red-600">
-            {String(errors.hasDocument.message)}
-          </p>
-        )}
-      </div>
-
-      <div
-        className="
-          fixed bottom-0 left-0 right-0 z-10 px-4 py-4
-          md:static md:mt-6 md:p-0
-        "
-      >
-        <Button
-          onClick={handleSubmit}
-          type="button"
-          className="h-13 md:w-auto md:px-10"
-        >
-          Continuar
-        </Button>
       </div>
     </div>
   )

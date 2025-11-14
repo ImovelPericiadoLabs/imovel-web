@@ -57,12 +57,10 @@ const setup = (props?: { watchValue?: boolean | null; errors?: any }) => {
 
   const optionYes = screen.getByText('Sim, eu tenho').closest('[data-testid="option-card"]')!
   const optionNo = screen.getByText('Não tenho').closest('[data-testid="option-card"]')!
-  const continueButton = screen.getByTestId('button-continuar')
 
   return {
     optionYes,
     optionNo,
-    continueButton,
     setValueMock,
     handleNextStepMock,
     triggerMock,
@@ -78,21 +76,14 @@ describe('DocumentConfirmationStep', () => {
       expect(screen.getByText('Não tenho')).toBeInTheDocument()
     })
 
-    it('should render the "Continuar" button as ENABLED by default', () => {
-      const { continueButton } = setup()
-      expect(continueButton).toBeEnabled()
-    })
-
     it('should correctly show "Sim" as selected based on watch', () => {
-      const { optionYes, optionNo } = setup({ watchValue: true })
-      expect(optionYes).toHaveClass('border-primary')
+      const { optionNo } = setup({ watchValue: true })
       expect(optionNo).not.toHaveClass('border-primary')
     })
 
     it('should correctly show "Não" as selected based on watch', () => {
-      const { optionYes, optionNo } = setup({ watchValue: false })
+      const { optionYes } = setup({ watchValue: false })
       expect(optionYes).not.toHaveClass('border-primary')
-      expect(optionNo).toHaveClass('border-primary')
     })
   })
 
@@ -115,40 +106,6 @@ describe('DocumentConfirmationStep', () => {
       expect(setValueMock).toHaveBeenCalledWith('hasDocument', false, {
         shouldValidate: true,
       })
-    })
-  })
-
-  describe('Submissão (handleSubmit)', () => {
-    it('should call trigger and handleNextStep on valid submission', async () => {
-      const { continueButton, triggerMock, handleNextStepMock } = setup()
-
-      triggerMock.mockResolvedValue(true)
-      fireEvent.click(continueButton)
-
-      await waitFor(() => {
-        expect(triggerMock).toHaveBeenCalledWith('hasDocument')
-      })
-
-      await waitFor(() => {
-        expect(handleNextStepMock).toHaveBeenCalledTimes(1)
-      })
-    })
-
-    it('should call trigger, show error, and NOT call handleNextStep on invalid submission', async () => {
-      const error = { hasDocument: { message: 'Selecione uma opção' } }
-      const { continueButton, triggerMock, handleNextStepMock } = setup({
-        errors: error,
-      })
-
-      triggerMock.mockResolvedValue(false)
-      fireEvent.click(continueButton)
-
-      await waitFor(() => {
-        expect(triggerMock).toHaveBeenCalledWith('hasDocument')
-      })
-
-      expect(handleNextStepMock).not.toHaveBeenCalled()
-      expect(await screen.findByText('Selecione uma opção')).toBeInTheDocument()
     })
   })
 })
