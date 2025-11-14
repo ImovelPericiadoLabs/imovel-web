@@ -23,7 +23,7 @@ export default function DocumentUpload({ onFileSelect }: DocumentUploadAreaProps
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault()
     setIsDragging(false)
-    const file = e.dataTransfer.files[0]
+    const file = e?.dataTransfer?.files[0]
     if (file && isValidFile(file)) {
       onFileSelect(file)
     }
