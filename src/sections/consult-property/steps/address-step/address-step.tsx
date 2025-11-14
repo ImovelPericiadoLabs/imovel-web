@@ -32,7 +32,7 @@ export function AddressStep() {
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-5 px-4">
       <TextTitle>Para começar, onde fica seu imóvel?</TextTitle>
 
       <AutoCompleteAddressInput
