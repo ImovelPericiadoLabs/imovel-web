@@ -37,19 +37,19 @@ export function DocumentTypeStep() {
           <OptionCard
             icon={Users}
             title="Contrato de compra e venda"
-            subtitle="Acordo particular entre comprador e vendedor."
+            subtitle="Acordo particular entre comprador e vendedor"
             onClick={() => handleSelect('contract')}
           />
           <OptionCard
             icon={FileText}
             title="Matrícula"
-            subtitle="Documento principal do imóvel."
+            subtitle="Documento principal do imóvel"
             onClick={() => handleSelect('registration')}
           />
           <OptionCard
             icon={FileSignature}
             title="Escritura"
-            subtitle="Contrato oficial registrado no cartório."
+            subtitle="Contrato oficial registrado no cartório"
             onClick={() => handleSelect('deed')}
           />
         </div>

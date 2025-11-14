@@ -72,7 +72,7 @@ describe('AddressStep', () => {
       queryFn()
       return {
         data: [{ street: 'A', city: 'B', value: 'C' }],
-        isFetching: false,
+        isLoading: false,
       }
     })
 
@@ -87,7 +87,7 @@ describe('AddressStep', () => {
   it('should render title and input', () => {
     useQueryMock.mockReturnValue({
       data: [],
-      isFetching: false,
+      isLoading: false,
     })
 
     render(<AddressStep />)
@@ -101,7 +101,7 @@ describe('AddressStep', () => {
   it('should call setValue and handleNextStep when confirming address', () => {
     useQueryMock.mockReturnValue({
       data: [],
-      isFetching: false,
+      isLoading: false,
     })
 
     render(<AddressStep />)
@@ -116,7 +116,7 @@ describe('AddressStep', () => {
   it('should show loading when fetching', () => {
     useQueryMock.mockReturnValue({
       data: [],
-      isFetching: true,
+      isLoading: true,
     })
 
     render(<AddressStep />)

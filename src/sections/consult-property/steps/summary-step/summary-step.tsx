@@ -30,6 +30,12 @@ const registretionData = [
 export function SummaryStep() {
   const { getValues, handleNextStep } = useFormContext() as FormContextWithSteps
 
+  const mapDocumentType: Record<string, string> = {
+    contract: 'Contrato de compra e venda',
+    registration: 'Matrícula',
+    deed: 'Escritura',
+  }
+
   const summary = {
     address: {
       icon: MapPin,
@@ -44,7 +50,7 @@ export function SummaryStep() {
     documentType: {
       icon: Users,
       title: 'Tipo de documento',
-      value: 'Contrato de compra e venda',
+      value: mapDocumentType[getValues('documentType')],
     },
   }
 
@@ -53,27 +59,29 @@ export function SummaryStep() {
       <TextTitle>Resumo do imóvel </TextTitle>
 
       <div className="w-full mt-3.5 bg-white rounded-sm border-[0.5px] border-box">
-        {Object.entries(summary).map(([key, value]) => (
-          <div
-            key={key}
-            className="w-full p-4 flex items-start gap-4 px-4 border-b border-hr last:border-b-0"
-          >
-            <div className="shrink-0 my-auto">
-              <value.icon className="size-6" />
-            </div>
-            <div className="flex flex-col gap-2 text-start min-w-0">
-              <h3 className="text-sm font-semibold leading-[130%]">{value.title}</h3>
+        {Object.entries(summary)
+          .filter(([_, value]) => !!value?.value?.length)
+          .map(([key, value]) => (
+            <div
+              key={key}
+              className="w-full p-4 flex items-start gap-4 px-4 border-b border-hr last:border-b-0"
+            >
+              <div className="shrink-0 my-auto">
+                <value.icon className="size-6" />
+              </div>
+              <div className="flex flex-col gap-2 text-start min-w-0">
+                <h3 className="text-sm font-semibold leading-[130%]">{value.title}</h3>
 
-              <p className="text-xs font-normal leading-[130%] text-gray-2">{value.value}</p>
+                <p className="text-xs font-normal leading-[130%] text-gray-2">{value.value}</p>
 
-              {key === 'document' && (
-                <span className="w-fit uppercase text-xs font-medium leading-[130%] px-2 py-0.5 text-primary border border-primary rounded-full">
-                  Reconhecido automaticamente
-                </span>
-              )}
+                {key === 'document' && (
+                  <span className="w-fit uppercase text-xs font-medium leading-[130%] px-2 py-0.5 text-primary border border-primary rounded-full">
+                    Reconhecido automaticamente
+                  </span>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
       </div>
 
       <div className="flex flex-col gap-2">

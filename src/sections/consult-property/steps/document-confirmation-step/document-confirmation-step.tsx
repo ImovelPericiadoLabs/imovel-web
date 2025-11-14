@@ -14,6 +14,7 @@ export function DocumentConfirmationStep() {
     setValue('hasDocument', value, { shouldValidate: true })
     handleNextStep()
     if (!value) {
+      setValue('documentType', undefined)
       handleNextStep()
       handleNextStep()
     }

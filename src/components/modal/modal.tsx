@@ -19,11 +19,11 @@ export default function Modal({ children, content, title, open, onClose, onBack 
   const isControlled = typeof open === 'boolean'
   const isOpen = isControlled ? open : internalOpen
 
-  const modalRoot = typeof window !== 'undefined' ? document.body : null
+  const modalRoot = document?.body
 
   const trigger =
     children && isValidElement(children)
-      ? cloneElement(children as ReactElement, {
+      ? cloneElement(children as ReactElement<{ onClick?: () => void }>, {
           onClick: () => !isControlled && setInternalOpen(true),
         })
       : children
@@ -40,8 +40,7 @@ export default function Modal({ children, content, title, open, onClose, onBack 
     else setInternalOpen(false)
   }
 
-  if (!modalRoot) return trigger ?? null
-  if (!isOpen) return trigger ?? null
+  if (!isOpen) return trigger
 
   return (
     <>
@@ -49,12 +48,9 @@ export default function Modal({ children, content, title, open, onClose, onBack 
 
       {ReactDOM.createPortal(
         <div className="fixed inset-0 z-50 flex justify-center items-start">
-          {/* Overlay */}
           <div className="absolute inset-0 bg-black/40" onClick={handleClose} />
 
-          {/* Modal */}
           <div className="relative bg-white w-full h-full shadow-lg animate-slide-up flex flex-col overflow-hidden">
-            {/* Header */}
             <div className="flex flex-row items-center gap-1 mb-0 p-4">
               <button onClick={handleClose}>
                 <ChevronLeft className="size-7 text-primary" />
