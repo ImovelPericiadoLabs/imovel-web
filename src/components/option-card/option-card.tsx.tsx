@@ -8,20 +8,13 @@ interface OptionCardProps {
   title: string
   subtitle: string
   onClick: () => void
-  isSelected: boolean
 }
 
 /**
  * Componente de card reutilizável para seleção de opções.
  * Usado nas etapas de confirmação e tipo de documento.
  */
-export default function OptionCard({
-  icon: Icon,
-  title,
-  subtitle,
-  onClick,
-  isSelected,
-}: OptionCardProps) {
+export default function OptionCard({ icon: Icon, title, subtitle, onClick }: OptionCardProps) {
   return (
     <button
       type="button"
@@ -32,9 +25,7 @@ export default function OptionCard({
         'shadow-[0_1px_2px_rgba(10,13,18,0.05)]',
         'h-full',
         'text-left',
-        isSelected
-          ? 'border-primary ring-2 ring-primary/20'
-          : 'hover:border-gray-300',
+        'hover:border-gray-300',
       )}
     >
       <Icon className={cn('size-6 shrink-0 text-dark')} />

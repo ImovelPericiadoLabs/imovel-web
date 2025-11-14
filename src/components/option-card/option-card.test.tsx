@@ -39,20 +39,4 @@ describe('OptionCard', () => {
     fireEvent.click(card)
     expect(onClickMock).toHaveBeenCalledTimes(1)
   })
-
-  it('should apply default styles when isSelected is false', () => {
-    const { card } = setup({ isSelected: false })
-
-    expect(card).toHaveClass('border-[#E7E7E7]')
-    expect(card).not.toHaveClass('border-primary')
-    expect(card).not.toHaveClass('ring-2')
-  })
-
-  it('should apply selected styles when isSelected is true', () => {
-    const { card } = setup({ isSelected: true })
-
-    expect(card).toHaveClass('border-primary')
-    expect(card).toHaveClass('ring-2')
-    expect(card).toHaveClass('ring-primary/20')
-  })
 })

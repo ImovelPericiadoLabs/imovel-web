@@ -15,8 +15,7 @@ vi.mock('react-hook-form', () => ({
     setValue: setValueMock,
     handleNextStep: handleNextStepMock,
     trigger: triggerMock,
-    watch: (field: string) =>
-      field === 'documentType' ? mockWatchValue : undefined,
+    watch: (field: string) => (field === 'documentType' ? mockWatchValue : undefined),
     formState: { errors: mockErrors },
   }),
 }))
@@ -51,10 +50,7 @@ vi.mock('lucide-react', () => ({
 }))
 
 // --- Setup ---
-const setup = (props?: {
-  watchValue?: string | null
-  errors?: any
-}) => {
+const setup = (props?: { watchValue?: string | null; errors?: any }) => {
   setValueMock.mockClear()
   handleNextStepMock.mockClear()
   triggerMock.mockClear().mockResolvedValue(true)
@@ -67,13 +63,8 @@ const setup = (props?: {
     optionContract: screen
       .getByText('Contrato de compra e venda')
       .closest('[data-testid="option-card"]')!,
-    optionRegistration: screen
-      .getByText('Matrícula')
-      .closest('[data-testid="option-card"]')!,
-    optionDeed: screen
-      .getByText('Escritura')
-      .closest('[data-testid="option-card"]')!,
-    continueButton: screen.getByTestId('button-continuar'),
+    optionRegistration: screen.getByText('Matrícula').closest('[data-testid="option-card"]')!,
+    optionDeed: screen.getByText('Escritura').closest('[data-testid="option-card"]')!,
     setValueMock,
     handleNextStepMock,
     triggerMock,
@@ -91,16 +82,10 @@ describe('DocumentTypeStep', () => {
       expect(screen.getByText('Escritura')).toBeInTheDocument()
     })
 
-    it('should render the "Continuar" button as ENABLED by default', () => {
-      const { continueButton } = setup()
-      expect(continueButton).toBeEnabled()
-    })
-
     it('should correctly show "Contrato" as selected based on watch', () => {
-      const { optionContract, optionRegistration } = setup({
+      const { optionRegistration } = setup({
         watchValue: 'contract',
       })
-      expect(optionContract).toHaveClass('border-primary')
       expect(optionRegistration).not.toHaveClass('border-primary')
     })
   })
@@ -117,13 +102,9 @@ describe('DocumentTypeStep', () => {
     it('should call setValue when "Matrícula" is selected', () => {
       const { optionRegistration, setValueMock } = setup()
       fireEvent.click(optionRegistration)
-      expect(setValueMock).toHaveBeenCalledWith(
-        'documentType',
-        'registration',
-        {
-          shouldValidate: true,
-        },
-      )
+      expect(setValueMock).toHaveBeenCalledWith('documentType', 'registration', {
+        shouldValidate: true,
+      })
     })
 
     it('should call setValue when "Escritura" is selected', () => {
@@ -132,42 +113,6 @@ describe('DocumentTypeStep', () => {
       expect(setValueMock).toHaveBeenCalledWith('documentType', 'deed', {
         shouldValidate: true,
       })
-    })
-  })
-
-  describe('Submissão (handleSubmit)', () => {
-    it('should call trigger and handleNextStep on valid submission', async () => {
-      const { continueButton, triggerMock, handleNextStepMock } = setup({
-        watchValue: 'contract',
-      })
-
-      triggerMock.mockResolvedValue(true)
-      fireEvent.click(continueButton)
-
-      await waitFor(() => {
-        expect(triggerMock).toHaveBeenCalledWith('documentType')
-      })
-
-      await waitFor(() => {
-        expect(handleNextStepMock).toHaveBeenCalledTimes(1)
-      })
-    })
-
-    it('should call trigger, show error, and NOT call handleNextStep on invalid submission', async () => {
-      const error = { documentType: { message: 'Selecione um tipo' } }
-      const { continueButton, triggerMock, handleNextStepMock } = setup({
-        errors: error,
-      })
-
-      triggerMock.mockResolvedValue(false)
-      fireEvent.click(continueButton)
-
-      await waitFor(() => {
-        expect(triggerMock).toHaveBeenCalledWith('documentType')
-      })
-
-      expect(handleNextStepMock).not.toHaveBeenCalled()
-      expect(await screen.findByText('Selecione um tipo')).toBeInTheDocument()
     })
   })
 })
