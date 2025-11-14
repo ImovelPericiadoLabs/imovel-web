@@ -21,7 +21,7 @@ export default function OptionCard({ icon: Icon, title, subtitle, onClick }: Opt
       onClick={onClick}
       data-testid="option-card"
       className={cn(
-        'flex items-center gap-4 p-4 bg-white rounded-lg border border-[#E7E7E7] cursor-pointer transition-all duration-200 h-full',
+        'flex items-center gap-4 p-4 bg-white rounded-lg border border-box cursor-pointer transition-all duration-200 h-full',
         'shadow-[0_1px_2px_rgba(10,13,18,0.05)]',
         'h-full',
         'text-left',

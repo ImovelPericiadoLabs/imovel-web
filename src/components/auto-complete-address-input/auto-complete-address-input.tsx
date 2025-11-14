@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef } from 'react'
 import { Search, X, MapPin } from 'lucide-react'
 import { cn } from '@/utils/tailwind'
 import Button from '@/components/button'
