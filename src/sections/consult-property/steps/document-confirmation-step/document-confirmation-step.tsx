@@ -15,6 +15,8 @@ export function DocumentConfirmationStep() {
     handleNextStep()
     if (!value) {
       setValue('documentType', undefined)
+      setValue('document', undefined)
+      setValue('documentPreview', undefined)
       handleNextStep()
       handleNextStep()
     }

@@ -9,10 +9,10 @@ export const validations = z
     documentType: DocumentTypeEnum.optional(),
     document: z.object({
       id: z.string(),
-      name: z.string(),
-      size: z.number(),
-      file: z.instanceof(File),
-      type: z.string(),
+      file_path: z.string().url(),
+      file_hash: z.string(),
+      original_name: z.string(),
+      extension: z.string(),
     }),
   })
   .refine(

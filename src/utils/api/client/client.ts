@@ -20,13 +20,19 @@ const api = {
     return result
   },
 
-  async post(url: string, body: object) {
+  async post(url: string, rawBody: object) {
+    const isFormData = rawBody instanceof FormData
+
+    const headers: Record<string, string> = {}
+
+    if (!isFormData) {
+      headers['Content-Type'] = 'application/json'
+    }
+
     const response = await fetch(`${apiUrl}${url}`, {
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(body),
       method: 'POST',
+      headers,
+      body: isFormData ? rawBody : JSON.stringify(rawBody),
     })
 
     const result = await response.json()

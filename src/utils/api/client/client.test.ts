@@ -4,15 +4,19 @@ import api from './client'
 const mockFetch = vi.fn()
 global.fetch = mockFetch as unknown as typeof fetch
 
-const mockJson = (data: object, status = 200) =>
+const mockJsonResponse = (data: object, status = 200, ok = status < 400) =>
   Promise.resolve({
     status,
+    ok,
     json: () => Promise.resolve(data),
+    text: () => Promise.resolve(JSON.stringify(data)),
   })
 
-const mockText = (data: string, status = 200) =>
+const mockTextResponse = (data: string, status = 200, ok = status < 400) =>
   Promise.resolve({
     status,
+    ok,
+    json: () => Promise.reject(new Error('Não é um JSON válido')),
     text: () => Promise.resolve(data),
   })
 
@@ -22,7 +26,7 @@ beforeEach(() => {
 
 describe('api.get', () => {
   it('should perform GET and return JSON data', async () => {
-    mockFetch.mockResolvedValue(mockJson({ ok: true }))
+    mockFetch.mockResolvedValue(mockJsonResponse({ ok: true }))
 
     const result = await api.get('/test')
 
@@ -34,15 +38,15 @@ describe('api.get', () => {
   })
 
   it('should throw when status is 401', async () => {
-    mockFetch.mockResolvedValue(mockJson({ error: 'Unauthorized' }, 401))
+    mockFetch.mockResolvedValue(mockJsonResponse({ error: 'Unauthorized' }, 401))
 
     await expect(api.get('/test')).rejects.toEqual({ error: 'Unauthorized' })
   })
 })
 
 describe('api.post', () => {
-  it('should perform POST and return JSON data', async () => {
-    mockFetch.mockResolvedValue(mockJson({ created: true }))
+  it('should perform POST with JSON body and return JSON data', async () => {
+    mockFetch.mockResolvedValue(mockJsonResponse({ created: true }))
 
     const body = { name: 'Test' }
     const result = await api.post('/test', body)
@@ -55,8 +59,23 @@ describe('api.post', () => {
     })
   })
 
+  it('should handle FormData correctly without setting a Content-Type header', async () => {
+    mockFetch.mockResolvedValue(mockJsonResponse({ uploaded: true }))
+
+    const formData = new FormData()
+    formData.append('file', new Blob(['file content']), 'file.txt')
+
+    await api.post('/upload', formData)
+
+    expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('/upload'), {
+      method: 'POST',
+      headers: {},
+      body: formData,
+    })
+  })
+
   it('should throw when status is 401', async () => {
-    mockFetch.mockResolvedValue(mockJson({ error: 'Unauthorized' }, 401))
+    mockFetch.mockResolvedValue(mockJsonResponse({ error: 'Unauthorized' }, 401))
 
     await expect(api.post('/test', {})).rejects.toEqual({ error: 'Unauthorized' })
   })
@@ -64,7 +83,7 @@ describe('api.post', () => {
 
 describe('api.put', () => {
   it('should perform PUT and return text response', async () => {
-    mockFetch.mockResolvedValue(mockText('updated'))
+    mockFetch.mockResolvedValue(mockTextResponse('updated'))
 
     const result = await api.put('/test', { value: 'A' })
 
@@ -77,7 +96,7 @@ describe('api.put', () => {
   })
 
   it('should throw when status is 401', async () => {
-    mockFetch.mockResolvedValue(mockText('error', 401))
+    mockFetch.mockResolvedValue(mockTextResponse('error', 401))
 
     await expect(api.put('/test', {})).rejects.toBe('error')
   })
@@ -85,7 +104,7 @@ describe('api.put', () => {
 
 describe('api.delete', () => {
   it('should perform DELETE and return text response', async () => {
-    mockFetch.mockResolvedValue(mockText('deleted'))
+    mockFetch.mockResolvedValue(mockTextResponse('deleted'))
 
     const result = await api.delete('/test')
 
@@ -97,7 +116,7 @@ describe('api.delete', () => {
   })
 
   it('should throw when status is 401', async () => {
-    mockFetch.mockResolvedValue(mockText('unauthorized', 401))
+    mockFetch.mockResolvedValue(mockTextResponse('unauthorized', 401))
 
     await expect(api.delete('/test')).rejects.toBe('unauthorized')
   })

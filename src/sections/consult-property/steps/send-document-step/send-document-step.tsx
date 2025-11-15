@@ -1,9 +1,13 @@
-import { useFormContext } from 'react-hook-form'
 import type { FormContextWithSteps } from '@/sections/consult-property/types'
+import { useFormContext } from 'react-hook-form'
+import { useMutation } from '@tanstack/react-query'
 import TextTitle from '@/components/text-title'
 import DocumentUpload from '@/components/document-upload'
 import DocumentItem from '@/components/document-item'
 import Button from '@/components/button'
+import Alert from '@/components/alert'
+import LoadingOverlay from '@/components/loading-overlay'
+import { uploadDocument } from '@/services/documents'
 
 interface UploadedDocument {
   id: string
@@ -14,11 +18,25 @@ interface UploadedDocument {
 }
 
 export function SendDocumentStep() {
-  const { handleNextStep, setValue, watch } = useFormContext() as FormContextWithSteps
+  const { handleNextStep, setValue, watch, formState, trigger, clearErrors, setError } =
+    useFormContext() as FormContextWithSteps
 
-  const document = watch('document')
+  const documentPreview = watch('documentPreview')
+
+  const { mutateAsync, isPending } = useMutation({
+    mutationFn: uploadDocument,
+    onSuccess(data) {
+      setValue('document', data)
+    },
+    onError() {
+      setError('document', {
+        message: 'Ocorreu um erro aotentar fazer o upload do arquivo! Favor tete mais tarde.',
+      })
+    },
+  })
 
   async function handleFileSelect(file: File) {
+    clearErrors('document')
     const sizeMB = Math.round((file.size / (1024 * 1024)) * 10) / 10
     const newDoc: UploadedDocument = {
       id: Date.now().toString(),
@@ -28,11 +46,23 @@ export function SendDocumentStep() {
       type: file.type,
     }
 
-    setValue('document', newDoc)
+    setValue('documentPreview', newDoc)
+
+    await mutateAsync(file)
   }
 
   function handleRemoveDocument() {
-    setValue('document', null)
+    setValue('documentPreview', undefined)
+    setValue('document', undefined)
+    clearErrors('document')
+  }
+
+  async function handleContinue() {
+    const isValid = await trigger('document')
+
+    if (isValid) {
+      handleNextStep()
+    }
   }
 
   return (
@@ -41,13 +71,22 @@ export function SendDocumentStep() {
 
       <DocumentUpload onFileSelect={handleFileSelect} />
 
-      {!!document && <DocumentItem document={document} onRemove={handleRemoveDocument} />}
+      {!!documentPreview && (
+        <DocumentItem document={documentPreview} onRemove={handleRemoveDocument} />
+      )}
 
-      {!!document && (
+      {formState.errors?.document?.message && (
+        <Alert variant="error" message={formState.errors?.document?.message as string} />
+      )}
+
+      {!!documentPreview && (
         <div className="mt-32">
-          <Button onClick={handleNextStep}>Continuar</Button>
+          <Button disabled={!!formState.errors?.document?.message} onClick={handleContinue}>
+            Continuar
+          </Button>
         </div>
       )}
+      <LoadingOverlay isLoading={isPending} message="Fazendo o upload do documento" />
     </div>
   )
 }
