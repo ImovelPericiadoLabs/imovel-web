@@ -52,20 +52,20 @@ export default function Modal({ children, content, title, open, onClose, onBack 
 
           <div className="relative bg-white w-full h-full shadow-lg animate-slide-up flex flex-col overflow-hidden">
             <div className="flex flex-row items-center gap-1 mb-0 p-4">
-              <button onClick={handleClose}>
+              <button onClick={handleClose} className="cursor-pointer">
                 <ChevronLeft className="size-7 text-primary" />
               </button>
 
               <h2 className="text-sm font-semibold">{title}</h2>
 
-              <button onClick={handleClose} className="ml-auto">
+              <button onClick={handleClose} className="ml-auto cursor-pointer">
                 <X className="size-7" />
               </button>
             </div>
 
             <hr className="border border-box" />
 
-            <div className="overflow-y-auto">{content}</div>
+            <div className="overflow-y-auto scrollbar-hide">{content}</div>
           </div>
         </div>,
         modalRoot,

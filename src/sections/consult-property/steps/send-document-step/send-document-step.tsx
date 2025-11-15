@@ -18,7 +18,7 @@ export function SendDocumentStep() {
 
   const document = watch('document')
 
-  function handleFileSelect(file: File) {
+  async function handleFileSelect(file: File) {
     const sizeMB = Math.round((file.size / (1024 * 1024)) * 10) / 10
     const newDoc: UploadedDocument = {
       id: Date.now().toString(),
@@ -35,8 +35,6 @@ export function SendDocumentStep() {
     setValue('document', null)
   }
 
-  console.log(document)
-
   return (
     <div className="flex flex-col h-full gap-5 px-4">
       <TextTitle>Envie o documento</TextTitle>
@@ -46,7 +44,7 @@ export function SendDocumentStep() {
       {!!document && <DocumentItem document={document} onRemove={handleRemoveDocument} />}
 
       {!!document && (
-        <div className="absolute bottom-0 left-0 right-0 px-4 pb-20">
+        <div className="mt-32">
           <Button onClick={handleNextStep}>Continuar</Button>
         </div>
       )}
