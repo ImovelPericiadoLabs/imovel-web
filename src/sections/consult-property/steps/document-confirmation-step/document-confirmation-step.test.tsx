@@ -14,6 +14,8 @@ vi.mock('react-hook-form', () => ({
   useFormContext: () => ({
     setValue: setValueMock,
     handleNextStep: handleNextStepMock,
+    setHasDocument: vi.fn(),
+    setStep: vi.fn(),
     trigger: triggerMock,
     watch: (field: string) => (field === 'hasDocument' ? mockWatchValue : undefined),
     formState: { errors: mockErrors },

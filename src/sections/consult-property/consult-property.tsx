@@ -17,6 +17,7 @@ import { validations, FormTypes } from '@/sections/consult-property/validations'
 
 export default function ConsultProperty() {
   const [step, setStep] = useState<number>(1)
+  const [hasDocument, setHasDocument] = useState(false)
   const totalSteps = 6
 
   const { push } = useRouter()
@@ -39,14 +40,24 @@ export default function ConsultProperty() {
   function handleGoBack() {
     if (step === 1) {
       push('/')
-    } else {
-      handlePreviousStep()
+
+      return
     }
+
+    if (step === 4) {
+      if (!hasDocument) {
+        setStep(3)
+      }
+    }
+
+    handlePreviousStep()
   }
 
   const formContextValue = {
     ...methods,
     handleNextStep,
+    setStep,
+    setHasDocument,
   }
 
   return (
