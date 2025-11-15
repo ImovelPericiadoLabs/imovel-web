@@ -32,20 +32,22 @@ export async function listAddresses(address: string) {
 
   const addresses = (await api.post(endpoint.addresses, data)) as AddressApiResponse
 
-  return addresses?.suggestions?.map((item) => {
-    const place = item.placePrediction
-    const query = item.queryPrediction
+  return (
+    addresses?.suggestions?.map((item) => {
+      const place = item.placePrediction
+      const query = item.queryPrediction
 
-    return {
-      street:
-        place?.structuredFormat?.mainText?.text ?? query?.structuredFormat?.mainText?.text ?? '',
+      return {
+        street:
+          place?.structuredFormat?.mainText?.text ?? query?.structuredFormat?.mainText?.text ?? '',
 
-      city:
-        place?.structuredFormat?.secondaryText?.text ??
-        query?.structuredFormat?.secondaryText?.text ??
-        '',
+        city:
+          place?.structuredFormat?.secondaryText?.text ??
+          query?.structuredFormat?.secondaryText?.text ??
+          '',
 
-      value: place?.text?.text ?? query?.text?.text ?? '',
-    }
-  })
+        value: place?.text?.text ?? query?.text?.text ?? '',
+      }
+    }) || []
+  )
 }
