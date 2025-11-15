@@ -1,0 +1,70 @@
+@import "tailwindcss";
+
+
+@layer base {
+  body {
+    background-color: var(--color-background);
+    color: var(--color-dark-text);
+    font-family: var(--font-noto-sans), sans-serif;
+  }
+
+  :root {
+    /* ---------------------------------------------------------------------- */
+    /* 1a. BASE COLOR PALETTE (Universal Primitive Tokens)                    */
+    /* ---------------------------------------------------------------------- */
+    --color-violet-600: #7F56D9;
+  }
+}
+
+@theme {
+  /* ====================================================================== */
+  /* 1. SEMANTIC TOKENS (Decision Tokens for the Default Theme)             */
+  /* ====================================================================== */
+  /* These variables give purpose to the colors. They are mapped from your  */
+  /* original theme values to the new, structured :root palette.            */
+
+  /* ---------------------------------------------------------------------- */
+  /* General Layout & Surfaces                                              */
+  /* ---------------------------------------------------------------------- */
+  --color-background: #F6F5FA;
+  --color-dark: #222222;
+  --color-input-border: #D5D7DA;
+  --color-gray:#ADADAD;
+  --color-gray-2: #5C5C5C;
+  --color-gray-200: #E9EAEB;
+  --color-gray-600: #535862;
+  --color-hr: #E6E6E6;
+  --color-box: #E7E7E7;
+  --color-handle: #79747E;
+
+  /* ---------------------------------------------------------------------- */
+  /* Primary Actions (Main buttons, highlighted links, etc.)                */
+  /* ---------------------------------------------------------------------- */
+  --color-primary: var(--color-violet-600);
+  --color-primary-hover:  var(--color-violet-500);
+  
+
+  /* ====================================================================== */
+  /* 2. SIZING & RADIUS                                                     */
+  /* ====================================================================== */
+  --radius-sm: 8px;
+  --radius-md: calc(0.625rem - 2px);
+  --radius-lg: 0.625rem;
+  --radius-xl: calc(0.625rem + 4px);
+
+  /* ====================================================================== */
+  /* 3. ANIMATIONS                                                          */
+  /* ====================================================================== */
+  --animate-travel-square: travel-square 4s linear infinite;
+  --animate-pulse-text: pulse-text 2s ease-in-out infinite;
+}
+
+@layer utilities {
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}

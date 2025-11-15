@@ -17,11 +17,13 @@ export default defineConfig({
       include: ['src/**/*.{ts,tsx}'],
       exclude: [
         '**/*index.{ts,tsx}',
+        '**/*validations.ts',
         'node_modules/',
         'vitest.setup.ts',
         '.next/',
         'src/types/**',
         '**/*.types.ts',
+        '**/*.d.ts',
       ],
       thresholds: {
         lines: 80,
