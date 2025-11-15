@@ -1,22 +1,27 @@
 import api from '@/utils/api/client'
 import { endpoint } from '@/constants/api'
 
+type TextField = {
+  text?: string
+}
+
+type StructuredFormat = {
+  mainText?: TextField
+  secondaryText?: TextField
+}
+
+type Prediction = {
+  structuredFormat?: StructuredFormat
+  text?: TextField
+}
+
+type Suggestion = {
+  placePrediction?: Prediction
+  queryPrediction?: Prediction
+}
+
 type AddressApiResponse = {
-  suggestions?: {
-    placePrediction?: {
-      structuredFormat?: {
-        mainText?: {
-          text?: string
-        }
-        secondaryText?: {
-          text?: string
-        }
-      }
-      text?: {
-        text?: string
-      }
-    }
-  }[]
+  suggestions?: Suggestion[]
 }
 
 export async function listAddresses(address: string) {
@@ -24,11 +29,25 @@ export async function listAddresses(address: string) {
     q: address,
     with_registry: false,
   }
+
   const addresses = (await api.post(endpoint.addresses, data)) as AddressApiResponse
 
-  return addresses?.suggestions?.map((item) => ({
-    street: item?.placePrediction?.structuredFormat?.mainText?.text,
-    city: item?.placePrediction?.structuredFormat?.secondaryText?.text,
-    value: item?.placePrediction?.text?.text,
-  }))
+  return (
+    addresses?.suggestions?.map((item) => {
+      const place = item.placePrediction
+      const query = item.queryPrediction
+
+      return {
+        street:
+          place?.structuredFormat?.mainText?.text ?? query?.structuredFormat?.mainText?.text ?? '',
+
+        city:
+          place?.structuredFormat?.secondaryText?.text ??
+          query?.structuredFormat?.secondaryText?.text ??
+          '',
+
+        value: place?.text?.text ?? query?.text?.text ?? '',
+      }
+    }) || []
+  )
 }

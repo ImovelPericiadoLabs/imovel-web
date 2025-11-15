@@ -11,7 +11,6 @@ vi.mock('@/utils/api/client', () => ({
 }))
 
 const mockPost = api.post as unknown as ReturnType<typeof vi.fn>
-
 const endpointAddresses = endpoint.addresses
 
 describe('listAddresses', () => {
@@ -30,7 +29,7 @@ describe('listAddresses', () => {
     })
   })
 
-  it('should map suggestions to formatted address objects', async () => {
+  it('should map placePrediction suggestions correctly', async () => {
     mockPost.mockResolvedValue({
       suggestions: [
         {
@@ -56,15 +55,33 @@ describe('listAddresses', () => {
     ])
   })
 
-  it('should return empty array when suggestions is empty', async () => {
-    mockPost.mockResolvedValue({ suggestions: [] })
+  it('should map queryPrediction when placePrediction is missing', async () => {
+    mockPost.mockResolvedValue({
+      suggestions: [
+        {
+          queryPrediction: {
+            structuredFormat: {
+              mainText: { text: 'Av Brasil' },
+              secondaryText: { text: 'Curitiba' },
+            },
+            text: { text: 'av-brasil-ctba' },
+          },
+        },
+      ],
+    })
 
-    const result = await listAddresses('anything')
+    const result = await listAddresses('Av Brasil')
 
-    expect(result).toEqual([])
+    expect(result).toEqual([
+      {
+        street: 'Av Brasil',
+        city: 'Curitiba',
+        value: 'av-brasil-ctba',
+      },
+    ])
   })
 
-  it('should return undefined values when fields are missing', async () => {
+  it('should return empty strings when fields are missing', async () => {
     mockPost.mockResolvedValue({
       suggestions: [
         {
@@ -80,18 +97,26 @@ describe('listAddresses', () => {
 
     expect(result).toEqual([
       {
-        street: undefined,
-        city: undefined,
-        value: undefined,
+        street: '',
+        city: '',
+        value: '',
       },
     ])
   })
 
-  it('should return undefined when suggestions is undefined', async () => {
+  it('should return empty array when suggestions is undefined', async () => {
     mockPost.mockResolvedValue({})
 
     const result = await listAddresses('test')
 
-    expect(result).toEqual(undefined)
+    expect(result).toEqual([])
+  })
+
+  it('should return empty array when suggestions is empty', async () => {
+    mockPost.mockResolvedValue({ suggestions: [] })
+
+    const result = await listAddresses('anything')
+
+    expect(result).toEqual([])
   })
 })
