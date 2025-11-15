@@ -1,140 +1,231 @@
-import { render, screen, fireEvent } from '@testing-library/react'
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach, Mock } from 'vitest'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { useFormContext, FieldError } from 'react-hook-form'
+import { MutationFunctionContext, useMutation, UseMutationOptions } from '@tanstack/react-query'
 import { SendDocumentStep } from './send-document-step'
 
-const setValueMock = vi.fn()
-const handleNextStepMock = vi.fn()
-const watchMock = vi.fn()
+interface UploadedDocument {
+  id: string
+  name: string
+  size: number
+  file: File
+  type: string
+}
 
 vi.mock('react-hook-form', () => ({
-  useFormContext: () => ({
-    setValue: setValueMock,
-    handleNextStep: handleNextStepMock,
-    watch: watchMock,
-  }),
+  useFormContext: vi.fn(),
+}))
+
+vi.mock('@tanstack/react-query', () => ({
+  useMutation: vi.fn(),
 }))
 
 vi.mock('@/components/text-title', () => ({
-  __esModule: true,
-  default: ({ children }: { children: React.ReactNode }) => (
-    <h1 data-testid="text-title">{children}</h1>
-  ),
+  default: ({ children }: { children: React.ReactNode }) => <h1>{children}</h1>,
 }))
 
 vi.mock('@/components/document-upload', () => ({
-  __esModule: true,
   default: ({ onFileSelect }: { onFileSelect: (file: File) => void }) => (
-    <button
-      data-testid="upload-trigger"
-      onClick={() => onFileSelect(new File(['a'], 'doc.pdf', { type: 'application/pdf' }))}
-    >
-      Upload
-    </button>
-  ),
-}))
-
-vi.mock('@/components/document-item', () => ({
-  __esModule: true,
-  default: ({ onRemove }: { onRemove: () => void }) => (
-    <div data-testid="document-item">
-      <button data-testid="remove-doc" onClick={onRemove}>
-        remove
+    <div data-testid="document-upload">
+      <button onClick={() => onFileSelect(new File([''], 'test.pdf', { type: 'application/pdf' }))}>
+        Select File
       </button>
     </div>
   ),
 }))
 
+vi.mock('@/components/document-item', () => ({
+  default: ({ document, onRemove }: { document: UploadedDocument; onRemove: () => void }) => (
+    <div data-testid="document-item">
+      <span>{document.name}</span>
+      <button onClick={onRemove}>Remove</button>
+    </div>
+  ),
+}))
+
 vi.mock('@/components/button', () => ({
-  __esModule: true,
-  default: ({ onClick }: { onClick: () => void }) => (
-    <button data-testid="continue-button" onClick={onClick}>
-      Continuar
+  default: ({
+    children,
+    onClick,
+    disabled,
+  }: {
+    children: React.ReactNode
+    onClick: () => void
+    disabled?: boolean
+  }) => (
+    <button onClick={onClick} disabled={disabled}>
+      {children}
     </button>
   ),
 }))
 
+vi.mock('@/components/alert', () => ({
+  default: ({ message }: { message: string }) => <div role="alert">{message}</div>,
+}))
+
+vi.mock('@/components/loading-overlay', () => ({
+  default: ({ isLoading, message }: { isLoading: boolean; message: string }) =>
+    isLoading ? <div data-testid="loading-overlay">{message}</div> : null,
+}))
+
+const mockUseFormContext = useFormContext as Mock
+const mockUseMutation = useMutation as Mock
+
 describe('SendDocumentStep', () => {
-  it('should render the title correctly', () => {
-    watchMock.mockReturnValue(null)
+  let mockHandleNextStep: Mock<() => void>
+  let mockSetValue: Mock<(name: string, value: unknown) => void>
+  let mockWatch: Mock<(name: string) => UploadedDocument | undefined>
+  let mockTrigger: Mock<(name: string) => Promise<boolean>>
+  let mockClearErrors: Mock<(name: string) => void>
+  let mockSetError: Mock<(name: string, error: FieldError) => void>
+  let mockMutateAsync: Mock<(file: File) => Promise<unknown>>
 
-    render(<SendDocumentStep />)
+  const mockDocument: UploadedDocument = {
+    id: '12345',
+    name: 'test.pdf',
+    size: 0.1,
+    file: new File([''], 'test.pdf'),
+    type: 'application/pdf',
+  }
 
-    expect(screen.getByTestId('text-title')).toHaveTextContent('Envie o documento')
-  })
+  beforeEach(() => {
+    mockHandleNextStep = vi.fn()
+    mockSetValue = vi.fn()
+    mockWatch = vi.fn()
+    mockTrigger = vi.fn()
+    mockClearErrors = vi.fn()
+    mockSetError = vi.fn()
+    mockMutateAsync = vi.fn()
 
-  it('should render DocumentUpload', () => {
-    watchMock.mockReturnValue(null)
-
-    render(<SendDocumentStep />)
-
-    expect(screen.getByTestId('upload-trigger')).toBeInTheDocument()
-  })
-
-  it('should call setValue with a new document when uploading', () => {
-    watchMock.mockReturnValue(null)
-
-    render(<SendDocumentStep />)
-
-    const uploadButton = screen.getByTestId('upload-trigger')
-    fireEvent.click(uploadButton)
-
-    expect(setValueMock).toHaveBeenCalled()
-    const call = setValueMock.mock.calls[0]
-
-    expect(call[0]).toBe('document')
-    expect(call[1]).toMatchObject({
-      name: 'doc.pdf',
-      type: 'application/pdf',
-      size: expect.any(Number),
-      file: expect.any(File),
-    })
-  })
-
-  it('should render DocumentItem when document exists', () => {
-    watchMock.mockReturnValue({
-      id: '1',
-      name: 'file.pdf',
-      size: 1,
-      type: 'application/pdf',
-      file: new File(['a'], 'file.pdf'),
+    mockUseFormContext.mockReturnValue({
+      handleNextStep: mockHandleNextStep,
+      setValue: mockSetValue,
+      watch: mockWatch,
+      formState: { errors: {} },
+      trigger: mockTrigger,
+      clearErrors: mockClearErrors,
+      setError: mockSetError,
     })
 
-    render(<SendDocumentStep />)
+    mockUseMutation.mockImplementation((options: UseMutationOptions<unknown, Error, File>) => ({
+      mutateAsync: async (file: File) => {
+        try {
+          const data = await mockMutateAsync(file)
+          if (options.onSuccess) {
+            options.onSuccess(data, file, {}, {} as MutationFunctionContext)
+          }
+          return data
+        } catch (error) {
+          if (options.onError) {
+            options.onError(error as Error, file, {}, {} as MutationFunctionContext)
+          }
+        }
+      },
+      isPending: false,
+    }))
 
+    mockWatch.mockReturnValue(undefined)
+  })
+
+  afterEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('should render the initial state correctly', () => {
+    render(<SendDocumentStep />)
+    expect(screen.getByText('Envie o documento')).toBeInTheDocument()
+    expect(screen.getByTestId('document-upload')).toBeInTheDocument()
+    expect(screen.queryByTestId('document-item')).not.toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(screen.queryByText('Continuar')).not.toBeInTheDocument()
+  })
+
+  it('should handle file selection and successful upload', async () => {
+    const uploadedData = { id: 'doc-123', url: 'http://example.com/test.pdf' }
+    mockMutateAsync.mockResolvedValue(uploadedData)
+
+    render(<SendDocumentStep />)
+    const fileSelectButton = screen.getByText('Select File')
+    fireEvent.click(fileSelectButton)
+
+    await waitFor(() => {
+      expect(mockSetValue).toHaveBeenCalledWith('document', uploadedData)
+    })
+
+    expect(mockSetValue).toHaveBeenCalledWith('documentPreview', expect.any(Object))
+    expect(mockSetValue).toHaveBeenCalledTimes(2)
+  })
+
+  it('should handle file selection and a failed upload', async () => {
+    const errorMessage =
+      'Ocorreu um erro aotentar fazer o upload do arquivo! Favor tete mais tarde.'
+    mockMutateAsync.mockRejectedValue(new Error('Upload failed'))
+
+    mockUseFormContext.mockReturnValue({
+      handleNextStep: mockHandleNextStep,
+      setValue: mockSetValue,
+      watch: vi.fn().mockReturnValue(mockDocument),
+      formState: { errors: { document: { message: errorMessage } } },
+      trigger: mockTrigger,
+      clearErrors: mockClearErrors,
+      setError: mockSetError,
+    })
+
+    render(<SendDocumentStep />)
+    const fileSelectButton = screen.getByText('Select File')
+    fireEvent.click(fileSelectButton)
+
+    await waitFor(() => {
+      expect(mockSetError).toHaveBeenCalledWith('document', { message: errorMessage })
+    })
+
+    expect(screen.getByRole('alert')).toHaveTextContent(errorMessage)
+    const continueButton = screen.getByText('Continuar')
+    expect(continueButton).toBeDisabled()
+  })
+
+  it('should remove the document when onRemove is called', () => {
+    mockWatch.mockReturnValue(mockDocument)
+    render(<SendDocumentStep />)
     expect(screen.getByTestId('document-item')).toBeInTheDocument()
+    const removeButton = screen.getByText('Remove')
+    fireEvent.click(removeButton)
+    expect(mockSetValue).toHaveBeenCalledWith('documentPreview', undefined)
+    expect(mockSetValue).toHaveBeenCalledWith('document', undefined)
+    expect(mockClearErrors).toHaveBeenCalledWith('document')
   })
 
-  it('should remove the document when clicking remove', () => {
-    watchMock.mockReturnValue({
-      id: '1',
-      name: 'file.pdf',
-      size: 1,
-      type: 'application/pdf',
-      file: new File(['a'], 'file.pdf'),
-    })
-
+  it('should call handleNextStep when continue is clicked and form is valid', async () => {
+    mockWatch.mockReturnValue(mockDocument)
+    mockTrigger.mockResolvedValue(true)
     render(<SendDocumentStep />)
-
-    const removeBtn = screen.getByTestId('remove-doc')
-    fireEvent.click(removeBtn)
-
-    expect(setValueMock).toHaveBeenCalledWith('document', null)
+    const continueButton = screen.getByText('Continuar')
+    fireEvent.click(continueButton)
+    await waitFor(() => {
+      expect(mockTrigger).toHaveBeenCalledWith('document')
+      expect(mockHandleNextStep).toHaveBeenCalled()
+    })
   })
 
-  it('should call handleNextStep when clicking continue', () => {
-    watchMock.mockReturnValue({
-      id: '1',
-      name: 'file.pdf',
-      size: 1,
-      type: 'application/pdf',
-      file: new File(['a'], 'file.pdf'),
-    })
-
+  it('should not call handleNextStep when continue is clicked and form is invalid', async () => {
+    mockWatch.mockReturnValue(mockDocument)
+    mockTrigger.mockResolvedValue(false)
     render(<SendDocumentStep />)
+    const continueButton = screen.getByText('Continuar')
+    fireEvent.click(continueButton)
+    await waitFor(() => {
+      expect(mockTrigger).toHaveBeenCalledWith('document')
+    })
+    expect(mockHandleNextStep).not.toHaveBeenCalled()
+  })
 
-    const continueBtn = screen.getByTestId('continue-button')
-    fireEvent.click(continueBtn)
-
-    expect(handleNextStepMock).toHaveBeenCalledTimes(1)
+  it('should show loading overlay while uploading', () => {
+    mockUseMutation.mockImplementation(() => ({
+      mutateAsync: mockMutateAsync,
+      isPending: true,
+    }))
+    render(<SendDocumentStep />)
+    expect(screen.getByTestId('loading-overlay')).toBeInTheDocument()
+    expect(screen.getByText('Fazendo o upload do documento')).toBeInTheDocument()
   })
 })
