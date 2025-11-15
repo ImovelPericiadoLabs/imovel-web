@@ -8,17 +8,19 @@ import type { FormContextWithSteps } from '@/sections/consult-property/types'
 import { useEffect } from 'react'
 
 export function DocumentConfirmationStep() {
-  const { setValue, handleNextStep } = useFormContext() as FormContextWithSteps
+  const { setValue, handleNextStep, setStep, setHasDocument } =
+    useFormContext() as FormContextWithSteps
 
   function handleSelect(value: boolean) {
     setValue('hasDocument', value, { shouldValidate: true })
+    setHasDocument(true)
     handleNextStep()
     if (!value) {
       setValue('documentType', undefined)
       setValue('document', undefined)
       setValue('documentPreview', undefined)
-      handleNextStep()
-      handleNextStep()
+      setStep(4)
+      setHasDocument(false)
     }
   }
 
