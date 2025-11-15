@@ -19,7 +19,7 @@ export function DocumentConfirmationStep() {
       setValue('documentType', undefined)
       setValue('document', undefined)
       setValue('documentPreview', undefined)
-      setStep(4)
+      setStep(5)
       setHasDocument(false)
     }
   }
