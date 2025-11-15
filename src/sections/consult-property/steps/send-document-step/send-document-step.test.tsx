@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach, Mock } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { useFormContext, FieldError } from 'react-hook-form'
-import { useMutation, UseMutationOptions } from '@tanstack/react-query'
+import { MutationFunctionContext, useMutation, UseMutationOptions } from '@tanstack/react-query'
 import { SendDocumentStep } from './send-document-step'
 
 interface UploadedDocument {
@@ -112,14 +112,13 @@ describe('SendDocumentStep', () => {
         try {
           const data = await mockMutateAsync(file)
           if (options.onSuccess) {
-            options.onSuccess(data, file, undefined)
+            options.onSuccess(data, file, {}, {} as MutationFunctionContext)
           }
           return data
         } catch (error) {
           if (options.onError) {
-            options.onError(error as Error, file, undefined)
+            options.onError(error as Error, file, {}, {} as MutationFunctionContext)
           }
-          throw error
         }
       },
       isPending: false,
