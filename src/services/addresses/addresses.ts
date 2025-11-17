@@ -24,6 +24,18 @@ type AddressApiResponse = {
   suggestions?: Suggestion[]
 }
 
+export type Registry = {
+  id: string
+  name: string
+  number: number
+  slug: string
+  coverage: string[]
+}
+
+type RegistryApiResponse = {
+  registry: Registry
+}
+
 export async function listAddresses(address: string) {
   const data = {
     q: address,
@@ -50,4 +62,15 @@ export async function listAddresses(address: string) {
       }
     }) || []
   )
+}
+
+export async function listRegistry(address: string) {
+  const data = {
+    q: address,
+    with_registry: true,
+  }
+
+  const addresses = (await api.post(endpoint.addresses, data)) as RegistryApiResponse
+
+  return addresses?.registry
 }

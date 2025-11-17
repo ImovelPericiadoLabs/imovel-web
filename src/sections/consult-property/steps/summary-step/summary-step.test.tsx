@@ -48,9 +48,12 @@ describe('SummaryStep', () => {
     mockHandleNextStep.mockReset()
 
     mockGetValues.mockImplementation((key: string) => {
-      const values: Record<string, string> = {
+      const values: Record<string, string | object> = {
         address: 'Rua Teste, 123',
         documentType: 'registration',
+        registry: {
+          name: '6º Oficial de Registro de Imóveis da Comarca de São Paulo - SP',
+        },
       }
       return values[key]
     })

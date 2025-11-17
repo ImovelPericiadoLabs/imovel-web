@@ -5,6 +5,13 @@ const DocumentTypeEnum = z.enum(['contract', 'registration', 'deed'])
 export const validations = z
   .object({
     address: z.string().min(5, 'Digite um endereço válido').nonempty('O endereço é obrigatório'),
+    registry: z.object({
+      id: z.string().uuid(),
+      name: z.string(),
+      number: z.number(),
+      slug: z.string(),
+      coverage: z.array(z.string()),
+    }),
     hasDocument: z.any(),
     documentType: DocumentTypeEnum.optional(),
     document: z.object({
