@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import api from '@/utils/api/client'
 import { endpoint } from '@/constants/api'
-import { listAddresses } from './addresses'
+import { listAddresses, listRegistry } from './addresses'
 
 vi.mock('@/utils/api/client', () => ({
   __esModule: true,
@@ -118,5 +118,29 @@ describe('listAddresses', () => {
     const result = await listAddresses('anything')
 
     expect(result).toEqual([])
+  })
+
+  it('should return registry when API returns registry', async () => {
+    const registryResponse = {
+      id: '019a937e-8994-7011-ae13-8b42884da89d',
+      name: '1º Registro de Imóveis de São Bento do Sul',
+      number: 1,
+      slug: 'sao-bento-do-sul',
+      coverage: ['campo-alegre', 'sao-bento-do-sul'],
+    }
+
+    mockPost.mockResolvedValue({ registry: registryResponse })
+
+    const result = await listRegistry('Rua B')
+
+    expect(result).toEqual(registryResponse)
+  })
+
+  it('should return undefined when registry is missing', async () => {
+    mockPost.mockResolvedValue({})
+
+    const result = await listRegistry('Rua C')
+
+    expect(result).toBeUndefined()
   })
 })

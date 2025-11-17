@@ -1,13 +1,14 @@
 'use client'
 import { useState } from 'react'
 import { useFormContext } from 'react-hook-form'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation } from '@tanstack/react-query'
 import TextTitle from '@/components/text-title'
 import type { FormContextWithSteps } from '@/sections/consult-property/types'
 import AutoCompleteAddressInput from '@/components/auto-complete-address-input'
+import LoadingOverlay from '@/components/loading-overlay'
 import useDebounce from '@/hooks/use-debounce'
 import { queryKey } from '@/constants/queries'
-import { listAddresses } from '@/services/addresses'
+import { listAddresses, listRegistry } from '@/services/addresses'
 
 export function AddressStep() {
   const { handleNextStep, setValue } = useFormContext() as FormContextWithSteps
@@ -22,12 +23,20 @@ export function AddressStep() {
     refetchOnWindowFocus: false,
   })
 
+  const { mutateAsync, isPending } = useMutation({
+    mutationFn: listRegistry,
+    onSuccess(data) {
+      setValue('registry', data)
+    },
+  })
+
   function handleChangeAddress(e: React.ChangeEvent<HTMLInputElement>) {
     setAddress(e.target.value)
   }
 
   async function handleSubmit(value: string) {
     setValue('address', value)
+    await mutateAsync(value)
     handleNextStep()
   }
 
@@ -42,6 +51,8 @@ export function AddressStep() {
         onConfirm={handleSubmit}
         isLoading={isLoading}
       />
+
+      <LoadingOverlay isLoading={isPending} message="Buscando dados do cartório" />
     </div>
   )
 }
