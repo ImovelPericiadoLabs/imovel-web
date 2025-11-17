@@ -175,7 +175,12 @@ describe('SendDocumentStep', () => {
       setError: mockSetError,
     })
 
-    mockUploadDocument.mockRejectedValue(new Error('upload failed'))
+    mockUseMutation.mockImplementation((options: UseMutationOptions<unknown, Error, File>) => ({
+      mutateAsync: async (file: File) => {
+        options.onError?.(new Error('error'), file, {}, {} as MutationFunctionContext)
+      },
+      isPending: false,
+    }))
 
     mockWatch.mockReturnValue(undefined)
 
