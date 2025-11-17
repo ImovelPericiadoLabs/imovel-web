@@ -46,7 +46,9 @@ export default function ConsultProperty() {
 
     if (step === 5) {
       if (!hasDocument) {
-        setStep(3)
+        setStep(2)
+
+        return
       }
     }
 

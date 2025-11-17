@@ -8,8 +8,7 @@ import DocumentItem from '@/components/document-item'
 import Button from '@/components/button'
 import Alert from '@/components/alert'
 import LoadingOverlay from '@/components/loading-overlay'
-import api from '@/utils/api/client'
-import { endpoint } from '@/constants/api'
+import { uploadDocument } from '@/services/documents'
 
 interface UploadedDocument {
   id: string
@@ -27,8 +26,7 @@ export function SendDocumentStep() {
   const documentPreview = watch('documentPreview')
 
   const { mutateAsync, isPending } = useMutation({
-    mutationFn: async (file: File) =>
-      api.upload(endpoint.documents.upload, file, setUploadProgress),
+    mutationFn: async (file: File) => uploadDocument(file, setUploadProgress),
     onSuccess(data) {
       setValue('document', data)
     },
@@ -90,6 +88,7 @@ export function SendDocumentStep() {
           </Button>
         </div>
       )}
+
       <LoadingOverlay
         isLoading={isPending}
         progress={uploadProgress}

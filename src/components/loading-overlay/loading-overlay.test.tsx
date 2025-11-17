@@ -10,28 +10,52 @@ describe('LoadingOverlay', () => {
 
   it('should render the overlay when isLoading is true', () => {
     render(<LoadingOverlay isLoading={true} />)
-    const overlay = screen.getByText('Carregando...').closest('div.fixed')
-    expect(overlay).toBeInTheDocument()
+    expect(screen.getByText('Carregando...')).toBeInTheDocument()
   })
 
-  it('should display the default message when isLoading is true and no message is provided', () => {
+  it('should display the default message', () => {
     render(<LoadingOverlay isLoading={true} />)
     expect(screen.getByText('Carregando...')).toBeInTheDocument()
   })
 
-  it('should display a custom message when one is provided', () => {
-    const customMessage = 'Enviando seus dados...'
-    render(<LoadingOverlay isLoading={true} message={customMessage} />)
-
-    expect(screen.getByText(customMessage)).toBeInTheDocument()
+  it('should display a custom message when provided', () => {
+    render(<LoadingOverlay isLoading={true} message="Enviando..." />)
+    expect(screen.getByText('Enviando...')).toBeInTheDocument()
     expect(screen.queryByText('Carregando...')).not.toBeInTheDocument()
   })
 
-  it('should render the spinner SVGs when loading', () => {
+  it('should render spinner when there is no progress', () => {
     const { container } = render(<LoadingOverlay isLoading={true} />)
-    const svgs = container.querySelectorAll('svg')
+    const spinner = container.querySelector('.animate-spin')
+    expect(spinner).toBeInTheDocument()
+  })
 
-    expect(svgs.length).toBe(2)
-    expect(container.querySelector('.animate-spin')).toBeInTheDocument()
+  it('should render progress circle when progress is provided', () => {
+    const { container } = render(<LoadingOverlay isLoading={true} progress={45} />)
+    const progressCircle = container.querySelector('circle[class*="stroke-primary"]')
+    expect(progressCircle).toBeInTheDocument()
+  })
+
+  it('should show percentage text when progress is provided', () => {
+    render(<LoadingOverlay isLoading={true} progress={72} />)
+    expect(screen.getByText('72%')).toBeInTheDocument()
+  })
+
+  it('should not render spinner when progress is provided', () => {
+    const { container } = render(<LoadingOverlay isLoading={true} progress={30} />)
+    const spinner = container.querySelector('.animate-spin')
+    expect(spinner).not.toBeInTheDocument()
+  })
+
+  it('should have correct strokeDashoffset calculation for progress', () => {
+    const { container } = render(<LoadingOverlay isLoading={true} progress={50} />)
+
+    const circle = container.querySelector('circle[class*="stroke-primary"]') as SVGCircleElement
+
+    const radius = 35
+    const circumference = 2 * Math.PI * radius
+    const expectedOffset = circumference - (50 / 100) * circumference
+
+    expect(circle.getAttribute('stroke-dashoffset')).toBe(String(expectedOffset))
   })
 })
