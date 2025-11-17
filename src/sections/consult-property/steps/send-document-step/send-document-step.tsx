@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import type { FormContextWithSteps } from '@/sections/consult-property/types'
 import { useFormContext } from 'react-hook-form'
 import { useMutation } from '@tanstack/react-query'
@@ -7,7 +8,8 @@ import DocumentItem from '@/components/document-item'
 import Button from '@/components/button'
 import Alert from '@/components/alert'
 import LoadingOverlay from '@/components/loading-overlay'
-import { uploadDocument } from '@/services/documents'
+import api from '@/utils/api/client'
+import { endpoint } from '@/constants/api'
 
 interface UploadedDocument {
   id: string
@@ -20,11 +22,13 @@ interface UploadedDocument {
 export function SendDocumentStep() {
   const { handleNextStep, setValue, watch, formState, trigger, clearErrors, setError } =
     useFormContext() as FormContextWithSteps
+  const [uploadProgress, setUploadProgress] = useState(0)
 
   const documentPreview = watch('documentPreview')
 
   const { mutateAsync, isPending } = useMutation({
-    mutationFn: uploadDocument,
+    mutationFn: async (file: File) =>
+      api.upload(endpoint.documents.upload, file, setUploadProgress),
     onSuccess(data) {
       setValue('document', data)
     },
@@ -86,7 +90,11 @@ export function SendDocumentStep() {
           </Button>
         </div>
       )}
-      <LoadingOverlay isLoading={isPending} message="Fazendo o upload do documento" />
+      <LoadingOverlay
+        isLoading={isPending}
+        progress={uploadProgress}
+        message="Fazendo o upload do documento"
+      />
     </div>
   )
 }
