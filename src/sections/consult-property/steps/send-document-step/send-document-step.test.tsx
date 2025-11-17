@@ -161,11 +161,9 @@ describe('SendDocumentStep', () => {
     )
   })
 
-  it('should handle file selection and a failed upload', async () => {
+  it('should call onError and set error message when uploadDocument fails', async () => {
     const errorMessage =
       'Ocorreu um erro aotentar fazer o upload do arquivo! Favor tete mais tarde.'
-
-    mockUploadDocument.mockRejectedValue(new Error('Upload failed'))
 
     mockUseFormContext.mockReturnValue({
       handleNextStep: mockHandleNextStep,
@@ -177,14 +175,22 @@ describe('SendDocumentStep', () => {
       setError: mockSetError,
     })
 
+    mockUploadDocument.mockRejectedValue(new Error('upload failed'))
+
+    mockWatch.mockReturnValue(undefined)
+
     render(<SendDocumentStep />)
+
     fireEvent.click(screen.getByText('Select File'))
 
     await waitFor(() => {
-      expect(mockSetError).toHaveBeenCalledWith('document', { message: errorMessage })
+      expect(mockSetError).toHaveBeenCalledWith('document', {
+        message: errorMessage,
+      })
     })
 
     expect(screen.getByRole('alert')).toHaveTextContent(errorMessage)
+
     expect(screen.getByText('Continuar')).toBeDisabled()
   })
 
