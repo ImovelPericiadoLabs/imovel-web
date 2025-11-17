@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach, Mock } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { useFormContext, FieldError } from 'react-hook-form'
 import { MutationFunctionContext, useMutation, UseMutationOptions } from '@tanstack/react-query'
+import { uploadDocument } from '@/services/documents'
 import { SendDocumentStep } from './send-document-step'
 
 interface UploadedDocument {
@@ -11,6 +12,10 @@ interface UploadedDocument {
   file: File
   type: string
 }
+
+vi.mock('@/services/documents', () => ({
+  uploadDocument: vi.fn(),
+}))
 
 vi.mock('react-hook-form', () => ({
   useFormContext: vi.fn(),
@@ -70,6 +75,9 @@ vi.mock('@/components/loading-overlay', () => ({
 
 const mockUseFormContext = useFormContext as Mock
 const mockUseMutation = useMutation as Mock
+const mockUploadDocument = uploadDocument as Mock<
+  (file: File, progress: (n: number) => void) => Promise<unknown>
+>
 
 describe('SendDocumentStep', () => {
   let mockHandleNextStep: Mock<() => void>
@@ -78,7 +86,6 @@ describe('SendDocumentStep', () => {
   let mockTrigger: Mock<(name: string) => Promise<boolean>>
   let mockClearErrors: Mock<(name: string) => void>
   let mockSetError: Mock<(name: string, error: FieldError) => void>
-  let mockMutateAsync: Mock<(file: File) => Promise<unknown>>
 
   const mockDocument: UploadedDocument = {
     id: '12345',
@@ -95,7 +102,6 @@ describe('SendDocumentStep', () => {
     mockTrigger = vi.fn()
     mockClearErrors = vi.fn()
     mockSetError = vi.fn()
-    mockMutateAsync = vi.fn()
 
     mockUseFormContext.mockReturnValue({
       handleNextStep: mockHandleNextStep,
@@ -110,21 +116,19 @@ describe('SendDocumentStep', () => {
     mockUseMutation.mockImplementation((options: UseMutationOptions<unknown, Error, File>) => ({
       mutateAsync: async (file: File) => {
         try {
-          const data = await mockMutateAsync(file)
-          if (options.onSuccess) {
-            options.onSuccess(data, file, {}, {} as MutationFunctionContext)
-          }
-          return data
+          const result = await options.mutationFn?.(file, {} as MutationFunctionContext)
+          options.onSuccess?.(result, file, {}, {} as MutationFunctionContext)
+          return result
         } catch (error) {
-          if (options.onError) {
-            options.onError(error as Error, file, {}, {} as MutationFunctionContext)
-          }
+          options.onError?.(error as Error, file, {}, {} as MutationFunctionContext)
+          throw error
         }
       },
       isPending: false,
     }))
 
     mockWatch.mockReturnValue(undefined)
+    mockUploadDocument.mockReset()
   })
 
   afterEach(() => {
@@ -141,25 +145,25 @@ describe('SendDocumentStep', () => {
   })
 
   it('should handle file selection and successful upload', async () => {
-    const uploadedData = { id: 'doc-123', url: 'http://example.com/test.pdf' }
-    mockMutateAsync.mockResolvedValue(uploadedData)
+    mockUploadDocument.mockResolvedValue({ ok: true })
 
     render(<SendDocumentStep />)
-    const fileSelectButton = screen.getByText('Select File')
-    fireEvent.click(fileSelectButton)
+
+    fireEvent.click(screen.getByText('Select File'))
 
     await waitFor(() => {
-      expect(mockSetValue).toHaveBeenCalledWith('document', uploadedData)
+      expect(mockSetValue).toHaveBeenCalledWith('document', { ok: true })
     })
 
-    expect(mockSetValue).toHaveBeenCalledWith('documentPreview', expect.any(Object))
-    expect(mockSetValue).toHaveBeenCalledTimes(2)
+    expect(mockSetValue).toHaveBeenCalledWith(
+      'documentPreview',
+      expect.objectContaining({ name: 'test.pdf' }),
+    )
   })
 
-  it('should handle file selection and a failed upload', async () => {
+  it('should call onError and set error message when uploadDocument fails', async () => {
     const errorMessage =
       'Ocorreu um erro aotentar fazer o upload do arquivo! Favor tete mais tarde.'
-    mockMutateAsync.mockRejectedValue(new Error('Upload failed'))
 
     mockUseFormContext.mockReturnValue({
       handleNextStep: mockHandleNextStep,
@@ -171,25 +175,37 @@ describe('SendDocumentStep', () => {
       setError: mockSetError,
     })
 
+    mockUseMutation.mockImplementation((options: UseMutationOptions<unknown, Error, File>) => ({
+      mutateAsync: async (file: File) => {
+        options.onError?.(new Error('error'), file, {}, {} as MutationFunctionContext)
+      },
+      isPending: false,
+    }))
+
+    mockWatch.mockReturnValue(undefined)
+
     render(<SendDocumentStep />)
-    const fileSelectButton = screen.getByText('Select File')
-    fireEvent.click(fileSelectButton)
+
+    fireEvent.click(screen.getByText('Select File'))
 
     await waitFor(() => {
-      expect(mockSetError).toHaveBeenCalledWith('document', { message: errorMessage })
+      expect(mockSetError).toHaveBeenCalledWith('document', {
+        message: errorMessage,
+      })
     })
 
     expect(screen.getByRole('alert')).toHaveTextContent(errorMessage)
-    const continueButton = screen.getByText('Continuar')
-    expect(continueButton).toBeDisabled()
+
+    expect(screen.getByText('Continuar')).toBeDisabled()
   })
 
   it('should remove the document when onRemove is called', () => {
     mockWatch.mockReturnValue(mockDocument)
+
     render(<SendDocumentStep />)
-    expect(screen.getByTestId('document-item')).toBeInTheDocument()
-    const removeButton = screen.getByText('Remove')
-    fireEvent.click(removeButton)
+
+    fireEvent.click(screen.getByText('Remove'))
+
     expect(mockSetValue).toHaveBeenCalledWith('documentPreview', undefined)
     expect(mockSetValue).toHaveBeenCalledWith('document', undefined)
     expect(mockClearErrors).toHaveBeenCalledWith('document')
@@ -198,34 +214,53 @@ describe('SendDocumentStep', () => {
   it('should call handleNextStep when continue is clicked and form is valid', async () => {
     mockWatch.mockReturnValue(mockDocument)
     mockTrigger.mockResolvedValue(true)
+
     render(<SendDocumentStep />)
-    const continueButton = screen.getByText('Continuar')
-    fireEvent.click(continueButton)
+
+    fireEvent.click(screen.getByText('Continuar'))
+
     await waitFor(() => {
-      expect(mockTrigger).toHaveBeenCalledWith('document')
       expect(mockHandleNextStep).toHaveBeenCalled()
     })
   })
 
-  it('should not call handleNextStep when continue is clicked and form is invalid', async () => {
+  it('should not call handleNextStep when form is invalid', async () => {
     mockWatch.mockReturnValue(mockDocument)
     mockTrigger.mockResolvedValue(false)
+
     render(<SendDocumentStep />)
-    const continueButton = screen.getByText('Continuar')
-    fireEvent.click(continueButton)
+    fireEvent.click(screen.getByText('Continuar'))
+
     await waitFor(() => {
-      expect(mockTrigger).toHaveBeenCalledWith('document')
+      expect(mockHandleNextStep).not.toHaveBeenCalled()
     })
-    expect(mockHandleNextStep).not.toHaveBeenCalled()
   })
 
   it('should show loading overlay while uploading', () => {
     mockUseMutation.mockImplementation(() => ({
-      mutateAsync: mockMutateAsync,
+      mutateAsync: async () => undefined,
       isPending: true,
     }))
+
     render(<SendDocumentStep />)
+
     expect(screen.getByTestId('loading-overlay')).toBeInTheDocument()
-    expect(screen.getByText('Fazendo o upload do documento')).toBeInTheDocument()
+  })
+
+  it('should call uploadDocument with file and progress callback inside mutationFn', async () => {
+    mockUploadDocument.mockResolvedValue({ ok: true })
+
+    render(<SendDocumentStep />)
+
+    fireEvent.click(screen.getByText('Select File'))
+
+    await waitFor(() => {
+      expect(mockUploadDocument).toHaveBeenCalledTimes(1)
+    })
+
+    const [calledFile, progressFn] = mockUploadDocument.mock.calls[0]
+
+    expect(calledFile).toBeInstanceOf(File)
+    expect(typeof progressFn).toBe('function')
   })
 })

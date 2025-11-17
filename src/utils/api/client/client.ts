@@ -78,6 +78,34 @@ const api = {
 
     return result
   },
+
+  async upload(url: string, file: File, onProgress: (percent: number) => void) {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest()
+      xhr.open('POST', `${apiUrl}${url}`)
+
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable) {
+          const percent = Math.round((event.loaded / event.total) * 100)
+          onProgress(percent)
+        }
+      }
+
+      xhr.onload = () => {
+        try {
+          resolve(JSON.parse(xhr.responseText))
+        } catch (e) {
+          reject(e)
+        }
+      }
+
+      xhr.onerror = reject
+
+      const form = new FormData()
+      form.append('file_path', file)
+      xhr.send(form)
+    })
+  },
 }
 
 export default api

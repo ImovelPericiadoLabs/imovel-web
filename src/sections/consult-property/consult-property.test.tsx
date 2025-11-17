@@ -1,3 +1,4 @@
+import React from 'react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react'
 import type { ComponentProps } from 'react'
@@ -49,11 +50,20 @@ vi.mock('@/sections/consult-property/steps', async () => {
     )
   }
 
+  const MockConfirmationStep = () => {
+    const { handleNextStep, setHasDocument } = rhf.useFormContext() as FormContextWithSteps
+    return (
+      <div data-testid="document-confirmation-step">
+        DocumentConfirmationStep
+        <button onClick={() => setHasDocument(true)}>Set Has Document</button>
+        <button onClick={handleNextStep}>Next Step</button>
+      </div>
+    )
+  }
+
   return {
     AddressStep: () => <MockStep testId="address-step" name="AddressStep" />,
-    DocumentConfirmationStep: () => (
-      <MockStep testId="document-confirmation-step" name="DocumentConfirmationStep" />
-    ),
+    DocumentConfirmationStep: () => <MockConfirmationStep />,
     DocumentTypeStep: () => <MockStep testId="document-type-step" name="DocumentTypeStep" />,
     SendDocumentStep: () => <MockStep testId="send-document-step" name="SendDocumentStep" />,
     SummaryStep: () => <MockStep testId="summary-step" name="SummaryStep" />,
@@ -70,6 +80,17 @@ describe('ConsultProperty', () => {
     { step: 5, testId: 'summary-step' },
     { step: 6, testId: 'payment-step' },
   ]
+
+  const navigateToStep = async (targetStep: number) => {
+    for (let i = 1; i < targetStep; i++) {
+      const nextButtons = screen.getAllByRole('button', { name: /next step/i })
+      fireEvent.click(nextButtons[0])
+      const nextStepData = steps.find((s) => s.step === i + 1)
+      if (nextStepData) {
+        await screen.findByTestId(nextStepData.testId)
+      }
+    }
+  }
 
   beforeEach(() => {
     render(<ConsultProperty />)
@@ -91,28 +112,16 @@ describe('ConsultProperty', () => {
   it('should display the AddressStep on initial render and hide other steps', () => {
     expect(screen.getByTestId('address-step')).toBeInTheDocument()
     expect(screen.queryByTestId('document-confirmation-step')).not.toBeInTheDocument()
-    expect(screen.queryByTestId('document-type-step')).not.toBeInTheDocument()
-    expect(screen.queryByTestId('send-document-step')).not.toBeInTheDocument()
-    expect(screen.queryByTestId('summary-step')).not.toBeInTheDocument()
-    expect(screen.queryByTestId('payment-step')).not.toBeInTheDocument()
   })
 
   it('should call router.push and not decrement step when back is clicked on the first step', () => {
-    expect(screen.getByText('1')).toBeInTheDocument()
-    expect(screen.getByTestId('address-step')).toBeInTheDocument()
-
     fireEvent.click(screen.getByTestId('chevron-left'))
-
     expect(mockPush).toHaveBeenCalledWith('/')
-
     expect(screen.getByText('1')).toBeInTheDocument()
-    expect(screen.queryByText('0')).not.toBeInTheDocument()
   })
 
   it('should advance to the next step when the next action is triggered', async () => {
-    const nextButton = screen.getByRole('button', { name: /next step/i })
-    fireEvent.click(nextButton)
-
+    fireEvent.click(screen.getByRole('button', { name: /next step/i }))
     await waitFor(() => {
       expect(screen.getByText('2')).toBeInTheDocument()
       expect(screen.getByTestId('progress-bar')).toHaveAttribute(
@@ -125,12 +134,8 @@ describe('ConsultProperty', () => {
   })
 
   it('should navigate back to the previous step when back is clicked on a subsequent step', async () => {
-    fireEvent.click(screen.getByRole('button', { name: /next step/i }))
-    await screen.findByTestId('document-confirmation-step')
-
-    const backButton = screen.getByTestId('chevron-left')
-    fireEvent.click(backButton)
-
+    await navigateToStep(2)
+    fireEvent.click(screen.getByTestId('chevron-left'))
     await waitFor(() => {
       expect(screen.getByText('1')).toBeInTheDocument()
       expect(screen.getByTestId('address-step')).toBeInTheDocument()
@@ -139,16 +144,11 @@ describe('ConsultProperty', () => {
   })
 
   it('should not advance past the final step', async () => {
-    for (let i = 0; i < steps.length - 1; i++) {
-      fireEvent.click(screen.getByRole('button', { name: /next step/i }))
-      await screen.findByTestId(steps[i + 1].testId)
-    }
-
+    await navigateToStep(6)
     expect(screen.getByTestId('payment-step')).toBeInTheDocument()
     expect(screen.getAllByText('6').length).toBe(2)
 
     fireEvent.click(screen.getByRole('button', { name: /next step/i }))
-
     await waitFor(() => {
       expect(screen.getByTestId('payment-step')).toBeInTheDocument()
       expect(screen.getAllByText('6').length).toBe(2)
@@ -158,11 +158,7 @@ describe('ConsultProperty', () => {
   describe('Step visibility validation', () => {
     for (const currentStep of steps) {
       it(`should only display ${currentStep.testId} when on step ${currentStep.step}`, async () => {
-        for (let j = 0; j < currentStep.step - 1; j++) {
-          fireEvent.click(screen.getByRole('button', { name: /next step/i }))
-          await screen.findByTestId(steps[j + 1].testId)
-        }
-
+        await navigateToStep(currentStep.step)
         await screen.findByTestId(currentStep.testId)
 
         steps.forEach((stepToCheck) => {
@@ -174,5 +170,78 @@ describe('ConsultProperty', () => {
         })
       })
     }
+  })
+
+  describe('handleGoBack', () => {
+    const navigateToStep = async (targetStep: number) => {
+      const steps = [
+        { step: 1, testId: 'address-step' },
+        { step: 2, testId: 'document-confirmation-step' },
+        { step: 3, testId: 'document-type-step' },
+        { step: 4, testId: 'send-document-step' },
+        { step: 5, testId: 'summary-step' },
+        { step: 6, testId: 'payment-step' },
+      ]
+      for (let i = 1; i < targetStep; i++) {
+        const nextButtons = screen.getAllByRole('button', { name: /next step/i })
+        fireEvent.click(nextButtons[0])
+        const nextStepData = steps.find((s) => s.step === i + 1)
+        if (nextStepData) {
+          await screen.findByTestId(nextStepData.testId)
+        }
+      }
+    }
+
+    it('should call router.push when on the first step', () => {
+      fireEvent.click(screen.getByTestId('chevron-left'))
+      expect(mockPush).toHaveBeenCalledWith('/')
+      expect(screen.getByText('1')).toBeInTheDocument()
+    })
+
+    it('should go back normally from a step with no special logic (e.g., step 3 to 2)', async () => {
+      await navigateToStep(3)
+      await screen.findByTestId('document-type-step')
+
+      fireEvent.click(screen.getByTestId('chevron-left'))
+
+      await waitFor(() => {
+        expect(screen.getByText('2')).toBeInTheDocument()
+        expect(screen.getByTestId('document-confirmation-step')).toBeInTheDocument()
+      })
+    })
+
+    it('should jump from step 5 back to step 2 when hasDocument is false', async () => {
+      await navigateToStep(5)
+      await screen.findByTestId('summary-step')
+
+      fireEvent.click(screen.getByTestId('chevron-left'))
+
+      await waitFor(() => {
+        expect(screen.getByText('2')).toBeInTheDocument()
+        expect(screen.getByTestId('document-confirmation-step')).toBeInTheDocument()
+      })
+    })
+
+    it('should go back normally from step 5 to step 4 when hasDocument is true', async () => {
+      await navigateToStep(2)
+      await screen.findByTestId('document-confirmation-step')
+      fireEvent.click(screen.getByRole('button', { name: /set has document/i }))
+
+      fireEvent.click(screen.getByRole('button', { name: /next step/i }))
+      await screen.findByTestId('document-type-step')
+
+      fireEvent.click(screen.getByRole('button', { name: /next step/i }))
+      await screen.findByTestId('send-document-step')
+
+      fireEvent.click(screen.getByRole('button', { name: /next step/i }))
+      await screen.findByTestId('summary-step')
+
+      fireEvent.click(screen.getByTestId('chevron-left'))
+
+      await waitFor(() => {
+        expect(screen.getByText('4')).toBeInTheDocument()
+        expect(screen.getByTestId('send-document-step')).toBeInTheDocument()
+      })
+    })
   })
 })
