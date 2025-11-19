@@ -77,6 +77,7 @@ describe('AutoCompleteInput', () => {
         options={mockOptions}
         onConfirm={onConfirmMock}
         onSelectAddress={onSelectAddressMock}
+        error="Digite pelo menos 3 caracteres para realizar a busca."
       />,
     )
 

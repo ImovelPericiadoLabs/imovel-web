@@ -65,6 +65,11 @@ export function AddressStep() {
         isLoading={isLoading}
         onSelectAddress={handleSelectAddress}
         isLoadingAddress={isLoadingListAddress}
+        error={
+          debouncedAddress?.length > 0 && debouncedAddress?.length < 3
+            ? 'Digite pelo menos 3 caracteres para realizar a busca.'
+            : ''
+        }
       />
 
       <LoadingOverlay isLoading={isLoadingListRegistry} message="Buscando dados do cartório" />
