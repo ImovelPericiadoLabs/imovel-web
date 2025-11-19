@@ -12,6 +12,8 @@
     /* ---------------------------------------------------------------------- */
     /* 1a. BASE COLOR PALETTE (Universal Primitive Tokens)                    */
     /* ---------------------------------------------------------------------- */
+    --color-violet-50: #F9F5FF;
+    --color-violet-100: #F4EBFF;
     --color-violet-600: #7F56D9;
   }
 }
@@ -36,6 +38,9 @@
   --color-hr: #E6E6E6;
   --color-box: #E7E7E7;
   --color-handle: #79747E;
+  --color-error-50: #FEF3F2;
+  --color-error-100: #FEE4E2;
+  --color-error-600: #D92D20;
 
   /* ---------------------------------------------------------------------- */
   /* Primary Actions (Main buttons, highlighted links, etc.)                */

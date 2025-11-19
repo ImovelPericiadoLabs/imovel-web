@@ -1,9 +1,10 @@
 'use client'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useState, Activity } from 'react'
 import { useForm, FormProvider } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { ChevronLeft } from 'lucide-react'
+import { ChevronLeft, Menu } from 'lucide-react'
 import ProgressBar from '@/components/progress-bar'
 import {
   AddressStep,
@@ -64,22 +65,27 @@ export default function ConsultProperty() {
 
   return (
     <section className="min-h-screen">
-      <header className="flex flex-col px-4">
-        <div className="flex py-4.5 gap-2 align-middle">
-          <ChevronLeft onClick={handleGoBack} className="size-7 text-primary cursor-pointer" />
-          <h1 className="font-bold text-sm leading-6">Consultar Imóvel</h1>
+      <header className="flex flex-col pt-4 px-4 bg-primary">
+        <div className="flex items-center justify-between py-4.5 mb-6">
+          <ChevronLeft onClick={handleGoBack} className="size-7 text-white cursor-pointer" />
+
+          <Image src="/images/logo.png" alt="Imagem de logo" width={200} height={50} />
+
+          <Menu className="size-7 text-white cursor-pointer" />
         </div>
 
         <div>
-          <div className="flex justify-end gap-1 font-normal text-base leading-6">
-            <p className="text-primary">{step}</p> de <p className="text-primary">{totalSteps}</p>
+          <div className="flex justify-end gap-1 font-normal text-base leading-6 text-white">
+            <p>{step}</p> de <p>{totalSteps}</p>
           </div>
           <ProgressBar value={(step / totalSteps) * 100} />
         </div>
       </header>
 
+      <div className="relative bg-primary h-20"></div>
+
       <FormProvider {...formContextValue}>
-        <main className="pt-5 w-full mx-auto lg:max-w-lg">
+        <main className="pt-5 w-full mx-auto lg:max-w-lg -mt-22">
           <Activity mode={step === 1 ? 'visible' : 'hidden'}>
             <AddressStep />
           </Activity>

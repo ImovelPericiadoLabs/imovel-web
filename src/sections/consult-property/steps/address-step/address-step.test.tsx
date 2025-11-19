@@ -121,8 +121,8 @@ describe('AddressStep', () => {
     fireEvent.change(input, { target: { value: 'Ru' } })
     expect(listAddressesMock).not.toHaveBeenCalled()
 
-    fireEvent.change(input, { target: { value: 'Rua' } })
-    expect(listAddressesMock).toHaveBeenCalledWith('Rua')
+    fireEvent.change(input, { target: { value: 'Rua 10' } })
+    expect(listAddressesMock).toHaveBeenCalledWith('Rua 10')
   })
 
   it('should render title and input', () => {

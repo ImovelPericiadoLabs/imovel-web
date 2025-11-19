@@ -12,14 +12,14 @@ const ProgressBar: React.FC<ProgressBarProps> = ({ value }) => {
         style={{
           width: '100%',
           height: '0.5rem',
-          backgroundColor: '#FFFFFF',
+          backgroundColor: '#9A77E9',
           borderRadius: '0.5rem',
           overflow: 'hidden',
         }}
       >
         <div
           role="progressbar"
-          className={'h-full rounded bg-primary'}
+          className={'h-full rounded bg-white'}
           style={{
             borderRadius: '0.5rem',
             width: percentage,

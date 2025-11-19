@@ -16,10 +16,32 @@ export function AddressStep() {
 
   const debouncedAddress = useDebounce(address, 500)
 
+  const getError = () => {
+    if (debouncedAddress?.length > 0) {
+      if (debouncedAddress?.length !== address?.length) return null
+
+      if (debouncedAddress?.length < 3) {
+        return {
+          title: 'Texto muito curso',
+          subtitle: 'Digite pelo menos 3 caracteres para realizar a busca.',
+        }
+      }
+
+      if (!/\d/.test(debouncedAddress)) {
+        return {
+          title: 'Número do endereço obrigatório',
+          subtitle: 'Para prosseguir, informe o número.',
+        }
+      }
+    }
+
+    return null
+  }
+
   const { data, isLoading } = useQuery({
     queryKey: [queryKey.getAddresses, debouncedAddress],
     queryFn: () => listAddresses(debouncedAddress),
-    enabled: debouncedAddress?.length >= 3,
+    enabled: !getError() && debouncedAddress?.length > 0,
     refetchOnWindowFocus: false,
   })
 
@@ -65,11 +87,7 @@ export function AddressStep() {
         isLoading={isLoading}
         onSelectAddress={handleSelectAddress}
         isLoadingAddress={isLoadingListAddress}
-        error={
-          debouncedAddress?.length > 0 && debouncedAddress?.length < 3
-            ? 'Digite pelo menos 3 caracteres para realizar a busca.'
-            : ''
-        }
+        error={getError()}
       />
 
       <LoadingOverlay isLoading={isLoadingListRegistry} message="Buscando dados do cartório" />

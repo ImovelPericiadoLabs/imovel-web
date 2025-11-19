@@ -6,5 +6,5 @@ type Props = {
 } & PropsWithChildren
 
 export default function TextTitle({ className, children }: Props) {
-  return <h1 className={cn('text-lg font-bold text-dark leading-6', className)}>{children}</h1>
+  return <h1 className={cn('text-lg font-bold text-white leading-6', className)}>{children}</h1>
 }
