@@ -10,7 +10,7 @@ import Skeleton from '@/components/skeleton'
 type Option = {
   primary?: string
   secondary?: string
-  placeId: string
+  placeId?: string
   value?: string
 }
 
@@ -142,7 +142,7 @@ export default function AutoCompleteInput({
               key={address.value}
               className="w-full flex items-start gap-4 pb-4 border-b border-hr last:border-b-0 cursor-pointer"
               onClick={() => {
-                handleSelectAddress(address?.placeId)
+                handleSelectAddress(address?.placeId as string)
               }}
             >
               <div className="shrink-0 mt-1">
