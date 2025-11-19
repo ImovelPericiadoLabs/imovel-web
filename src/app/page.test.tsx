@@ -1,10 +1,15 @@
-import { render, screen } from '@testing-library/react'
-import { describe, it, expect } from 'vitest'
+import { render } from '@testing-library/react'
+import { describe, it, expect, vi } from 'vitest'
 import Home from './page'
+import { redirect } from 'next/navigation'
+
+vi.mock('next/navigation', () => ({
+  redirect: vi.fn(),
+}))
 
 describe('Home', () => {
-  it('should render the heading with text Home', () => {
+  it('should call redirect with the correct path', () => {
     render(<Home />)
-    expect(screen.getByRole('heading', { name: /home/i })).toBeInTheDocument()
+    expect(redirect).toHaveBeenCalledWith('/consultar-imovel')
   })
 })
