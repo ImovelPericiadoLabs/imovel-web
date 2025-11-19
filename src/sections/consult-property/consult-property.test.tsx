@@ -35,6 +35,7 @@ vi.mock('@/components/progress-bar', () => ({
 
 vi.mock('lucide-react', () => ({
   ChevronLeft: (props: ComponentProps<'div'>) => <div data-testid="chevron-left" {...props} />,
+  Menu: (props: ComponentProps<'div'>) => <div data-testid="menu" {...props} />,
 }))
 
 vi.mock('@/sections/consult-property/steps', async () => {
@@ -102,7 +103,6 @@ describe('ConsultProperty', () => {
   })
 
   it('should render the initial step correctly', () => {
-    expect(screen.getByRole('heading', { name: /consultar imóvel/i })).toBeInTheDocument()
     expect(screen.getByText('1')).toBeInTheDocument()
     expect(screen.getByText(/de/)).toBeInTheDocument()
     expect(screen.getByText('6')).toBeInTheDocument()

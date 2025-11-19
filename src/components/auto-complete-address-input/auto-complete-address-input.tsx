@@ -1,11 +1,13 @@
 'use client'
 
-import { useState, useRef } from 'react'
-import { Search, X, MapPin } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
+import { Search, X, MapPin, CircleAlert, MapPinX } from 'lucide-react'
 import { cn } from '@/utils/tailwind'
 import Button from '@/components/button'
 import TextTitle from '@/components/text-title'
+import TextSubtitle from '../text-subtitle'
 import Skeleton from '@/components/skeleton'
+import AddressSheet from '@/components/auto-complete-address-input/components/address-sheet'
 
 type Option = {
   primary?: string
@@ -20,7 +22,10 @@ interface Props extends React.InputHTMLAttributes<HTMLInputElement> {
   onConfirm: (address: string) => void
   isLoadingAddress?: boolean
   onSelectAddress: (value: string) => Promise<string>
-  error?: string
+  error?: {
+    title: string
+    subtitle: string
+  } | null
 }
 
 const loadingOptions = Array.from({ length: 5 }, (_, i) => ({
@@ -38,8 +43,18 @@ export default function AutoCompleteInput({
 }: Props) {
   const [value, setValue] = useState('')
   const [isOpenAddressSheet, setIsOpenAddressSheet] = useState(false)
+  const [isOpenErrorSheet, setIsOpenErrorSheet] = useState(false)
+  const [isOpenNotFoundAddressSheet, setIsOpenNotFoundAddressSheet] = useState(false)
 
   const inputRef = useRef<HTMLInputElement>(null)
+
+  function handleCloseErrorSheet() {
+    setIsOpenErrorSheet(false)
+  }
+
+  function handleCloseNotFoundAddressSheet() {
+    setIsOpenNotFoundAddressSheet(false)
+  }
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     if (props.onChange) {
@@ -77,7 +92,21 @@ export default function AutoCompleteInput({
     el?.setSelectionRange(el.value.length, el.value.length)
 
     handleCloseAddressSheet()
+
+    handleCloseErrorSheet()
+
+    handleCloseNotFoundAddressSheet()
   }
+
+  useEffect(() => {
+    setIsOpenErrorSheet(error !== null)
+  }, [error])
+
+  useEffect(() => {
+    setTimeout(() => {
+      setIsOpenNotFoundAddressSheet(!!value.length && !options?.length && !error && !isLoading)
+    }, 1000)
+  }, [options, value, error, isLoading])
 
   return (
     <div
@@ -109,8 +138,6 @@ export default function AutoCompleteInput({
           value={value}
           onChange={handleChange}
         />
-
-        {!!error?.length && <p className="text-red-500 text-xs mt-1 pl-3">{error}</p>}
       </div>
 
       {isLoading && (
@@ -158,24 +185,44 @@ export default function AutoCompleteInput({
         </div>
       )}
 
-      {isOpenAddressSheet && (
+      {(isOpenAddressSheet || isOpenErrorSheet || isOpenNotFoundAddressSheet) && (
         <div
           className="fixed inset-0 bg-black/50 z-40 transition-opacity duration-500"
           onClick={handleChangeAddress}
         />
       )}
 
-      <div
-        className={`fixed bottom-0 left-0 right-0 bg-white shadow-[0px_4px_8px_3px_rgba(0,0,0,0.15),0px_1px_3px_rgba(0,0,0,0.3)] rounded-t-[1.75rem] z-50 transition-all duration-500 ease-out ${
-          isOpenAddressSheet ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'
-        }`}
-      >
-        <div className="flex justify-center pt-4 pb-2">
-          <div className="w-8 h-1 rounded-full bg-handle" />
+      <AddressSheet isOpen={isOpenErrorSheet}>
+        <div className="px-6 py-8 pb-12 max-h-[70vh] overflow-y-auto flex flex-col items-center gap-2 text-center">
+          <div className="rounded-full bg-error-50 size-14 flex items-center justify-center">
+            <div className="rounded-full size-10 bg-error-100 flex items-center justify-center">
+              <CircleAlert stroke="#D92D20" className="size-7 text-amber-100" />
+            </div>
+          </div>
+          <TextTitle className="text-dark">{error?.title}</TextTitle>
+          <TextSubtitle className="mb-2 text-gray-2">{error?.subtitle}</TextSubtitle>
+          <Button onClick={handleCloseErrorSheet}>Entendi</Button>
         </div>
+      </AddressSheet>
 
+      <AddressSheet isOpen={isOpenNotFoundAddressSheet && !error}>
+        <div className="px-6 py-8 pb-12 max-h-[70vh] overflow-y-auto flex flex-col items-center gap-2 text-center">
+          <div className="rounded-full bg-violet-50 size-14 flex items-center justify-center">
+            <div className="rounded-full size-10 bg-violet-100 flex items-center justify-center">
+              <MapPinX className="size-7 text-primary" />
+            </div>
+          </div>
+          <TextTitle className="text-dark">Não encontramos seu endereço</TextTitle>
+          <TextSubtitle className="mb-2 text-gray-2">
+            Verifique o local e tente novamente.
+          </TextSubtitle>
+          <Button onClick={handleCloseNotFoundAddressSheet}>Entendi</Button>
+        </div>
+      </AddressSheet>
+
+      <AddressSheet isOpen={isOpenAddressSheet}>
         <div className="px-6 py-8 pb-12 max-h-[70vh] overflow-y-auto">
-          <TextTitle className="mb-7">Confirmar este endereço?</TextTitle>
+          <TextTitle className="mb-7 text-dark">Confirmar este endereço?</TextTitle>
 
           <div className="border border-[#EBEBEB] rounded-[0.25rem] px-4 py-3 mb-6 bg-white">
             <div className="flex flex-col items-start">
@@ -205,7 +252,7 @@ export default function AutoCompleteInput({
             <Skeleton className="w-full h-12 mt-4 rounded-full" />
           )}
         </div>
-      </div>
+      </AddressSheet>
     </div>
   )
 }

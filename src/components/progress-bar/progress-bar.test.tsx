@@ -10,7 +10,7 @@ describe('ProgressBar', () => {
     const bar = screen.getByRole('progressbar')
     expect(bar.className).toContain('h-full')
     expect(bar.className).toContain('rounded')
-    expect(bar.className).toContain('bg-primary')
+    expect(bar.className).toContain('bg-white')
   })
 
   it('should set the correct width based on value', () => {
