@@ -8,7 +8,7 @@ import AutoCompleteAddressInput from '@/components/auto-complete-address-input'
 import LoadingOverlay from '@/components/loading-overlay'
 import useDebounce from '@/hooks/use-debounce'
 import { queryKey } from '@/constants/queries'
-import { listAddresses, listRegistry } from '@/services/addresses'
+import { listAddresses, listAddress, listRegistry } from '@/services/addresses'
 
 export function AddressStep() {
   const { handleNextStep, setValue } = useFormContext() as FormContextWithSteps
@@ -19,16 +19,29 @@ export function AddressStep() {
   const { data, isLoading } = useQuery({
     queryKey: [queryKey.getAddresses, debouncedAddress],
     queryFn: () => listAddresses(debouncedAddress),
-    enabled: !!debouncedAddress,
+    enabled: debouncedAddress?.length >= 3,
     refetchOnWindowFocus: false,
   })
 
-  const { mutateAsync, isPending } = useMutation({
+  const { mutateAsync: listRegistryMutate, isPending: isLoadingListRegistry } = useMutation({
     mutationFn: listRegistry,
     onSuccess(data) {
       setValue('registry', data)
     },
   })
+
+  const { mutateAsync: listAddressMutate, isPending: isLoadingListAddress } = useMutation({
+    mutationFn: listAddress,
+  })
+
+  async function handleSelectAddress(placeId: string) {
+    const result = await listAddressMutate({
+      address,
+      placeId,
+    })
+
+    return result
+  }
 
   function handleChangeAddress(e: React.ChangeEvent<HTMLInputElement>) {
     setAddress(e.target.value)
@@ -36,7 +49,7 @@ export function AddressStep() {
 
   async function handleSubmit(value: string) {
     setValue('address', value)
-    await mutateAsync(value)
+    await listRegistryMutate(value)
     handleNextStep()
   }
 
@@ -50,9 +63,11 @@ export function AddressStep() {
         onChange={handleChangeAddress}
         onConfirm={handleSubmit}
         isLoading={isLoading}
+        onSelectAddress={handleSelectAddress}
+        isLoadingAddress={isLoadingListAddress}
       />
 
-      <LoadingOverlay isLoading={isPending} message="Buscando dados do cartório" />
+      <LoadingOverlay isLoading={isLoadingListRegistry} message="Buscando dados do cartório" />
     </div>
   )
 }

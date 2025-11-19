@@ -1,8 +1,9 @@
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
 import AutoCompleteInput from './auto-complete-address-input'
 
 const onConfirmMock = vi.fn()
+const onSelectAddressMock = vi.fn().mockResolvedValue('Rua A, São Paulo')
 const onChangeMock = vi.fn()
 
 vi.mock('@/components/button', () => ({
@@ -35,64 +36,143 @@ vi.mock('lucide-react', () => ({
 }))
 
 const mockOptions = [
-  { street: 'Rua A', city: 'São Paulo', value: 'rua-a' },
-  { street: 'Rua B', city: 'Rio de Janeiro', value: 'rua-b' },
+  { primary: 'Rua A', secondary: 'São Paulo', value: 'rua-a', placeId: 'id-a' },
+  { primary: 'Rua B', secondary: 'Rio de Janeiro', value: 'rua-b', placeId: 'id-b' },
 ]
 
 describe('AutoCompleteInput', () => {
   it('should render search input and icons', () => {
-    render(<AutoCompleteInput options={mockOptions} onConfirm={onConfirmMock} />)
+    render(
+      <AutoCompleteInput
+        options={mockOptions}
+        onConfirm={onConfirmMock}
+        onSelectAddress={onSelectAddressMock}
+      />,
+    )
+
     expect(screen.getByTestId('search-icon')).toBeInTheDocument()
     expect(screen.getByRole('textbox')).toBeInTheDocument()
   })
 
   it('should update value when typing in input', () => {
     render(
-      <AutoCompleteInput options={mockOptions} onConfirm={onConfirmMock} onChange={onChangeMock} />,
+      <AutoCompleteInput
+        options={mockOptions}
+        onConfirm={onConfirmMock}
+        onChange={onChangeMock}
+        onSelectAddress={onSelectAddressMock}
+      />,
     )
+
     const input = screen.getByRole('textbox')
     fireEvent.change(input, { target: { value: 'Rua' } })
+
     expect(input).toHaveValue('Rua')
     expect(onChangeMock).toHaveBeenCalled()
   })
 
+  it('should show error message if value.length < 3', () => {
+    render(
+      <AutoCompleteInput
+        options={mockOptions}
+        onConfirm={onConfirmMock}
+        onSelectAddress={onSelectAddressMock}
+      />,
+    )
+
+    const input = screen.getByRole('textbox')
+    fireEvent.change(input, { target: { value: 'Ru' } })
+
+    expect(
+      screen.getByText('Digite pelo menos 3 caracteres para realizar a busca.'),
+    ).toBeInTheDocument()
+  })
+
   it('should clear input when clicking clear icon', () => {
-    render(<AutoCompleteInput options={mockOptions} onConfirm={onConfirmMock} />)
+    render(
+      <AutoCompleteInput
+        options={mockOptions}
+        onConfirm={onConfirmMock}
+        onSelectAddress={onSelectAddressMock}
+      />,
+    )
+
     const input = screen.getByRole('textbox')
     fireEvent.change(input, { target: { value: 'Test' } })
 
-    const clearIcon = screen.getByTestId('clear-icon')
-    fireEvent.click(clearIcon)
+    fireEvent.click(screen.getByTestId('clear-icon'))
 
     expect(input).toHaveValue('')
   })
 
-  it('should show skeletons when loading', () => {
-    render(<AutoCompleteInput options={[]} onConfirm={onConfirmMock} isLoading />)
+  it('should show loading skeletons when isLoading is true', () => {
+    render(
+      <AutoCompleteInput
+        options={[]}
+        onConfirm={onConfirmMock}
+        isLoading
+        onSelectAddress={onSelectAddressMock}
+      />,
+    )
+
     expect(screen.getAllByTestId('skeleton').length).toBeGreaterThan(0)
   })
 
-  it('should open address sheet overlay when selecting an address', () => {
-    render(<AutoCompleteInput options={mockOptions} onConfirm={onConfirmMock} />)
+  it('should open address sheet when selecting an option', async () => {
+    render(
+      <AutoCompleteInput
+        options={mockOptions}
+        onConfirm={onConfirmMock}
+        onSelectAddress={onSelectAddressMock}
+      />,
+    )
 
     const input = screen.getByRole('textbox')
     fireEvent.change(input, { target: { value: 'Rua A' } })
 
-    const option = screen.getByText('São Paulo')
-    fireEvent.click(option)
+    fireEvent.click(screen.getByText('São Paulo'))
 
-    const overlay = document.querySelector('.bg-black\\/50')
-    expect(overlay).toBeInTheDocument()
+    await waitFor(() => {
+      expect(document.querySelector('.bg-black\\/50')).toBeInTheDocument()
+    })
   })
 
-  it('should clear value, close sheet, and move focus back to input when clicking "Mudar"', () => {
-    render(<AutoCompleteInput options={mockOptions} onConfirm={onConfirmMock} />)
+  it('should call onSelectAddress and fill input with returned value', async () => {
+    render(
+      <AutoCompleteInput
+        options={mockOptions}
+        onConfirm={onConfirmMock}
+        onSelectAddress={onSelectAddressMock}
+      />,
+    )
 
     const input = screen.getByRole('textbox')
     fireEvent.change(input, { target: { value: 'Rua A' } })
 
-    const option = screen.getByText('São Paulo')
-    fireEvent.click(option)
+    fireEvent.click(screen.getByText('São Paulo'))
+
+    await waitFor(() => {
+      expect(input).toHaveValue('Rua A, São Paulo')
+    })
+  })
+
+  it('should close sheet and focus input when clicking "Mudar"', async () => {
+    render(
+      <AutoCompleteInput
+        options={mockOptions}
+        onConfirm={onConfirmMock}
+        onSelectAddress={onSelectAddressMock}
+      />,
+    )
+
+    const input = screen.getByRole('textbox')
+    fireEvent.change(input, { target: { value: 'Rua A' } })
+
+    fireEvent.click(screen.getByText('São Paulo'))
+
+    await waitFor(() => {
+      expect(document.querySelector('.bg-black\\/50')).toBeInTheDocument()
+    })
 
     const changeButton = screen.getByText('Mudar')
     fireEvent.click(changeButton)
@@ -100,18 +180,67 @@ describe('AutoCompleteInput', () => {
     expect(document.activeElement).toBe(input)
   })
 
-  it('should call onConfirm with selected address when clicking confirm', () => {
-    render(<AutoCompleteInput options={mockOptions} onConfirm={onConfirmMock} />)
+  it('should call onConfirm with the selected address', async () => {
+    render(
+      <AutoCompleteInput
+        options={mockOptions}
+        onConfirm={onConfirmMock}
+        onSelectAddress={onSelectAddressMock}
+      />,
+    )
 
-    const input = screen.getByRole('textbox')
-    fireEvent.change(input, { target: { value: 'Rua A' } })
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Rua A' } })
 
-    const option = screen.getByText('São Paulo')
-    fireEvent.click(option)
+    fireEvent.click(screen.getByText('São Paulo'))
 
-    const confirmButton = screen.getByTestId('confirm-button')
+    const confirmButton = await screen.findByTestId('confirm-button')
     fireEvent.click(confirmButton)
 
     expect(onConfirmMock).toHaveBeenCalledWith('Rua A, São Paulo')
+  })
+
+  it('should show skeletons inside address sheet when isLoadingAddress is true', async () => {
+    render(
+      <AutoCompleteInput
+        options={mockOptions}
+        isLoadingAddress={true}
+        onConfirm={onConfirmMock}
+        onSelectAddress={onSelectAddressMock}
+      />,
+    )
+
+    const input = screen.getByRole('textbox')
+    fireEvent.change(input, { target: { value: 'Rua A' } })
+    fireEvent.click(screen.getByText('São Paulo'))
+
+    await waitFor(() => {
+      expect(document.querySelector('.bg-black\\/50')).toBeInTheDocument()
+    })
+
+    const skeletons = screen.getAllByTestId('skeleton')
+    expect(skeletons.length).toBeGreaterThanOrEqual(2)
+  })
+
+  it('should show address details and buttons when isLoadingAddress is false', async () => {
+    render(
+      <AutoCompleteInput
+        options={mockOptions}
+        isLoadingAddress={false}
+        onConfirm={onConfirmMock}
+        onSelectAddress={onSelectAddressMock}
+      />,
+    )
+
+    const input = screen.getByRole('textbox')
+    fireEvent.change(input, { target: { value: 'Rua A' } })
+    fireEvent.click(screen.getByText('São Paulo'))
+
+    await waitFor(() => {
+      expect(document.querySelector('.bg-black\\/50')).toBeInTheDocument()
+    })
+
+    expect(screen.getByText('Rua A, São Paulo')).toBeInTheDocument()
+    expect(screen.getByText('Mudar')).toBeInTheDocument()
+    expect(screen.getByTestId('confirm-button')).toBeInTheDocument()
   })
 })

@@ -8,8 +8,9 @@ import TextTitle from '@/components/text-title'
 import Skeleton from '@/components/skeleton'
 
 type Option = {
-  street?: string
-  city?: string
+  primary?: string
+  secondary?: string
+  placeId: string
   value?: string
 }
 
@@ -17,13 +18,22 @@ interface Props extends React.InputHTMLAttributes<HTMLInputElement> {
   options?: Option[]
   isLoading?: boolean
   onConfirm: (address: string) => void
+  isLoadingAddress?: boolean
+  onSelectAddress: (value: string) => Promise<string>
 }
 
 const loadingOptions = Array.from({ length: 5 }, (_, i) => ({
   value: i,
 }))
 
-export default function AutoCompleteInput({ options, isLoading, onConfirm, ...props }: Props) {
+export default function AutoCompleteInput({
+  options,
+  isLoading,
+  isLoadingAddress,
+  onConfirm,
+  onSelectAddress,
+  ...props
+}: Props) {
   const [value, setValue] = useState('')
   const [isOpenAddressSheet, setIsOpenAddressSheet] = useState(false)
 
@@ -42,8 +52,11 @@ export default function AutoCompleteInput({ options, isLoading, onConfirm, ...pr
     inputRef.current?.focus()
   }
 
-  function handleSelectAddress(address: string) {
+  async function handleSelectAddress(placeId: string) {
     handleOpenAddressSheet()
+
+    const address = await onSelectAddress(placeId)
+
     setValue(address)
   }
 
@@ -94,6 +107,12 @@ export default function AutoCompleteInput({ options, isLoading, onConfirm, ...pr
           value={value}
           onChange={handleChange}
         />
+
+        {value?.length > 0 && value.length < 3 && (
+          <p className="text-red-500 text-xs mt-1 pl-3">
+            Digite pelo menos 3 caracteres para realizar a busca.
+          </p>
+        )}
       </div>
 
       {isLoading && (
@@ -122,16 +141,18 @@ export default function AutoCompleteInput({ options, isLoading, onConfirm, ...pr
             <button
               key={address.value}
               className="w-full flex items-start gap-4 pb-4 border-b border-hr last:border-b-0 cursor-pointer"
-              onClick={() => handleSelectAddress(`${address.street}, ${address.city}`)}
+              onClick={() => {
+                handleSelectAddress(address?.placeId)
+              }}
             >
               <div className="shrink-0 mt-1">
                 <MapPin className="size-6" />
               </div>
               <div className="flex-1 text-start min-w-0">
-                <h3 className="text-sm font-medium leading-[130%]">{address.city}</h3>
+                <h3 className="text-sm font-medium leading-[130%]">{address.primary}</h3>
 
                 <p className="text-xs font-normal leading-[130%] text-gray mt-1">
-                  {address.street}
+                  {address.secondary}
                 </p>
               </div>
             </button>
@@ -160,18 +181,31 @@ export default function AutoCompleteInput({ options, isLoading, onConfirm, ...pr
 
           <div className="border border-[#EBEBEB] rounded-[0.25rem] px-4 py-3 mb-6 bg-white">
             <div className="flex flex-col items-start">
-              <MapPin className="size- text-dark mb-2" />
-              <p className="text-dark font-medium text-base leading-6 mb-3">{value}</p>
-              <button
-                onClick={handleChangeAddress}
-                className="cursor-pointer text-primary font-semibold text-sm transition-colors"
-              >
-                Mudar
-              </button>
+              <MapPin className="size-5 text-dark mb-2" />
+              {isLoadingAddress ? (
+                <Skeleton className="w-80 h-4 mt-2 rounded-full" />
+              ) : (
+                <p className="text-dark font-medium text-base leading-6 mb-3">{value}</p>
+              )}
+
+              {isLoadingAddress ? (
+                <Skeleton className="w-20 h-4 mt-4 rounded-full" />
+              ) : (
+                <button
+                  onClick={handleChangeAddress}
+                  className="cursor-pointer text-primary font-semibold text-sm transition-colors"
+                >
+                  Mudar
+                </button>
+              )}
             </div>
           </div>
 
-          <Button onClick={() => onConfirm(value)}>Confirmar</Button>
+          {!isLoadingAddress ? (
+            <Button onClick={() => onConfirm(value)}>Confirmar</Button>
+          ) : (
+            <Skeleton className="w-full h-12 mt-4 rounded-full" />
+          )}
         </div>
       </div>
     </div>
