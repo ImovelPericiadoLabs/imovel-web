@@ -20,6 +20,7 @@ interface Props extends React.InputHTMLAttributes<HTMLInputElement> {
   onConfirm: (address: string) => void
   isLoadingAddress?: boolean
   onSelectAddress: (value: string) => Promise<string>
+  error?: string
 }
 
 const loadingOptions = Array.from({ length: 5 }, (_, i) => ({
@@ -32,6 +33,7 @@ export default function AutoCompleteInput({
   isLoadingAddress,
   onConfirm,
   onSelectAddress,
+  error,
   ...props
 }: Props) {
   const [value, setValue] = useState('')
@@ -108,11 +110,7 @@ export default function AutoCompleteInput({
           onChange={handleChange}
         />
 
-        {value?.length > 0 && value.length < 3 && (
-          <p className="text-red-500 text-xs mt-1 pl-3">
-            Digite pelo menos 3 caracteres para realizar a busca.
-          </p>
-        )}
+        {!!error?.length && <p className="text-red-500 text-xs mt-1 pl-3">{error}</p>}
       </div>
 
       {isLoading && (
