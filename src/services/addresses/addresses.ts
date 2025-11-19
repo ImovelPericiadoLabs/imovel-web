@@ -13,14 +13,14 @@ type StructuredFormat = {
 type Prediction = {
   structuredFormat?: StructuredFormat
   text?: TextField
+  placeId?: string
 }
 
 type Suggestion = {
   placePrediction?: Prediction
-  queryPrediction?: Prediction
 }
 
-type AddressApiResponse = {
+export type AddressApiResponse = {
   suggestions?: Suggestion[]
 }
 
@@ -32,8 +32,17 @@ export type Registry = {
   coverage: string[]
 }
 
-type RegistryApiResponse = {
+export type RegistryApiResponse = {
   registry: Registry
+}
+
+type ListAddressRequest = {
+  address: string
+  placeId: string
+}
+
+export type ListAddressResponse = {
+  formattedAddress: string
 }
 
 export async function listAddresses(address: string) {
@@ -47,21 +56,29 @@ export async function listAddresses(address: string) {
   return (
     addresses?.suggestions?.map((item) => {
       const place = item.placePrediction
-      const query = item.queryPrediction
 
       return {
-        street:
-          place?.structuredFormat?.mainText?.text ?? query?.structuredFormat?.mainText?.text ?? '',
+        primary: place?.structuredFormat?.mainText?.text ?? '',
 
-        city:
-          place?.structuredFormat?.secondaryText?.text ??
-          query?.structuredFormat?.secondaryText?.text ??
-          '',
+        secondary: place?.structuredFormat?.secondaryText?.text ?? '',
 
-        value: place?.text?.text ?? query?.text?.text ?? '',
+        value: place?.text?.text ?? '',
+        placeId: place?.placeId,
       }
     }) || []
   )
+}
+
+export async function listAddress({ address, placeId }: ListAddressRequest) {
+  const data = {
+    q: address,
+    with_registry: false,
+    place_id: placeId,
+  }
+
+  const result = (await api.post(endpoint.addresses, data)) as ListAddressResponse
+
+  return result?.formattedAddress
 }
 
 export async function listRegistry(address: string) {

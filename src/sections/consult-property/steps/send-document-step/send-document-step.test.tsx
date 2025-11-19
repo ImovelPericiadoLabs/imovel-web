@@ -163,7 +163,7 @@ describe('SendDocumentStep', () => {
 
   it('should call onError and set error message when uploadDocument fails', async () => {
     const errorMessage =
-      'Ocorreu um erro aotentar fazer o upload do arquivo! Favor tete mais tarde.'
+      'Não foi possível enviar o documento. Verifique se o mesmo possui no máximo 250 MB e está em um dos formatos permitidos (imagens, PDF ou documentos Word).'
 
     mockUseFormContext.mockReturnValue({
       handleNextStep: mockHandleNextStep,

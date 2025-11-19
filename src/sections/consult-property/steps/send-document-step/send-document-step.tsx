@@ -32,7 +32,8 @@ export function SendDocumentStep() {
     },
     onError() {
       setError('document', {
-        message: 'Ocorreu um erro aotentar fazer o upload do arquivo! Favor tete mais tarde.',
+        message:
+          'Não foi possível enviar o documento. Verifique se o mesmo possui no máximo 250 MB e está em um dos formatos permitidos (imagens, PDF ou documentos Word).',
       })
     },
   })
