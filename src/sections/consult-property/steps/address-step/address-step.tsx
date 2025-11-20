@@ -108,7 +108,8 @@ export function AddressStep() {
         isDirty={isEnabled}
         onClear={handleClearAddress}
       />
-      {!debouncedAddress?.length && (
+
+      {!address?.length && (
         <div className="border border-box p-4 flex flex-col gap-8">
           {initialHomeItems.map(({ Icon, text }) => (
             <div className="flex items-center gap-4" key={text}>
