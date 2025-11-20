@@ -26,6 +26,8 @@ interface Props extends React.InputHTMLAttributes<HTMLInputElement> {
     title: string
     subtitle: string
   } | null
+  isDirty?: boolean
+  onClear?: () => void
 }
 
 const loadingOptions = Array.from({ length: 5 }, (_, i) => ({
@@ -39,17 +41,20 @@ export default function AutoCompleteInput({
   onConfirm,
   onSelectAddress,
   error,
+  isDirty,
   ...props
 }: Props) {
   const [value, setValue] = useState('')
   const [isOpenAddressSheet, setIsOpenAddressSheet] = useState(false)
   const [isOpenErrorSheet, setIsOpenErrorSheet] = useState(false)
   const [isOpenNotFoundAddressSheet, setIsOpenNotFoundAddressSheet] = useState(false)
+  const [addressError, setAddressError] = useState<{ title: string; subtitle: string } | null>(null)
 
   const inputRef = useRef<HTMLInputElement>(null)
 
   function handleCloseErrorSheet() {
     setIsOpenErrorSheet(false)
+    setAddressError(null)
   }
 
   function handleCloseNotFoundAddressSheet() {
@@ -65,14 +70,31 @@ export default function AutoCompleteInput({
   }
 
   function handleClearInput() {
+    if (props?.onClear) {
+      props.onClear()
+    }
     setValue('')
     inputRef.current?.focus()
   }
 
-  async function handleSelectAddress(placeId: string) {
+  function hasHouseNumber(address: string): boolean {
+    const regex = /,\s*(\d+[A-Za-z]?|s\/?n)$/i
+    return regex.test(address)
+  }
+
+  async function handleSelectAddress({ placeId, primary }: Option) {
+    if (!hasHouseNumber(primary as string)) {
+      setAddressError({
+        title: 'Número do endereço obrigatório',
+        subtitle: 'Para prosseguir, informe o número.',
+      })
+
+      return
+    }
+
     handleOpenAddressSheet()
 
-    const address = await onSelectAddress(placeId)
+    const address = await onSelectAddress(placeId as string)
 
     setValue(address)
   }
@@ -96,6 +118,8 @@ export default function AutoCompleteInput({
     handleCloseErrorSheet()
 
     handleCloseNotFoundAddressSheet()
+
+    setAddressError(null)
   }
 
   useEffect(() => {
@@ -103,15 +127,15 @@ export default function AutoCompleteInput({
   }, [error])
 
   useEffect(() => {
-    setTimeout(() => {
-      setIsOpenNotFoundAddressSheet(!!value.length && !options?.length && !error && !isLoading)
-    }, 1000)
-  }, [options, value, error, isLoading])
+    if (!isLoading && isDirty && value?.length) {
+      setIsOpenNotFoundAddressSheet(!options?.length)
+    }
+  }, [options, isLoading, isDirty, value])
 
   return (
     <div
       className={cn({
-        'bg-white p-3 rounded-2xl': !!value.length,
+        'bg-white rounded-t-4xl rounded-b-[1.75rem]': !!options?.length,
       })}
     >
       <div className="relative">
@@ -145,7 +169,7 @@ export default function AutoCompleteInput({
           {loadingOptions?.map((address) => (
             <div
               key={address.value}
-              className="flex items-start gap-4 pb-4 border-b border-hr last:border-b-0 cursor-pointer"
+              className="flex items-start gap-4 px-7 pb-4 border-b border-hr last:border-b-0 cursor-pointer"
             >
               <div className="shrink-0 mt-1">
                 <MapPin className="size-6" />
@@ -165,9 +189,9 @@ export default function AutoCompleteInput({
           {options?.map((address) => (
             <button
               key={address.value}
-              className="w-full flex items-start gap-4 pb-4 border-b border-hr last:border-b-0 cursor-pointer"
+              className="w-full flex items-start gap-4 px-7 pb-4 border-b border-hr last:border-b-0 cursor-pointer"
               onClick={() => {
-                handleSelectAddress(address?.placeId as string)
+                handleSelectAddress(address)
               }}
             >
               <div className="shrink-0 mt-1">
@@ -185,22 +209,27 @@ export default function AutoCompleteInput({
         </div>
       )}
 
-      {(isOpenAddressSheet || isOpenErrorSheet || isOpenNotFoundAddressSheet) && (
+      {(isOpenAddressSheet ||
+        isOpenErrorSheet ||
+        isOpenNotFoundAddressSheet ||
+        !!addressError?.title?.length) && (
         <div
           className="fixed inset-0 bg-black/50 z-40 transition-opacity duration-500"
           onClick={handleChangeAddress}
         />
       )}
 
-      <AddressSheet isOpen={isOpenErrorSheet}>
+      <AddressSheet isOpen={isOpenErrorSheet || !!addressError?.title?.length}>
         <div className="px-6 py-8 pb-12 max-h-[70vh] overflow-y-auto flex flex-col items-center gap-2 text-center">
           <div className="rounded-full bg-error-50 size-14 flex items-center justify-center">
             <div className="rounded-full size-10 bg-error-100 flex items-center justify-center">
               <CircleAlert stroke="#D92D20" className="size-7 text-amber-100" />
             </div>
           </div>
-          <TextTitle className="text-dark">{error?.title}</TextTitle>
-          <TextSubtitle className="mb-2 text-gray-2">{error?.subtitle}</TextSubtitle>
+          <TextTitle className="text-dark">{error?.title || addressError?.title}</TextTitle>
+          <TextSubtitle className="mb-2 text-gray-2">
+            {error?.subtitle || addressError?.subtitle}
+          </TextSubtitle>
           <Button onClick={handleCloseErrorSheet}>Entendi</Button>
         </div>
       </AddressSheet>

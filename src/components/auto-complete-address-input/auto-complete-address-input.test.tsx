@@ -1,15 +1,15 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import AutoCompleteInput from './auto-complete-address-input'
 
 const onConfirmMock = vi.fn()
-const onSelectAddressMock = vi.fn().mockResolvedValue('Rua A, São Paulo')
+const onSelectAddressMock = vi.fn().mockResolvedValue('ENDEREÇO COMPLETO')
 const onChangeMock = vi.fn()
 
 vi.mock('@/components/button', () => ({
   __esModule: true,
   default: ({ onClick, children }: { onClick: () => void; children: React.ReactNode }) => (
-    <button data-testid="confirm-button" onClick={onClick}>
+    <button data-testid="button" onClick={onClick}>
       {children}
     </button>
   ),
@@ -17,8 +17,13 @@ vi.mock('@/components/button', () => ({
 
 vi.mock('@/components/text-title', () => ({
   __esModule: true,
+  default: ({ children }: { children: React.ReactNode }) => <h1 data-testid="title">{children}</h1>,
+}))
+
+vi.mock('@/components/text-subtitle', () => ({
+  __esModule: true,
   default: ({ children }: { children: React.ReactNode }) => (
-    <h1 data-testid="text-title">{children}</h1>
+    <p data-testid="subtitle">{children}</p>
   ),
 }))
 
@@ -29,21 +34,31 @@ vi.mock('@/components/skeleton', () => ({
   ),
 }))
 
+vi.mock('@/components/auto-complete-address-input/components/address-sheet', () => ({
+  __esModule: true,
+  default: ({ isOpen, children }: { isOpen: boolean; children: React.ReactNode }) =>
+    isOpen ? <div data-testid="sheet">{children}</div> : null,
+}))
+
 vi.mock('lucide-react', () => ({
-  Search: () => <svg data-testid="search-icon" />,
-  X: ({ onClick }: { onClick?: () => void }) => <svg data-testid="clear-icon" onClick={onClick} />,
-  MapPin: () => <svg data-testid="map-pin" />,
-  CircleAlert: () => <svg data-testid="circle-alert" />,
-  MapPinX: () => <svg data-testid="map-pin-x" />,
+  Search: () => <svg data-testid="icon-search" />,
+  X: ({ onClick }: { onClick?: () => void }) => <svg data-testid="icon-clear" onClick={onClick} />,
+  MapPin: () => <svg data-testid="icon-pin" />,
+  CircleAlert: () => <svg data-testid="icon-error" />,
+  MapPinX: () => <svg data-testid="icon-notfound" />,
 }))
 
 const mockOptions = [
-  { primary: 'Rua A', secondary: 'São Paulo', value: 'rua-a', placeId: 'id-a' },
-  { primary: 'Rua B', secondary: 'Rio de Janeiro', value: 'rua-b', placeId: 'id-b' },
+  { primary: 'Rua ABC, 123', secondary: 'Cidade X', value: 'a', placeId: '1' },
+  { primary: 'Rua Sem Numero', secondary: 'Cidade Y', value: 'b', placeId: '2' },
 ]
 
+beforeEach(() => {
+  vi.clearAllMocks()
+})
+
 describe('AutoCompleteInput', () => {
-  it('should render search input and icons', () => {
+  it('should render input and icons', () => {
     render(
       <AutoCompleteInput
         options={mockOptions}
@@ -52,17 +67,17 @@ describe('AutoCompleteInput', () => {
       />,
     )
 
-    expect(screen.getByTestId('search-icon')).toBeInTheDocument()
+    expect(screen.getByTestId('icon-search')).toBeInTheDocument()
     expect(screen.getByRole('textbox')).toBeInTheDocument()
   })
 
-  it('should update value when typing in input', () => {
+  it('should update input value on typing', () => {
     render(
       <AutoCompleteInput
         options={mockOptions}
         onConfirm={onConfirmMock}
-        onChange={onChangeMock}
         onSelectAddress={onSelectAddressMock}
+        onChange={onChangeMock}
       />,
     )
 
@@ -72,24 +87,6 @@ describe('AutoCompleteInput', () => {
     expect(input).toHaveValue('Rua')
     expect(onChangeMock).toHaveBeenCalled()
   })
-
-  // it('should show error message if value.length < 3', () => {
-  //   render(
-  //     <AutoCompleteInput
-  //       options={mockOptions}
-  //       onConfirm={onConfirmMock}
-  //       onSelectAddress={onSelectAddressMock}
-  //       error="Digite pelo menos 3 caracteres para realizar a busca."
-  //     />,
-  //   )
-
-  //   const input = screen.getByRole('textbox')
-  //   fireEvent.change(input, { target: { value: 'Ru' } })
-
-  //   expect(
-  //     screen.getByText('Digite pelo menos 3 caracteres para realizar a busca.'),
-  //   ).toBeInTheDocument()
-  // })
 
   it('should clear input when clicking clear icon', () => {
     render(
@@ -103,17 +100,17 @@ describe('AutoCompleteInput', () => {
     const input = screen.getByRole('textbox')
     fireEvent.change(input, { target: { value: 'Test' } })
 
-    fireEvent.click(screen.getByTestId('clear-icon'))
+    fireEvent.click(screen.getByTestId('icon-clear'))
 
     expect(input).toHaveValue('')
   })
 
-  it('should show loading skeletons when isLoading is true', () => {
+  it('should show skeleton when loading', () => {
     render(
       <AutoCompleteInput
+        isLoading
         options={[]}
         onConfirm={onConfirmMock}
-        isLoading
         onSelectAddress={onSelectAddressMock}
       />,
     )
@@ -121,7 +118,7 @@ describe('AutoCompleteInput', () => {
     expect(screen.getAllByTestId('skeleton').length).toBeGreaterThan(0)
   })
 
-  it('should open address sheet when selecting an option', async () => {
+  it('should open error sheet if address has no number', async () => {
     render(
       <AutoCompleteInput
         options={mockOptions}
@@ -131,16 +128,17 @@ describe('AutoCompleteInput', () => {
     )
 
     const input = screen.getByRole('textbox')
-    fireEvent.change(input, { target: { value: 'Rua A' } })
+    fireEvent.change(input, { target: { value: 'Rua Sem Numero' } })
 
-    fireEvent.click(screen.getByText('São Paulo'))
+    fireEvent.click(screen.getByText('Rua Sem Numero'))
 
     await waitFor(() => {
-      expect(document.querySelector('.bg-black\\/50')).toBeInTheDocument()
+      expect(screen.getByTestId('sheet')).toBeInTheDocument()
+      expect(screen.getByTestId('title')).toHaveTextContent('Número do endereço obrigatório')
     })
   })
 
-  it('should call onSelectAddress and fill input with returned value', async () => {
+  it('should select address with number and open confirmation sheet', async () => {
     render(
       <AutoCompleteInput
         options={mockOptions}
@@ -150,16 +148,16 @@ describe('AutoCompleteInput', () => {
     )
 
     const input = screen.getByRole('textbox')
-    fireEvent.change(input, { target: { value: 'Rua A' } })
+    fireEvent.change(input, { target: { value: 'Rua ABC, 123' } })
 
-    fireEvent.click(screen.getByText('São Paulo'))
+    fireEvent.click(screen.getByText('Rua ABC, 123'))
 
     await waitFor(() => {
-      expect(input).toHaveValue('Rua A, São Paulo')
+      expect(screen.getAllByTestId('sheet')[0]).toBeInTheDocument()
     })
   })
 
-  it('should close sheet and focus input when clicking "Mudar"', async () => {
+  it('should fill input after selecting valid address', async () => {
     render(
       <AutoCompleteInput
         options={mockOptions}
@@ -168,82 +166,56 @@ describe('AutoCompleteInput', () => {
       />,
     )
 
-    const input = screen.getByRole('textbox')
-    fireEvent.change(input, { target: { value: 'Rua A' } })
-
-    fireEvent.click(screen.getByText('São Paulo'))
-
-    await waitFor(() => {
-      expect(document.querySelector('.bg-black\\/50')).toBeInTheDocument()
+    fireEvent.change(screen.getByRole('textbox'), {
+      target: { value: 'Rua ABC, 123' },
     })
 
-    const changeButton = screen.getByText('Mudar')
-    fireEvent.click(changeButton)
+    fireEvent.click(screen.getByText('Rua ABC, 123'))
 
-    expect(document.activeElement).toBe(input)
+    await waitFor(() => {
+      expect(screen.getByRole('textbox')).toHaveValue('ENDEREÇO COMPLETO')
+    })
   })
 
-  // it('should call onConfirm with the selected address', async () => {
-  //   render(
-  //     <AutoCompleteInput
-  //       options={mockOptions}
-  //       onConfirm={onConfirmMock}
-  //       onSelectAddress={onSelectAddressMock}
-  //     />,
-  //   )
+  it('should show not found sheet when no options and dirty', () => {
+    render(
+      <AutoCompleteInput
+        isDirty
+        isLoading={false}
+        options={[]}
+        onConfirm={onConfirmMock}
+        onSelectAddress={onSelectAddressMock}
+      />,
+    )
 
-  //   fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Rua A' } })
+    fireEvent.change(screen.getByRole('textbox'), {
+      target: { value: 'AAA' },
+    })
 
-  //   fireEvent.click(screen.getByText('São Paulo'))
+    expect(screen.getAllByTestId('sheet')[0]).toBeInTheDocument()
+  })
 
-  //   const confirmButton = await screen.findByTestId('confirm-button')
-  //   fireEvent.click(confirmButton)
+  it('should confirm address on button click', async () => {
+    render(
+      <AutoCompleteInput
+        options={mockOptions}
+        onConfirm={onConfirmMock}
+        onSelectAddress={onSelectAddressMock}
+      />,
+    )
 
-  //   expect(onConfirmMock).toHaveBeenCalledWith('Rua A, São Paulo')
-  // })
+    fireEvent.change(screen.getByRole('textbox'), {
+      target: { value: 'Rua ABC, 123' },
+    })
 
-  // it('should show skeletons inside address sheet when isLoadingAddress is true', async () => {
-  //   render(
-  //     <AutoCompleteInput
-  //       options={mockOptions}
-  //       isLoadingAddress={true}
-  //       onConfirm={onConfirmMock}
-  //       onSelectAddress={onSelectAddressMock}
-  //     />,
-  //   )
+    fireEvent.click(screen.getByText('Rua ABC, 123'))
 
-  //   const input = screen.getByRole('textbox')
-  //   fireEvent.change(input, { target: { value: 'Rua A' } })
-  //   fireEvent.click(screen.getByText('São Paulo'))
+    await waitFor(() => {
+      expect(screen.getAllByTestId('sheet')[0]).toBeInTheDocument()
+    })
 
-  //   await waitFor(() => {
-  //     expect(document.querySelector('.bg-black\\/50')).toBeInTheDocument()
-  //   })
+    fireEvent.click(screen.getAllByTestId('button')[1])
 
-  //   const skeletons = screen.getAllByTestId('skeleton')
-  //   expect(skeletons.length).toBeGreaterThanOrEqual(2)
-  // })
-
-  // it('should show address details and buttons when isLoadingAddress is false', async () => {
-  //   render(
-  //     <AutoCompleteInput
-  //       options={mockOptions}
-  //       isLoadingAddress={false}
-  //       onConfirm={onConfirmMock}
-  //       onSelectAddress={onSelectAddressMock}
-  //     />,
-  //   )
-
-  //   const input = screen.getByRole('textbox')
-  //   fireEvent.change(input, { target: { value: 'Rua A' } })
-  //   fireEvent.click(screen.getByText('São Paulo'))
-
-  //   await waitFor(() => {
-  //     expect(document.querySelector('.bg-black\\/50')).toBeInTheDocument()
-  //   })
-
-  //   expect(screen.getByText('Rua A, São Paulo')).toBeInTheDocument()
-  //   expect(screen.getByText('Mudar')).toBeInTheDocument()
-  //   expect(screen.getByTestId('confirm-button')).toBeInTheDocument()
-  // })
+    expect(onConfirmMock).toHaveBeenCalled()
+  })
 })

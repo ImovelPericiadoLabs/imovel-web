@@ -4,12 +4,11 @@ import { AddressStep } from './address-step'
 import { listAddresses, listRegistry, listAddress } from '@/services/addresses'
 import type { Registry } from '@/services/addresses'
 
+// ==============================
+// MOCKS
+// ===============================
 const setValueMock = vi.fn()
 const handleNextStepMock = vi.fn()
-
-const listAddressesMock = listAddresses as unknown as ReturnType<typeof vi.fn>
-const listRegistryMock = listRegistry as unknown as ReturnType<typeof vi.fn>
-const listAddressMock = listAddress as unknown as ReturnType<typeof vi.fn>
 
 vi.mock('react-hook-form', () => ({
   useFormContext: () => ({
@@ -33,17 +32,23 @@ vi.mock('@/components/auto-complete-address-input', () => ({
     onConfirm,
     isLoading,
     onSelectAddress,
+    error,
+    isDirty,
   }: {
     placeholder: string
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => void
     onConfirm: (address: string) => void
     isLoading: boolean
     onSelectAddress: (value: string) => Promise<string>
+    error: { title: string; subtitle: string } | null
+    isDirty: boolean
   }) => (
     <div>
       <input data-testid="address-input" placeholder={placeholder} onChange={(e) => onChange(e)} />
 
       {isLoading && <div data-testid="loading">Loading...</div>}
+      {error && <div data-testid="error">{error.title}</div>}
+      {isDirty && <div data-testid="dirty-flag">Dirty</div>}
 
       <button data-testid="select-address" onClick={() => onSelectAddress('mockPlaceId')}>
         Select Address
@@ -62,6 +67,7 @@ vi.mock('@/components/loading-overlay', () => ({
     isLoading ? <div data-testid="loading-overlay">Loading...</div> : null,
 }))
 
+// Query mocks
 const useQueryMock = vi.fn()
 const useMutationMock = vi.fn()
 
@@ -74,7 +80,6 @@ vi.mock('@tanstack/react-query', () => ({
   }) => useMutationMock(opts),
 }))
 
-// Mock debounce (returns same value instantly)
 vi.mock('@/hooks/use-debounce', () => ({
   __esModule: true,
   default: (value: string) => value,
@@ -86,6 +91,10 @@ vi.mock('@/services/addresses', () => ({
   listAddress: vi.fn(),
 }))
 
+const listAddressesMock = listAddresses as unknown as ReturnType<typeof vi.fn>
+const listRegistryMock = listRegistry as unknown as ReturnType<typeof vi.fn>
+const listAddressMock = listAddress as unknown as ReturnType<typeof vi.fn>
+
 beforeEach(() => {
   setValueMock.mockReset()
   handleNextStepMock.mockReset()
@@ -96,51 +105,88 @@ beforeEach(() => {
   useMutationMock.mockReset()
 })
 
+// ==============================
+// TESTS
+// ===============================
+
 describe('AddressStep', () => {
-  it('should call listAddresses only when debouncedAddress length >= 3', () => {
-    listAddressesMock.mockResolvedValue([{ street: 'A', city: 'B', value: 'C' }])
+  it('should NOT call listAddresses when debounced < 3 characters', () => {
+    useQueryMock.mockImplementation(({ enabled }) => ({
+      data: [],
+      isLoading: false,
+      isEnabled: enabled,
+    }))
 
-    useQueryMock.mockImplementation(({ enabled, queryFn }) => {
-      if (enabled) queryFn()
-
-      return {
-        data: [],
-        isLoading: false,
-      }
-    })
-
-    useMutationMock.mockReturnValue({
-      mutateAsync: vi.fn(),
-      isPending: false,
-    })
+    useMutationMock.mockReturnValue({ mutateAsync: vi.fn(), isPending: false })
 
     render(<AddressStep />)
 
     const input = screen.getByTestId('address-input')
 
     fireEvent.change(input, { target: { value: 'Ru' } })
-    expect(listAddressesMock).not.toHaveBeenCalled()
 
-    fireEvent.change(input, { target: { value: 'Rua 10' } })
-    expect(listAddressesMock).toHaveBeenCalledWith('Rua 10')
+    expect(listAddressesMock).not.toHaveBeenCalled()
   })
 
-  it('should render title and input', () => {
-    useQueryMock.mockReturnValue({ data: [], isLoading: false })
+  it('should call listAddresses when debounced >= 3 characters', () => {
+    listAddressesMock.mockResolvedValue([])
+
+    useQueryMock.mockImplementation(({ queryFn, enabled }) => {
+      if (enabled) queryFn()
+      return { data: [], isLoading: false, isEnabled: enabled }
+    })
+
     useMutationMock.mockReturnValue({ mutateAsync: vi.fn(), isPending: false })
 
     render(<AddressStep />)
 
-    expect(screen.getByTestId('text-title')).toHaveTextContent(
-      'Para começar, onde fica seu imóvel?',
-    )
-    expect(screen.getByTestId('address-input')).toBeInTheDocument()
+    const input = screen.getByTestId('address-input')
+
+    fireEvent.change(input, { target: { value: 'Rua' } })
+
+    expect(listAddressesMock).toHaveBeenCalledWith('Rua')
   })
 
-  it('should trigger onSelectAddress when place is selected', async () => {
+  it('should render initial home items when no search is made', () => {
+    useQueryMock.mockReturnValue({
+      data: [],
+      isLoading: false,
+      isEnabled: false,
+    })
+
+    useMutationMock.mockReturnValue({ mutateAsync: vi.fn(), isPending: false })
+
+    render(<AddressStep />)
+
+    expect(screen.getAllByText(/Pesquisa rápida/).length).toBe(1)
+  })
+
+  it('should show error when debounced < 3', () => {
+    useQueryMock.mockReturnValue({
+      data: [],
+      isLoading: false,
+      isEnabled: false,
+    })
+
+    useMutationMock.mockReturnValue({ mutateAsync: vi.fn(), isPending: false })
+
+    render(<AddressStep />)
+
+    const input = screen.getByTestId('address-input')
+
+    fireEvent.change(input, { target: { value: 'Ru' } })
+
+    expect(screen.getByTestId('error')).toHaveTextContent('Texto muito curso')
+  })
+
+  it('should call listAddress when selecting address', async () => {
     listAddressMock.mockResolvedValue('Selected Address')
 
-    useQueryMock.mockReturnValue({ data: [], isLoading: false })
+    useQueryMock.mockReturnValue({
+      data: [],
+      isLoading: false,
+      isEnabled: true,
+    })
 
     useMutationMock.mockReturnValue({
       mutateAsync: listAddressMock,
@@ -159,31 +205,34 @@ describe('AddressStep', () => {
     })
   })
 
-  it('should call setValue, listRegistry and handleNextStep when confirming address', async () => {
+  it('should call setValue, listRegistry, and nextStep when confirming address', async () => {
     const registryMock: Registry = {
       id: '1',
-      name: 'Registro X',
+      name: 'Mock',
       number: 1,
-      slug: 'registro-x',
-      coverage: ['cidade-x'],
+      slug: 'mock',
+      coverage: [],
     }
 
-    useQueryMock.mockReturnValue({ data: [], isLoading: false })
-
     const listRegistryMutateMock = vi.fn().mockResolvedValue(registryMock)
+
+    useQueryMock.mockReturnValue({
+      data: [],
+      isLoading: false,
+      isEnabled: true,
+    })
 
     useMutationMock.mockImplementation(({ mutationFn, onSuccess }) => {
       if (mutationFn === listRegistry) {
         return {
           mutateAsync: async (value: string) => {
             const result = await listRegistryMutateMock(value)
-            onSuccess(result)
+            onSuccess?.(result)
             return result
           },
           isPending: false,
         }
       }
-
       return { mutateAsync: vi.fn(), isPending: false }
     })
 
@@ -199,7 +248,12 @@ describe('AddressStep', () => {
   })
 
   it('should show loading indicator from useQuery', () => {
-    useQueryMock.mockReturnValue({ data: [], isLoading: true })
+    useQueryMock.mockReturnValue({
+      data: [],
+      isLoading: true,
+      isEnabled: false,
+    })
+
     useMutationMock.mockReturnValue({ mutateAsync: vi.fn(), isPending: false })
 
     render(<AddressStep />)
@@ -207,8 +261,12 @@ describe('AddressStep', () => {
     expect(screen.getByTestId('loading')).toBeInTheDocument()
   })
 
-  it('should show loading overlay when listRegistry is pending', () => {
-    useQueryMock.mockReturnValue({ data: [], isLoading: false })
+  it('should show loading overlay when registry request is pending', () => {
+    useQueryMock.mockReturnValue({
+      data: [],
+      isLoading: false,
+      isEnabled: false,
+    })
 
     useMutationMock.mockReturnValue({ mutateAsync: vi.fn(), isPending: true })
 

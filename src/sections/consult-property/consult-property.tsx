@@ -82,7 +82,7 @@ export default function ConsultProperty() {
         </div>
       </header>
 
-      <div className="relative bg-primary h-20"></div>
+      <div className="relative bg-primary h-30"></div>
 
       <FormProvider {...formContextValue}>
         <main className="pt-5 w-full mx-auto lg:max-w-lg -mt-22">
