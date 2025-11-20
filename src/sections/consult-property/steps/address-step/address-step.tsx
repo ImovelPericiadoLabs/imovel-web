@@ -88,6 +88,10 @@ export function AddressStep() {
     handleNextStep()
   }
 
+  function handleClearAddress() {
+    setAddress('')
+  }
+
   return (
     <div className="flex flex-col gap-5 px-4 relative">
       <TextTitle>Para começar, onde fica seu imóvel?</TextTitle>
@@ -102,6 +106,7 @@ export function AddressStep() {
         isLoadingAddress={isLoadingListAddress}
         error={getError()}
         isDirty={isEnabled}
+        onClear={handleClearAddress}
       />
       {!debouncedAddress?.length && (
         <div className="border border-box p-4 flex flex-col gap-8">

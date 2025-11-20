@@ -27,6 +27,7 @@ interface Props extends React.InputHTMLAttributes<HTMLInputElement> {
     subtitle: string
   } | null
   isDirty?: boolean
+  onClear?: () => void
 }
 
 const loadingOptions = Array.from({ length: 5 }, (_, i) => ({
@@ -69,6 +70,9 @@ export default function AutoCompleteInput({
   }
 
   function handleClearInput() {
+    if (props?.onClear) {
+      props.onClear()
+    }
     setValue('')
     inputRef.current?.focus()
   }
