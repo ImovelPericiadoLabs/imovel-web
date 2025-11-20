@@ -10,8 +10,8 @@ const notoSans = Noto_Sans({
 })
 
 export const metadata: Metadata = {
-  title: 'Imóvel Web',
-  description: 'Imóvel Web',
+  title: 'Imóvel Periciado',
+  description: 'Imóvel Periciado',
 }
 
 export default function RootLayout({
