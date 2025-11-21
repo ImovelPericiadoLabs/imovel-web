@@ -6,10 +6,19 @@ import type { FormContextWithSteps } from '@/sections/consult-property/types'
 import ConsultProperty from './consult-property'
 
 const mockPush = vi.fn()
-
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: mockPush }),
 }))
+
+vi.mock('react', async () => {
+  const actual = await vi.importActual<typeof import('react')>('react')
+  return {
+    ...actual,
+    Activity: ({ mode, children }: { mode: string; children: React.ReactNode }) => {
+      return mode === 'visible' ? <>{children}</> : null
+    },
+  }
+})
 
 vi.mock('@hookform/resolvers/zod', () => ({
   zodResolver: (schema: any) => schema,
@@ -24,6 +33,10 @@ vi.mock('lucide-react', () => ({
   Menu: (props: ComponentProps<'div'>) => <div data-testid="menu" {...props} />,
 }))
 
+vi.mock('@/sections/consult-property/steps/payment-step/payment-confirmation-step/payment-confirmation-step', () => ({
+  PaymentConfirmationStep: () => <div data-testid="payment-confirmation-step">Payment Confirmation</div>
+}))
+
 vi.mock('@/sections/consult-property/steps', async () => {
   const rhf = await vi.importActual<typeof import('react-hook-form')>('react-hook-form')
 
@@ -32,6 +45,14 @@ vi.mock('@/sections/consult-property/steps', async () => {
     return (
       <div data-testid={testId}>
         <button onClick={handleNextStep}>Next Step</button>
+      </div>
+    )
+  }
+
+  const MockPaymentStep = ({ onNextStep }: { onNextStep: () => void }) => {
+    return (
+      <div data-testid="payment-step">
+        <button onClick={onNextStep}>Next Step</button>
       </div>
     )
   }
@@ -52,13 +73,9 @@ vi.mock('@/sections/consult-property/steps', async () => {
     DocumentTypeStep: () => <MockStep testId="document-type-step" />,
     SendDocumentStep: () => <MockStep testId="send-document-step" />,
     SummaryStep: () => <MockStep testId="summary-step" />,
-    PaymentStep: () => <MockStep testId="payment-step" />,
+    PaymentStep: (props: { onNextStep: () => void }) => <MockPaymentStep {...props} />,
   }
 })
-
-vi.mock('@/sections/consult-property/steps/payment-step/payment-confirmation-step/payment-confirmation-step', () => ({
-  PaymentConfirmationStep: () => <div data-testid="payment-confirmation-step">Payment Confirmation</div>
-}))
 
 describe('ConsultProperty Flow', () => {
   beforeEach(() => {
@@ -94,13 +111,13 @@ describe('ConsultProperty Flow', () => {
   })
 
   it('should handle the payment sub-step logic', () => {
-    const nextButtons = screen.getAllByText('Next Step')
-    for (let i = 0; i < 5; i++) {
-      fireEvent.click(screen.getByText('Next Step'))
-    }
+    fireEvent.click(screen.getByText('Next Step'))
+    fireEvent.click(screen.getByText('Next Step'))
+    fireEvent.click(screen.getByText('Next Step'))
+    fireEvent.click(screen.getByText('Next Step'))
+    fireEvent.click(screen.getByText('Next Step'))
 
     expect(screen.getByTestId('payment-step')).toBeInTheDocument()
-
 
     fireEvent.click(screen.getByText('Next Step'))
 
