@@ -11,7 +11,7 @@ import {
 
 import TextTitle from '@/components/text-title'
 import OptionCard from '@/components/option-card/option-card.tsx'
-import { Switch } from '@/components/switch/switch'
+import { Switch } from '@/components/switch'
 import type { FormContextWithSteps } from '@/sections/consult-property/types'
 
 type PaymentMethodType = 'pix' | 'credit_card' | 'debit_card' | 'boleto'
