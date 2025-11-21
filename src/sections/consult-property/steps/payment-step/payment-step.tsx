@@ -2,30 +2,70 @@
 
 import { useFormContext } from 'react-hook-form'
 import {
-  Wallet,
   QrCode,
   CreditCard,
   Barcode,
-  DollarSign
+  DollarSign,
+  LucideIcon
 } from 'lucide-react'
+
 import TextTitle from '@/components/text-title'
 import OptionCard from '@/components/option-card/option-card.tsx'
-// Assumindo que você tenha um componente de Switch (ex: Shadcn UI ou similar). 
-// Se não tiver, substitua por um input type="checkbox" estilizado.
 import { Switch } from '@/components/switch/switch'
+import type { FormContextWithSteps } from '@/sections/consult-property/types'
 
-type PaymentMethod = 'pix' | 'credit_card' | 'debit_card' | 'boleto'
+type PaymentMethodType = 'pix' | 'credit_card' | 'debit_card' | 'boleto'
 
-export function PaymentStep() {
-  // Assumindo que o contexto possui esses campos
-  const { setValue, watch } = useFormContext()
+interface PaymentOption {
+  id: PaymentMethodType
+  title: string
+  subtitle: string
+  icon: LucideIcon
+}
 
+const PAYMENT_OPTIONS: PaymentOption[] = [
+  {
+    id: 'pix',
+    title: 'Pix',
+    subtitle: 'Aprovação imediata',
+    icon: QrCode,
+  },
+  {
+    id: 'credit_card',
+    title: 'Cartão de Crédito',
+    subtitle: 'Em até 12x',
+    icon: CreditCard,
+  },
+  {
+    id: 'debit_card',
+    title: 'Cartão de Débito',
+    subtitle: 'Transferência instantânea',
+    icon: CreditCard,
+  },
+  {
+    id: 'boleto',
+    title: 'Boleto',
+    subtitle: 'Vencimento em 3 dias úteis',
+    icon: Barcode,
+  },
+]
+
+interface PaymentStepProps {
+  currentBalance?: number
+}
+
+export function PaymentStep({ currentBalance = 240.00 }: PaymentStepProps) {
+  const { setValue, watch, handleNextStep } = useFormContext() as FormContextWithSteps
   const useBalance = watch('useBalance')
 
-  function handleSelectMethod(value: PaymentMethod) {
+  const formattedBalance = new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  }).format(currentBalance)
+
+  function handleSelectMethod(value: PaymentMethodType) {
     setValue('paymentMethod', value, { shouldValidate: true })
-    // Adicione handleNextStep() aqui se quiser avançar automaticamente ao clicar
-    // handleNextStep() 
+    handleNextStep()
   }
 
   function toggleBalance(checked: boolean) {
@@ -33,17 +73,15 @@ export function PaymentStep() {
   }
 
   return (
-    <div className="relative flex-1 px-4 -mt-10">
+    <div className="relative flex-1 px-4 -">
       <div className="flex flex-col gap-5 pb-24 md:pb-0">
-
-        {/* Cabeçalho */}
+        
         <div className="px-1">
           <TextTitle>Escolha como pagar</TextTitle>
         </div>
 
         <div className="grid auto-rows-fr gap-4">
-
-          {/* Card de Saldo em Conta (Customizado pois contém um Switch) */}
+          {/* Card de Saldo em Conta */}
           <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="p-2 bg-gray-50 rounded-lg text-gray-600">
@@ -51,7 +89,7 @@ export function PaymentStep() {
               </div>
               <div className="flex flex-col">
                 <span className="font-semibold text-gray-900">Saldo em conta</span>
-                <span className="text-sm text-gray-500">R$ 240,00</span>
+                <span className="text-sm text-gray-500">{formattedBalance}</span>
               </div>
             </div>
             <Switch
@@ -60,34 +98,16 @@ export function PaymentStep() {
             />
           </div>
 
-          {/* Opções de Pagamento usando o OptionCard */}
-          <OptionCard
-            icon={QrCode}
-            title="PIX"
-            subtitle="Aprovação imediata"
-            onClick={() => handleSelectMethod('pix')}
-          />
-
-          <OptionCard
-            icon={CreditCard}
-            title="Cartão de Crédito"
-            subtitle="Em até 12x"
-            onClick={() => handleSelectMethod('credit_card')}
-          />
-
-          <OptionCard
-            icon={CreditCard}
-            title="Cartão de Débito"
-            subtitle="Transferência instantânea"
-            onClick={() => handleSelectMethod('debit_card')}
-          />
-
-          <OptionCard
-            icon={Barcode}
-            title="Boleto"
-            subtitle="Vencimento em 3 dias úteis"
-            onClick={() => handleSelectMethod('boleto')}
-          />
+          {/* Opções de Pagamento Mapeadas */}
+          {PAYMENT_OPTIONS.map((option) => (
+            <OptionCard
+              key={option.id}
+              icon={option.icon}
+              title={option.title}
+              subtitle={option.subtitle}
+              onClick={() => handleSelectMethod(option.id)}
+            />
+          ))}
         </div>
       </div>
     </div>
