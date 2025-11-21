@@ -16,7 +16,7 @@ import {
   SummaryStep,
   PaymentStep,
 } from '@/sections/consult-property/steps'
-import { PaymentConfirmationStep } from '@/sections/consult-property/steps/payment-step/payment-confirmation-step/payment-confirmation-step'
+import { PaymentConfirmationStep } from '@/sections/consult-property/steps/payment-step/payment-confirmation-step'
 import { validations, FormTypes } from '@/sections/consult-property/validations'
 
 function StepContainer({ isActive, children }: { isActive: boolean; children: React.ReactNode }) {
