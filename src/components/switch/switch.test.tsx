@@ -1,6 +1,6 @@
 import { render, screen, fireEvent } from '@testing-library/react'
-import { Switch } from './switch'
 import { describe, it, expect, vi } from 'vitest'
+import { Switch } from './switch'
 
 describe('Switch Component', () => {
   it('deve renderizar corretamente', () => {
@@ -12,20 +12,26 @@ describe('Switch Component', () => {
   it('deve ter o estado inicial "unchecked" por padrão', () => {
     render(<Switch />)
     const switchButton = screen.getByRole('switch')
+    
+    // Correção: O aria-checked fica no botão
     expect(switchButton).toHaveAttribute('aria-checked', 'false')
-    expect(switchButton).toHaveAttribute('data-state', 'unchecked')
+    
+    // Correção: O data-state fica no SPAN (thumb), não no botão
+    const thumb = switchButton.querySelector('span')
+    expect(thumb).toHaveAttribute('data-state', 'unchecked')
   })
 
   it('deve refletir a prop "checked" como true', () => {
     render(<Switch checked={true} />)
     const switchButton = screen.getByRole('switch')
     expect(switchButton).toHaveAttribute('aria-checked', 'true')
+    
     const thumb = switchButton.querySelector('span')
     expect(thumb).toHaveAttribute('data-state', 'checked')
   })
 
   it('deve chamar a função onCheckedChange com o novo valor ao clicar', () => {
-    const handleCheckedChange = vi.fn()
+    const handleCheckedChange = vi.fn() 
     render(<Switch checked={false} onCheckedChange={handleCheckedChange} />)
 
     const switchButton = screen.getByRole('switch')
