@@ -79,25 +79,30 @@ export default function AutoCompleteInput({
   }
 
   function hasHouseNumber(address: string): boolean {
-    const regex = /,\s*(\d+[A-Za-z]?|s\/?n)$/i
-    return regex.test(address)
+    const afterFirstComma = address.split(',')[1]?.trim()
+
+    if (!afterFirstComma) return false
+
+    const regex = /^(\d+[A-Za-z]?|s\/?n)\b/i
+    return regex.test(afterFirstComma)
   }
 
-  async function handleSelectAddress({ placeId, primary }: Option) {
-    if (!hasHouseNumber(primary as string)) {
+  async function handleSelectAddress({ placeId }: Option) {
+    handleOpenAddressSheet()
+
+    const result = await onSelectAddress(placeId as string)
+
+    if (!hasHouseNumber(result as string)) {
       setAddressError({
         title: 'Número do endereço obrigatório',
         subtitle: 'Para prosseguir, informe o número.',
       })
 
+      handleCloseAddressSheet()
       return
     }
 
-    handleOpenAddressSheet()
-
-    const address = await onSelectAddress(placeId as string)
-
-    setValue(address)
+    setValue(result)
   }
 
   function handleOpenAddressSheet() {

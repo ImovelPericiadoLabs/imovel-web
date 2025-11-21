@@ -69,7 +69,8 @@ export function SendDocumentStep() {
   }
 
   return (
-    <div className="flex flex-col h-full gap-5 px-4 relative ">
+    // Mantido o -mt-4 da dev para alinhar com o novo header
+    <div className="flex flex-col h-full gap-5 px-4 relative -mt-4">
       <TextTitle>Envie o documento</TextTitle>
 
       <DocumentUpload onFileSelect={handleFileSelect} />
