@@ -20,7 +20,6 @@ describe('Switch Component', () => {
     render(<Switch checked={true} />)
     const switchButton = screen.getByRole('switch')
     expect(switchButton).toHaveAttribute('aria-checked', 'true')
-    // Verifica se a "bolinha" (span interno) tem o estado correto
     const thumb = switchButton.querySelector('span')
     expect(thumb).toHaveAttribute('data-state', 'checked')
   })

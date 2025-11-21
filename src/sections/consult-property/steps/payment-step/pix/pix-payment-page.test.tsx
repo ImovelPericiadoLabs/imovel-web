@@ -2,7 +2,6 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { PixPaymentPage } from './pix-payment-page'
 
-// Mock do Clipboard (necessário pois não existe no ambiente de teste)
 const mockWriteText = vi.fn()
 Object.assign(navigator, {
     clipboard: {
@@ -41,7 +40,6 @@ describe('PixPaymentPage Component', () => {
         expect(screen.getByText(/R\$ 150,00/)).toBeInTheDocument()
         expect(screen.getByText(/15:45/)).toBeInTheDocument()
 
-        // Verifica se o código Pix é exibido no box de texto
         expect(screen.getByText('codigo-pix-teste')).toBeInTheDocument()
     })
 
@@ -61,17 +59,12 @@ describe('PixPaymentPage Component', () => {
 
         const button = screen.getByRole('button', { name: /Copiar código Pix/i })
 
-        // Clica no botão
         fireEvent.click(button)
 
-        // Verifica se a função de copiar foi chamada com o código correto
         expect(mockWriteText).toHaveBeenCalledWith(pixCode)
         expect(mockWriteText).toHaveBeenCalledTimes(1)
 
-        // Verifica se o texto mudou para "Copiado!"
         expect(await screen.findByText('Copiado!')).toBeInTheDocument()
-
-        // Opcional: Avança o tempo para verificar se volta ao normal
         vi.advanceTimersByTime(2000)
 
         await waitFor(() => {
@@ -80,7 +73,6 @@ describe('PixPaymentPage Component', () => {
     })
 
     it('deve lidar com erro ao copiar (console.error)', async () => {
-        // Simula um erro no clipboard
         const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => { })
         mockWriteText.mockRejectedValueOnce(new Error('Falha clipboard'))
 
