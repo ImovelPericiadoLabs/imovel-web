@@ -55,7 +55,7 @@ export function SummaryStep() {
   }
 
   return (
-    <div className="flex flex-col gap-5 min-h-[calc(100vh-7.5rem)] relative -mt-5">
+    <div className="flex flex-col gap-5 min-h-[calc(100vh-7.5rem)] relative -mt-4">
       <div className="px-4">
         <TextTitle>Resumo do imóvel </TextTitle>
 

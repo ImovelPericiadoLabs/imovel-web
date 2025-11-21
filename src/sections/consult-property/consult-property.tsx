@@ -65,7 +65,7 @@ export default function ConsultProperty() {
 
   return (
     <section className="min-h-screen">
-      <header className="flex flex-col pt-4 px-4 bg-primary">
+      <header className="flex flex-col pt-4 px-4 bg-primary relative z-40">
         <div className="flex items-center justify-between py-4.5 mb-6">
           <ChevronLeft onClick={handleGoBack} className="size-7 text-white cursor-pointer" />
 
@@ -82,7 +82,7 @@ export default function ConsultProperty() {
         </div>
       </header>
 
-      <div className="relative bg-primary h-30"></div>
+      <div className="relative bg-primary h-30 -mt-1"></div>
 
       <FormProvider {...formContextValue}>
         <main className="pt-5 w-full mx-auto lg:max-w-lg -mt-22">

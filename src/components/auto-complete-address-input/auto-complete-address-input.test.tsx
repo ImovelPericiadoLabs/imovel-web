@@ -3,8 +3,13 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import AutoCompleteInput from './auto-complete-address-input'
 
 const onConfirmMock = vi.fn()
-const onSelectAddressMock = vi.fn().mockResolvedValue('ENDEREÇO COMPLETO')
+const onSelectAddressMock = vi.fn()
 const onChangeMock = vi.fn()
+const onClearMock = vi.fn()
+
+vi.mock('@/utils/tailwind', () => ({
+  cn: (...inputs: unknown[]) => inputs.filter(Boolean).join(' '),
+}))
 
 vi.mock('@/components/button', () => ({
   __esModule: true,
@@ -49,8 +54,7 @@ vi.mock('lucide-react', () => ({
 }))
 
 const mockOptions = [
-  { primary: 'Rua ABC, 123', secondary: 'Cidade X', value: 'a', placeId: '1' },
-  { primary: 'Rua Sem Numero', secondary: 'Cidade Y', value: 'b', placeId: '2' },
+  { primary: 'Rua Exemplo', secondary: 'Bairro', value: 'opt1', placeId: 'pid1' },
 ]
 
 beforeEach(() => {
@@ -58,67 +62,75 @@ beforeEach(() => {
 })
 
 describe('AutoCompleteInput', () => {
-  it('should render input and icons', () => {
-    render(
-      <AutoCompleteInput
-        options={mockOptions}
-        onConfirm={onConfirmMock}
-        onSelectAddress={onSelectAddressMock}
-      />,
-    )
-
+  it('should render initial state correctly', () => {
+    render(<AutoCompleteInput onConfirm={onConfirmMock} onSelectAddress={onSelectAddressMock} />)
     expect(screen.getByTestId('icon-search')).toBeInTheDocument()
     expect(screen.getByRole('textbox')).toBeInTheDocument()
+    expect(screen.queryByTestId('icon-clear')).not.toBeInTheDocument()
   })
 
-  it('should update input value on typing', () => {
+  it('should handle typing and call onChange prop if provided', () => {
     render(
       <AutoCompleteInput
-        options={mockOptions}
         onConfirm={onConfirmMock}
         onSelectAddress={onSelectAddressMock}
         onChange={onChangeMock}
       />,
     )
-
-    const input = screen.getByRole('textbox')
-    fireEvent.change(input, { target: { value: 'Rua' } })
-
-    expect(input).toHaveValue('Rua')
-    expect(onChangeMock).toHaveBeenCalled()
-  })
-
-  it('should clear input when clicking clear icon', () => {
-    render(
-      <AutoCompleteInput
-        options={mockOptions}
-        onConfirm={onConfirmMock}
-        onSelectAddress={onSelectAddressMock}
-      />,
-    )
-
     const input = screen.getByRole('textbox')
     fireEvent.change(input, { target: { value: 'Test' } })
 
-    fireEvent.click(screen.getByTestId('icon-clear'))
+    expect(input).toHaveValue('Test')
+    expect(onChangeMock).toHaveBeenCalled()
+    expect(screen.getByTestId('icon-clear')).toBeInTheDocument()
+  })
 
+  it('should update value internally even without onChange prop', () => {
+    render(<AutoCompleteInput onConfirm={onConfirmMock} onSelectAddress={onSelectAddressMock} />)
+    const input = screen.getByRole('textbox')
+    fireEvent.change(input, { target: { value: 'Internal' } })
+    expect(input).toHaveValue('Internal')
+  })
+
+  it('should clear input and call onClear prop', () => {
+    render(
+      <AutoCompleteInput
+        onConfirm={onConfirmMock}
+        onSelectAddress={onSelectAddressMock}
+        onClear={onClearMock}
+      />,
+    )
+    const input = screen.getByRole('textbox') as HTMLInputElement
+    fireEvent.change(input, { target: { value: 'Clear me' } })
+
+    const clearBtn = screen.getByTestId('icon-clear')
+    fireEvent.click(clearBtn)
+
+    expect(input.value).toBe('')
+    expect(onClearMock).toHaveBeenCalled()
+    expect(document.activeElement).toBe(input)
+  })
+
+  it('should clear input without onClear prop crashing', () => {
+    render(<AutoCompleteInput onConfirm={onConfirmMock} onSelectAddress={onSelectAddressMock} />)
+    const input = screen.getByRole('textbox')
+    fireEvent.change(input, { target: { value: 'Clear me' } })
+    fireEvent.click(screen.getByTestId('icon-clear'))
     expect(input).toHaveValue('')
   })
 
-  it('should show skeleton when loading', () => {
+  it('should show loading skeletons', () => {
     render(
       <AutoCompleteInput
         isLoading
-        options={[]}
         onConfirm={onConfirmMock}
         onSelectAddress={onSelectAddressMock}
       />,
     )
-
     expect(screen.getAllByTestId('skeleton').length).toBeGreaterThan(0)
   })
 
-  it('should open error sheet if address has no number', async () => {
+  it('should render options list', () => {
     render(
       <AutoCompleteInput
         options={mockOptions}
@@ -126,19 +138,15 @@ describe('AutoCompleteInput', () => {
         onSelectAddress={onSelectAddressMock}
       />,
     )
-
     const input = screen.getByRole('textbox')
-    fireEvent.change(input, { target: { value: 'Rua Sem Numero' } })
+    fireEvent.change(input, { target: { value: 'Search' } })
 
-    fireEvent.click(screen.getByText('Rua Sem Numero'))
-
-    await waitFor(() => {
-      expect(screen.getByTestId('sheet')).toBeInTheDocument()
-      expect(screen.getByTestId('title')).toHaveTextContent('Número do endereço obrigatório')
-    })
+    expect(screen.getByText('Rua Exemplo')).toBeInTheDocument()
+    expect(screen.getByText('Bairro')).toBeInTheDocument()
   })
 
-  it('should select address with number and open confirmation sheet', async () => {
+  it('should handle address selection invalid format (no comma)', async () => {
+    onSelectAddressMock.mockResolvedValue('Rua Sem Virgula')
     render(
       <AutoCompleteInput
         options={mockOptions}
@@ -146,18 +154,17 @@ describe('AutoCompleteInput', () => {
         onSelectAddress={onSelectAddressMock}
       />,
     )
-
-    const input = screen.getByRole('textbox')
-    fireEvent.change(input, { target: { value: 'Rua ABC, 123' } })
-
-    fireEvent.click(screen.getByText('Rua ABC, 123'))
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Rua' } })
+    fireEvent.click(screen.getByText('Rua Exemplo'))
 
     await waitFor(() => {
-      expect(screen.getAllByTestId('sheet')[0]).toBeInTheDocument()
+      expect(onSelectAddressMock).toHaveBeenCalledWith('pid1')
+      expect(screen.getByText('Número do endereço obrigatório')).toBeInTheDocument()
     })
   })
 
-  it('should fill input after selecting valid address', async () => {
+  it('should handle address selection invalid format (comma but no number)', async () => {
+    onSelectAddressMock.mockResolvedValue('Rua, Centro')
     render(
       <AutoCompleteInput
         options={mockOptions}
@@ -165,19 +172,136 @@ describe('AutoCompleteInput', () => {
         onSelectAddress={onSelectAddressMock}
       />,
     )
-
-    fireEvent.change(screen.getByRole('textbox'), {
-      target: { value: 'Rua ABC, 123' },
-    })
-
-    fireEvent.click(screen.getByText('Rua ABC, 123'))
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Rua' } })
+    fireEvent.click(screen.getByText('Rua Exemplo'))
 
     await waitFor(() => {
-      expect(screen.getByRole('textbox')).toHaveValue('ENDEREÇO COMPLETO')
+      expect(screen.getByText('Número do endereço obrigatório')).toBeInTheDocument()
     })
   })
 
-  it('should show not found sheet when no options and dirty', () => {
+  it('should handle address selection valid format (number)', async () => {
+    onSelectAddressMock.mockResolvedValue('Rua, 123')
+    render(
+      <AutoCompleteInput
+        options={mockOptions}
+        onConfirm={onConfirmMock}
+        onSelectAddress={onSelectAddressMock}
+      />,
+    )
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Rua' } })
+    fireEvent.click(screen.getByText('Rua Exemplo'))
+
+    await waitFor(() => {
+      expect(screen.getByText('Confirmar este endereço?')).toBeInTheDocument()
+      expect(screen.getByRole('textbox')).toHaveValue('Rua, 123')
+    })
+  })
+
+  it('should handle address selection valid format (s/n)', async () => {
+    onSelectAddressMock.mockResolvedValue('Rua, s/n')
+    render(
+      <AutoCompleteInput
+        options={mockOptions}
+        onConfirm={onConfirmMock}
+        onSelectAddress={onSelectAddressMock}
+      />,
+    )
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Rua' } })
+    fireEvent.click(screen.getByText('Rua Exemplo'))
+
+    await waitFor(() => {
+      expect(screen.getByText('Confirmar este endereço?')).toBeInTheDocument()
+    })
+  })
+
+  it('should handle confirm action in sheet', async () => {
+    onSelectAddressMock.mockResolvedValue('Rua, 123')
+    render(
+      <AutoCompleteInput
+        options={mockOptions}
+        onConfirm={onConfirmMock}
+        onSelectAddress={onSelectAddressMock}
+      />,
+    )
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Rua' } })
+    fireEvent.click(screen.getByText('Rua Exemplo'))
+
+    await waitFor(() => {
+      expect(screen.getByText('Confirmar')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByText('Confirmar'))
+    expect(onConfirmMock).toHaveBeenCalledWith('Rua, 123')
+  })
+
+  it('should handle "change address" action (backdrop click)', async () => {
+    onSelectAddressMock.mockResolvedValue('Rua, 123')
+    render(
+      <AutoCompleteInput
+        options={mockOptions}
+        onConfirm={onConfirmMock}
+        onSelectAddress={onSelectAddressMock}
+      />,
+    )
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Rua' } })
+    fireEvent.click(screen.getByText('Rua Exemplo'))
+
+    await waitFor(() => {
+      expect(screen.getByText('Confirmar este endereço?')).toBeInTheDocument()
+    })
+
+    const backdrop = screen
+      .getByRole('textbox')
+      .closest('div')
+      ?.parentElement?.querySelector('.fixed.inset-0')
+    if (backdrop) fireEvent.click(backdrop)
+
+    expect(screen.queryByText('Confirmar este endereço?')).not.toBeInTheDocument()
+    expect(document.activeElement).toBe(screen.getByRole('textbox'))
+  })
+
+  it('should handle "change address" action (button click)', async () => {
+    onSelectAddressMock.mockResolvedValue('Rua, 123')
+    render(
+      <AutoCompleteInput
+        options={mockOptions}
+        onConfirm={onConfirmMock}
+        onSelectAddress={onSelectAddressMock}
+      />,
+    )
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Rua' } })
+    fireEvent.click(screen.getByText('Rua Exemplo'))
+
+    await waitFor(() => {
+      expect(screen.getByText('Mudar')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByText('Mudar'))
+    expect(screen.queryByText('Confirmar este endereço?')).not.toBeInTheDocument()
+  })
+
+  it('should show loading state inside confirmation sheet', async () => {
+    onSelectAddressMock.mockResolvedValue('Rua, 123')
+    render(
+      <AutoCompleteInput
+        isLoadingAddress
+        options={mockOptions}
+        onConfirm={onConfirmMock}
+        onSelectAddress={onSelectAddressMock}
+      />,
+    )
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Rua' } })
+    fireEvent.click(screen.getByText('Rua Exemplo'))
+
+    await waitFor(() => {
+      expect(screen.getAllByTestId('skeleton').length).toBeGreaterThan(0)
+      expect(screen.queryByText('Confirmar')).not.toBeInTheDocument()
+      expect(screen.queryByText('Mudar')).not.toBeInTheDocument()
+    })
+  })
+
+  it('should show "Not Found" sheet when dirty, not loading, and no options', () => {
     render(
       <AutoCompleteInput
         isDirty
@@ -187,35 +311,67 @@ describe('AutoCompleteInput', () => {
         onSelectAddress={onSelectAddressMock}
       />,
     )
-
-    fireEvent.change(screen.getByRole('textbox'), {
-      target: { value: 'AAA' },
-    })
-
-    expect(screen.getAllByTestId('sheet')[0]).toBeInTheDocument()
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Unknown' } })
+    expect(screen.getByText('Não encontramos seu endereço')).toBeInTheDocument()
   })
 
-  it('should confirm address on button click', async () => {
+  it('should close "Not Found" sheet on button click', () => {
     render(
       <AutoCompleteInput
-        options={mockOptions}
+        isDirty
+        isLoading={false}
+        options={[]}
+        onConfirm={onConfirmMock}
+        onSelectAddress={onSelectAddressMock}
+        error={null}
+      />,
+    )
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Unknown' } })
+
+    const btn = screen.getByText('Entendi')
+    fireEvent.click(btn)
+
+    expect(screen.queryByText('Não encontramos seu endereço')).not.toBeInTheDocument()
+  })
+
+  it('should display external error prop', () => {
+    render(
+      <AutoCompleteInput
+        error={{ title: 'External Error', subtitle: 'Details' }}
         onConfirm={onConfirmMock}
         onSelectAddress={onSelectAddressMock}
       />,
     )
+    expect(screen.getByText('External Error')).toBeInTheDocument()
+    expect(screen.getByText('Details')).toBeInTheDocument()
+  })
 
-    fireEvent.change(screen.getByRole('textbox'), {
-      target: { value: 'Rua ABC, 123' },
-    })
+  it('should close error sheet on button click', () => {
+    render(
+      <AutoCompleteInput
+        error={{ title: 'External Error', subtitle: 'Details' }}
+        onConfirm={onConfirmMock}
+        onSelectAddress={onSelectAddressMock}
+      />,
+    )
+    fireEvent.click(screen.getByText('Entendi'))
 
-    fireEvent.click(screen.getByText('Rua ABC, 123'))
+    expect(screen.queryByText('External Error')).not.toBeInTheDocument()
+  })
 
-    await waitFor(() => {
-      expect(screen.getAllByTestId('sheet')[0]).toBeInTheDocument()
-    })
-
-    fireEvent.click(screen.getAllByTestId('button')[1])
-
-    expect(onConfirmMock).toHaveBeenCalled()
+  it('should prioritize error sheet over not found sheet', () => {
+    render(
+      <AutoCompleteInput
+        isDirty
+        isLoading={false}
+        options={[]}
+        error={{ title: 'Error Priority', subtitle: 'Sub' }}
+        onConfirm={onConfirmMock}
+        onSelectAddress={onSelectAddressMock}
+      />,
+    )
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Val' } })
+    expect(screen.getByText('Error Priority')).toBeInTheDocument()
+    expect(screen.queryByText('Não encontramos seu endereço')).not.toBeInTheDocument()
   })
 })
