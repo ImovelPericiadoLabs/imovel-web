@@ -81,7 +81,6 @@ export function PaymentStep({ currentBalance = 240.00 }: PaymentStepProps) {
         </div>
 
         <div className="grid auto-rows-fr gap-4">
-          {/* Card de Saldo em Conta */}
           <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="p-2 bg-gray-50 rounded-lg text-gray-600">
@@ -98,7 +97,6 @@ export function PaymentStep({ currentBalance = 240.00 }: PaymentStepProps) {
             />
           </div>
 
-          {/* Opções de Pagamento Mapeadas */}
           {PAYMENT_OPTIONS.map((option) => (
             <OptionCard
               key={option.id}

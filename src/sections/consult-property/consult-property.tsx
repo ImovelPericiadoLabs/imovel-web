@@ -72,9 +72,6 @@ export default function ConsultProperty() {
 
   return (
     <section className="min-h-screen bg-[var(--color-background)]">
-      {/* 1. Removi 'transition-all duration-300' do header. 
-             Isso evita que o cabeçalho tente animar se houver qualquer mudança minúscula de tamanho.
-      */}
       <header className="flex flex-col pt-4 px-4 bg-[var(--color-primary)]">
         <div className="flex items-center justify-between py-4.5 mb-2">
           <ChevronLeft onClick={handleGoBack} className="size-7 text-white cursor-pointer" />
@@ -86,12 +83,6 @@ export default function ConsultProperty() {
           <Menu className="size-7 text-white cursor-pointer" />
         </div>
 
-        {/* 2. AJUSTE AQUI:
-           Removi todas as transições e opacidades.
-           Agora usamos apenas a lógica: se for pix, fica 'invisible' (oculto, mas ocupando espaço).
-           Se não for, fica 'block'.
-           A troca será seca (instantânea), sem borrão.
-        */}
         <div className={`mb-6 ${isPaymentConfirming ? 'invisible' : 'block'}`}>
           <div className="flex justify-end gap-1 font-normal text-base leading-6 text-white">
             <p>{step}</p> de <p>{totalSteps}</p>
@@ -101,7 +92,6 @@ export default function ConsultProperty() {
 
       </header>
 
-      {/* Spacer - Mantém o tamanho fixo */}
       <div
         className="relative bg-[var(--color-primary)] -mt-[1px] h-28"
       />
