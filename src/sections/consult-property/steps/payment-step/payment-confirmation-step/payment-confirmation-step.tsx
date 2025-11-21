@@ -1,4 +1,3 @@
-// sections/payment/payment-confirmation-step.tsx
 'use client'
 
 import { useFormContext } from 'react-hook-form'

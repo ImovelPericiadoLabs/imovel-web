@@ -68,9 +68,7 @@ export default function ConsultProperty() {
   const formContextValue = { ...methods, handleNextStep, setStep, setHasDocument }
 
   return (
-    // ALTERADO: bg-background em vez de var(--color-background)
     <section className="min-h-screen bg-background">
-      {/* ALTERADO: bg-primary em vez de var(--color-primary) */}
       <header className="flex flex-col pt-4 px-4 bg-primary">
         <div className="flex items-center justify-between py-4.5 mb-2">
           <ChevronLeft
@@ -94,7 +92,6 @@ export default function ConsultProperty() {
         </div>
       </header>
 
-      {/* ALTERADO: bg-primary aqui também */}
       <div className="relative bg-primary -mt-[1px] h-28" />
 
       <FormProvider {...formContextValue}>

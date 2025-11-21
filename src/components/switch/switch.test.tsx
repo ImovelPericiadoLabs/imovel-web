@@ -13,10 +13,8 @@ describe('Switch Component', () => {
     render(<Switch />)
     const switchButton = screen.getByRole('switch')
     
-    // Correção: O aria-checked fica no botão
     expect(switchButton).toHaveAttribute('aria-checked', 'false')
     
-    // Correção: O data-state fica no SPAN (thumb), não no botão
     const thumb = switchButton.querySelector('span')
     expect(thumb).toHaveAttribute('data-state', 'unchecked')
   })
