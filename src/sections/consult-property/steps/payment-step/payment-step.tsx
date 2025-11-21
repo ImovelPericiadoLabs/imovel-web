@@ -12,7 +12,6 @@ import {
 import TextTitle from '@/components/text-title'
 import OptionCard from '@/components/option-card/option-card.tsx'
 import { Switch } from '@/components/switch'
-import type { FormContextWithSteps } from '@/sections/consult-property/types'
 
 type PaymentMethodType = 'pix' | 'credit_card' | 'debit_card' | 'boleto'
 
@@ -52,10 +51,11 @@ const PAYMENT_OPTIONS: PaymentOption[] = [
 
 interface PaymentStepProps {
   currentBalance?: number
+  onNextStep: () => void
 }
 
-export function PaymentStep({ currentBalance = 240.00 }: PaymentStepProps) {
-  const { setValue, watch, handleNextStep } = useFormContext() as FormContextWithSteps
+export function PaymentStep({ currentBalance = 240.00, onNextStep }: PaymentStepProps) {
+  const { setValue, watch } = useFormContext()
   const useBalance = watch('useBalance')
 
   const formattedBalance = new Intl.NumberFormat('pt-BR', {
@@ -65,7 +65,8 @@ export function PaymentStep({ currentBalance = 240.00 }: PaymentStepProps) {
 
   function handleSelectMethod(value: PaymentMethodType) {
     setValue('paymentMethod', value, { shouldValidate: true })
-    handleNextStep()
+
+    onNextStep()
   }
 
   function toggleBalance(checked: boolean) {
@@ -73,9 +74,9 @@ export function PaymentStep({ currentBalance = 240.00 }: PaymentStepProps) {
   }
 
   return (
-    <div className="relative flex-1 px-4 -">
+    <div className="relative flex-1 px-4">
       <div className="flex flex-col gap-5 pb-24 md:pb-0">
-        
+
         <div className="px-1">
           <TextTitle>Escolha como pagar</TextTitle>
         </div>

@@ -19,7 +19,6 @@ import {
 import { PaymentConfirmationStep } from '@/sections/consult-property/steps/payment-step/payment-confirmation-step/payment-confirmation-step'
 import { validations, FormTypes } from '@/sections/consult-property/validations'
 
-// REFATORADO: Renderização condicional limpa
 function StepContainer({ isActive, children }: { isActive: boolean; children: React.ReactNode }) {
   if (!isActive) return null
   return <div>{children}</div>
@@ -36,7 +35,6 @@ export default function ConsultProperty() {
   const methods = useForm<FormTypes>({
     resolver: zodResolver(validations),
     defaultValues: {},
-    // Garante que os dados persistem mesmo desmontando os componentes (padrão é false, mas bom ser explícito)
     shouldUnregister: false,
   })
 
@@ -66,7 +64,7 @@ export default function ConsultProperty() {
       return
     }
     if (step === 5 && !hasDocument) {
-      setStep(2) // Pula de volta para confirmação se não tiver doc
+      setStep(2)
       return
     }
     handlePreviousStep()
@@ -81,7 +79,6 @@ export default function ConsultProperty() {
           <ChevronLeft
             onClick={handleGoBack}
             className="size-7 text-white cursor-pointer"
-            // Adicionei role para facilitar o teste de acessibilidade e clique
             role="button"
           />
 
@@ -111,7 +108,7 @@ export default function ConsultProperty() {
           <StepContainer isActive={step === 5}><SummaryStep /></StepContainer>
 
           <StepContainer isActive={step === 6}>
-            {isPaymentSelected ? <PaymentConfirmationStep /> : <PaymentStep />}
+            {isPaymentSelected ? <PaymentConfirmationStep /> : <PaymentStep onNextStep={handleNextStep} />}
           </StepContainer>
         </main>
       </FormProvider>

@@ -15,14 +15,13 @@ vi.mock('@/components/switch', () => ({
 }))
 
 const mockSetValue = vi.fn()
-const mockHandleNextStep = vi.fn()
 const mockWatch = vi.fn()
+const mockOnNextStep = vi.fn()
 
 vi.mock('react-hook-form', () => ({
   useFormContext: () => ({
     setValue: mockSetValue,
     watch: mockWatch,
-    handleNextStep: mockHandleNextStep, 
   }),
 }))
 
@@ -33,14 +32,16 @@ describe('PaymentStep', () => {
   })
 
   it('should render TextTitle with correct text', () => {
-    render(<PaymentStep />)
+    render(<PaymentStep onNextStep={mockOnNextStep} />)
+    
     const title = screen.getByTestId('text-title')
     expect(title).toBeInTheDocument()
     expect(title).toHaveTextContent('Escolha como pagar')
   })
 
   it('should render the container with correct structure', () => {
-    const { container } = render(<PaymentStep />)
+    const { container } = render(<PaymentStep onNextStep={mockOnNextStep} />)
+    
     const wrapper = container.firstChild as HTMLElement
     
     expect(wrapper).toHaveClass('relative', 'flex-1', 'px-4')
