@@ -42,6 +42,7 @@ export default function AutoCompleteInput({
   onSelectAddress,
   error,
   isDirty,
+  onClear,
   ...props
 }: Props) {
   const [value, setValue] = useState('')
@@ -70,8 +71,8 @@ export default function AutoCompleteInput({
   }
 
   function handleClearInput() {
-    if (props?.onClear) {
-      props.onClear()
+    if (onClear) {
+      onClear()
     }
     setValue('')
     inputRef.current?.focus()
