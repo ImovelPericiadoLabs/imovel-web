@@ -26,7 +26,7 @@ export function DocumentTypeStep() {
   }, [])
 
   return (
-    <div className="relative flex-1 px-4 -mt-7">
+    <div className="relative flex-1 px-4 -mt-6">
       <div className="flex flex-col gap-5 pb-24 md:pb-0">
         <div className="flex flex-col gap-2">
           <TextTitle>Qual documento você tem?</TextTitle>

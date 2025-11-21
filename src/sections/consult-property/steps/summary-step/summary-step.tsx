@@ -56,7 +56,7 @@ export function SummaryStep() {
 
   return (
     // Mantido o -mt-4 da dev para alinhar com o novo cabeçalho
-    <div className="flex flex-col gap-5 min-h-[calc(100vh-7.5rem)] relative -mt-4">
+    <div className="flex flex-col gap-5 min-h-[calc(100vh-7.5rem)] relative">
       <div className="px-4">
         <TextTitle>Resumo do imóvel </TextTitle>
 

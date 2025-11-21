@@ -33,7 +33,7 @@ export function DocumentConfirmationStep() {
   }, [])
 
   return (
-    <div className="relative flex-1 px-4 -mt-4">
+    <div className="relative flex-1 px-4">
       <div className="flex flex-col gap-5 pb-24 md:pb-0">
         <TextTitle>Você tem o documento do imóvel?</TextTitle>
 
