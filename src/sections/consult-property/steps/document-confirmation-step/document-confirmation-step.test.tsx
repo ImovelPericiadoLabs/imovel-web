@@ -1,13 +1,14 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
 import { DocumentConfirmationStep } from './document-confirmation-step'
+import type { FieldErrors } from 'react-hook-form'
 
 // --- Mocks ---
 const setValueMock = vi.fn()
 const handleNextStepMock = vi.fn()
 const triggerMock = vi.fn()
 
-let mockErrors = {}
+let mockErrors: FieldErrors = {}
 let mockWatchValue: boolean | undefined | null = null
 
 vi.mock('react-hook-form', () => ({
@@ -48,7 +49,8 @@ vi.mock('lucide-react', () => ({
 }))
 
 // --- Setup ---
-const setup = (props?: { watchValue?: boolean | null; errors?: any }) => {
+// 3. Substituição de 'any' por 'FieldErrors'
+const setup = (props?: { watchValue?: boolean | null; errors?: FieldErrors }) => {
   setValueMock.mockClear()
   handleNextStepMock.mockClear()
   triggerMock.mockClear().mockResolvedValue(true)
