@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useState, Activity } from 'react'
 import { useForm, FormProvider } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { ChevronLeft, Menu } from 'lucide-react'
@@ -18,11 +18,6 @@ import {
 } from '@/sections/consult-property/steps'
 import { PaymentConfirmationStep } from '@/sections/consult-property/steps/payment-step/payment-confirmation-step/payment-confirmation-step'
 import { validations, FormTypes } from '@/sections/consult-property/validations'
-
-function StepContainer({ isActive, children }: { isActive: boolean; children: React.ReactNode }) {
-  if (!isActive) return null
-  return <div>{children}</div>
-}
 
 export default function ConsultProperty() {
   const [step, setStep] = useState<number>(1)
@@ -73,8 +68,10 @@ export default function ConsultProperty() {
   const formContextValue = { ...methods, handleNextStep, setStep, setHasDocument }
 
   return (
-    <section className="min-h-screen bg-[var(--color-background)]">
-      <header className="flex flex-col pt-4 px-4 bg-[var(--color-primary)]">
+    // ALTERADO: bg-background em vez de var(--color-background)
+    <section className="min-h-screen bg-background">
+      {/* ALTERADO: bg-primary em vez de var(--color-primary) */}
+      <header className="flex flex-col pt-4 px-4 bg-primary">
         <div className="flex items-center justify-between py-4.5 mb-2">
           <ChevronLeft
             onClick={handleGoBack}
@@ -97,19 +94,38 @@ export default function ConsultProperty() {
         </div>
       </header>
 
-      <div className="relative bg-[var(--color-primary)] -mt-[1px] h-28" />
+      {/* ALTERADO: bg-primary aqui também */}
+      <div className="relative bg-primary -mt-[1px] h-28" />
 
       <FormProvider {...formContextValue}>
         <main className="w-full mx-auto lg:max-w-lg pt-5 px-0 -mt-24">
-          <StepContainer isActive={step === 1}><AddressStep /></StepContainer>
-          <StepContainer isActive={step === 2}><DocumentConfirmationStep /></StepContainer>
-          <StepContainer isActive={step === 3}><DocumentTypeStep /></StepContainer>
-          <StepContainer isActive={step === 4}><SendDocumentStep /></StepContainer>
-          <StepContainer isActive={step === 5}><SummaryStep /></StepContainer>
+          <Activity mode={step === 1 ? 'visible' : 'hidden'}>
+            <AddressStep />
+          </Activity>
 
-          <StepContainer isActive={step === 6}>
-            {isPaymentSelected ? <PaymentConfirmationStep /> : <PaymentStep onNextStep={handleNextStep} />}
-          </StepContainer>
+          <Activity mode={step === 2 ? 'visible' : 'hidden'}>
+            <DocumentConfirmationStep />
+          </Activity>
+
+          <Activity mode={step === 3 ? 'visible' : 'hidden'}>
+            <DocumentTypeStep />
+          </Activity>
+
+          <Activity mode={step === 4 ? 'visible' : 'hidden'}>
+            <SendDocumentStep />
+          </Activity>
+
+          <Activity mode={step === 5 ? 'visible' : 'hidden'}>
+            <SummaryStep />
+          </Activity>
+
+          <Activity mode={step === 6 ? 'visible' : 'hidden'}>
+            {isPaymentSelected ? (
+              <PaymentConfirmationStep />
+            ) : (
+              <PaymentStep onNextStep={handleNextStep} />
+            )}
+          </Activity>
         </main>
       </FormProvider>
     </section>
