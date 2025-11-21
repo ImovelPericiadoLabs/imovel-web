@@ -4,9 +4,6 @@ import { AddressStep } from './address-step'
 import { listAddresses, listRegistry, listAddress } from '@/services/addresses'
 import type { Registry } from '@/services/addresses'
 
-// ==============================
-// MOCKS
-// ===============================
 const setValueMock = vi.fn()
 const handleNextStepMock = vi.fn()
 
@@ -34,6 +31,7 @@ vi.mock('@/components/auto-complete-address-input', () => ({
     onSelectAddress,
     error,
     isDirty,
+    onClear,
   }: {
     placeholder: string
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => void
@@ -42,6 +40,7 @@ vi.mock('@/components/auto-complete-address-input', () => ({
     onSelectAddress: (value: string) => Promise<string>
     error: { title: string; subtitle: string } | null
     isDirty: boolean
+    onClear?: () => void
   }) => (
     <div>
       <input data-testid="address-input" placeholder={placeholder} onChange={(e) => onChange(e)} />
@@ -57,6 +56,10 @@ vi.mock('@/components/auto-complete-address-input', () => ({
       <button data-testid="confirm-button" onClick={() => onConfirm('mockAddress')}>
         Confirm
       </button>
+
+      <button data-testid="clear-button" onClick={onClear}>
+        Clear
+      </button>
     </div>
   ),
 }))
@@ -67,7 +70,6 @@ vi.mock('@/components/loading-overlay', () => ({
     isLoading ? <div data-testid="loading-overlay">Loading...</div> : null,
 }))
 
-// Query mocks
 const useQueryMock = vi.fn()
 const useMutationMock = vi.fn()
 
@@ -80,9 +82,11 @@ vi.mock('@tanstack/react-query', () => ({
   }) => useMutationMock(opts),
 }))
 
+const debounceMock = vi.fn((value: string) => value)
+
 vi.mock('@/hooks/use-debounce', () => ({
   __esModule: true,
-  default: (value: string) => value,
+  default: (value: string) => debounceMock(value),
 }))
 
 vi.mock('@/services/addresses', () => ({
@@ -103,11 +107,9 @@ beforeEach(() => {
   listAddressMock.mockReset()
   useQueryMock.mockReset()
   useMutationMock.mockReset()
-})
 
-// ==============================
-// TESTS
-// ===============================
+  debounceMock.mockImplementation((val) => val)
+})
 
 describe('AddressStep', () => {
   it('should NOT call listAddresses when debounced < 3 characters', () => {
@@ -145,6 +147,21 @@ describe('AddressStep', () => {
     fireEvent.change(input, { target: { value: 'Rua' } })
 
     expect(listAddressesMock).toHaveBeenCalledWith('Rua')
+  })
+
+  it('should NOT show error when debounced length differs from current address length (typing in progress)', () => {
+    useQueryMock.mockReturnValue({ data: [], isLoading: false, isEnabled: false })
+    useMutationMock.mockReturnValue({ mutateAsync: vi.fn(), isPending: false })
+
+    debounceMock.mockReturnValue('AB')
+
+    render(<AddressStep />)
+
+    const input = screen.getByTestId('address-input')
+
+    fireEvent.change(input, { target: { value: 'ABC' } })
+
+    expect(screen.queryByTestId('error')).not.toBeInTheDocument()
   })
 
   it('should render initial home items when no search is made', () => {
@@ -273,5 +290,27 @@ describe('AddressStep', () => {
     render(<AddressStep />)
 
     expect(screen.getByTestId('loading-overlay')).toBeInTheDocument()
+  })
+
+  it('should clear address state and show initial items when onClear is triggered', () => {
+    useQueryMock.mockReturnValue({
+      data: [],
+      isLoading: false,
+      isEnabled: false,
+    })
+
+    useMutationMock.mockReturnValue({ mutateAsync: vi.fn(), isPending: false })
+
+    render(<AddressStep />)
+
+    const input = screen.getByTestId('address-input')
+
+    fireEvent.change(input, { target: { value: 'Some Address' } })
+
+    expect(screen.queryByText(/Pesquisa rápida/)).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByTestId('clear-button'))
+
+    expect(screen.getAllByText(/Pesquisa rápida/).length).toBe(1)
   })
 })
