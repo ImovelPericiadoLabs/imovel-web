@@ -107,6 +107,7 @@ export function AddressStep() {
         error={getError()}
         isDirty={isEnabled}
         onClear={handleClearAddress}
+        debouncedValue={debouncedAddress}
       />
 
       {!address?.length && (

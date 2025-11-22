@@ -28,6 +28,7 @@ interface Props extends React.InputHTMLAttributes<HTMLInputElement> {
   } | null
   isDirty?: boolean
   onClear?: () => void
+  debouncedValue?: string
 }
 
 const loadingOptions = Array.from({ length: 5 }, (_, i) => ({
@@ -43,6 +44,7 @@ export default function AutoCompleteInput({
   error,
   isDirty,
   onClear,
+  debouncedValue,
   ...props
 }: Props) {
   const [value, setValue] = useState('')
@@ -53,12 +55,21 @@ export default function AutoCompleteInput({
 
   const inputRef = useRef<HTMLInputElement>(null)
 
+  function handleFocusInput() {
+    const el = inputRef?.current
+
+    el?.focus()
+    el?.setSelectionRange(el.value.length, el.value.length)
+  }
+
   function handleCloseErrorSheet() {
+    handleFocusInput()
     setIsOpenErrorSheet(false)
     setAddressError(null)
   }
 
   function handleCloseNotFoundAddressSheet() {
+    handleFocusInput()
     setIsOpenNotFoundAddressSheet(false)
   }
 
@@ -114,10 +125,7 @@ export default function AutoCompleteInput({
   }
 
   function handleChangeAddress() {
-    const el = inputRef?.current
-
-    el?.focus()
-    el?.setSelectionRange(el.value.length, el.value.length)
+    handleFocusInput()
 
     handleCloseAddressSheet()
 
@@ -137,6 +145,12 @@ export default function AutoCompleteInput({
       setIsOpenNotFoundAddressSheet(!options?.length)
     }
   }, [options, isLoading, isDirty, value])
+
+  useEffect(() => {
+    if (debouncedValue) {
+      inputRef?.current?.blur()
+    }
+  }, [debouncedValue])
 
   return (
     <div
