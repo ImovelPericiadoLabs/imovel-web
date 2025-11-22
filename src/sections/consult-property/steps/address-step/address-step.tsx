@@ -54,7 +54,7 @@ export function AddressStep() {
   const { data, isLoading, isEnabled } = useQuery({
     queryKey: [queryKey.getAddresses, debouncedAddress],
     queryFn: () => listAddresses(debouncedAddress),
-    enabled: !getError() && debouncedAddress?.length > 0,
+    enabled: !getError() && debouncedAddress?.length > 2,
     refetchOnWindowFocus: false,
   })
 
@@ -107,7 +107,6 @@ export function AddressStep() {
         error={getError()}
         isDirty={isEnabled}
         onClear={handleClearAddress}
-        debouncedValue={debouncedAddress}
       />
 
       {!address?.length && (

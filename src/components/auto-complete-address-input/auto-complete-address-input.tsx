@@ -28,7 +28,6 @@ interface Props extends React.InputHTMLAttributes<HTMLInputElement> {
   } | null
   isDirty?: boolean
   onClear?: () => void
-  debouncedValue?: string
 }
 
 const loadingOptions = Array.from({ length: 5 }, (_, i) => ({
@@ -44,7 +43,6 @@ export default function AutoCompleteInput({
   error,
   isDirty,
   onClear,
-  debouncedValue,
   ...props
 }: Props) {
   const [value, setValue] = useState('')
@@ -110,6 +108,8 @@ export default function AutoCompleteInput({
       })
 
       handleCloseAddressSheet()
+
+      inputRef?.current?.blur()
       return
     }
 
@@ -141,16 +141,17 @@ export default function AutoCompleteInput({
   }, [error])
 
   useEffect(() => {
-    if (!isLoading && isDirty && value?.length) {
-      setIsOpenNotFoundAddressSheet(!options?.length)
+    if (error) {
+      inputRef.current?.blur()
     }
-  }, [options, isLoading, isDirty, value])
+  }, [error])
 
   useEffect(() => {
-    if (debouncedValue) {
-      inputRef?.current?.blur()
+    if (!isLoading && isDirty && value?.length && !options?.length) {
+      setIsOpenNotFoundAddressSheet(true)
+      inputRef.current?.blur()
     }
-  }, [debouncedValue])
+  }, [options, isLoading, isDirty, value])
 
   return (
     <div
