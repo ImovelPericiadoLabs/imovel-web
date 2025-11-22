@@ -53,12 +53,21 @@ export default function AutoCompleteInput({
 
   const inputRef = useRef<HTMLInputElement>(null)
 
+  function handleFocusInput() {
+    const el = inputRef?.current
+
+    el?.focus()
+    el?.setSelectionRange(el.value.length, el.value.length)
+  }
+
   function handleCloseErrorSheet() {
+    handleFocusInput()
     setIsOpenErrorSheet(false)
     setAddressError(null)
   }
 
   function handleCloseNotFoundAddressSheet() {
+    handleFocusInput()
     setIsOpenNotFoundAddressSheet(false)
   }
 
@@ -99,6 +108,8 @@ export default function AutoCompleteInput({
       })
 
       handleCloseAddressSheet()
+
+      inputRef?.current?.blur()
       return
     }
 
@@ -114,10 +125,7 @@ export default function AutoCompleteInput({
   }
 
   function handleChangeAddress() {
-    const el = inputRef?.current
-
-    el?.focus()
-    el?.setSelectionRange(el.value.length, el.value.length)
+    handleFocusInput()
 
     handleCloseAddressSheet()
 
@@ -133,8 +141,15 @@ export default function AutoCompleteInput({
   }, [error])
 
   useEffect(() => {
-    if (!isLoading && isDirty && value?.length) {
-      setIsOpenNotFoundAddressSheet(!options?.length)
+    if (error) {
+      inputRef.current?.blur()
+    }
+  }, [error])
+
+  useEffect(() => {
+    if (!isLoading && isDirty && value?.length && !options?.length) {
+      setIsOpenNotFoundAddressSheet(true)
+      inputRef.current?.blur()
     }
   }, [options, isLoading, isDirty, value])
 
