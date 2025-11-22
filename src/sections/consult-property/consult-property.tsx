@@ -1,4 +1,5 @@
 'use client'
+
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useState, Activity } from 'react'
@@ -6,6 +7,7 @@ import { useForm, FormProvider } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { ChevronLeft, Menu } from 'lucide-react'
 import ProgressBar from '@/components/progress-bar'
+
 import {
   AddressStep,
   DocumentConfirmationStep,
@@ -14,67 +16,77 @@ import {
   SummaryStep,
   PaymentStep,
 } from '@/sections/consult-property/steps'
+import { PaymentConfirmationStep } from '@/sections/consult-property/steps/payment-step/payment-confirmation-step/payment-confirmation-step'
 import { validations, FormTypes } from '@/sections/consult-property/validations'
 
 export default function ConsultProperty() {
   const [step, setStep] = useState<number>(1)
   const [hasDocument, setHasDocument] = useState(false)
-  const totalSteps = 6
+  const [isPaymentSelected, setIsPaymentSelected] = useState(false)
 
+  const totalSteps = 6
   const { push } = useRouter()
 
   const methods = useForm<FormTypes>({
     resolver: zodResolver(validations),
     defaultValues: {},
+    shouldUnregister: false,
   })
 
+  const isPaymentConfirming = step === 6 && isPaymentSelected
+
   function handlePreviousStep() {
-    setStep((step) => step - 1)
+    setStep((prev) => prev - 1)
   }
 
   function handleNextStep() {
+    if (step === 6 && !isPaymentSelected) {
+      setIsPaymentSelected(true)
+      return
+    }
     if (step < totalSteps) {
-      setStep((step) => step + 1)
+      setStep((prev) => prev + 1)
     }
   }
 
   function handleGoBack() {
-    if (step === 1) {
-      push('/')
-
+    if (isPaymentConfirming) {
+      setIsPaymentSelected(false)
       return
     }
-
-    if (step === 5) {
-      if (!hasDocument) {
-        setStep(2)
-
-        return
-      }
+    if (step === 1) {
+      push('/')
+      return
     }
-
+    if (step === 5 && !hasDocument) {
+      setStep(2)
+      return
+    }
     handlePreviousStep()
   }
 
-  const formContextValue = {
-    ...methods,
-    handleNextStep,
-    setStep,
-    setHasDocument,
-  }
+  const formContextValue = { ...methods, handleNextStep, setStep, setHasDocument }
 
   return (
-    <section className="min-h-screen">
+    <section className="min-h-screen bg-background">
+      {/* Combinado: z-40 da dev, padding original */}
       <header className="flex flex-col pt-4 px-4 bg-primary relative z-40">
+        {/* Combinado: mb-6 da dev (design novo) */}
         <div className="flex items-center justify-between py-4.5 mb-6">
-          <ChevronLeft onClick={handleGoBack} className="size-7 text-white cursor-pointer" />
+          <ChevronLeft
+            onClick={handleGoBack}
+            className="size-7 text-white cursor-pointer"
+            role="button" /* Mantido da sua branch para acessibilidade */
+          />
 
-          <Image src="/images/logo.png" alt="Imagem de logo" width={200} height={50} />
+          <div className="relative">
+            <Image src="/images/logo.png" alt="Logo" width={200} height={50} />
+          </div>
 
           <Menu className="size-7 text-white cursor-pointer" />
         </div>
 
-        <div>
+        <div className={`mb-6 ${isPaymentConfirming ? 'invisible' : 'block'}`}>
           <div className="flex justify-end gap-1 font-normal text-base leading-6 text-white">
             <p>{step}</p> de <p>{totalSteps}</p>
           </div>
@@ -82,10 +94,11 @@ export default function ConsultProperty() {
         </div>
       </header>
 
+      {/* Combinado: Usando a altura da dev (h-30) que parece ser a nova regra */}
       <div className="relative bg-primary h-30 -mt-1"></div>
 
       <FormProvider {...formContextValue}>
-        <main className="pt-5 w-full mx-auto lg:max-w-lg -mt-22">
+        <main className="w-full mx-auto lg:max-w-lg pt-5 px-0 -mt-24">
           <Activity mode={step === 1 ? 'visible' : 'hidden'}>
             <AddressStep />
           </Activity>
@@ -95,9 +108,7 @@ export default function ConsultProperty() {
           </Activity>
 
           <Activity mode={step === 3 ? 'visible' : 'hidden'}>
-            <Activity mode={step === 3 ? 'visible' : 'hidden'}>
-              <DocumentTypeStep />
-            </Activity>
+            <DocumentTypeStep />
           </Activity>
 
           <Activity mode={step === 4 ? 'visible' : 'hidden'}>
@@ -109,7 +120,11 @@ export default function ConsultProperty() {
           </Activity>
 
           <Activity mode={step === 6 ? 'visible' : 'hidden'}>
-            <PaymentStep />
+            {isPaymentSelected ? (
+              <PaymentConfirmationStep />
+            ) : (
+              <PaymentStep onNextStep={handleNextStep} />
+            )}
           </Activity>
         </main>
       </FormProvider>

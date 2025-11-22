@@ -1,13 +1,14 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
 import { DocumentTypeStep } from './document-type-step'
+import type { FieldErrors } from 'react-hook-form'
 
 // --- Mocks ---
 const setValueMock = vi.fn()
 const handleNextStepMock = vi.fn()
 const triggerMock = vi.fn()
 
-let mockErrors: any = {}
+let mockErrors: FieldErrors = {}
 let mockWatchValue: string | null = null
 
 vi.mock('react-hook-form', () => ({
@@ -36,7 +37,15 @@ vi.mock('@/components/text-subtitle', () => ({
 
 vi.mock('@/components/button', () => ({
   __esModule: true,
-  default: ({ children, onClick, disabled }: any) => (
+  default: ({
+    children,
+    onClick,
+    disabled,
+  }: {
+    children: React.ReactNode
+    onClick: () => void
+    disabled?: boolean
+  }) => (
     <button data-testid="button-continuar" onClick={onClick} disabled={disabled}>
       {children}
     </button>
@@ -50,7 +59,7 @@ vi.mock('lucide-react', () => ({
 }))
 
 // --- Setup ---
-const setup = (props?: { watchValue?: string | null; errors?: any }) => {
+const setup = (props?: { watchValue?: string | null; errors?: FieldErrors }) => {
   setValueMock.mockClear()
   handleNextStepMock.mockClear()
   triggerMock.mockClear().mockResolvedValue(true)

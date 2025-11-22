@@ -69,7 +69,7 @@ export function SendDocumentStep() {
   }
 
   return (
-    <div className="flex flex-col h-full gap-5 px-4 relative -mt-4">
+    <div className="flex flex-col h-full gap-5 px-4 relative">
       <TextTitle>Envie o documento</TextTitle>
 
       <DocumentUpload onFileSelect={handleFileSelect} />
