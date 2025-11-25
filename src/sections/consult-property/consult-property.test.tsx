@@ -31,6 +31,9 @@ vi.mock('@/components/progress-bar', () => ({
 vi.mock('lucide-react', () => ({
   ChevronLeft: (props: ComponentProps<'div'>) => <div data-testid="chevron-left" {...props} />,
   Menu: (props: ComponentProps<'div'>) => <div data-testid="menu" {...props} />,
+  CircleQuestionMark: (props: ComponentProps<'div'>) => (
+    <div data-testid="circle-question-mark" {...props} />
+  ),
 }))
 
 vi.mock(

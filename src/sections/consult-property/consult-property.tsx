@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useState, Activity } from 'react'
 import { useForm, FormProvider } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { ChevronLeft, Menu } from 'lucide-react'
+import { ChevronLeft, Menu, CircleQuestionMark } from 'lucide-react'
 import ProgressBar from '@/components/progress-bar'
 import {
   AddressStep,
@@ -15,6 +15,7 @@ import {
   PaymentStep,
 } from '@/sections/consult-property/steps'
 import { PaymentConfirmationStep } from '@/sections/consult-property/steps/payment-step/payment-confirmation-step/payment-confirmation-step'
+import TrafficLightModal from '@/sections/consult-property/components/traffic-light-modal'
 import { validations, FormTypes } from '@/sections/consult-property/validations'
 
 export default function ConsultProperty() {
@@ -85,15 +86,24 @@ export default function ConsultProperty() {
           <Menu className="size-7 text-white cursor-pointer" />
         </div>
 
-        <div className={`mb-6 ${isPaymentConfirming ? 'invisible' : 'block'}`}>
-          <div className="flex justify-end gap-1 font-normal text-base leading-6 text-white">
-            <p>{step}</p> de <p>{totalSteps}</p>
-          </div>
-          <ProgressBar value={(step / totalSteps) * 100} />
-        </div>
+        <TrafficLightModal>
+          <button
+            className={`${
+              isPaymentConfirming ? 'invisible' : 'block'
+            } flex flow-row gap-1 items-center cursor-pointer w-fit mx-auto text-white text-xs font-semibold leading-5 underline mb-3`}
+          >
+            <CircleQuestionMark className="size-3 text-white" />
+            <p>Toque aqui e veja como funciona</p>
+          </button>
+        </TrafficLightModal>
+
+        <ProgressBar
+          className={`mb-6 ${isPaymentConfirming ? 'invisible' : 'block'}`}
+          value={(step / totalSteps) * 100}
+        />
       </header>
 
-      <div className="relative bg-primary h-30 -mt-1"></div>
+      <div className="relative bg-primary h-20 -mt-1"></div>
 
       <FormProvider {...formContextValue}>
         <main className="w-full mx-auto lg:max-w-lg pt-5 px-0 -mt-24">

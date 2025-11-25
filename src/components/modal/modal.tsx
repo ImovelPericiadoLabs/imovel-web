@@ -13,13 +13,15 @@ interface ModalProps {
   onBack?: () => void
 }
 
-export default function Modal({ children, content, title, open, onClose, onBack }: ModalProps) {
+export const ssr = false
+
+export default function Modal({ children, content, title, open, onClose }: ModalProps) {
   const [internalOpen, setInternalOpen] = useState(false)
 
   const isControlled = typeof open === 'boolean'
   const isOpen = isControlled ? open : internalOpen
 
-  const modalRoot = document?.body
+  const modalRoot = typeof document !== 'undefined' ? document.body : null
 
   const trigger =
     children && isValidElement(children)
@@ -42,6 +44,8 @@ export default function Modal({ children, content, title, open, onClose, onBack 
 
   if (!isOpen) return trigger
 
+  if (!modalRoot) return trigger
+
   return (
     <>
       {trigger}
@@ -51,9 +55,9 @@ export default function Modal({ children, content, title, open, onClose, onBack 
           <div className="absolute inset-0 bg-black/40" onClick={handleClose} />
 
           <div className="relative bg-white w-full h-full shadow-lg animate-slide-up flex flex-col overflow-hidden">
-            <div className="flex flex-row items-center gap-1 mb-0 p-4">
+            <div className="flex flex-row items-center gap-1 mb-0 px-4 py-5 bg-primary text-white">
               <button onClick={handleClose} className="cursor-pointer">
-                <ChevronLeft className="size-7 text-primary" />
+                <ChevronLeft className="size-7" />
               </button>
 
               <h2 className="text-sm font-semibold">{title}</h2>
@@ -62,9 +66,6 @@ export default function Modal({ children, content, title, open, onClose, onBack 
                 <X className="size-7" />
               </button>
             </div>
-
-            <hr className="border border-box" />
-
             <div className="overflow-y-auto scrollbar-hide">{content}</div>
           </div>
         </div>,
