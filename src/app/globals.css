@@ -31,13 +31,17 @@
   --color-background: #F6F5FA;
   --color-dark: #222222;
   --color-input-border: #D5D7DA;
+
   --color-gray:#ADADAD;
   --color-gray-2: #5C5C5C;
   --color-gray-200: #E9EAEB;
   --color-gray-600: #535862;
+  --color-gray-700: #414651;
+
   --color-hr: #E6E6E6;
   --color-box: #E7E7E7;
   --color-handle: #79747E;
+  
   --color-error-50: #FEF3F2;
   --color-error-100: #FEE4E2;
   --color-error-600: #D92D20;
@@ -76,6 +80,10 @@
 
   .animate-pulse-text {
     animation: var(--animate-pulse-text);
+  }
+
+  .direction-rtl {
+    direction: rtl;
   }
 }
 

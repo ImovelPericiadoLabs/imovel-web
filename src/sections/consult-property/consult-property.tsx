@@ -1,5 +1,4 @@
 'use client'
-
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useState, Activity } from 'react'
@@ -7,7 +6,6 @@ import { useForm, FormProvider } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { ChevronLeft, Menu } from 'lucide-react'
 import ProgressBar from '@/components/progress-bar'
-
 import {
   AddressStep,
   DocumentConfirmationStep,
@@ -22,14 +20,16 @@ import { validations, FormTypes } from '@/sections/consult-property/validations'
 export default function ConsultProperty() {
   const [step, setStep] = useState<number>(1)
   const [hasDocument, setHasDocument] = useState(false)
-  const [isPaymentSelected, setIsPaymentSelected] = useState(false)
+  const [isPaymentSelected, setIsPaymentSelected] = useState(true)
 
   const totalSteps = 6
   const { push } = useRouter()
 
   const methods = useForm<FormTypes>({
     resolver: zodResolver(validations),
-    defaultValues: {},
+    defaultValues: {
+      paymentMethod: 'pix',
+    },
     shouldUnregister: false,
   })
 
@@ -44,16 +44,17 @@ export default function ConsultProperty() {
       setIsPaymentSelected(true)
       return
     }
+
     if (step < totalSteps) {
       setStep((prev) => prev + 1)
     }
   }
 
   function handleGoBack() {
-    if (isPaymentConfirming) {
-      setIsPaymentSelected(false)
-      return
-    }
+    // if (isPaymentConfirming) {
+    //   setIsPaymentSelected(false)
+    //   return
+    // }
     if (step === 1) {
       push('/')
       return
@@ -69,14 +70,12 @@ export default function ConsultProperty() {
 
   return (
     <section className="min-h-screen bg-background">
-      {/* Combinado: z-40 da dev, padding original */}
       <header className="flex flex-col pt-4 px-4 bg-primary relative z-40">
-        {/* Combinado: mb-6 da dev (design novo) */}
         <div className="flex items-center justify-between py-4.5 mb-6">
           <ChevronLeft
             onClick={handleGoBack}
             className="size-7 text-white cursor-pointer"
-            role="button" /* Mantido da sua branch para acessibilidade */
+            role="button"
           />
 
           <div className="relative">
@@ -94,7 +93,6 @@ export default function ConsultProperty() {
         </div>
       </header>
 
-      {/* Combinado: Usando a altura da dev (h-30) que parece ser a nova regra */}
       <div className="relative bg-primary h-30 -mt-1"></div>
 
       <FormProvider {...formContextValue}>
