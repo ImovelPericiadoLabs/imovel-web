@@ -13,13 +13,15 @@ interface ModalProps {
   onBack?: () => void
 }
 
+export const ssr = false
+
 export default function Modal({ children, content, title, open, onClose, onBack }: ModalProps) {
   const [internalOpen, setInternalOpen] = useState(false)
 
   const isControlled = typeof open === 'boolean'
   const isOpen = isControlled ? open : internalOpen
 
-  const modalRoot = document?.body
+  const modalRoot = typeof document !== 'undefined' ? document.body : null
 
   const trigger =
     children && isValidElement(children)
