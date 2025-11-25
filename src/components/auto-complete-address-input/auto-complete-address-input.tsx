@@ -7,7 +7,8 @@ import Button from '@/components/button'
 import TextTitle from '@/components/text-title'
 import TextSubtitle from '../text-subtitle'
 import Skeleton from '@/components/skeleton'
-import AddressSheet from '@/components/auto-complete-address-input/components/address-sheet'
+import BottomSheet from '@/components/bottom-sheet'
+import Input from '@/components/input'
 
 type Option = {
   primary?: string
@@ -169,15 +170,9 @@ export default function AutoCompleteInput({
           />
         )}
 
-        <input
+        <Input
           ref={inputRef}
           autoFocus
-          className="
-            px-9.5  py-4 bg-white w-full rounded-[6rem] border 
-            border-input-border shadow-[0_1px_2px_rgba(10,13,18,0.05)] 
-             placeholder:text-gray placeholder:text-base placeholder:font-normal placeholder:leading-6
-            focus:border-primary focus:ring-1 focus:ring-primary outline-none
-            "
           type="text"
           {...props}
           value={value}
@@ -230,17 +225,10 @@ export default function AutoCompleteInput({
         </div>
       )}
 
-      {(isOpenAddressSheet ||
-        isOpenErrorSheet ||
-        isOpenNotFoundAddressSheet ||
-        !!addressError?.title?.length) && (
-        <div
-          className="fixed inset-0 bg-black/50 z-40 transition-opacity duration-500"
-          onClick={handleChangeAddress}
-        />
-      )}
-
-      <AddressSheet isOpen={isOpenErrorSheet || !!addressError?.title?.length}>
+      <BottomSheet
+        isOpen={isOpenErrorSheet || !!addressError?.title?.length}
+        onClose={handleChangeAddress}
+      >
         <div className="px-6 py-8 pb-12 max-h-[70vh] overflow-y-auto flex flex-col items-center gap-2 text-center">
           <div className="rounded-full bg-error-50 size-14 flex items-center justify-center">
             <div className="rounded-full size-10 bg-error-100 flex items-center justify-center">
@@ -253,9 +241,9 @@ export default function AutoCompleteInput({
           </TextSubtitle>
           <Button onClick={handleCloseErrorSheet}>Entendi</Button>
         </div>
-      </AddressSheet>
+      </BottomSheet>
 
-      <AddressSheet isOpen={isOpenNotFoundAddressSheet && !error}>
+      <BottomSheet isOpen={isOpenNotFoundAddressSheet && !error} onClose={handleChangeAddress}>
         <div className="px-6 py-8 pb-12 max-h-[70vh] overflow-y-auto flex flex-col items-center gap-2 text-center">
           <div className="rounded-full bg-violet-50 size-14 flex items-center justify-center">
             <div className="rounded-full size-10 bg-violet-100 flex items-center justify-center">
@@ -268,9 +256,9 @@ export default function AutoCompleteInput({
           </TextSubtitle>
           <Button onClick={handleCloseNotFoundAddressSheet}>Entendi</Button>
         </div>
-      </AddressSheet>
+      </BottomSheet>
 
-      <AddressSheet isOpen={isOpenAddressSheet}>
+      <BottomSheet isOpen={isOpenAddressSheet} onClose={handleChangeAddress}>
         <div className="px-6 py-8 pb-12 max-h-[70vh] overflow-y-auto">
           <TextTitle className="mb-7 text-dark">Confirmar este endereço?</TextTitle>
 
@@ -302,7 +290,7 @@ export default function AutoCompleteInput({
             <Skeleton className="w-full h-12 mt-4 rounded-full" />
           )}
         </div>
-      </AddressSheet>
+      </BottomSheet>
     </div>
   )
 }

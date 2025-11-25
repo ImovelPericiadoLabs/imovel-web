@@ -30,7 +30,9 @@ export default function DocumentItem({ document, onRemove }: DocumentItemProps) 
       <div className="flex items-center gap-3 flex-1 min-w-0">
         {icon}
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium">{document.name}</p>
+          <p className="text-sm font-medium overflow-hidden text-ellipsis whitespace-nowrap direction-rtl">
+            {document.name}
+          </p>
           <p className="text-xs text-gray-500">{document.size} MB</p>
         </div>
       </div>
