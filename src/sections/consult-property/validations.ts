@@ -17,7 +17,7 @@ export const validations = z
     documentType: DocumentTypeEnum.optional(),
     document: z.object({
       id: z.string(),
-      file_path: z.string().url(),
+      file_path: z.string(),
       file_hash: z.string(),
       original_name: z.string(),
       extension: z.string(),
