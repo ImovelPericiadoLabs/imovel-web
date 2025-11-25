@@ -15,7 +15,7 @@ interface ModalProps {
 
 export const ssr = false
 
-export default function Modal({ children, content, title, open, onClose, onBack }: ModalProps) {
+export default function Modal({ children, content, title, open, onClose }: ModalProps) {
   const [internalOpen, setInternalOpen] = useState(false)
 
   const isControlled = typeof open === 'boolean'
