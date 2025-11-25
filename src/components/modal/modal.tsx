@@ -44,6 +44,8 @@ export default function Modal({ children, content, title, open, onClose, onBack 
 
   if (!isOpen) return trigger
 
+  if (!modalRoot) return trigger
+
   return (
     <>
       {trigger}
