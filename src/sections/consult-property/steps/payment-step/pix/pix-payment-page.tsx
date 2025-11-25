@@ -1,4 +1,5 @@
 'use client'
+import type { FormContextWithSteps } from '@/sections/consult-property/types'
 import Image from 'next/image'
 import { useState, useEffect } from 'react'
 import { useMutation } from '@tanstack/react-query'
@@ -29,7 +30,7 @@ export function PixPaymentPage() {
     resolver: zodResolver(validations),
   })
 
-  const { getValues } = useFormContext()
+  const { getValues, setStep } = useFormContext() as FormContextWithSteps
 
   function clearServerError() {
     setServerError('')
@@ -153,7 +154,7 @@ export function PixPaymentPage() {
         </div>
       </div>
 
-      <BottomSheet isOpen={isOpenBottomSheet}>
+      <BottomSheet isOpen={isOpenBottomSheet} onClose={() => setStep(5)}>
         <div className="p-4 pb-12 max-h-[70vh] overflow-y-auto flex flex-col gap-3">
           <div className="flex flex-row gap-3 items-center">
             <div className="rounded-full bg-violet-50 size-14 flex items-center justify-center">
@@ -181,6 +182,8 @@ export function PixPaymentPage() {
               placeholder="000.000.000-00"
               mask="cpf"
               onKeyDown={clearServerError}
+              inputMode="numeric"
+              pattern="\d*"
             />
             <Input
               {...register('email')}
@@ -196,6 +199,8 @@ export function PixPaymentPage() {
               placeholder="99 99999-9999"
               mask="whatsapp"
               onKeyDown={clearServerError}
+              inputMode="numeric"
+              pattern="\d*"
             />
             <Button>Continuar</Button>
           </form>
