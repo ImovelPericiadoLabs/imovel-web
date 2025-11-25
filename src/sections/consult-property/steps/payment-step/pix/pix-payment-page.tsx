@@ -181,6 +181,8 @@ export function PixPaymentPage() {
               placeholder="000.000.000-00"
               mask="cpf"
               onKeyDown={clearServerError}
+              inputMode="numeric"
+              pattern="\d*"
             />
             <Input
               {...register('email')}
@@ -196,6 +198,8 @@ export function PixPaymentPage() {
               placeholder="99 99999-9999"
               mask="whatsapp"
               onKeyDown={clearServerError}
+              inputMode="numeric"
+              pattern="\d*"
             />
             <Button>Continuar</Button>
           </form>
