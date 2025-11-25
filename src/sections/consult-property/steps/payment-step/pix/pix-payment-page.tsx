@@ -1,6 +1,6 @@
 'use client'
 import Image from 'next/image'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { useForm, useFormContext } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -83,6 +83,11 @@ export function PixPaymentPage() {
       document: formData.document,
     })
   }
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIsOpenBottomSheet(true)
+  }, [])
 
   return (
     <div className="flex flex-col relative px-4">
