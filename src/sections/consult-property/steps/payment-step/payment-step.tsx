@@ -1,14 +1,6 @@
 'use client'
-
 import { useFormContext } from 'react-hook-form'
-import {
-  QrCode,
-  CreditCard,
-  Barcode,
-  DollarSign,
-  LucideIcon
-} from 'lucide-react'
-
+import { QrCode, CreditCard, Barcode, DollarSign, LucideIcon } from 'lucide-react'
 import TextTitle from '@/components/text-title'
 import OptionCard from '@/components/option-card/option-card.tsx'
 import { Switch } from '@/components/switch'
@@ -54,7 +46,7 @@ interface PaymentStepProps {
   onNextStep: () => void
 }
 
-export function PaymentStep({ currentBalance = 240.00, onNextStep }: PaymentStepProps) {
+export function PaymentStep({ currentBalance = 240.0, onNextStep }: PaymentStepProps) {
   const { setValue, watch } = useFormContext()
   const useBalance = watch('useBalance')
 
@@ -76,7 +68,6 @@ export function PaymentStep({ currentBalance = 240.00, onNextStep }: PaymentStep
   return (
     <div className="relative flex-1 px-4">
       <div className="flex flex-col gap-5 pb-24 md:pb-0">
-
         <div className="px-1">
           <TextTitle>Escolha como pagar</TextTitle>
         </div>
@@ -92,10 +83,7 @@ export function PaymentStep({ currentBalance = 240.00, onNextStep }: PaymentStep
                 <span className="text-sm text-gray-500">{formattedBalance}</span>
               </div>
             </div>
-            <Switch
-              checked={useBalance}
-              onCheckedChange={toggleBalance}
-            />
+            <Switch checked={useBalance} onCheckedChange={toggleBalance} />
           </div>
 
           {PAYMENT_OPTIONS.map((option) => (
