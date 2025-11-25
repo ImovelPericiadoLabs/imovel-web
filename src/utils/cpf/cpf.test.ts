@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { isValidCPF } from './cpf'
 
-describe('isValidCPF - full coverage', () => {
+describe('isValidCPF', () => {
   it('should return false when CPF length is not 11', () => {
     expect(isValidCPF('123')).toBe(false)
     expect(isValidCPF('123456789012')).toBe(false)
