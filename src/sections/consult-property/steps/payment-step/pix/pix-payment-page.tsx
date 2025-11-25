@@ -77,9 +77,10 @@ export function PixPaymentPage() {
 
   async function onSubmit(formData: FormTypes) {
     const values = getValues()
+    setServerError('')
     await mutateAsync({
       place_id: values.placeId,
-      // document_id: values.document?.id,
+      document_id: values.document?.id,
       name: formData.name,
       document: formData.document,
     })
