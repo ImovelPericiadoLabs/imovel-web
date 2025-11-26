@@ -1,13 +1,11 @@
 'use client'
-
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useState, Activity } from 'react'
 import { useForm, FormProvider } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { ChevronLeft, Menu } from 'lucide-react'
+import { ChevronLeft, Menu, CircleQuestionMark } from 'lucide-react'
 import ProgressBar from '@/components/progress-bar'
-
 import {
   AddressStep,
   DocumentConfirmationStep,
@@ -17,6 +15,7 @@ import {
   PaymentStep,
 } from '@/sections/consult-property/steps'
 import { PaymentConfirmationStep } from '@/sections/consult-property/steps/payment-step/payment-confirmation-step/payment-confirmation-step'
+import TrafficLightModal from '@/sections/consult-property/components/traffic-light-modal'
 import { validations, FormTypes } from '@/sections/consult-property/validations'
 
 export default function ConsultProperty() {
@@ -29,7 +28,9 @@ export default function ConsultProperty() {
 
   const methods = useForm<FormTypes>({
     resolver: zodResolver(validations),
-    defaultValues: {},
+    defaultValues: {
+      paymentMethod: 'pix',
+    },
     shouldUnregister: false,
   })
 
@@ -40,61 +41,68 @@ export default function ConsultProperty() {
   }
 
   function handleNextStep() {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+
     if (step === 6 && !isPaymentSelected) {
       setIsPaymentSelected(true)
       return
     }
+
     if (step < totalSteps) {
       setStep((prev) => prev + 1)
     }
   }
 
   function handleGoBack() {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+
+    // AQUI ESTAVA O PROBLEMA: Esse bloco precisa estar ativo!
+    // Se estou confirmando (Pix ou Cartão), o "voltar" deve apenas 
+    // desmarcar a seleção para mostrar as opções de novo.
     if (isPaymentConfirming) {
       setIsPaymentSelected(false)
       return
     }
+
     if (step === 1) {
       push('/')
       return
     }
+
     if (step === 5 && !hasDocument) {
       setStep(2)
       return
     }
+
     handlePreviousStep()
   }
-
   const formContextValue = { ...methods, handleNextStep, setStep, setHasDocument }
 
   return (
     <section className="min-h-screen bg-background">
-      {/* Combinado: z-40 da dev, padding original */}
       <header className="flex flex-col pt-4 px-4 bg-primary relative z-40">
-        {/* Combinado: mb-6 da dev (design novo) */}
         <div className="flex items-center justify-between py-4.5 mb-6">
           <ChevronLeft
             onClick={handleGoBack}
-            className="size-7 text-white cursor-pointer"
-            role="button" /* Mantido da sua branch para acessibilidade */
+            className={`${step === 1 ? 'opacity-0' : 'size-7 text-white cursor-pointer'}`}
+            role="button"
           />
 
           <div className="relative">
             <Image src="/images/logo.png" alt="Logo" width={200} height={50} />
           </div>
 
-          <Menu className="size-7 text-white cursor-pointer" />
+          <TrafficLightModal>
+            <CircleQuestionMark className="size-7 text-white" />
+          </TrafficLightModal>
         </div>
 
-        <div className={`mb-6 ${isPaymentConfirming ? 'invisible' : 'block'}`}>
-          <div className="flex justify-end gap-1 font-normal text-base leading-6 text-white">
-            <p>{step}</p> de <p>{totalSteps}</p>
-          </div>
-          <ProgressBar value={(step / totalSteps) * 100} />
-        </div>
+        <ProgressBar
+          className={`${isPaymentConfirming ? 'invisible' : 'block'} mb-3`}
+          value={(step / totalSteps) * 100}
+        />
       </header>
 
-      {/* Combinado: Usando a altura da dev (h-30) que parece ser a nova regra */}
       <div className="relative bg-primary h-30 -mt-1"></div>
 
       <FormProvider {...formContextValue}>
@@ -121,7 +129,9 @@ export default function ConsultProperty() {
 
           <Activity mode={step === 6 ? 'visible' : 'hidden'}>
             {isPaymentSelected ? (
-              <PaymentConfirmationStep />
+              <PaymentConfirmationStep
+                onCancelSelection={() => setIsPaymentSelected(false)}
+              />
             ) : (
               <PaymentStep onNextStep={handleNextStep} />
             )}

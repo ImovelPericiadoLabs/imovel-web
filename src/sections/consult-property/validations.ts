@@ -4,7 +4,8 @@ const DocumentTypeEnum = z.enum(['contract', 'registration', 'deed'])
 
 export const validations = z
   .object({
-    address: z.string().min(5, 'Digite um endereço válido').nonempty('O endereço é obrigatório'),
+    address: z.string().min(3, 'Digite um endereço válido').nonempty('O endereço é obrigatório'),
+    placeId: z.string(),
     registry: z.object({
       id: z.string().uuid(),
       name: z.string(),
@@ -16,11 +17,12 @@ export const validations = z
     documentType: DocumentTypeEnum.optional(),
     document: z.object({
       id: z.string(),
-      file_path: z.string().url(),
+      file_path: z.string(),
       file_hash: z.string(),
       original_name: z.string(),
       extension: z.string(),
     }),
+    paymentMethod: z.enum(['pix', 'credit_card', 'debit_card', 'boleto']),
   })
   .refine(
     (data) => {

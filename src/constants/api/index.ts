@@ -5,4 +5,7 @@ export const endpoint = {
   documents: {
     upload: '/documents/upload/',
   },
+  payments: {
+    process: '/payments/',
+  },
 }

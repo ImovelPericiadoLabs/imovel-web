@@ -1,34 +1,27 @@
 'use client'
 
 import { useFormContext } from 'react-hook-form'
+// Certifique-se de que o caminho de importação está correto para o seu projeto
 import { PixPaymentPage } from '@/sections/consult-property/steps/payment-step/pix'
 import { SavedCardsPage } from '@/sections/consult-property/steps/payment-step/card/select'
 
-export function PaymentConfirmationStep() {
+interface PaymentConfirmationStepProps {
+    onCancelSelection: () => void
+}
+
+export function PaymentConfirmationStep({ onCancelSelection }: PaymentConfirmationStepProps) {
     const { watch } = useFormContext()
-
     const paymentMethod = watch('paymentMethod')
-
-    const mockTransactionData = {
-        pixCode: "00020126580014BR.GOV.BCB.PIX0114+551199999999520400005303986540610.005802BR5925MOCK PAY5925SAO PAULO62070503***6304B60E",
-        amount: "67,56",
-        expirationTime: "10:45"
-    }
 
     switch (paymentMethod) {
         case 'pix':
-            return (
-                <PixPaymentPage
-                    pixCode={mockTransactionData.pixCode}
-                    amount={mockTransactionData.amount}
-                    expirationTime={mockTransactionData.expirationTime}
-                />
-            )
+            // Passe a função para o Pix
+            return <PixPaymentPage onCancel={onCancelSelection} />
 
         case 'credit_card':
-            return (
-                <SavedCardsPage />
-            )
+            // Se quiser que o cartão faça o mesmo, passe aqui também
+            return <SavedCardsPage />
+
         default:
             return null
     }

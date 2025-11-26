@@ -54,7 +54,7 @@ export function AddressStep() {
   const { data, isLoading, isEnabled } = useQuery({
     queryKey: [queryKey.getAddresses, debouncedAddress],
     queryFn: () => listAddresses(debouncedAddress),
-    enabled: !getError() && debouncedAddress?.length === address?.length,
+    enabled: !getError() && debouncedAddress?.length === address?.length && address?.length >= 3,
     refetchOnWindowFocus: false,
   })
 
@@ -70,6 +70,8 @@ export function AddressStep() {
   })
 
   async function handleSelectAddress(placeId: string) {
+    setValue('placeId', placeId)
+
     const result = await listAddressMutate({
       address,
       placeId,

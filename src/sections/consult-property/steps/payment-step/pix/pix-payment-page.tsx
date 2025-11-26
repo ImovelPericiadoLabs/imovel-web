@@ -1,31 +1,98 @@
 'use client'
-
-import { useState } from 'react'
+import type { FormContextWithSteps } from '@/sections/consult-property/types'
+import Image from 'next/image'
+import { useState, useEffect } from 'react'
+import { useMutation } from '@tanstack/react-query'
+import { useForm, useFormContext } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { Check, Clock } from 'lucide-react'
+import Button from '@/components/button'
+import Skeleton from '@/components/skeleton'
+import BottomSheet from '@/components/bottom-sheet'
+import Input from '@/components/input'
+import LoadingOverlay from '@/components/loading-overlay'
+import PixIcon from '@/components/icons/pix-icon'
+import Alert from '@/components/alert'
+import { processPayment } from '@/services/payments'
+import { validations, FormTypes } from './validations'
 
-interface PixPaymentPageProps {
-    pixCode?: string
-    amount?: string
-    expirationTime?: string
-}
-
-export function PixPaymentPage({
-    pixCode = "00020126580014BR.GOV.BCB.PIX0114+551199999999520400005303986540610.005802BR5925NOME DO RECEBEDOR6009SAO PAULO62070503***6304B60E",
-    amount = "67,56",
-    expirationTime = "10:30"
-}: PixPaymentPageProps) {
+export function PixPaymentPage({ onCancel }: PixPaymentPageProps) {
     const [copied, setCopied] = useState(false)
+    const [isOpenBottomSheet, setIsOpenBottomSheet] = useState(true)
+    const [expirationTime, setExpirationTime] = useState('')
+    const [serverError, setServerError] = useState('')
 
-    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(pixCode)}&margin=0`
+    const {
+        handleSubmit,
+        register,
+        formState: { errors },
+    } = useForm<FormTypes>({
+        resolver: zodResolver(validations),
+    })
+
+    const { getValues, setStep } = useFormContext() as FormContextWithSteps
+
+    function clearServerError() {
+        setServerError('')
+    }
+
+    function handleCloseBottomSheet() {
+        setIsOpenBottomSheet(false)
+    }
+
+    const { mutateAsync, data, isPending } = useMutation({
+        mutationFn: processPayment,
+        onSuccess() {
+            handleCloseBottomSheet()
+
+            const expiresAt = new Date(Date.now() + 30 * 60 * 1000)
+
+            const hours = String(expiresAt.getHours()).padStart(2, '0')
+            const minutes = String(expiresAt.getMinutes()).padStart(2, '0')
+
+            const formatted = `${hours}:${minutes}`
+
+            setExpirationTime(formatted)
+        },
+        onError() {
+            setServerError('Houve um erro ao processar o pagamento via PIX. Por favor, tente novamente.')
+        },
+    })
+
+    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
+        data?.payload,
+    )}&margin=0`
+
+    const amount = '67,56'
 
     const handleCopy = async () => {
         try {
-            await navigator.clipboard.writeText(pixCode)
+            await navigator.clipboard.writeText(data?.payload || '')
             setCopied(true)
             setTimeout(() => setCopied(false), 2000)
         } catch (error) {
             console.error('Falha ao copiar código pix:', error)
         }
+    }
+
+    async function onSubmit(formData: FormTypes) {
+        const values = getValues()
+        setServerError('')
+        await mutateAsync({
+            place_id: values.placeId,
+            document_id: values.document?.id,
+            name: formData.name,
+            document: formData.document,
+        })
+    }
+
+    useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setIsOpenBottomSheet(true)
+    }, [])
+
+    interface PixPaymentPageProps {
+        onCancel: () => void
     }
 
     return (
@@ -38,15 +105,20 @@ export function PixPaymentPage({
             </div>
 
             <div className="mx-auto mb-8 relative z-50 shadow-xl rounded-2xl w-fit">
-                <div className="bg-[var(--color-primary)] p-1.5 rounded-2xl">
+                <div className="bg-primary p-1.5 rounded-2xl">
                     <div className="bg-white p-1.5 rounded-xl">
                         <div className="w-44 h-44 bg-white rounded-lg overflow-hidden flex items-center justify-center">
-                            <img
-                                src={qrCodeUrl}
-                                alt="QR Code para pagamento Pix"
-                                className="w-full h-full object-contain"
-                                loading="lazy"
-                            />
+                            {isPending && <Skeleton className="w-full h-full object-contain" />}
+                            {!!data && (
+                                <Image
+                                    src={qrCodeUrl}
+                                    alt="QR Code para pagamento Pix"
+                                    className="w-full h-full object-contain"
+                                    loading="lazy"
+                                    width={400}
+                                    height={400}
+                                />
+                            )}
                         </div>
                     </div>
                 </div>
@@ -54,32 +126,91 @@ export function PixPaymentPage({
 
             <div className="flex flex-col items-center w-full px-1 mt-2">
                 <div className="text-center mb-5 w-full">
-                    <p className="text-[var(--color-dark)] text-[15px] font-medium flex flex-col sm:flex-row items-center justify-center gap-1">
+                    <p className="text-dark text-[15px] font-medium flex flex-col sm:flex-row items-center justify-center gap-1">
                         <span>Este código expira em 30 minutos, pague até {expirationTime}</span>
                     </p>
                 </div>
 
-                <div className="w-full bg-white border border-[var(--color-gray-200)] rounded-xl p-4 mb-6 shadow-sm">
-                    <p className="text-[11px] text-[var(--color-gray-600)] break-all font-mono leading-relaxed text-center uppercase tracking-wide">
-                        {pixCode}
-                    </p>
-                </div>
+                {isPending ? (
+                    <Skeleton className="w-full rounded-xl p-4 mb-6 h-20" />
+                ) : (
+                    <div className="w-full bg-white border border-gray-200 rounded-xl p-4 mb-6 shadow-sm">
+                        <p className="text-[11px] text-gray-600 break-all font-mono leading-relaxed text-center uppercase tracking-wide">
+                            {data?.payload}
+                        </p>
+                    </div>
+                )}
 
-                <button
+                <Button
                     onClick={handleCopy}
                     type="button"
-                    className="w-full bg-[var(--color-primary)] hover:opacity-90 active:opacity-100 text-white font-semibold text-base h-12 rounded-full flex items-center justify-center gap-2 transition-all shadow-lg shadow-violet-100 mb-6"
-                    aria-label={copied ? "Código copiado" : "Copiar código Pix"}
+                    aria-label={copied ? 'Código copiado' : 'Copiar código Pix'}
+                    disabled={isPending || !data}
                 >
-                    {copied ? <Check size={20} /> : null}
-                    <span>{copied ? 'Copiado!' : 'Copiar código pix'}</span>
-                </button>
+                    <div className="flex items-center justify-center gap-1">
+                        {copied ? <Check size={20} /> : null}
+                        <span>{copied ? 'Copiado!' : 'Copiar código pix'}</span>
+                    </div>
+                </Button>
 
-                <div className="flex items-center gap-2 text-[var(--color-primary)] font-medium text-sm pb-4">
+                <div className="flex items-center gap-2 text-primary font-medium text-sm py-4">
                     <Clock size={18} className="stroke-[2px] animate-[spin_4s_linear_infinite]" />
                     <span>Aguardando o pagamento</span>
                 </div>
             </div>
+
+            <BottomSheet isOpen={isOpenBottomSheet} onClose={onCancel}>
+                <div className="p-4 pb-12 max-h-[70vh] overflow-y-auto flex flex-col gap-3">
+                    <div className="flex flex-row gap-3 items-center">
+                        <div className="rounded-full bg-violet-50 size-14 flex items-center justify-center">
+                            <div className="rounded-full size-10 bg-violet-100 flex items-center justify-center">
+                                <PixIcon className="size-7 text-primary" />
+                            </div>
+                        </div>
+
+                        <p className="text-lg font-semibold leading-6 text-dark">Dados do PIX</p>
+                    </div>
+
+                    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
+                        {!!serverError?.length && <Alert variant="error" message={serverError} />}
+                        <Input
+                            {...register('name')}
+                            errors={errors}
+                            label="Nome do titular"
+                            placeholder="Ex: Roberto Silva"
+                            onKeyDown={clearServerError}
+                        />
+                        <Input
+                            {...register('document')}
+                            errors={errors}
+                            label="CPF"
+                            placeholder="000.000.000-00"
+                            mask="cpf"
+                            onKeyDown={clearServerError}
+                            inputMode="numeric"
+                        />
+                        <Input
+                            {...register('email')}
+                            errors={errors}
+                            label="E-mail"
+                            placeholder="email@email.com"
+                            onKeyDown={clearServerError}
+                        />
+                        <Input
+                            {...register('whatsapp')}
+                            errors={errors}
+                            label="WhatsApp"
+                            placeholder="99 99999-9999"
+                            mask="whatsapp"
+                            onKeyDown={clearServerError}
+                            inputMode="numeric"
+                        />
+                        <Button>Continuar</Button>
+                    </form>
+                </div>
+            </BottomSheet>
+
+            <LoadingOverlay isLoading={isPending} message="Carregando dados do pix" />
         </div>
     )
 }
