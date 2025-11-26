@@ -2,7 +2,7 @@
 
 import { useFormContext } from 'react-hook-form'
 import { PixPaymentPage } from '@/sections/consult-property/steps/payment-step/pix'
-import { CreditCardPage } from '@/sections/consult-property/steps/payment-step/credit_card'
+import { SavedCardsPage } from '@/sections/consult-property/steps/payment-step/card/select'
 
 export function PaymentConfirmationStep() {
     const { watch } = useFormContext()
@@ -27,9 +27,7 @@ export function PaymentConfirmationStep() {
 
         case 'credit_card':
             return (
-                <CreditCardPage
-                    amount={mockTransactionData.amount}
-                />
+                <SavedCardsPage />
             )
         default:
             return null

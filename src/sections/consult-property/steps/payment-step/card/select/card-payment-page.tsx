@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { Check } from 'lucide-react'
 
 interface Card {
     id: string
@@ -17,7 +18,6 @@ export function SavedCardsPage() {
     ])
 
     const handleSelectCard = (id: string) => {
-        // Altera para que apenas um cartão possa ser selecionado por vez
         setCards(cards.map(card => ({
             ...card,
             isSelected: card.id === id
@@ -25,85 +25,81 @@ export function SavedCardsPage() {
     }
 
     return (
-        // Container principal da página (já tem p-6)
-        <div className="bg-background min-h-screen p-6 relative">
+        <div className="flex flex-col relative p-6">
+            {/* Lista de cartões */}
+            <div className="flex flex-col gap-4 relative z-50 -mt-5">
+                {cards.map((card) => {
+                    const cardClasses = `flex flex-col p-4 rounded-xl border bg-white cursor-pointer shadow-xl transition-all
+                        ${card.isSelected ? 'border-[var(--color-primary)] ring-1 ring-[var(--color-primary)]' : 'border-gray-200 hover:border-gray-300'}`
 
-            {/* ⭐️ ALTERAÇÃO CHAVE: Aplicação de z-50 e -mt-20 aqui. */}
-            <div className="relative z-50 -mt-20">
+                    const selectionCircleClasses = `w-6 h-6 rounded-full border flex items-center justify-center transition-colors duration-200 shrink-0
+                        ${card.isSelected
+                            ? 'bg-[var(--color-primary)] border-[var(--color-primary)]'
+                            : 'bg-white border-gray-300'
+                        }`
 
-                {/* Cabeçalho de contexto (Adicionado para dar o mesmo visual do Pix) */}
-                <div className="mb-6 text-[var(--color-dark)] text-left px-1">
-                    <p className="text-[17px] leading-snug font-normal text-white">
-                        Selecione seu cartão para garantir <br />
-                        <span className="font-bold">sua compra</span>
-                    </p>
-                </div>
+                    return (
+                        <div
+                            key={card.id}
+                            className={cardClasses}
+                            onClick={() => handleSelectCard(card.id)}
+                        >
+                            {/* ALTERAÇÃO AQUI: 
+                                'items-center' garante que a bandeira (esquerda) e o checkbox (direita)
+                                fiquem centralizados verticalmente, independente da altura do texto.
+                            */}
+                            <div className="flex justify-between items-center">
 
-                <div className="flex flex-col gap-4">
-                    {cards.map((card) => {
-                        // Removida a lógica isFirstCard, pois o z-index e o -mt foram movidos para o container pai
-                        const cardClasses = `flex flex-col p-4 rounded-xl border bg-white cursor-pointer shadow-xl
-                            ${card.isSelected ? 'border-[var(--color-primary)]' : 'border-gray-300'}`
-
-                        return (
-                            <div
-                                key={card.id}
-                                className={cardClasses}
-                                onClick={() => handleSelectCard(card.id)}
-                            >
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                        {/* Bandeira */}
+                                <div className="flex items-center gap-3">
+                                    {/* 1. Bandeira (Centralizada verticalmente pelo pai) */}
+                                    <div>
                                         {card.brand === "Mastercard" ? (
                                             <div className="flex -space-x-1">
                                                 <div className="w-6 h-6 rounded-full bg-[#EB001B]" />
                                                 <div className="w-6 h-6 rounded-full bg-[#F79E1B]" />
                                             </div>
                                         ) : (
-                                            // 🌐 Usando o arquivo WebP
                                             <img
                                                 src="/images/visa.webp"
                                                 alt="Visa"
                                                 className="w-10 h-auto"
                                             />
                                         )}
-
-                                        <div>
-                                            <p className="text-[15px] font-semibold text-gray-900">
-                                                {card.brand} final ****{card.number}
-                                            </p>
-                                            <p className="text-[13px] text-gray-600 -mt-1">
-                                                Vence {card.expiry}
-                                            </p>
-                                        </div>
                                     </div>
 
-                                    {/* Indicador Selecionado */}
-                                    <div
-                                        className="w-5 h-5 rounded-full border flex items-center justify-center
-                                            border-gray-400"
-                                    >
-                                        {card.isSelected && (
-                                            <div className="w-3 h-3 bg-[var(--color-primary)] rounded-full" />
-                                        )}
+                                    {/* 2. Coluna de Texto + Botão Editar */}
+                                    <div className="flex flex-col items-start">
+                                        <p className="text-[15px] font-semibold text-gray-900 leading-tight">
+                                            {card.brand} final ****{card.number}
+                                        </p>
+                                        <p className="text-[13px] text-gray-600 mt-0.5">
+                                            Vence {card.expiry}
+                                        </p>
+
+                                        {/* Botão Editar com espaçamento */}
+                                        <button className="text-[14px] text-[var(--color-primary)] font-medium mt-3 hover:underline text-left">
+                                            Editar
+                                        </button>
                                     </div>
                                 </div>
 
-                                {/* Editar */}
-                                <button className="text-[14px] text-[var(--color-primary)] mt-2 ml-1 self-start">
-                                    Editar
-                                </button>
+                                {/* 3. Checkbox (Centralizado verticalmente pelo pai) */}
+                                <div className={selectionCircleClasses}>
+                                    {card.isSelected && (
+                                        <Check size={16} className="text-white stroke-[3px]" />
+                                    )}
+                                </div>
                             </div>
-                        )
-                    })}
+                        </div>
+                    )
+                })}
 
-                    {/* Botão Novo Cartão */}
-                    <div className="mt-4">
-                        <button className="w-full bg-[var(--color-primary)] text-white py-4 rounded-xl
-                        font-semibold text-[16px] shadow-md hover:opacity-90 transition">
-                            Novo cartão
-                        </button>
-                    </div>
+                {/* Botão Novo Cartão */}
+                <div className="mt-4 pb-6">
+                    <button className="w-full bg-[var(--color-primary)] text-white py-4 rounded-4xl
+                        font-semibold text-[16px] shadow-lg shadow-violet-100 hover:opacity-90 active:opacity-100 transition">
+                        Novo cartão
+                    </button>
                 </div>
             </div>
         </div>
