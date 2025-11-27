@@ -1,8 +1,6 @@
 import React from 'react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, cleanup } from '@testing-library/react'
-import type { ComponentProps } from 'react'
-import type { FormContextWithSteps } from '@/sections/consult-property/types'
 import ConsultProperty from './consult-property'
 
 const mockPush = vi.fn()
@@ -29,11 +27,22 @@ vi.mock('@/components/progress-bar', () => ({
 }))
 
 vi.mock('lucide-react', () => ({
-  ChevronLeft: (props: ComponentProps<'div'>) => <div data-testid="chevron-left" {...props} />,
-  Menu: (props: ComponentProps<'div'>) => <div data-testid="menu" {...props} />,
-  CircleQuestionMark: (props: ComponentProps<'div'>) => (
+  ChevronLeft: ({ onClick, className, ...props }: any) => (
+    <div
+      data-testid="chevron-left"
+      onClick={onClick}
+      className={className}
+      {...props}
+    />
+  ),
+  Menu: (props: any) => <div data-testid="menu" {...props} />,
+  CircleQuestionMark: (props: any) => (
     <div data-testid="circle-question-mark" {...props} />
   ),
+}))
+
+vi.mock('@/sections/consult-property/components/traffic-light-modal', () => ({
+  default: ({ children }: { children: React.ReactNode }) => <div>{children}</div>
 }))
 
 vi.mock(
@@ -45,43 +54,46 @@ vi.mock(
   }),
 )
 
-vi.mock('@/sections/consult-property/steps', async () => {
-  const rhf = await vi.importActual<typeof import('react-hook-form')>('react-hook-form')
+vi.mock('@/sections/consult-property/steps/payment-step/card/select', () => ({
+  SavedCardsPage: () => <div data-testid="saved-cards-page">Saved Cards</div>
+}))
 
-  const MockStep = ({ testId }: { testId: string }) => {
-    const { handleNextStep } = rhf.useFormContext() as FormContextWithSteps
-    return (
-      <div data-testid={testId}>
-        <button onClick={handleNextStep}>Next Step</button>
-      </div>
-    )
-  }
+vi.mock('@/sections/consult-property/steps/payment-step/card/register', () => ({
+  CreditCardPage: () => <div data-testid="credit-card-page">Credit Card Register</div>
+}))
 
-  const MockPaymentStep = ({ onNextStep }: { onNextStep: () => void }) => {
-    return (
-      <div data-testid="payment-step">
-        <button onClick={onNextStep}>Next Step</button>
-      </div>
-    )
-  }
-
-  const MockConfirmationStep = () => {
-    const { handleNextStep, setHasDocument } = rhf.useFormContext() as FormContextWithSteps
-    return (
-      <div data-testid="document-confirmation-step">
-        <button onClick={() => setHasDocument(true)}>Set Has Document</button>
-        <button onClick={handleNextStep}>Next Step</button>
-      </div>
-    )
-  }
-
+vi.mock('@/sections/consult-property/steps', () => {
   return {
-    AddressStep: () => <MockStep testId="address-step" />,
-    DocumentConfirmationStep: () => <MockConfirmationStep />,
-    DocumentTypeStep: () => <MockStep testId="document-type-step" />,
-    SendDocumentStep: () => <MockStep testId="send-document-step" />,
-    SummaryStep: () => <MockStep testId="summary-step" />,
-    PaymentStep: (props: { onNextStep: () => void }) => <MockPaymentStep {...props} />,
+    AddressStep: ({ onNext }: { onNext: () => void }) => (
+      <div data-testid="address-step">
+        <button onClick={onNext}>Next Address</button>
+      </div>
+    ),
+    DocumentConfirmationStep: ({ onNext }: { onNext: () => void }) => (
+      <div data-testid="document-confirmation-step">
+        <button onClick={onNext}>Next DocConfirm</button>
+      </div>
+    ),
+    DocumentTypeStep: ({ onNext }: { onNext: () => void }) => (
+      <div data-testid="document-type-step">
+        <button onClick={onNext}>Next DocType</button>
+      </div>
+    ),
+    SendDocumentStep: ({ onNext }: { onNext: () => void }) => (
+      <div data-testid="send-document-step">
+        <button onClick={onNext}>Next SendDoc</button>
+      </div>
+    ),
+    SummaryStep: ({ onNext }: { onNext: () => void }) => (
+      <div data-testid="summary-step">
+        <button onClick={onNext}>Next Summary</button>
+      </div>
+    ),
+    PaymentStep: ({ onPix }: { onPix: () => void }) => (
+      <div data-testid="payment-step">
+        <button onClick={onPix}>Select Pix</button>
+      </div>
+    ),
   }
 })
 
@@ -101,14 +113,14 @@ describe('ConsultProperty Flow', () => {
   })
 
   it('should switch steps correctly when Next is clicked', () => {
-    fireEvent.click(screen.getByText('Next Step'))
+    fireEvent.click(screen.getByText('Next Address'))
 
     expect(screen.getByTestId('document-confirmation-step')).toBeInTheDocument()
     expect(screen.queryByTestId('address-step')).not.toBeInTheDocument()
   })
 
   it('should handle the "go back" logic correctly using ChevronLeft', () => {
-    fireEvent.click(screen.getByText('Next Step'))
+    fireEvent.click(screen.getByText('Next Address'))
     expect(screen.getByTestId('document-confirmation-step')).toBeInTheDocument()
 
     const backButton = screen.getByTestId('chevron-left')
@@ -119,24 +131,24 @@ describe('ConsultProperty Flow', () => {
   })
 
   it('should handle the payment sub-step logic', () => {
-    fireEvent.click(screen.getByText('Next Step'))
-    fireEvent.click(screen.getByText('Next Step'))
-    fireEvent.click(screen.getByText('Next Step'))
-    fireEvent.click(screen.getByText('Next Step'))
-    fireEvent.click(screen.getByText('Next Step'))
+    fireEvent.click(screen.getByText('Next Address'))
+    fireEvent.click(screen.getByText('Next DocConfirm'))
+    fireEvent.click(screen.getByText('Next DocType'))
+    fireEvent.click(screen.getByText('Next SendDoc'))
+    fireEvent.click(screen.getByText('Next Summary'))
 
-    // expect(screen.getByTestId('payment-step')).toBeInTheDocument()
+    expect(screen.getByTestId('payment-step')).toBeInTheDocument()
 
-    // fireEvent.click(screen.getByText('Next Step'))
+    fireEvent.click(screen.getByText('Select Pix'))
 
     expect(screen.getByTestId('payment-confirmation-step')).toBeInTheDocument()
     expect(screen.queryByTestId('payment-step')).not.toBeInTheDocument()
   })
 
-  it('should redirect to home if back button is clicked on step 1', () => {
+  it('should have the back button hidden/disabled on the first step', () => {
     const backButton = screen.getByTestId('chevron-left')
-    fireEvent.click(backButton)
 
-    expect(mockPush).toHaveBeenCalledWith('/')
+    expect(backButton).toHaveClass('opacity-0')
+    expect(backButton).toHaveClass('pointer-events-none')
   })
 })

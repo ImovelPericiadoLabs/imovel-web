@@ -1,82 +1,112 @@
-import React from 'react'
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react'
-import { PixPaymentPage } from './pix-payment-page'
+import { render, screen, fireEvent } from '@testing-library/react'
+import { describe, it, expect, vi } from 'vitest'
+import { CreditCardPage } from './save-cards-page'
 
-describe('PixPaymentPage Component', () => {
-  const mockWriteText = vi.fn()
+vi.mock('@/components/switch', () => ({
+  Switch: ({ checked, onCheckedChange }: { checked: boolean; onCheckedChange: (v: boolean) => void }) => (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      onClick={() => onCheckedChange(!checked)}
+    >
+      {checked ? 'On' : 'Off'}
+    </button>
+  ),
+}))
 
-  beforeEach(() => {
-    Object.assign(navigator, {
-      clipboard: {
-        writeText: mockWriteText,
-      },
-    })
-    mockWriteText.mockClear()
+describe('CreditCardPage', () => {
+  const mockOnSave = vi.fn()
+
+  it('deve renderizar os campos do formulário corretamente', () => {
+    render(<CreditCardPage onSave={mockOnSave} />)
+
+    expect(screen.getByPlaceholderText('0000 0000 0000 0000')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('Ex: Roberto Silva')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('MM/AA')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('CVV')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('000.000.000-00')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Pagar/i })).toBeInTheDocument()
   })
 
-  afterEach(() => {
-    cleanup()
-    vi.clearAllMocks()
+  it('deve aplicar a máscara de cartão de crédito', () => {
+    render(<CreditCardPage onSave={mockOnSave} />)
+    const input = screen.getByPlaceholderText('0000 0000 0000 0000') as HTMLInputElement
+
+    fireEvent.change(input, { target: { value: '1234567812345678' } })
+    expect(input.value).toBe('1234 5678 1234 5678')
+
+    fireEvent.change(input, { target: { value: 'abc' } })
+    expect(input.value).toBe('')
   })
 
-  it('deve renderizar com os valores padrão', () => {
-    render(<PixPaymentPage pixCode="teste123" />)
+  it('deve atualizar o nome do titular', () => {
+    render(<CreditCardPage onSave={mockOnSave} />)
+    const input = screen.getByPlaceholderText('Ex: Roberto Silva') as HTMLInputElement
+
+    fireEvent.change(input, { target: { value: 'João da Silva' } })
+    expect(input.value).toBe('João da Silva')
+  })
+
+  it('deve aplicar a máscara de validade (MM/AA)', () => {
+    render(<CreditCardPage onSave={mockOnSave} />)
+    const input = screen.getByPlaceholderText('MM/AA') as HTMLInputElement
+
+    fireEvent.change(input, { target: { value: '1' } })
+    expect(input.value).toBe('1')
+
+    fireEvent.change(input, { target: { value: '12' } })
+    expect(input.value).toBe('12/')
+
+    fireEvent.change(input, { target: { value: '1225' } })
+    expect(input.value).toBe('12/25')
+
+    fireEvent.change(input, { target: { value: 'abc' } })
+    expect(input.value).toBe('')
+  })
+
+  it('deve aplicar a máscara de CVV (apenas números e limite de 4)', () => {
+    render(<CreditCardPage onSave={mockOnSave} />)
+    const input = screen.getByPlaceholderText('CVV') as HTMLInputElement
+
+    fireEvent.change(input, { target: { value: '123a' } })
+    expect(input.value).toBe('123')
+
+    fireEvent.change(input, { target: { value: '12345' } })
+    expect(input.value).toBe('1234')
+  })
+
+  it('deve aplicar a máscara de CPF', () => {
+    render(<CreditCardPage onSave={mockOnSave} />)
+    const input = screen.getByPlaceholderText('000.000.000-00') as HTMLInputElement
+
+    fireEvent.change(input, { target: { value: '12345678901' } })
+    expect(input.value).toBe('123.456.789-01')
+
+    fireEvent.change(input, { target: { value: 'abc' } })
+    expect(input.value).toBe('')
+  })
+
+  it('deve alternar o estado de salvar cartão ao clicar no texto ou no switch', () => {
+    render(<CreditCardPage onSave={mockOnSave} />)
     
-    expect(screen.getByText(/Aguardando o pagamento/i)).toBeInTheDocument()
-    expect(screen.getByText(/via Pix para garantir/i)).toBeInTheDocument()
-    
-    expect(screen.getByText('teste123')).toBeInTheDocument()
+    const switchButton = screen.getByRole('switch')
+    expect(switchButton).toHaveAttribute('aria-checked', 'false')
+
+    fireEvent.click(switchButton)
+    expect(switchButton).toHaveAttribute('aria-checked', 'true')
+
+    const labelText = screen.getByText('Salvar cartão para compras futuras')
+    fireEvent.click(labelText)
+    expect(switchButton).toHaveAttribute('aria-checked', 'false')
   })
 
-  it('deve renderizar com props customizadas', () => {
-    const customCode = "custom-code"
-    render(<PixPaymentPage pixCode={customCode} />)
-
-    expect(screen.getByText(customCode)).toBeInTheDocument()
+  it('deve chamar a função onSave ao clicar no botão de pagar', () => {
+    render(<CreditCardPage onSave={mockOnSave} />)
     
-    expect(screen.getByRole('button', { name: /Copiar código pix/i })).toBeInTheDocument()
-  })
+    const submitButton = screen.getByRole('button', { name: /Pagar/i })
+    fireEvent.click(submitButton)
 
-  it('deve gerar a URL correta para o QR Code', () => {
-    render(<PixPaymentPage pixCode="codigo-pix-valido" />)
-    
-    const img = screen.getByRole('img', { name: /QR Code para pagamento Pix/i })
-    expect(img).toBeInTheDocument()
-    expect(img).toHaveAttribute('src', expect.stringContaining('codigo-pix-valido'))
-  })
-
-  it('deve copiar o código e alterar o estado do botão ao clicar', async () => {
-    const pixCode = "codigo-para-copiar"
-    mockWriteText.mockResolvedValue(undefined)
-
-    render(<PixPaymentPage pixCode={pixCode} />)
-
-    const copyButton = screen.getByRole('button', { name: /Copiar código pix/i })
-    
-    fireEvent.click(copyButton)
-
-    expect(mockWriteText).toHaveBeenCalledWith(pixCode)
-
-    await waitFor(() => {
-      expect(screen.getByText(/copiado/i)).toBeInTheDocument()
-    })
-  })
-
-  it('deve lidar com erro ao copiar (console.error)', async () => {
-    const pixCode = "codigo-erro"
-    mockWriteText.mockRejectedValue(new Error('Erro de clipboard'))
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
-
-    render(<PixPaymentPage pixCode={pixCode} />)
-
-    const copyButton = screen.getByRole('button', { name: /Copiar código pix/i })
-    fireEvent.click(copyButton)
-
-    expect(mockWriteText).toHaveBeenCalledWith(pixCode)
-
-    await waitFor(() => {
-      expect(consoleSpy).toHaveBeenCalled()
-    })
+    expect(mockOnSave).toHaveBeenCalledTimes(1)
   })
 })

@@ -19,7 +19,8 @@ export function PaymentConfirmationStep({
     const paymentMethod = watch('paymentMethod')
 
     if (paymentMethod === 'pix') {
-        return <PixPaymentPage onCancel={onBackToMethods} onConfirm={onFinish} />
+        // CORREÇÃO AQUI: Mudado de onConfirm para onFinish
+        return <PixPaymentPage onCancel={onBackToMethods} onFinish={onFinish} />
     }
 
     if (paymentMethod === 'credit_card') {

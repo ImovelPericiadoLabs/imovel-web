@@ -80,7 +80,7 @@ const mockUploadDocument = uploadDocument as Mock<
 >
 
 describe('SendDocumentStep', () => {
-  let mockHandleNextStep: Mock<() => void>
+  let mockOnNext: Mock<() => void>
   let mockSetValue: Mock<(name: string, value: unknown) => void>
   let mockWatch: Mock<(name: string) => UploadedDocument | undefined>
   let mockTrigger: Mock<(name: string) => Promise<boolean>>
@@ -96,7 +96,7 @@ describe('SendDocumentStep', () => {
   }
 
   beforeEach(() => {
-    mockHandleNextStep = vi.fn()
+    mockOnNext = vi.fn()
     mockSetValue = vi.fn()
     mockWatch = vi.fn()
     mockTrigger = vi.fn()
@@ -104,7 +104,6 @@ describe('SendDocumentStep', () => {
     mockSetError = vi.fn()
 
     mockUseFormContext.mockReturnValue({
-      handleNextStep: mockHandleNextStep,
       setValue: mockSetValue,
       watch: mockWatch,
       formState: { errors: {} },
@@ -136,7 +135,7 @@ describe('SendDocumentStep', () => {
   })
 
   it('should render the initial state correctly', () => {
-    render(<SendDocumentStep />)
+    render(<SendDocumentStep onNext={mockOnNext} />)
     expect(screen.getByText('Envie o documento')).toBeInTheDocument()
     expect(screen.getByTestId('document-upload')).toBeInTheDocument()
     expect(screen.queryByTestId('document-item')).not.toBeInTheDocument()
@@ -147,7 +146,7 @@ describe('SendDocumentStep', () => {
   it('should handle file selection and successful upload', async () => {
     mockUploadDocument.mockResolvedValue({ ok: true })
 
-    render(<SendDocumentStep />)
+    render(<SendDocumentStep onNext={mockOnNext} />)
 
     fireEvent.click(screen.getByText('Select File'))
 
@@ -166,7 +165,6 @@ describe('SendDocumentStep', () => {
       'Não foi possível enviar o documento. Verifique se o mesmo possui no máximo 250 MB e está em um dos formatos permitidos (imagens, PDF ou documentos Word).'
 
     mockUseFormContext.mockReturnValue({
-      handleNextStep: mockHandleNextStep,
       setValue: mockSetValue,
       watch: vi.fn().mockReturnValue(mockDocument),
       formState: { errors: { document: { message: errorMessage } } },
@@ -184,7 +182,7 @@ describe('SendDocumentStep', () => {
 
     mockWatch.mockReturnValue(undefined)
 
-    render(<SendDocumentStep />)
+    render(<SendDocumentStep onNext={mockOnNext} />)
 
     fireEvent.click(screen.getByText('Select File'))
 
@@ -202,7 +200,7 @@ describe('SendDocumentStep', () => {
   it('should remove the document when onRemove is called', () => {
     mockWatch.mockReturnValue(mockDocument)
 
-    render(<SendDocumentStep />)
+    render(<SendDocumentStep onNext={mockOnNext} />)
 
     fireEvent.click(screen.getByText('Remove'))
 
@@ -211,28 +209,28 @@ describe('SendDocumentStep', () => {
     expect(mockClearErrors).toHaveBeenCalledWith('document')
   })
 
-  it('should call handleNextStep when continue is clicked and form is valid', async () => {
+  it('should call onNext when continue is clicked and form is valid', async () => {
     mockWatch.mockReturnValue(mockDocument)
     mockTrigger.mockResolvedValue(true)
 
-    render(<SendDocumentStep />)
+    render(<SendDocumentStep onNext={mockOnNext} />)
 
     fireEvent.click(screen.getByText('Continuar'))
 
     await waitFor(() => {
-      expect(mockHandleNextStep).toHaveBeenCalled()
+      expect(mockOnNext).toHaveBeenCalled()
     })
   })
 
-  it('should not call handleNextStep when form is invalid', async () => {
+  it('should not call onNext when form is invalid', async () => {
     mockWatch.mockReturnValue(mockDocument)
     mockTrigger.mockResolvedValue(false)
 
-    render(<SendDocumentStep />)
+    render(<SendDocumentStep onNext={mockOnNext} />)
     fireEvent.click(screen.getByText('Continuar'))
 
     await waitFor(() => {
-      expect(mockHandleNextStep).not.toHaveBeenCalled()
+      expect(mockOnNext).not.toHaveBeenCalled()
     })
   })
 
@@ -242,7 +240,7 @@ describe('SendDocumentStep', () => {
       isPending: true,
     }))
 
-    render(<SendDocumentStep />)
+    render(<SendDocumentStep onNext={mockOnNext} />)
 
     expect(screen.getByTestId('loading-overlay')).toBeInTheDocument()
   })
@@ -250,7 +248,7 @@ describe('SendDocumentStep', () => {
   it('should call uploadDocument with file and progress callback inside mutationFn', async () => {
     mockUploadDocument.mockResolvedValue({ ok: true })
 
-    render(<SendDocumentStep />)
+    render(<SendDocumentStep onNext={mockOnNext} />)
 
     fireEvent.click(screen.getByText('Select File'))
 

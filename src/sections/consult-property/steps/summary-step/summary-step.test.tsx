@@ -3,12 +3,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { SummaryStep } from './summary-step'
 
 const mockGetValues = vi.fn()
-const mockHandleNextStep = vi.fn()
+const mockOnNext = vi.fn()
 
 vi.mock('react-hook-form', () => ({
   useFormContext: () => ({
     getValues: mockGetValues,
-    handleNextStep: mockHandleNextStep,
   }),
 }))
 
@@ -45,7 +44,7 @@ vi.mock('lucide-react', () => ({
 describe('SummaryStep', () => {
   beforeEach(() => {
     mockGetValues.mockReset()
-    mockHandleNextStep.mockReset()
+    mockOnNext.mockReset()
 
     mockGetValues.mockImplementation((key: string) => {
       const values: Record<string, string | object> = {
@@ -60,7 +59,7 @@ describe('SummaryStep', () => {
   })
 
   it('should render the title correctly', () => {
-    render(<SummaryStep />)
+    render(<SummaryStep onNext={mockOnNext} />)
 
     const title = screen.getAllByTestId('text-title')[0]
     expect(title).toBeInTheDocument()
@@ -68,7 +67,7 @@ describe('SummaryStep', () => {
   })
 
   it('should display summary items based on form values', () => {
-    render(<SummaryStep />)
+    render(<SummaryStep onNext={mockOnNext} />)
 
     expect(screen.getByText('Endereço')).toBeInTheDocument()
     expect(screen.getByText('Rua Teste, 123')).toBeInTheDocument()
@@ -83,21 +82,21 @@ describe('SummaryStep', () => {
   })
 
   it('should render the recognized badge for document section', () => {
-    render(<SummaryStep />)
+    render(<SummaryStep onNext={mockOnNext} />)
 
     const badge = screen.getByText('Reconhecido automaticamente')
     expect(badge).toBeInTheDocument()
   })
 
   it('should render the details section with Modal trigger', () => {
-    render(<SummaryStep />)
+    render(<SummaryStep onNext={mockOnNext} />)
 
     const modalTrigger = screen.getByText('Ver detalhes')
     expect(modalTrigger).toBeInTheDocument()
   })
 
   it('should render total price and continue button', () => {
-    render(<SummaryStep />)
+    render(<SummaryStep onNext={mockOnNext} />)
 
     expect(screen.getByText('Total')).toBeInTheDocument()
     expect(screen.getByText('R$ 67,56')).toBeInTheDocument()
@@ -106,12 +105,12 @@ describe('SummaryStep', () => {
     expect(continueBtn).toBeInTheDocument()
   })
 
-  it('should call handleNextStep when clicking Continue', () => {
-    render(<SummaryStep />)
+  it('should call onNext when clicking Continue', () => {
+    render(<SummaryStep onNext={mockOnNext} />)
 
     const btn = screen.getByTestId('continue-btn')
     fireEvent.click(btn)
 
-    expect(mockHandleNextStep).toHaveBeenCalledTimes(1)
+    expect(mockOnNext).toHaveBeenCalledTimes(1)
   })
 })
