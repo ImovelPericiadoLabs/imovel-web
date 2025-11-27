@@ -1,8 +1,9 @@
 'use client'
 import type { FormContextWithSteps } from '@/sections/consult-property/types'
 import Image from 'next/image'
+import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { useForm, useFormContext } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Check, Clock } from 'lucide-react'
@@ -13,7 +14,8 @@ import Input from '@/components/input'
 import LoadingOverlay from '@/components/loading-overlay'
 import PixIcon from '@/components/icons/pix-icon'
 import Alert from '@/components/alert'
-import { processPayment } from '@/services/payments'
+import { processPayment, getPaymentStatus } from '@/services/payments'
+import { queryKey } from '@/constants/queries'
 import { validations, FormTypes } from './validations'
 
 export function PixPaymentPage() {
@@ -21,6 +23,10 @@ export function PixPaymentPage() {
   const [isOpenBottomSheet, setIsOpenBottomSheet] = useState(true)
   const [expirationTime, setExpirationTime] = useState('')
   const [serverError, setServerError] = useState('')
+  const [paymentId, setPaymentId] = useState<string | null>(null)
+  const [isOpenConffirmPaymentBottomSheet, setIsOpenConfirmPaymentBottomSheet] = useState(false)
+
+  const { push } = useRouter()
 
   const {
     handleSubmit,
@@ -42,7 +48,8 @@ export function PixPaymentPage() {
 
   const { mutateAsync, data, isPending } = useMutation({
     mutationFn: processPayment,
-    onSuccess() {
+    onSuccess(payment) {
+      setPaymentId(payment?.id)
       handleCloseBottomSheet()
 
       const expiresAt = new Date(Date.now() + 30 * 60 * 1000)
@@ -58,6 +65,28 @@ export function PixPaymentPage() {
       setServerError('Houve um erro ao processar o pagamento via PIX. Por favor, tente novamente.')
     },
   })
+
+  useQuery({
+    queryKey: [queryKey.paymentStatus, paymentId],
+    queryFn: () => getPaymentStatus(paymentId as string),
+    enabled: !!paymentId,
+    refetchInterval: (data) => {
+      if (!data) return 5000
+
+      if (data?.state?.data?.status === 'CONFIRMED') {
+        setIsOpenConfirmPaymentBottomSheet(true)
+        return false
+      }
+
+      return 5000
+    },
+
+    refetchIntervalInBackground: false,
+  })
+
+  function handleCloseConfirmPaymentBottomSheet() {
+    push('/')
+  }
 
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
     data?.payload,
@@ -203,6 +232,29 @@ export function PixPaymentPage() {
             />
             <Button>Continuar</Button>
           </form>
+        </div>
+      </BottomSheet>
+
+      <BottomSheet
+        isOpen={isOpenConffirmPaymentBottomSheet}
+        onClose={handleCloseConfirmPaymentBottomSheet}
+      >
+        <div className="flex flex-col items-center gap-6 pb-12 px-4 py-8">
+          <div className="relative">
+            <div className="w-24 h-24 rounded-full bg-emerald-100 flex items-center justify-center animate-[scale-in_0.4s_ease-out]">
+              <div className="w-20 h-20 rounded-full bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-200">
+                <Check className="w-10 h-10 text-white stroke-3 animate-[check-draw_0.3s_ease-out_0.2s_both]" />
+              </div>
+            </div>
+            <div className="absolute inset-0 rounded-full border-4 border-emerald-300 animate-ping opacity-30" />
+          </div>
+
+          <div className="flex flex-col items-center gap-2">
+            <span className="text-2xl font-bold text-gray-800">Pagamento confirmado!</span>
+            <span className="text-gray-500 text-center">Seu Pix foi recebido com sucesso</span>
+          </div>
+
+          <Button onClick={handleCloseConfirmPaymentBottomSheet}>Continuar</Button>
         </div>
       </BottomSheet>
 
