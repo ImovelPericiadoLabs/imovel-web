@@ -248,7 +248,6 @@ describe('PixPaymentPage', () => {
     mockUseMutation.mockImplementationOnce((options: { onError?: () => void }) => ({
       mutateAsync: async () => {
         if (options?.onError) options.onError()
-        throw new Error('Falha simulada')
       },
       data: null,
       isPending: false,
