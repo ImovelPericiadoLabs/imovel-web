@@ -7,5 +7,6 @@ export const endpoint = {
   },
   payments: {
     process: '/payments/',
+    status: '/payments',
   },
 }
