@@ -6,7 +6,6 @@ import { ChevronLeft, CircleQuestionMark } from 'lucide-react'
 import { FormProvider, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 
-// Steps
 import {
   AddressStep,
   DocumentConfirmationStep,
@@ -41,7 +40,6 @@ export default function ConsultProperty() {
   const [flow, setFlow] = useState<FlowState>('address')
   const stack = useRef<FlowState[]>([])
 
-  // Navegação
   function go(next: FlowState) {
     stack.current.push(flow)
     setFlow(next)
@@ -52,7 +50,6 @@ export default function ConsultProperty() {
     if (previous) setFlow(previous)
   }
 
-  // Formulier
   const methods = useForm<FormTypes>({
     resolver: zodResolver(validations),
     defaultValues: {
@@ -75,6 +72,13 @@ export default function ConsultProperty() {
 
   const progress = (progressMapping[flow] / 6) * 100
 
+  const showProgress = ![
+    'payment-cards',
+    'payment-card-new',
+    'payment-confirm',
+    'finished',
+  ].includes(flow)
+
   return (
     <section className="min-h-screen bg-background">
       <header className="flex flex-col pt-4 px-4 bg-primary relative z-40">
@@ -94,18 +98,15 @@ export default function ConsultProperty() {
           </TrafficLightModal>
         </div>
 
-        <ProgressBar value={progress} className="mb-3" />
+        {showProgress && <ProgressBar value={progress} className="mb-3" />}
       </header>
 
       <div className="relative bg-primary h-30 -mt-1"></div>
 
       <FormProvider {...methods}>
         <main className="w-full mx-auto lg:max-w-lg pt-5 px-0 -mt-24">
-
           {flow === 'address' && (
-            <AddressStep
-              onNext={() => go('doc-confirmation')}
-            />
+            <AddressStep onNext={() => go('doc-confirmation')} />
           )}
 
           {flow === 'doc-confirmation' && (
@@ -115,26 +116,18 @@ export default function ConsultProperty() {
             />
           )}
 
-
           {flow === 'doc-type' && (
-            <DocumentTypeStep
-              onNext={() => go('send-doc')}
-            />
+            <DocumentTypeStep onNext={() => go('send-doc')} />
           )}
 
           {flow === 'send-doc' && (
-            <SendDocumentStep
-              onNext={() => go('summary')}
-            />
+            <SendDocumentStep onNext={() => go('summary')} />
           )}
 
           {flow === 'summary' && (
-            <SummaryStep
-              onNext={() => go('payment-method')}
-            />
+            <SummaryStep onNext={() => go('payment-method')} />
           )}
 
-          {/* Seleção do método de pagamento */}
           {flow === 'payment-method' && (
             <PaymentStep
               onPix={() => go('payment-confirm')}
@@ -144,8 +137,6 @@ export default function ConsultProperty() {
             />
           )}
 
-
-          {/* Lista de Cartões */}
           {flow === 'payment-cards' && (
             <SavedCardsPage
               onAddNewCard={() => go('payment-card-new')}
@@ -153,15 +144,10 @@ export default function ConsultProperty() {
             />
           )}
 
-
-          {/* Novo Cartão */}
           {flow === 'payment-card-new' && (
-            <CreditCardPage
-              onSave={() => go('payment-cards')}
-            />
+            <CreditCardPage onSave={() => go('payment-cards')} />
           )}
 
-          {/* Confirmação do pagamento */}
           {flow === 'payment-confirm' && (
             <PaymentConfirmationStep
               onFinish={() => go('finished')}
@@ -170,7 +156,6 @@ export default function ConsultProperty() {
               onSelectCard={() => go('finished')}
             />
           )}
-
 
           {flow === 'finished' && (
             <div className="p-6">

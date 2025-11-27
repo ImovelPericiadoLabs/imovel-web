@@ -17,7 +17,6 @@ import Alert from '@/components/alert'
 import { processPayment } from '@/services/payments'
 import { validations, FormTypes } from './validations'
 
-// INTERFACE NOVA
 interface PixPaymentPageProps {
     onCancel: () => void
     onFinish: () => void
@@ -27,7 +26,6 @@ export function PixPaymentPage({
     onCancel,
     onFinish,
 }: PixPaymentPageProps) {
-    // --- LÓGICA NOVA ---
     const [copied, setCopied] = useState(false)
     const [isOpenBottomSheet, setIsOpenBottomSheet] = useState(true)
     const [expirationTime, setExpirationTime] = useState('')
@@ -41,7 +39,6 @@ export function PixPaymentPage({
         resolver: zodResolver(validations),
     })
 
-    // Uso do contexto sem a tipagem antiga FormContextWithSteps
     const { getValues } = useFormContext()
 
     const clearServerError = () => {
@@ -103,9 +100,8 @@ export function PixPaymentPage({
         setIsOpenBottomSheet(true)
     }, [])
 
-    // --- DESIGN DA VERSÃO ANTIGA (Com handlers da nova) ---
     return (
-        <div className="flex flex-col relative px-4">
+        <div className="flex flex-col relative px-4 mt-6">
             <div className="mb-6 -mt-20 text-white px-1 text-left relative z-50">
                 <p className="text-[17px] leading-snug font-normal">
                     Pague <span className="font-bold">R$ {amount}</span> via Pix para garantir <br />
@@ -168,9 +164,6 @@ export function PixPaymentPage({
                 </div>
             </div>
 
-            {/* Aqui está a lógica nova (onCancel) aplicada ao componente visual antigo.
-          A versão antiga usava "setStep(5)", a nova usa "onCancel".
-      */}
             <BottomSheet isOpen={isOpenBottomSheet} onClose={onCancel}>
                 <div className="p-4 pb-12 max-h-[70vh] overflow-y-auto flex flex-col gap-3">
                     <div className="flex flex-row gap-3 items-center">
