@@ -152,7 +152,7 @@ export function CreditCardPage({
                             onClick={handleSubmit}
                             className="w-full bg-[var(--color-primary)] hover:opacity-90 active:opacity-100 text-white font-semibold text-base h-12 rounded-full flex items-center justify-center gap-2 transition-all shadow-lg shadow-violet-100 mb-6"
                         >
-                            Pagar R$ {amount}
+                            Pagar
                         </button>
                     </div>
                 </div>
