@@ -1,11 +1,12 @@
 'use client'
+
 import Image from 'next/image'
-import { useRouter } from 'next/navigation'
-import { useState, Activity } from 'react'
-import { useForm, FormProvider } from 'react-hook-form'
+import { useState, useRef } from 'react'
+import { ChevronLeft, CircleQuestionMark } from 'lucide-react'
+import { FormProvider, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { ChevronLeft, Menu, CircleQuestionMark } from 'lucide-react'
-import ProgressBar from '@/components/progress-bar'
+
+// Steps
 import {
   AddressStep,
   DocumentConfirmationStep,
@@ -14,77 +15,73 @@ import {
   SummaryStep,
   PaymentStep,
 } from '@/sections/consult-property/steps'
+
 import { PaymentConfirmationStep } from '@/sections/consult-property/steps/payment-step/payment-confirmation-step/payment-confirmation-step'
+import { SavedCardsPage } from '@/sections/consult-property/steps/payment-step/card/select'
+import { CreditCardPage } from '@/sections/consult-property/steps/payment-step/card/register'
+
+import ProgressBar from '@/components/progress-bar'
 import TrafficLightModal from '@/sections/consult-property/components/traffic-light-modal'
+
 import { validations, FormTypes } from '@/sections/consult-property/validations'
 
+type FlowState =
+  | 'address'
+  | 'doc-confirmation'
+  | 'doc-type'
+  | 'send-doc'
+  | 'summary'
+  | 'payment-method'
+  | 'payment-cards'
+  | 'payment-card-new'
+  | 'payment-confirm'
+  | 'finished'
+
 export default function ConsultProperty() {
-  const [step, setStep] = useState<number>(1)
-  const [hasDocument, setHasDocument] = useState(false)
-  const [isPaymentSelected, setIsPaymentSelected] = useState(false)
+  const [flow, setFlow] = useState<FlowState>('address')
+  const stack = useRef<FlowState[]>([])
 
-  const totalSteps = 6
-  const { push } = useRouter()
+  // Navegação
+  function go(next: FlowState) {
+    stack.current.push(flow)
+    setFlow(next)
+  }
 
+  function back() {
+    const previous = stack.current.pop()
+    if (previous) setFlow(previous)
+  }
+
+  // Formulier
   const methods = useForm<FormTypes>({
     resolver: zodResolver(validations),
     defaultValues: {
       paymentMethod: 'pix',
     },
-    shouldUnregister: false,
   })
 
-  const isPaymentConfirming = step === 6 && isPaymentSelected
-
-  function handlePreviousStep() {
-    setStep((prev) => prev - 1)
+  const progressMapping: Record<FlowState, number> = {
+    address: 1,
+    'doc-confirmation': 2,
+    'doc-type': 3,
+    'send-doc': 4,
+    summary: 5,
+    'payment-method': 6,
+    'payment-cards': 6,
+    'payment-card-new': 6,
+    'payment-confirm': 6,
+    finished: 6,
   }
 
-  function handleNextStep() {
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-
-    if (step === 6 && !isPaymentSelected) {
-      setIsPaymentSelected(true)
-      return
-    }
-
-    if (step < totalSteps) {
-      setStep((prev) => prev + 1)
-    }
-  }
-
-  function handleGoBack() {
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-
-    // AQUI ESTAVA O PROBLEMA: Esse bloco precisa estar ativo!
-    // Se estou confirmando (Pix ou Cartão), o "voltar" deve apenas 
-    // desmarcar a seleção para mostrar as opções de novo.
-    if (isPaymentConfirming) {
-      setIsPaymentSelected(false)
-      return
-    }
-
-    if (step === 1) {
-      push('/')
-      return
-    }
-
-    if (step === 5 && !hasDocument) {
-      setStep(2)
-      return
-    }
-
-    handlePreviousStep()
-  }
-  const formContextValue = { ...methods, handleNextStep, setStep, setHasDocument }
+  const progress = (progressMapping[flow] / 6) * 100
 
   return (
     <section className="min-h-screen bg-background">
       <header className="flex flex-col pt-4 px-4 bg-primary relative z-40">
         <div className="flex items-center justify-between py-4.5 mb-6">
           <ChevronLeft
-            onClick={handleGoBack}
-            className={`${step === 1 ? 'opacity-0' : 'size-7 text-white cursor-pointer'}`}
+            onClick={back}
+            className="size-7 text-white cursor-pointer"
             role="button"
           />
 
@@ -97,45 +94,91 @@ export default function ConsultProperty() {
           </TrafficLightModal>
         </div>
 
-        <ProgressBar
-          className={`${isPaymentConfirming ? 'invisible' : 'block'} mb-3`}
-          value={(step / totalSteps) * 100}
-        />
+        <ProgressBar value={progress} className="mb-3" />
       </header>
 
       <div className="relative bg-primary h-30 -mt-1"></div>
 
-      <FormProvider {...formContextValue}>
+      <FormProvider {...methods}>
         <main className="w-full mx-auto lg:max-w-lg pt-5 px-0 -mt-24">
-          <Activity mode={step === 1 ? 'visible' : 'hidden'}>
-            <AddressStep />
-          </Activity>
 
-          <Activity mode={step === 2 ? 'visible' : 'hidden'}>
-            <DocumentConfirmationStep />
-          </Activity>
+          {flow === 'address' && (
+            <AddressStep
+              onNext={() => go('doc-confirmation')}
+            />
+          )}
 
-          <Activity mode={step === 3 ? 'visible' : 'hidden'}>
-            <DocumentTypeStep />
-          </Activity>
+          {flow === 'doc-confirmation' && (
+            <DocumentConfirmationStep
+              onNext={() => go('doc-type')}
+              onSkip={() => go('summary')}
+            />
+          )}
 
-          <Activity mode={step === 4 ? 'visible' : 'hidden'}>
-            <SendDocumentStep />
-          </Activity>
 
-          <Activity mode={step === 5 ? 'visible' : 'hidden'}>
-            <SummaryStep />
-          </Activity>
+          {flow === 'doc-type' && (
+            <DocumentTypeStep
+              onNext={() => go('send-doc')}
+            />
+          )}
 
-          <Activity mode={step === 6 ? 'visible' : 'hidden'}>
-            {isPaymentSelected ? (
-              <PaymentConfirmationStep
-                onCancelSelection={() => setIsPaymentSelected(false)}
-              />
-            ) : (
-              <PaymentStep onNextStep={handleNextStep} />
-            )}
-          </Activity>
+          {flow === 'send-doc' && (
+            <SendDocumentStep
+              onNext={() => go('summary')}
+            />
+          )}
+
+          {flow === 'summary' && (
+            <SummaryStep
+              onNext={() => go('payment-method')}
+            />
+          )}
+
+          {/* Seleção do método de pagamento */}
+          {flow === 'payment-method' && (
+            <PaymentStep
+              onPix={() => go('payment-confirm')}
+              onCredit={() => go('payment-cards')}
+              onDebit={() => go('payment-confirm')}
+              onBoleto={() => go('payment-confirm')}
+            />
+          )}
+
+
+          {/* Lista de Cartões */}
+          {flow === 'payment-cards' && (
+            <SavedCardsPage
+              onAddNewCard={() => go('payment-card-new')}
+              onConfirmCard={() => go('payment-confirm')}
+            />
+          )}
+
+
+          {/* Novo Cartão */}
+          {flow === 'payment-card-new' && (
+            <CreditCardPage
+              onSave={() => go('payment-cards')}
+            />
+          )}
+
+          {/* Confirmação do pagamento */}
+          {flow === 'payment-confirm' && (
+            <PaymentConfirmationStep
+              onFinish={() => go('finished')}
+              onBackToMethods={() => go('payment-method')}
+              onAddNewCard={() => go('payment-card-new')}
+              onSelectCard={() => go('finished')}
+            />
+          )}
+
+
+          {flow === 'finished' && (
+            <div className="p-6">
+              <h1 className="text-center text-xl font-semibold">
+                Pedido concluído com sucesso
+              </h1>
+            </div>
+          )}
         </main>
       </FormProvider>
     </section>

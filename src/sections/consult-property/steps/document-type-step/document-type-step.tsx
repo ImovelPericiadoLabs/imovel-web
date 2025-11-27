@@ -1,29 +1,25 @@
 'use client'
-import { useEffect, useEffectEvent } from 'react'
+
+import { useEffect } from 'react'
 import { useFormContext } from 'react-hook-form'
 import { Users, FileText, FileSignature } from 'lucide-react'
 import TextTitle from '@/components/text-title'
 import TextSubtitle from '@/components/text-subtitle'
-import type { FormContextWithSteps } from '@/sections/consult-property/types'
 import OptionCard from '@/components/option-card/option-card.tsx'
 
 type DocumentType = 'contract' | 'registration' | 'deed'
 
-export function DocumentTypeStep() {
-  const { setValue, handleNextStep } = useFormContext() as FormContextWithSteps
+export function DocumentTypeStep({ onNext }: { onNext: () => void }) {
+  const { setValue } = useFormContext()
 
   function handleSelect(value: DocumentType) {
     setValue('documentType', value, { shouldValidate: true })
-    handleNextStep()
+    onNext()
   }
 
-  const resetValue = useEffectEvent(() =>
-    setValue('hasDocument', undefined, { shouldValidate: true }),
-  )
-
   useEffect(() => {
-    resetValue()
-  }, [])
+    setValue('documentType', undefined)
+  }, [setValue])
 
   return (
     <div className="relative flex-1 px-4 -mt-6">
@@ -40,12 +36,14 @@ export function DocumentTypeStep() {
             subtitle="Acordo particular entre comprador e vendedor"
             onClick={() => handleSelect('contract')}
           />
+
           <OptionCard
             icon={FileText}
             title="Matrícula"
             subtitle="Documento principal do imóvel"
             onClick={() => handleSelect('registration')}
           />
+
           <OptionCard
             icon={FileSignature}
             title="Escritura"

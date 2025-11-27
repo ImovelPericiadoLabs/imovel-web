@@ -1,5 +1,6 @@
+'use client'
+
 import { useState } from 'react'
-import type { FormContextWithSteps } from '@/sections/consult-property/types'
 import { useFormContext } from 'react-hook-form'
 import { useMutation } from '@tanstack/react-query'
 import TextTitle from '@/components/text-title'
@@ -18,11 +19,11 @@ interface UploadedDocument {
   type: string
 }
 
-export function SendDocumentStep() {
-  const { handleNextStep, setValue, watch, formState, trigger, clearErrors, setError } =
-    useFormContext() as FormContextWithSteps
-  const [uploadProgress, setUploadProgress] = useState(0)
+export function SendDocumentStep({ onNext }: { onNext: () => void }) {
+  const { setValue, watch, formState, trigger, clearErrors, setError } =
+    useFormContext()
 
+  const [uploadProgress, setUploadProgress] = useState(0)
   const documentPreview = watch('documentPreview')
 
   const { mutateAsync, isPending } = useMutation({
@@ -40,6 +41,7 @@ export function SendDocumentStep() {
 
   async function handleFileSelect(file: File) {
     clearErrors('document')
+
     const sizeMB = Math.round((file.size / (1024 * 1024)) * 10) / 10
     const newDoc: UploadedDocument = {
       id: Date.now().toString(),
@@ -50,7 +52,6 @@ export function SendDocumentStep() {
     }
 
     setValue('documentPreview', newDoc)
-
     await mutateAsync(file)
   }
 
@@ -62,10 +63,7 @@ export function SendDocumentStep() {
 
   async function handleContinue() {
     const isValid = await trigger('document')
-
-    if (isValid) {
-      handleNextStep()
-    }
+    if (isValid) onNext()
   }
 
   return (
@@ -79,7 +77,7 @@ export function SendDocumentStep() {
       )}
 
       {formState.errors?.document?.message && (
-        <Alert variant="error" message={formState.errors?.document?.message as string} />
+        <Alert variant="error" message={formState.errors.document.message as string} />
       )}
 
       {!!documentPreview && (

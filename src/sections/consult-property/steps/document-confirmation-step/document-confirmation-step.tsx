@@ -1,31 +1,36 @@
 'use client'
-import { useEffectEvent } from 'react'
+
+import { useEffect } from 'react'
 import { useFormContext } from 'react-hook-form'
 import { ThumbsUp, ThumbsDown } from 'lucide-react'
 import OptionCard from '@/components/option-card/option-card.tsx'
 import TextTitle from '@/components/text-title'
-import type { FormContextWithSteps } from '@/sections/consult-property/types'
-import { useEffect } from 'react'
+import { useEffectEvent } from 'react'
 
-export function DocumentConfirmationStep() {
-  const { setValue, handleNextStep, setStep, setHasDocument } =
-    useFormContext() as FormContextWithSteps
+export function DocumentConfirmationStep({
+  onNext,
+  onSkip,
+}: {
+  onNext: () => void
+  onSkip: () => void
+}) {
+  const { setValue } = useFormContext()
 
-  function handleSelect(value: boolean) {
-    setValue('hasDocument', value, { shouldValidate: true })
-    setHasDocument(true)
-    handleNextStep()
-    if (!value) {
+  function handleSelect(hasDocument: boolean) {
+    setValue('hasDocument', hasDocument, { shouldValidate: true })
+
+    if (hasDocument) {
+      onNext()
+    } else {
       setValue('documentType', undefined)
       setValue('document', undefined)
       setValue('documentPreview', undefined)
-      setStep(5)
-      setHasDocument(false)
+      onSkip()
     }
   }
 
   const resetValue = useEffectEvent(() =>
-    setValue('hasDocument', undefined, { shouldValidate: true }),
+    setValue('hasDocument', undefined, { shouldValidate: true })
   )
 
   useEffect(() => {
