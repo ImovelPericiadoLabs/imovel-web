@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useState, Activity } from 'react'
 import { useForm, FormProvider } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { ChevronLeft, Menu, CircleQuestionMark } from 'lucide-react'
+import { ChevronLeft, CircleQuestionMark } from 'lucide-react'
 import ProgressBar from '@/components/progress-bar'
 import {
   AddressStep,
