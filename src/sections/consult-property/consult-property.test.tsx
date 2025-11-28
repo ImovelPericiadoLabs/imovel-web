@@ -8,16 +8,6 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: mockPush }),
 }))
 
-vi.mock('react', async () => {
-  const actual = await vi.importActual<typeof import('react')>('react')
-  return {
-    ...actual,
-    Activity: ({ mode, children }: { mode: string; children: React.ReactNode }) => {
-      return mode === 'visible' ? <>{children}</> : null
-    },
-  }
-})
-
 vi.mock('@hookform/resolvers/zod', () => ({
   zodResolver: (schema: any) => schema,
 }))
@@ -89,16 +79,12 @@ vi.mock('@/sections/consult-property/steps', () => {
         <button onClick={onNext}>Next Summary</button>
       </div>
     ),
-    PaymentStep: ({ onPix }: { onPix: () => void }) => (
-      <div data-testid="payment-step">
-        <button onClick={onPix}>Select Pix</button>
-      </div>
-    ),
   }
 })
 
 describe('ConsultProperty Flow', () => {
   beforeEach(() => {
+    Object.defineProperty(window, 'scrollTo', { value: vi.fn(), writable: true })
     render(<ConsultProperty />)
   })
 
@@ -108,41 +94,45 @@ describe('ConsultProperty Flow', () => {
   })
 
   it('should render ONLY the first step initially', () => {
-    expect(screen.getByTestId('address-step')).toBeInTheDocument()
-    expect(screen.queryByTestId('document-confirmation-step')).not.toBeInTheDocument()
+    const addressStep = screen.getByTestId('address-step')
+    const docConfirmStep = screen.getByTestId('document-confirmation-step')
+
+    expect(addressStep).toBeVisible()
+    expect(docConfirmStep).not.toBeVisible()
   })
 
   it('should switch steps correctly when Next is clicked', () => {
     fireEvent.click(screen.getByText('Next Address'))
 
-    expect(screen.getByTestId('document-confirmation-step')).toBeInTheDocument()
-    expect(screen.queryByTestId('address-step')).not.toBeInTheDocument()
+    const addressStep = screen.getByTestId('address-step')
+    const docConfirmStep = screen.getByTestId('document-confirmation-step')
+
+    expect(docConfirmStep).toBeVisible()
+    expect(addressStep).not.toBeVisible()
   })
 
   it('should handle the "go back" logic correctly using ChevronLeft', () => {
     fireEvent.click(screen.getByText('Next Address'))
-    expect(screen.getByTestId('document-confirmation-step')).toBeInTheDocument()
+    expect(screen.getByTestId('document-confirmation-step')).toBeVisible()
 
     const backButton = screen.getByTestId('chevron-left')
     fireEvent.click(backButton)
 
-    expect(screen.getByTestId('address-step')).toBeInTheDocument()
-    expect(screen.queryByTestId('document-confirmation-step')).not.toBeInTheDocument()
+    expect(screen.getByTestId('address-step')).toBeVisible()
+    expect(screen.getByTestId('document-confirmation-step')).not.toBeVisible()
   })
 
-  it('should handle the payment sub-step logic', () => {
+  it('should go straight from Summary to Payment Confirmation (Pix)', () => {
     fireEvent.click(screen.getByText('Next Address'))
     fireEvent.click(screen.getByText('Next DocConfirm'))
     fireEvent.click(screen.getByText('Next DocType'))
     fireEvent.click(screen.getByText('Next SendDoc'))
+
+    expect(screen.getByTestId('summary-step')).toBeVisible()
     fireEvent.click(screen.getByText('Next Summary'))
 
-    expect(screen.getByTestId('payment-step')).toBeInTheDocument()
-
-    fireEvent.click(screen.getByText('Select Pix'))
-
-    expect(screen.getByTestId('payment-confirmation-step')).toBeInTheDocument()
-    expect(screen.queryByTestId('payment-step')).not.toBeInTheDocument()
+    expect(screen.getByTestId('payment-confirmation-step')).toBeVisible()
+    expect(screen.getByTestId('summary-step')).not.toBeVisible()
   })
 
   it('should have the back button hidden/disabled on the first step', () => {

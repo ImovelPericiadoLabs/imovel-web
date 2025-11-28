@@ -102,7 +102,8 @@ export default function ConsultProperty() {
         <div className="flex items-center justify-between py-4.5 mb-6">
           <ChevronLeft
             onClick={back}
-            className={`size-7 text-white transition-opacity cursor-pointer`}
+            className={`size-7 text-white transition-opacity ${flow === 'address' ? 'opacity-0 pointer-events-none' : 'cursor-pointer'
+              }`}
             role="button"
           />
 

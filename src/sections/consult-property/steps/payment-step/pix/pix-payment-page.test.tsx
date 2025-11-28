@@ -4,10 +4,8 @@ import { useFormContext } from 'react-hook-form'
 import { useMutation } from '@tanstack/react-query'
 import { PixPaymentPage } from './pix-payment-page'
 
-// 1. Criamos o mock da função de navegação
 const mockPush = vi.fn()
 
-// 2. Mockamos o next/navigation para usar nossa função mockPush
 vi.mock('next/navigation', () => ({
   useRouter: () => ({
     push: mockPush,
@@ -133,18 +131,18 @@ describe('PixPaymentPage', () => {
       },
     })
 
-    ;(useFormContext as Mock).mockReturnValue({
-      getValues: mockGetValues.mockReturnValue({
-        placeId: 'place-123',
-        document: { id: 'doc-123' },
-      }),
-    })
+      ; (useFormContext as Mock).mockReturnValue({
+        getValues: mockGetValues.mockReturnValue({
+          placeId: 'place-123',
+          document: { id: 'doc-123' },
+        }),
+      })
 
-    ;(useMutation as Mock).mockReturnValue({
-      mutateAsync: mockMutateAsync,
-      data: null,
-      isPending: false,
-    })
+      ; (useMutation as Mock).mockReturnValue({
+        mutateAsync: mockMutateAsync,
+        data: null,
+        isPending: false,
+      })
   })
 
   afterEach(() => {
@@ -169,11 +167,11 @@ describe('PixPaymentPage', () => {
   it('deve submeter o formulário e chamar a mutação com os dados corretos', async () => {
     mockMutateAsync.mockResolvedValue({ id: 'pay-1', payload: 'pix-code-123' })
 
-    ;(useMutation as Mock).mockImplementation(() => ({
-      mutateAsync: mockMutateAsync,
-      data: null,
-      isPending: false,
-    }))
+      ; (useMutation as Mock).mockImplementation(() => ({
+        mutateAsync: mockMutateAsync,
+        data: null,
+        isPending: false,
+      }))
 
     render(<PixPaymentPage onCancel={mockOnCancel} onFinish={mockOnFinish} />)
 
@@ -197,16 +195,16 @@ describe('PixPaymentPage', () => {
   })
 
   it('deve processar onSuccess corretamente (fechar sheet e mostrar QR Code)', async () => {
-    let onSuccessCallback: (data: any) => void = () => {}
-    
-    ;(useMutation as Mock).mockImplementation((options) => {
-      if (options.onSuccess) onSuccessCallback = options.onSuccess
-      return {
-        mutateAsync: mockMutateAsync,
-        data: { payload: 'pix-payload-mock' },
-        isPending: false,
-      }
-    })
+    let onSuccessCallback: (data: any) => void = () => { }
+
+      ; (useMutation as Mock).mockImplementation((options) => {
+        if (options.onSuccess) onSuccessCallback = options.onSuccess
+        return {
+          mutateAsync: mockMutateAsync,
+          data: { payload: 'pix-payload-mock' },
+          isPending: false,
+        }
+      })
 
     render(<PixPaymentPage onCancel={mockOnCancel} onFinish={mockOnFinish} />)
 
@@ -223,16 +221,16 @@ describe('PixPaymentPage', () => {
   })
 
   it('deve exibir erro do servidor quando a mutação falha', async () => {
-    let onErrorCallback: () => void = () => {}
-    
-    ;(useMutation as Mock).mockImplementation((options) => {
-      if (options.onError) onErrorCallback = options.onError
-      return {
-        mutateAsync: mockMutateAsync,
-        data: null,
-        isPending: false,
-      }
-    })
+    let onErrorCallback: () => void = () => { }
+
+      ; (useMutation as Mock).mockImplementation((options) => {
+        if (options.onError) onErrorCallback = options.onError
+        return {
+          mutateAsync: mockMutateAsync,
+          data: null,
+          isPending: false,
+        }
+      })
 
     render(<PixPaymentPage onCancel={mockOnCancel} onFinish={mockOnFinish} />)
 
@@ -248,7 +246,7 @@ describe('PixPaymentPage', () => {
   })
 
   it('deve copiar o código PIX com sucesso', async () => {
-    ;(useMutation as Mock).mockReturnValue({
+    ; (useMutation as Mock).mockReturnValue({
       mutateAsync: mockMutateAsync,
       data: { payload: 'codigo-copiavel' },
       isPending: false,
@@ -267,14 +265,14 @@ describe('PixPaymentPage', () => {
   })
 
   it('deve tratar erro ao copiar código PIX', async () => {
-    ;(useMutation as Mock).mockReturnValue({
+    ; (useMutation as Mock).mockReturnValue({
       mutateAsync: mockMutateAsync,
       data: { payload: 'codigo-erro' },
       isPending: false,
     })
 
     mockWriteText.mockRejectedValueOnce(new Error('Clipboard error'))
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => { })
 
     render(<PixPaymentPage onCancel={mockOnCancel} onFinish={mockOnFinish} />)
 
@@ -304,10 +302,9 @@ describe('PixPaymentPage', () => {
     })
   })
 
-  // 3. Teste atualizado para verificar o redirecionamento
   it('deve redirecionar para a página de pedidos ao clicar em continuar no modal de sucesso', async () => {
     mockPaymentStatusResponse = { state: { data: { status: 'CONFIRMED' } } }
-    
+
     render(<PixPaymentPage onCancel={mockOnCancel} onFinish={mockOnFinish} />)
 
     await waitFor(() => {
@@ -323,7 +320,7 @@ describe('PixPaymentPage', () => {
   })
 
   it('deve exibir loading overlay quando isPending é true', () => {
-    ;(useMutation as Mock).mockReturnValue({
+    ; (useMutation as Mock).mockReturnValue({
       mutateAsync: mockMutateAsync,
       data: null,
       isPending: true,

@@ -1,6 +1,5 @@
 'use client'
 
-import type { FormContextWithSteps } from '@/sections/consult-property/types'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useState, useMemo, useEffect, useEffectEvent } from 'react'
@@ -83,7 +82,7 @@ export function PixPaymentPage({
     queryKey: [queryKey.paymentStatus, paymentId],
     queryFn: () => getPaymentStatus(paymentId as string),
     enabled: !!paymentId,
-    refetchInterval: (queryData) => {
+    refetchInterval: (queryData: any) => {
       if (queryData?.state?.data?.status === 'CONFIRMED') {
         return false
       }
@@ -91,6 +90,12 @@ export function PixPaymentPage({
     },
     refetchIntervalInBackground: false,
   })
+
+  useEffect(() => {
+    if (paymentData?.state?.data?.status === 'CONFIRMED') {
+      setIsOpenConfirmPaymentBottomSheet(true)
+    }
+  }, [paymentData])
 
   function handleCloseConfirmPaymentBottomSheet() {
     router.push('/pedidos')
