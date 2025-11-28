@@ -88,7 +88,7 @@ export default function ConsultProperty() {
           </div>
 
           <TrafficLightModal>
-            <CircleQuestionMark className="size-7 text-white" />
+            <CircleQuestionMark className="cursor-pointer size-7 text-white" />
           </TrafficLightModal>
         </div>
 
