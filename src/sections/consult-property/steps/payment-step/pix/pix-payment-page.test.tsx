@@ -282,24 +282,24 @@ describe('PixPaymentPage', () => {
     rerender(<PixPaymentPage />)
 
     await waitFor(() => {
-      expect(screen.getByText('Pagamento confirmado!')).toBeInTheDocument()
+      expect(screen.getByText('Pagamento concluído')).toBeInTheDocument()
     })
   })
 
-  it('should redirect to home when clicking continue on success modal', async () => {
+  it('should redirect to pedidos page when clicking continue on success modal', async () => {
     mockPaymentStatusResponse = { state: { data: { status: 'CONFIRMED' } } }
     render(<PixPaymentPage />)
 
     await waitFor(() => {
-      expect(screen.getByText('Pagamento confirmado!')).toBeInTheDocument()
+      expect(screen.getByText('Pagamento concluído')).toBeInTheDocument()
     })
 
-    const buttons = screen.getAllByRole('button', { name: /continuar/i })
+    const buttons = screen.getAllByRole('button', { name: 'Ir para meus pedidos' })
     const successButton = buttons[buttons.length - 1]
 
     fireEvent.click(successButton)
 
-    expect(mockPush).toHaveBeenCalledWith('/')
+    expect(mockPush).toHaveBeenCalledWith('/pedidos')
   })
 
   it('should call setStep(5) when closing the initial bottom sheet', () => {
