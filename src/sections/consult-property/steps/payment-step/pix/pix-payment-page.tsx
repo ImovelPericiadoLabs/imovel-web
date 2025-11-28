@@ -7,7 +7,6 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import { useForm, useFormContext } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Check, Clock } from 'lucide-react'
-
 import Button from '@/components/button'
 import Skeleton from '@/components/skeleton'
 import BottomSheet from '@/components/bottom-sheet'
@@ -18,6 +17,7 @@ import Alert from '@/components/alert'
 import { processPayment, getPaymentStatus } from '@/services/payments'
 import { formatMoney } from '@/utils/text'
 import { queryKey } from '@/constants/queries'
+import { formatDateWithTime } from '@/utils/date'
 import { validations, FormTypes } from './validations'
 
 interface PixPaymentPageProps {
@@ -25,10 +25,7 @@ interface PixPaymentPageProps {
   onFinish: () => void
 }
 
-export function PixPaymentPage({
-  onCancel,
-  onFinish,
-}: PixPaymentPageProps) {
+export function PixPaymentPage({ onCancel, onFinish }: PixPaymentPageProps) {
   const router = useRouter()
   const [copied, setCopied] = useState(false)
 
@@ -82,8 +79,9 @@ export function PixPaymentPage({
     queryKey: [queryKey.paymentStatus, paymentId],
     queryFn: () => getPaymentStatus(paymentId as string),
     enabled: !!paymentId,
-    refetchInterval: (queryData: any) => {
+    refetchInterval: (queryData) => {
       if (queryData?.state?.data?.status === 'CONFIRMED') {
+        setIsOpenConfirmPaymentBottomSheet(true)
         return false
       }
       return 5000
@@ -91,18 +89,12 @@ export function PixPaymentPage({
     refetchIntervalInBackground: false,
   })
 
-  useEffect(() => {
-    if (paymentData?.state?.data?.status === 'CONFIRMED') {
-      setIsOpenConfirmPaymentBottomSheet(true)
-    }
-  }, [paymentData])
-
   function handleCloseConfirmPaymentBottomSheet() {
     router.push('/pedidos')
   }
 
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
-    data?.payload || ''
+    data?.payload || '',
   )}&margin=0`
 
   const amount = '67,56'
@@ -131,16 +123,7 @@ export function PixPaymentPage({
   const paymentTimeConfirmationMessage = useMemo(() => {
     const date = new Date()
 
-    const datePart = new Intl.DateTimeFormat('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    }).format(date)
-
-    const hours = String(date.getHours()).padStart(2, '0')
-    const minutes = String(date.getMinutes()).padStart(2, '0')
-
-    return `Feito em ${datePart}, às ${hours}h${minutes}`
+    return `Feito em ${formatDateWithTime(date.toISOString())}`
   }, [])
 
   const openBottomSheet = useEffectEvent(() => {
@@ -262,9 +245,7 @@ export function PixPaymentPage({
                 onKeyDown={clearServerError}
                 inputMode="numeric"
               />
-              <Button disabled={isPending}>
-                {isPending ? 'Gerando Pix...' : 'Continuar'}
-              </Button>
+              <Button disabled={isPending}>{isPending ? 'Gerando Pix...' : 'Continuar'}</Button>
             </form>
           </div>
         </BottomSheet>
