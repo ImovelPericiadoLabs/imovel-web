@@ -33,7 +33,7 @@ export default function TrafficLightModal({ children }: PropsWithChildren) {
             </div>
           </div>
 
-          <div className="flex gap-3 flex-col px-4 py-6">
+          <div className="flex gap-3 flex-col px-4 py-6 rounded-t-sm border-t border-box">
             <p className="text-base font-semibold leading-[130%]">O semáforo</p>
 
             <hr className="border border-box" />

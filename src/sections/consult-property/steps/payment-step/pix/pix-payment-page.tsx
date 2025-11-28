@@ -1,11 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import type { FormContextWithSteps } from '@/sections/consult-property/types'
+import Image from 'next/image'
+import { useRouter } from 'next/navigation'
+import { useState, useMemo, useEffect, useEffectEvent } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useForm, useFormContext } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Check, Clock } from 'lucide-react'
-import Image from 'next/image'
 
 import Button from '@/components/button'
 import Skeleton from '@/components/skeleton'
@@ -15,6 +17,7 @@ import LoadingOverlay from '@/components/loading-overlay'
 import PixIcon from '@/components/icons/pix-icon'
 import Alert from '@/components/alert'
 import { processPayment, getPaymentStatus } from '@/services/payments'
+import { formatMoney } from '@/utils/text'
 import { queryKey } from '@/constants/queries'
 import { validations, FormTypes } from './validations'
 
@@ -27,6 +30,7 @@ export function PixPaymentPage({
   onCancel,
   onFinish,
 }: PixPaymentPageProps) {
+  const router = useRouter()
   const [copied, setCopied] = useState(false)
 
   const [isOpenBottomSheet, setIsOpenBottomSheet] = useState(true)
@@ -75,7 +79,7 @@ export function PixPaymentPage({
     },
   })
 
-  const { data: paymentStatusData } = useQuery({
+  const { data: paymentData } = useQuery({
     queryKey: [queryKey.paymentStatus, paymentId],
     queryFn: () => getPaymentStatus(paymentId as string),
     enabled: !!paymentId,
@@ -89,15 +93,14 @@ export function PixPaymentPage({
   })
 
   useEffect(() => {
-    if (paymentStatusData?.state?.data?.status === 'CONFIRMED') {
+    if (paymentData?.state?.data?.status === 'CONFIRMED') {
       setIsOpenBottomSheet(false)
       setIsOpenConfirmPaymentBottomSheet(true)
     }
-  }, [paymentStatusData])
+  }, [paymentData])
 
   function handleCloseConfirmPaymentBottomSheet() {
-    setIsOpenConfirmPaymentBottomSheet(false)
-    if (onFinish) onFinish()
+    router.push('/pedidos')
   }
 
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
@@ -126,6 +129,29 @@ export function PixPaymentPage({
       document: formData.document,
     })
   }
+
+  const paymentTimeConfirmationMessage = useMemo(() => {
+    const date = new Date()
+
+    const datePart = new Intl.DateTimeFormat('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    }).format(date)
+
+    const hours = String(date.getHours()).padStart(2, '0')
+    const minutes = String(date.getMinutes()).padStart(2, '0')
+
+    return `Feito em ${datePart}, às ${hours}h${minutes}`
+  }, [])
+
+  const openBottomSheet = useEffectEvent(() => {
+    setIsOpenBottomSheet(true)
+  })
+
+  useEffect(() => {
+    openBottomSheet()
+  }, [])
 
   return (
     <div className="flex flex-col relative px-4 mt-6">
@@ -252,8 +278,8 @@ export function PixPaymentPage({
       >
         <div className="flex flex-col items-center gap-6 pb-12 px-4 py-8">
           <div className="relative">
-            <div className="w-24 h-24 rounded-full bg-emerald-100 flex items-center justify-center animate-[scale-in_0.4s_ease-out]">
-              <div className="w-20 h-20 rounded-full bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-200">
+            <div className="size-16 rounded-full bg-emerald-100 flex items-center justify-center animate-[scale-in_0.4s_ease-out]">
+              <div className="size-14 rounded-full bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-200">
                 <Check className="w-10 h-10 text-white stroke-3 animate-[check-draw_0.3s_ease-out_0.2s_both]" />
               </div>
             </div>
@@ -261,11 +287,16 @@ export function PixPaymentPage({
           </div>
 
           <div className="flex flex-col items-center gap-2">
-            <span className="text-2xl font-bold text-gray-800">Pagamento confirmado!</span>
-            <span className="text-gray-500 text-center">Seu Pix foi recebido com sucesso</span>
+            <span className="text-lg font-semibold leading-6 text-dark">Pagamento concluído</span>
+            <span className="text-sm font-normal leading-6 text-gray-2">
+              {paymentTimeConfirmationMessage}
+            </span>
+            <span className="text-sm font-semibold leading-6 text-dark">
+              {formatMoney(paymentData?.amount)}
+            </span>
           </div>
 
-          <Button onClick={handleCloseConfirmPaymentBottomSheet}>Continuar</Button>
+          <Button onClick={handleCloseConfirmPaymentBottomSheet}>Ir para meus pedidos</Button>
         </div>
       </BottomSheet>
 

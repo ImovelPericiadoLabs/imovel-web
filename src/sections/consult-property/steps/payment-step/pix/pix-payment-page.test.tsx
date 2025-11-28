@@ -4,6 +4,16 @@ import { useFormContext } from 'react-hook-form'
 import { useMutation } from '@tanstack/react-query'
 import { PixPaymentPage } from './pix-payment-page'
 
+// 1. Criamos o mock da função de navegação
+const mockPush = vi.fn()
+
+// 2. Mockamos o next/navigation para usar nossa função mockPush
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({
+    push: mockPush,
+  }),
+}))
+
 let mockPaymentStatusResponse: { state: { data: { status: string } } } | null = null
 
 vi.mock('@hookform/resolvers/zod', () => ({
@@ -290,25 +300,26 @@ describe('PixPaymentPage', () => {
     rerender(<PixPaymentPage onCancel={mockOnCancel} onFinish={mockOnFinish} />)
 
     await waitFor(() => {
-      expect(screen.getByText('Pagamento confirmado!')).toBeInTheDocument()
+      expect(screen.getByText('Pagamento concluído')).toBeInTheDocument()
     })
   })
 
-  it('deve chamar onFinish ao clicar em continuar no modal de sucesso', async () => {
+  // 3. Teste atualizado para verificar o redirecionamento
+  it('deve redirecionar para a página de pedidos ao clicar em continuar no modal de sucesso', async () => {
     mockPaymentStatusResponse = { state: { data: { status: 'CONFIRMED' } } }
     
     render(<PixPaymentPage onCancel={mockOnCancel} onFinish={mockOnFinish} />)
 
     await waitFor(() => {
-      expect(screen.getByText('Pagamento confirmado!')).toBeInTheDocument()
+      expect(screen.getByText('Pagamento concluído')).toBeInTheDocument()
     })
 
-    const buttons = screen.getAllByRole('button', { name: /continuar/i })
+    const buttons = screen.getAllByRole('button', { name: 'Ir para meus pedidos' })
     const successButton = buttons[buttons.length - 1]
 
     fireEvent.click(successButton)
 
-    expect(mockOnFinish).toHaveBeenCalled()
+    expect(mockPush).toHaveBeenCalledWith('/pedidos')
   })
 
   it('deve exibir loading overlay quando isPending é true', () => {
