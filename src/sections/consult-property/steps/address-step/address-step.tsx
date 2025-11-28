@@ -1,10 +1,10 @@
 'use client'
+
 import { useState } from 'react'
 import { Home, MouseOff, FileText, BellDot } from 'lucide-react'
 import { useFormContext } from 'react-hook-form'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import TextTitle from '@/components/text-title'
-import type { FormContextWithSteps } from '@/sections/consult-property/types'
 import AutoCompleteAddressInput from '@/components/auto-complete-address-input'
 import LoadingOverlay from '@/components/loading-overlay'
 import useDebounce from '@/hooks/use-debounce'
@@ -12,26 +12,14 @@ import { queryKey } from '@/constants/queries'
 import { listAddresses, listAddress, listRegistry } from '@/services/addresses'
 
 const initialHomeItems = [
-  {
-    Icon: Home,
-    text: 'Pesquisa rápida que revela tudo do imóvel.',
-  },
-  {
-    Icon: MouseOff,
-    text: 'Zero burocracia para entender riscos.',
-  },
-  {
-    Icon: FileText,
-    text: 'Relatório simples e direto ao ponto.',
-  },
-  {
-    Icon: BellDot,
-    text: 'Decisão segura com alertas inteligentes.',
-  },
+  { Icon: Home, text: 'Pesquisa rápida que revela tudo do imóvel.' },
+  { Icon: MouseOff, text: 'Zero burocracia para entender riscos.' },
+  { Icon: FileText, text: 'Relatório simples e direto ao ponto.' },
+  { Icon: BellDot, text: 'Decisão segura com alertas inteligentes.' },
 ]
 
-export function AddressStep() {
-  const { handleNextStep, setValue } = useFormContext() as FormContextWithSteps
+export function AddressStep({ onNext }: { onNext: () => void }) {
+  const { setValue } = useFormContext()
   const [address, setAddress] = useState('')
 
   const debouncedAddress = useDebounce(address, 1000)
@@ -39,22 +27,20 @@ export function AddressStep() {
   const getError = () => {
     if (debouncedAddress?.length > 0) {
       if (debouncedAddress?.length !== address?.length) return null
-
-      if (debouncedAddress?.length < 3) {
+      if (debouncedAddress.length < 3) {
         return {
-          title: 'Texto muito curso',
+          title: 'Texto muito curto',
           subtitle: 'Digite pelo menos 3 caracteres para realizar a busca.',
         }
       }
     }
-
     return null
   }
 
   const { data, isLoading, isEnabled } = useQuery({
     queryKey: [queryKey.getAddresses, debouncedAddress],
     queryFn: () => listAddresses(debouncedAddress),
-    enabled: !getError() && debouncedAddress?.length === address?.length && address?.length >= 3,
+    enabled: !getError() && debouncedAddress === address && address.length >= 3,
     refetchOnWindowFocus: false,
   })
 
@@ -71,13 +57,7 @@ export function AddressStep() {
 
   async function handleSelectAddress(placeId: string) {
     setValue('placeId', placeId)
-
-    const result = await listAddressMutate({
-      address,
-      placeId,
-    })
-
-    return result
+    return await listAddressMutate({ address, placeId })
   }
 
   function handleChangeAddress(e: React.ChangeEvent<HTMLInputElement>) {
@@ -87,7 +67,7 @@ export function AddressStep() {
   async function handleSubmit(value: string) {
     setValue('address', value)
     await listRegistryMutate(value)
-    handleNextStep()
+    onNext()
   }
 
   function handleClearAddress() {
@@ -116,13 +96,16 @@ export function AddressStep() {
           {initialHomeItems.map(({ Icon, text }) => (
             <div className="flex items-center gap-4" key={text}>
               <Icon className="size-6 text-primary" />
-              <p className="text-xs font-normal leading-[130%]">{text}</p>
+              <p className="text-xs">{text}</p>
             </div>
           ))}
         </div>
       )}
 
-      <LoadingOverlay isLoading={isLoadingListRegistry} message="Buscando dados do cartório" />
+      <LoadingOverlay
+        isLoading={isLoadingListRegistry}
+        message="Buscando dados do cartório"
+      />
     </div>
   )
 }

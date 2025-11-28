@@ -1,4 +1,5 @@
 'use client'
+
 import { useFormContext } from 'react-hook-form'
 import { QrCode, CreditCard, Barcode, DollarSign, LucideIcon } from 'lucide-react'
 import TextTitle from '@/components/text-title'
@@ -15,38 +16,25 @@ interface PaymentOption {
 }
 
 const PAYMENT_OPTIONS: PaymentOption[] = [
-  {
-    id: 'pix',
-    title: 'Pix',
-    subtitle: 'Aprovação imediata',
-    icon: QrCode,
-  },
-  {
-    id: 'credit_card',
-    title: 'Cartão de Crédito',
-    subtitle: 'Em até 12x',
-    icon: CreditCard,
-  },
-  {
-    id: 'debit_card',
-    title: 'Cartão de Débito',
-    subtitle: 'Transferência instantânea',
-    icon: CreditCard,
-  },
-  {
-    id: 'boleto',
-    title: 'Boleto',
-    subtitle: 'Vencimento em 3 dias úteis',
-    icon: Barcode,
-  },
+  { id: 'pix', title: 'Pix', subtitle: 'Aprovação imediata', icon: QrCode },
+  { id: 'credit_card', title: 'Cartão de Crédito', subtitle: 'Em até 12x', icon: CreditCard },
+  { id: 'debit_card', title: 'Cartão de Débito', subtitle: 'Transferência instantânea', icon: CreditCard },
+  { id: 'boleto', title: 'Boleto', subtitle: 'Vencimento em 3 dias úteis', icon: Barcode },
 ]
 
-interface PaymentStepProps {
+export function PaymentStep({
+  currentBalance = 240.0,
+  onPix,
+  onCredit,
+  onDebit,
+  onBoleto,
+}: {
   currentBalance?: number
-  onNextStep: () => void
-}
-
-export function PaymentStep({ currentBalance = 240.0, onNextStep }: PaymentStepProps) {
+  onPix: () => void
+  onCredit: () => void
+  onDebit: () => void
+  onBoleto: () => void
+}) {
   const { setValue, watch } = useFormContext()
   const useBalance = watch('useBalance')
 
@@ -58,7 +46,10 @@ export function PaymentStep({ currentBalance = 240.0, onNextStep }: PaymentStepP
   function handleSelectMethod(value: PaymentMethodType) {
     setValue('paymentMethod', value, { shouldValidate: true })
 
-    onNextStep()
+    if (value === 'pix') return onPix()
+    if (value === 'credit_card') return onCredit()
+    if (value === 'debit_card') return onDebit()
+    if (value === 'boleto') return onBoleto()
   }
 
   function toggleBalance(checked: boolean) {

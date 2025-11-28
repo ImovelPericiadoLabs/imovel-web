@@ -1,13 +1,10 @@
+import { render, screen, fireEvent, waitFor, act, cleanup } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest'
-import { render, screen, fireEvent, waitFor, cleanup, act } from '@testing-library/react'
+import { useFormContext } from 'react-hook-form'
+import { useMutation } from '@tanstack/react-query'
 import { PixPaymentPage } from './pix-payment-page'
-import type { ReactNode, ChangeEvent } from 'react'
 
 const mockPush = vi.fn()
-const mockMutateAsync = vi.fn()
-const mockUseMutation = vi.fn()
-const mockSetStep = vi.fn()
-const mockWriteText = vi.fn()
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({
@@ -15,63 +12,33 @@ vi.mock('next/navigation', () => ({
   }),
 }))
 
-vi.mock('react-hook-form', () => ({
-  useForm: () => ({
-    register: vi.fn(),
-    handleSubmit: (fn: (data: unknown) => void) => (e?: { preventDefault: () => void }) => {
-      e?.preventDefault()
-      fn({
-        name: 'John Doe',
-        document: '123.456.789-00',
-        email: 'john@example.com',
-        whatsapp: '11999999999',
-      })
-    },
-    formState: { errors: {} },
-  }),
-  useFormContext: () => ({
-    getValues: () => ({
-      placeId: 'place-123',
-      document: { id: 'doc-123' },
-    }),
-    setStep: mockSetStep,
-  }),
-}))
+let mockPaymentStatusResponse: { state: { data: { status: string } } } | null = null
 
 vi.mock('@hookform/resolvers/zod', () => ({
-  zodResolver: () => async (data: unknown) => ({
-    values: data,
+  zodResolver: () => async (values: any) => ({
+    values,
     errors: {},
   }),
 }))
 
-vi.mock('./validations', () => ({
-  validations: {},
-  FormTypes: {},
-}))
-
-let mockPaymentStatusResponse: { state: { data: { status: string } } } | null = null
-
-type PaymentData = {
-  state: {
-    data: {
-      status: string
-    }
+vi.mock('react-hook-form', async () => {
+  const actual = await vi.importActual('react-hook-form')
+  return {
+    ...actual,
+    useFormContext: vi.fn(),
   }
-} | null
+})
 
 interface UseQueryOptions {
   enabled?: boolean
-  refetchInterval?: number | false | ((data: PaymentData) => number | false)
+  refetchInterval?: number | false | ((data: any) => number | false)
   [key: string]: unknown
 }
 
 vi.mock('@tanstack/react-query', async () => {
   const React = await import('react')
-
   return {
-    useMutation: (args: unknown) => mockUseMutation(args),
-
+    useMutation: vi.fn(),
     useQuery: (options: UseQueryOptions) => {
       const data = mockPaymentStatusResponse
 
@@ -89,74 +56,71 @@ vi.mock('@tanstack/react-query', async () => {
   }
 })
 
-vi.mock('next/image', () => ({
-  __esModule: true,
-  default: (props: React.ImgHTMLAttributes<HTMLImageElement>) => (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img {...props} alt={props.alt} />
+vi.mock('@/components/bottom-sheet', () => ({
+  default: ({ isOpen, onClose, children }: { isOpen: boolean; onClose: () => void; children: React.ReactNode }) => (
+    isOpen ? (
+      <div data-testid="bottom-sheet">
+        <button onClick={onClose} data-testid="close-bottom-sheet">Close Sheet</button>
+        {children}
+      </div>
+    ) : null
+  ),
+}))
+
+vi.mock('@/components/input', () => ({
+  default: ({ label, onKeyDown, ...props }: any) => (
+    <div>
+      <label>{label}</label>
+      <input data-testid={`input-${props.name}`} onKeyDown={onKeyDown} {...props} />
+      {props.errors && props.errors[props.name] && <span>{props.errors[props.name].message}</span>}
+    </div>
   ),
 }))
 
 vi.mock('@/components/button', () => ({
-  __esModule: true,
-  default: ({ children, onClick, ...props }: { children: ReactNode; onClick?: () => void }) => (
-    <button onClick={onClick} {...props}>
-      {children}
-    </button>
+  default: ({ children, onClick, ...props }: any) => (
+    <button onClick={onClick} {...props}>{children}</button>
   ),
 }))
 
+vi.mock('@/components/loading-overlay', () => ({
+  default: ({ isLoading, message }: any) => (
+    isLoading ? <div data-testid="loading-overlay">{message}</div> : null
+  ),
+}))
+
+vi.mock('@/components/alert', () => ({
+  default: ({ message }: any) => <div data-testid="alert-error" role="alert">{message}</div>,
+}))
+
+vi.mock('next/image', () => ({
+  default: (props: any) => <img {...props} alt={props.alt} />,
+}))
+
 vi.mock('@/components/skeleton', () => ({
-  __esModule: true,
   default: ({ className }: { className: string }) => (
     <div data-testid="skeleton" className={className} />
   ),
 }))
 
-interface InputProps {
-  label: string
-  name: string
-  onChange: (e: ChangeEvent<HTMLInputElement>) => void
-}
-
-vi.mock('@/components/input', () => ({
-  __esModule: true,
-  default: ({ label, name, onChange, ...props }: InputProps) => (
-    <label>
-      {label}
-      <input name={name} onChange={onChange} {...props} />
-    </label>
-  ),
+vi.mock('@/components/icons/pix-icon', () => ({ default: () => <svg /> }))
+vi.mock('lucide-react', () => ({
+  Check: () => <svg />,
+  Clock: () => <svg />,
 }))
 
-interface BottomSheetProps {
-  children: ReactNode
-  isOpen: boolean
-  onClose: () => void
-}
-
-vi.mock('@/components/bottom-sheet', () => ({
-  __esModule: true,
-  default: ({ children, isOpen, onClose }: BottomSheetProps) =>
-    isOpen ? (
-      <div data-testid="bottom-sheet">
-        <button onClick={onClose}>Close Sheet</button>
-        {children}
-      </div>
-    ) : null,
-}))
-
-vi.mock('@/components/loading-overlay', () => ({
-  __esModule: true,
-  default: ({ isLoading }: { isLoading: boolean }) => (isLoading ? <div>Carregando...</div> : null),
-}))
-
-vi.mock('@/components/alert', () => ({
-  __esModule: true,
-  default: ({ message }: { message: string }) => <div role="alert">{message}</div>,
+vi.mock('@/services/payments', () => ({
+  processPayment: vi.fn(),
+  getPaymentStatus: vi.fn(),
 }))
 
 describe('PixPaymentPage', () => {
+  const mockOnCancel = vi.fn()
+  const mockOnFinish = vi.fn()
+  const mockMutateAsync = vi.fn()
+  const mockGetValues = vi.fn()
+  const mockWriteText = vi.fn()
+
   beforeEach(() => {
     vi.clearAllMocks()
     mockPaymentStatusResponse = null
@@ -166,110 +130,162 @@ describe('PixPaymentPage', () => {
         writeText: mockWriteText,
       },
     })
-    mockWriteText.mockClear()
 
-    mockUseMutation.mockImplementation((options: { onSuccess?: (data: unknown) => void }) => ({
-      mutateAsync: async (variables: unknown) => {
-        await mockMutateAsync(variables)
-        const result = { id: 'payment-123', payload: 'qr-code-payload-mock' }
-        if (options?.onSuccess) {
-          options.onSuccess(result)
-        }
-        return result
-      },
-      data: { payload: 'qr-code-payload-mock' },
-      isPending: false,
-    }))
+      ; (useFormContext as Mock).mockReturnValue({
+        getValues: mockGetValues.mockReturnValue({
+          placeId: 'place-123',
+          document: { id: 'doc-123' },
+        }),
+      })
+
+      ; (useMutation as Mock).mockReturnValue({
+        mutateAsync: mockMutateAsync,
+        data: null,
+        isPending: false,
+      })
   })
 
   afterEach(() => {
     cleanup()
   })
 
-  it('should render QR Code when data is available', () => {
-    render(<PixPaymentPage />)
+  it('deve renderizar o BottomSheet com o formulário inicialmente', () => {
+    render(<PixPaymentPage onCancel={mockOnCancel} onFinish={mockOnFinish} />)
 
-    const qrImg = screen.getByAltText(/QR Code para pagamento Pix/i)
-    expect(qrImg).toBeInTheDocument()
-    expect(qrImg.getAttribute('src')).toContain('qr-code-payload-mock')
-  })
-
-  it('should copy PIX code when clicking the button', async () => {
-    render(<PixPaymentPage />)
-
-    const button = screen.getByRole('button', { name: /copiar código pix/i })
-    fireEvent.click(button)
-
-    expect(mockWriteText).toHaveBeenCalledWith('qr-code-payload-mock')
-
-    await waitFor(() => {
-      expect(screen.getByText(/copiado/i)).toBeInTheDocument()
-    })
-  })
-
-  it('should handle clipboard error and call console.error', async () => {
-    mockWriteText.mockRejectedValue(new Error('Erro'))
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
-
-    render(<PixPaymentPage />)
-
-    const button = screen.getByRole('button', { name: /copiar código pix/i })
-    fireEvent.click(button)
-
-    await waitFor(() => {
-      expect(consoleSpy).toHaveBeenCalled()
-    })
-  })
-
-  it('should submit form with correct data and close bottom sheet', async () => {
-    render(<PixPaymentPage />)
-
+    expect(screen.getByTestId('bottom-sheet')).toBeInTheDocument()
     expect(screen.getByText('Dados do PIX')).toBeInTheDocument()
+    expect(screen.getByTestId('input-name')).toBeInTheDocument()
+  })
 
-    const submitButton = screen.getByRole('button', { name: /continuar/i })
+  it('deve fechar o BottomSheet ao clicar no botão de fechar (onClose)', () => {
+    render(<PixPaymentPage onCancel={mockOnCancel} onFinish={mockOnFinish} />)
+
+    fireEvent.click(screen.getByTestId('close-bottom-sheet'))
+    expect(mockOnCancel).toHaveBeenCalled()
+  })
+
+  it('deve submeter o formulário e chamar a mutação com os dados corretos', async () => {
+    mockMutateAsync.mockResolvedValue({ id: 'pay-1', payload: 'pix-code-123' })
+
+      ; (useMutation as Mock).mockImplementation(() => ({
+        mutateAsync: mockMutateAsync,
+        data: null,
+        isPending: false,
+      }))
+
+    render(<PixPaymentPage onCancel={mockOnCancel} onFinish={mockOnFinish} />)
+
+    const validCPF = '572.686.040-07'
+
+    fireEvent.change(screen.getByTestId('input-name'), { target: { value: 'João Silva' } })
+    fireEvent.change(screen.getByTestId('input-document'), { target: { value: validCPF } })
+    fireEvent.change(screen.getByTestId('input-email'), { target: { value: 'joao@test.com' } })
+    fireEvent.change(screen.getByTestId('input-whatsapp'), { target: { value: '(11) 99999-9999' } })
 
     await act(async () => {
-      fireEvent.click(submitButton)
+      fireEvent.click(screen.getByText('Continuar'))
     })
 
     expect(mockMutateAsync).toHaveBeenCalledWith({
       place_id: 'place-123',
       document_id: 'doc-123',
-      name: 'John Doe',
-      document: '123.456.789-00',
+      name: 'João Silva',
+      document: validCPF,
     })
-
-    expect(screen.getByText(/Este código expira em 30 minutos/i)).toBeInTheDocument()
   })
 
-  it('should display error alert when mutation fails', async () => {
-    vi.spyOn(console, 'error').mockImplementation(() => {})
+  it('deve processar onSuccess corretamente (fechar sheet e mostrar QR Code)', async () => {
+    let onSuccessCallback: (data: any) => void = () => { }
 
-    mockUseMutation.mockImplementationOnce((options: { onError?: () => void }) => ({
-      mutateAsync: async () => {
-        if (options?.onError) options.onError()
-      },
-      data: null,
+      ; (useMutation as Mock).mockImplementation((options) => {
+        if (options.onSuccess) onSuccessCallback = options.onSuccess
+        return {
+          mutateAsync: mockMutateAsync,
+          data: { payload: 'pix-payload-mock' },
+          isPending: false,
+        }
+      })
+
+    render(<PixPaymentPage onCancel={mockOnCancel} onFinish={mockOnFinish} />)
+
+    act(() => {
+      onSuccessCallback({ id: 'payment-123' })
+    })
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('input-name')).not.toBeInTheDocument()
+    })
+
+    expect(screen.getByText(/Este código expira em 30 minutos/)).toBeInTheDocument()
+    expect(screen.getByText('pix-payload-mock')).toBeInTheDocument()
+  })
+
+  it('deve exibir erro do servidor quando a mutação falha', async () => {
+    let onErrorCallback: () => void = () => { }
+
+      ; (useMutation as Mock).mockImplementation((options) => {
+        if (options.onError) onErrorCallback = options.onError
+        return {
+          mutateAsync: mockMutateAsync,
+          data: null,
+          isPending: false,
+        }
+      })
+
+    render(<PixPaymentPage onCancel={mockOnCancel} onFinish={mockOnFinish} />)
+
+    act(() => {
+      onErrorCallback()
+    })
+
+    await waitFor(() => {
+      expect(screen.getByTestId('alert-error')).toHaveTextContent(
+        'Houve um erro ao processar o pagamento via PIX. Por favor, tente novamente.'
+      )
+    })
+  })
+
+  it('deve copiar o código PIX com sucesso', async () => {
+    ; (useMutation as Mock).mockReturnValue({
+      mutateAsync: mockMutateAsync,
+      data: { payload: 'codigo-copiavel' },
       isPending: false,
-    }))
-
-    render(<PixPaymentPage />)
-
-    const submitButton = screen.getByRole('button', { name: /continuar/i })
-
-    await act(async () => {
-      fireEvent.click(submitButton)
     })
 
-    expect(screen.getByRole('alert')).toHaveTextContent(
-      'Houve um erro ao processar o pagamento via PIX',
-    )
+    render(<PixPaymentPage onCancel={mockOnCancel} onFinish={mockOnFinish} />)
+
+    const copyButton = screen.getByText('Copiar código pix').closest('button')!
+    fireEvent.click(copyButton)
+
+    expect(mockWriteText).toHaveBeenCalledWith('codigo-copiavel')
+
+    await waitFor(() => {
+      expect(screen.getByText('Copiado!')).toBeInTheDocument()
+    })
   })
 
-  it('should show success modal when payment status is CONFIRMED', async () => {
-    const { rerender } = render(<PixPaymentPage />)
+  it('deve tratar erro ao copiar código PIX', async () => {
+    ; (useMutation as Mock).mockReturnValue({
+      mutateAsync: mockMutateAsync,
+      data: { payload: 'codigo-erro' },
+      isPending: false,
+    })
 
-    expect(screen.getByText('Aguardando o pagamento')).toBeInTheDocument()
+    mockWriteText.mockRejectedValueOnce(new Error('Clipboard error'))
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => { })
+
+    render(<PixPaymentPage onCancel={mockOnCancel} onFinish={mockOnFinish} />)
+
+    const copyButton = screen.getByText('Copiar código pix').closest('button')!
+    fireEvent.click(copyButton)
+
+    await waitFor(() => {
+      expect(consoleSpy).toHaveBeenCalledWith('Falha ao copiar código pix:', expect.any(Error))
+    })
+  })
+
+  it('deve mostrar modal de sucesso quando o status do pagamento for CONFIRMED', async () => {
+    const { rerender } = render(<PixPaymentPage onCancel={mockOnCancel} onFinish={mockOnFinish} />)
 
     mockPaymentStatusResponse = {
       state: {
@@ -279,16 +295,17 @@ describe('PixPaymentPage', () => {
       },
     }
 
-    rerender(<PixPaymentPage />)
+    rerender(<PixPaymentPage onCancel={mockOnCancel} onFinish={mockOnFinish} />)
 
     await waitFor(() => {
       expect(screen.getByText('Pagamento concluído')).toBeInTheDocument()
     })
   })
 
-  it('should redirect to pedidos page when clicking continue on success modal', async () => {
+  it('deve redirecionar para a página de pedidos ao clicar em continuar no modal de sucesso', async () => {
     mockPaymentStatusResponse = { state: { data: { status: 'CONFIRMED' } } }
-    render(<PixPaymentPage />)
+
+    render(<PixPaymentPage onCancel={mockOnCancel} onFinish={mockOnFinish} />)
 
     await waitFor(() => {
       expect(screen.getByText('Pagamento concluído')).toBeInTheDocument()
@@ -302,12 +319,15 @@ describe('PixPaymentPage', () => {
     expect(mockPush).toHaveBeenCalledWith('/pedidos')
   })
 
-  it('should call setStep(5) when closing the initial bottom sheet', () => {
-    render(<PixPaymentPage />)
+  it('deve exibir loading overlay quando isPending é true', () => {
+    ; (useMutation as Mock).mockReturnValue({
+      mutateAsync: mockMutateAsync,
+      data: null,
+      isPending: true,
+    })
 
-    const closeButton = screen.getByText('Close Sheet')
-    fireEvent.click(closeButton)
+    render(<PixPaymentPage onCancel={mockOnCancel} onFinish={mockOnFinish} />)
 
-    expect(mockSetStep).toHaveBeenCalledWith(5)
+    expect(screen.getByTestId('loading-overlay')).toBeInTheDocument()
   })
 })

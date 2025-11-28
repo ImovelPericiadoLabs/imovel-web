@@ -5,12 +5,11 @@ import { listAddresses, listRegistry, listAddress } from '@/services/addresses'
 import type { Registry } from '@/services/addresses'
 
 const setValueMock = vi.fn()
-const handleNextStepMock = vi.fn()
+const onNextMock = vi.fn()
 
 vi.mock('react-hook-form', () => ({
   useFormContext: () => ({
     setValue: setValueMock,
-    handleNextStep: handleNextStepMock,
   }),
 }))
 
@@ -101,7 +100,7 @@ const listAddressMock = listAddress as unknown as ReturnType<typeof vi.fn>
 
 beforeEach(() => {
   setValueMock.mockReset()
-  handleNextStepMock.mockReset()
+  onNextMock.mockReset()
   listAddressesMock.mockReset()
   listRegistryMock.mockReset()
   listAddressMock.mockReset()
@@ -121,7 +120,7 @@ describe('AddressStep', () => {
 
     useMutationMock.mockReturnValue({ mutateAsync: vi.fn(), isPending: false })
 
-    render(<AddressStep />)
+    render(<AddressStep onNext={onNextMock} />)
 
     const input = screen.getByTestId('address-input')
 
@@ -140,7 +139,7 @@ describe('AddressStep', () => {
 
     useMutationMock.mockReturnValue({ mutateAsync: vi.fn(), isPending: false })
 
-    render(<AddressStep />)
+    render(<AddressStep onNext={onNextMock} />)
 
     const input = screen.getByTestId('address-input')
 
@@ -155,7 +154,7 @@ describe('AddressStep', () => {
 
     debounceMock.mockReturnValue('AB')
 
-    render(<AddressStep />)
+    render(<AddressStep onNext={onNextMock} />)
 
     const input = screen.getByTestId('address-input')
 
@@ -173,7 +172,7 @@ describe('AddressStep', () => {
 
     useMutationMock.mockReturnValue({ mutateAsync: vi.fn(), isPending: false })
 
-    render(<AddressStep />)
+    render(<AddressStep onNext={onNextMock} />)
 
     expect(screen.getAllByText(/Pesquisa rápida/).length).toBe(1)
   })
@@ -187,13 +186,13 @@ describe('AddressStep', () => {
 
     useMutationMock.mockReturnValue({ mutateAsync: vi.fn(), isPending: false })
 
-    render(<AddressStep />)
+    render(<AddressStep onNext={onNextMock} />)
 
     const input = screen.getByTestId('address-input')
 
     fireEvent.change(input, { target: { value: 'Ru' } })
 
-    expect(screen.getByTestId('error')).toHaveTextContent('Texto muito curso')
+    expect(screen.getByTestId('error')).toHaveTextContent('Texto muito curto')
   })
 
   it('should call listAddress when selecting address', async () => {
@@ -210,7 +209,7 @@ describe('AddressStep', () => {
       isPending: false,
     })
 
-    render(<AddressStep />)
+    render(<AddressStep onNext={onNextMock} />)
 
     fireEvent.click(screen.getByTestId('select-address'))
 
@@ -253,14 +252,14 @@ describe('AddressStep', () => {
       return { mutateAsync: vi.fn(), isPending: false }
     })
 
-    render(<AddressStep />)
+    render(<AddressStep onNext={onNextMock} />)
 
     fireEvent.click(screen.getByTestId('confirm-button'))
 
     await waitFor(() => {
       expect(setValueMock).toHaveBeenCalledWith('address', 'mockAddress')
       expect(setValueMock).toHaveBeenCalledWith('registry', registryMock)
-      expect(handleNextStepMock).toHaveBeenCalledTimes(1)
+      expect(onNextMock).toHaveBeenCalledTimes(1)
     })
   })
 
@@ -273,7 +272,7 @@ describe('AddressStep', () => {
 
     useMutationMock.mockReturnValue({ mutateAsync: vi.fn(), isPending: false })
 
-    render(<AddressStep />)
+    render(<AddressStep onNext={onNextMock} />)
 
     expect(screen.getByTestId('loading')).toBeInTheDocument()
   })
@@ -287,7 +286,7 @@ describe('AddressStep', () => {
 
     useMutationMock.mockReturnValue({ mutateAsync: vi.fn(), isPending: true })
 
-    render(<AddressStep />)
+    render(<AddressStep onNext={onNextMock} />)
 
     expect(screen.getByTestId('loading-overlay')).toBeInTheDocument()
   })
@@ -301,7 +300,7 @@ describe('AddressStep', () => {
 
     useMutationMock.mockReturnValue({ mutateAsync: vi.fn(), isPending: false })
 
-    render(<AddressStep />)
+    render(<AddressStep onNext={onNextMock} />)
 
     const input = screen.getByTestId('address-input')
 

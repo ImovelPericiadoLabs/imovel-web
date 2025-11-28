@@ -2,17 +2,34 @@
 
 import { useFormContext } from 'react-hook-form'
 import { PixPaymentPage } from '@/sections/consult-property/steps/payment-step/pix'
+import { SavedCardsPage } from '@/sections/consult-property/steps/payment-step/card/select'
 
-export function PaymentConfirmationStep() {
-  const { watch } = useFormContext()
+export function PaymentConfirmationStep({
+    onFinish,
+    onBackToMethods,
+    onAddNewCard,
+    onSelectCard,
+}: {
+    onFinish: () => void
+    onBackToMethods: () => void
+    onAddNewCard: () => void
+    onSelectCard: () => void
+}) {
+    const { watch } = useFormContext()
+    const paymentMethod = watch('paymentMethod')
 
-  const paymentMethod = watch('paymentMethod')
+    if (paymentMethod === 'pix') {
+        return <PixPaymentPage onCancel={onBackToMethods} onFinish={onFinish} />
+    }
 
-  switch (paymentMethod) {
-    case 'pix':
-      return <PixPaymentPage />
+    if (paymentMethod === 'credit_card') {
+        return (
+            <SavedCardsPage
+                onAddNewCard={onAddNewCard}
+                onConfirmCard={onSelectCard}
+            />
+        )
+    }
 
-    default:
-      return null
-  }
+    return null
 }

@@ -1,5 +1,5 @@
 'use client'
-import type { FormContextWithSteps } from '@/sections/consult-property/types'
+
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useState, useMemo, useEffect, useEffectEvent } from 'react'
@@ -17,17 +17,23 @@ import Alert from '@/components/alert'
 import { processPayment, getPaymentStatus } from '@/services/payments'
 import { formatMoney } from '@/utils/text'
 import { queryKey } from '@/constants/queries'
+import { formatDateWithTime } from '@/utils/date'
 import { validations, FormTypes } from './validations'
 
-export function PixPaymentPage() {
+interface PixPaymentPageProps {
+  onCancel: () => void
+  onFinish: () => void
+}
+
+export function PixPaymentPage({ onCancel, onFinish }: PixPaymentPageProps) {
+  const router = useRouter()
   const [copied, setCopied] = useState(false)
+
   const [isOpenBottomSheet, setIsOpenBottomSheet] = useState(true)
   const [expirationTime, setExpirationTime] = useState('')
   const [serverError, setServerError] = useState('')
   const [paymentId, setPaymentId] = useState<string | null>(null)
-  const [isOpenConffirmPaymentBottomSheet, setIsOpenConfirmPaymentBottomSheet] = useState(false)
-
-  const { push } = useRouter()
+  const [isOpenConfirmPaymentBottomSheet, setIsOpenConfirmPaymentBottomSheet] = useState(false)
 
   const {
     handleSubmit,
@@ -37,7 +43,7 @@ export function PixPaymentPage() {
     resolver: zodResolver(validations),
   })
 
-  const { getValues, setStep } = useFormContext() as FormContextWithSteps
+  const { getValues } = useFormContext()
 
   function clearServerError() {
     setServerError('')
@@ -45,19 +51,21 @@ export function PixPaymentPage() {
 
   function handleCloseBottomSheet() {
     setIsOpenBottomSheet(false)
+
+    if (!paymentId && onCancel) {
+      onCancel()
+    }
   }
 
   const { mutateAsync, data, isPending } = useMutation({
     mutationFn: processPayment,
     onSuccess(payment) {
       setPaymentId(payment?.id)
-      handleCloseBottomSheet()
+      setIsOpenBottomSheet(false)
 
       const expiresAt = new Date(Date.now() + 30 * 60 * 1000)
-
       const hours = String(expiresAt.getHours()).padStart(2, '0')
       const minutes = String(expiresAt.getMinutes()).padStart(2, '0')
-
       const formatted = `${hours}:${minutes}`
 
       setExpirationTime(formatted)
@@ -71,26 +79,22 @@ export function PixPaymentPage() {
     queryKey: [queryKey.paymentStatus, paymentId],
     queryFn: () => getPaymentStatus(paymentId as string),
     enabled: !!paymentId,
-    refetchInterval: (data) => {
-      if (!data) return 5000
-
-      if (data?.state?.data?.status === 'CONFIRMED') {
+    refetchInterval: (queryData) => {
+      if (queryData?.state?.data?.status === 'CONFIRMED') {
         setIsOpenConfirmPaymentBottomSheet(true)
         return false
       }
-
       return 5000
     },
-
     refetchIntervalInBackground: false,
   })
 
   function handleCloseConfirmPaymentBottomSheet() {
-    push('/pedidos')
+    router.push('/pedidos')
   }
 
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
-    data?.payload,
+    data?.payload || '',
   )}&margin=0`
 
   const amount = '67,56'
@@ -119,16 +123,7 @@ export function PixPaymentPage() {
   const paymentTimeConfirmationMessage = useMemo(() => {
     const date = new Date()
 
-    const datePart = new Intl.DateTimeFormat('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    }).format(date)
-
-    const hours = String(date.getHours()).padStart(2, '0')
-    const minutes = String(date.getMinutes()).padStart(2, '0')
-
-    return `Feito em ${datePart}, às ${hours}h${minutes}`
+    return `Feito em ${formatDateWithTime(date.toISOString())}`
   }, [])
 
   const openBottomSheet = useEffectEvent(() => {
@@ -140,7 +135,7 @@ export function PixPaymentPage() {
   }, [])
 
   return (
-    <div className="flex flex-col relative px-4">
+    <div className="flex flex-col relative px-4 mt-6">
       <div className="mb-6 -mt-20 text-white px-1 text-left relative z-50">
         <p className="text-[17px] leading-snug font-normal">
           Pague <span className="font-bold">R$ {amount}</span> via Pix para garantir <br />
@@ -203,59 +198,61 @@ export function PixPaymentPage() {
         </div>
       </div>
 
-      <BottomSheet isOpen={isOpenBottomSheet} onClose={() => setStep(5)}>
-        <div className="p-4 pb-12 max-h-[70vh] overflow-y-auto flex flex-col gap-3">
-          <div className="flex flex-row gap-3 items-center">
-            <div className="rounded-full bg-violet-50 size-14 flex items-center justify-center">
-              <div className="rounded-full size-10 bg-violet-100 flex items-center justify-center">
-                <PixIcon className="size-7 text-primary" />
+      {!isOpenConfirmPaymentBottomSheet && (
+        <BottomSheet isOpen={isOpenBottomSheet} onClose={handleCloseBottomSheet}>
+          <div className="p-4 pb-12 max-h-[70vh] overflow-y-auto flex flex-col gap-3">
+            <div className="flex flex-row gap-3 items-center">
+              <div className="rounded-full bg-violet-50 size-14 flex items-center justify-center">
+                <div className="rounded-full size-10 bg-violet-100 flex items-center justify-center">
+                  <PixIcon className="size-7 text-primary" />
+                </div>
               </div>
+
+              <p className="text-lg font-semibold leading-6 text-dark">Dados do PIX</p>
             </div>
 
-            <p className="text-lg font-semibold leading-6 text-dark">Dados do PIX</p>
+            <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
+              {!!serverError?.length && <Alert variant="error" message={serverError} />}
+              <Input
+                {...register('name')}
+                errors={errors}
+                label="Nome do titular"
+                placeholder="Ex: Roberto Silva"
+                onKeyDown={clearServerError}
+              />
+              <Input
+                {...register('document')}
+                errors={errors}
+                label="CPF"
+                placeholder="000.000.000-00"
+                mask="cpf"
+                onKeyDown={clearServerError}
+                inputMode="numeric"
+              />
+              <Input
+                {...register('email')}
+                errors={errors}
+                label="E-mail"
+                placeholder="email@email.com"
+                onKeyDown={clearServerError}
+              />
+              <Input
+                {...register('whatsapp')}
+                errors={errors}
+                label="WhatsApp"
+                placeholder="99 99999-9999"
+                mask="whatsapp"
+                onKeyDown={clearServerError}
+                inputMode="numeric"
+              />
+              <Button disabled={isPending}>{isPending ? 'Gerando Pix...' : 'Continuar'}</Button>
+            </form>
           </div>
-
-          <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-            {!!serverError?.length && <Alert variant="error" message={serverError} />}
-            <Input
-              {...register('name')}
-              errors={errors}
-              label="Nome do titular"
-              placeholder="Ex: Roberto Silva"
-              onKeyDown={clearServerError}
-            />
-            <Input
-              {...register('document')}
-              errors={errors}
-              label="CPF"
-              placeholder="000.000.000-00"
-              mask="cpf"
-              onKeyDown={clearServerError}
-              inputMode="numeric"
-            />
-            <Input
-              {...register('email')}
-              errors={errors}
-              label="E-mail"
-              placeholder="email@email.com"
-              onKeyDown={clearServerError}
-            />
-            <Input
-              {...register('whatsapp')}
-              errors={errors}
-              label="WhatsApp"
-              placeholder="99 99999-9999"
-              mask="whatsapp"
-              onKeyDown={clearServerError}
-              inputMode="numeric"
-            />
-            <Button>Continuar</Button>
-          </form>
-        </div>
-      </BottomSheet>
+        </BottomSheet>
+      )}
 
       <BottomSheet
-        isOpen={isOpenConffirmPaymentBottomSheet}
+        isOpen={isOpenConfirmPaymentBottomSheet}
         onClose={handleCloseConfirmPaymentBottomSheet}
       >
         <div className="flex flex-col items-center gap-6 pb-12 px-4 py-8">
