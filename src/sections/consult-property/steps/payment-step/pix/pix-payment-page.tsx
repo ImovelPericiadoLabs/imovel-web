@@ -92,13 +92,6 @@ export function PixPaymentPage({
     refetchIntervalInBackground: false,
   })
 
-  useEffect(() => {
-    if (paymentData?.state?.data?.status === 'CONFIRMED') {
-      setIsOpenBottomSheet(false)
-      setIsOpenConfirmPaymentBottomSheet(true)
-    }
-  }, [paymentData])
-
   function handleCloseConfirmPaymentBottomSheet() {
     router.push('/pedidos')
   }
