@@ -4,12 +4,8 @@ import { useFormContext } from 'react-hook-form'
 import { useMutation } from '@tanstack/react-query'
 import { PixPaymentPage } from './pix-payment-page'
 
-// --- Variáveis de Controle para os Mocks ---
 let mockPaymentStatusResponse: { state: { data: { status: string } } } | null = null
 
-// --- Mocks Globais ---
-
-// 1. Mock do Resolver do Zod
 vi.mock('@hookform/resolvers/zod', () => ({
   zodResolver: () => async (values: any) => ({
     values,
@@ -17,7 +13,6 @@ vi.mock('@hookform/resolvers/zod', () => ({
   }),
 }))
 
-// 2. Mock do React Hook Form
 vi.mock('react-hook-form', async () => {
   const actual = await vi.importActual('react-hook-form')
   return {
@@ -26,8 +21,6 @@ vi.mock('react-hook-form', async () => {
   }
 })
 
-// 3. Mock do React Query (Versão da DEV com suporte a polling)
-// Precisamos desse mock complexo para testar o intervalo de atualização do status
 interface UseQueryOptions {
   enabled?: boolean
   refetchInterval?: number | false | ((data: any) => number | false)
@@ -55,7 +48,6 @@ vi.mock('@tanstack/react-query', async () => {
   }
 })
 
-// 4. Mocks de Componentes de UI (Baseado na HEAD com data-testids)
 vi.mock('@/components/bottom-sheet', () => ({
   default: ({ isOpen, onClose, children }: { isOpen: boolean; onClose: () => void; children: React.ReactNode }) => (
     isOpen ? (
@@ -125,14 +117,12 @@ describe('PixPaymentPage', () => {
     vi.clearAllMocks()
     mockPaymentStatusResponse = null
 
-    // Mock do Clipboard
     Object.assign(navigator, {
       clipboard: {
         writeText: mockWriteText,
       },
     })
 
-    // Configuração padrão do useFormContext
     ;(useFormContext as Mock).mockReturnValue({
       getValues: mockGetValues.mockReturnValue({
         placeId: 'place-123',
@@ -140,7 +130,6 @@ describe('PixPaymentPage', () => {
       }),
     })
 
-    // Configuração padrão do useMutation
     ;(useMutation as Mock).mockReturnValue({
       mutateAsync: mockMutateAsync,
       data: null,
@@ -151,8 +140,6 @@ describe('PixPaymentPage', () => {
   afterEach(() => {
     cleanup()
   })
-
-  // --- TESTES DE RENDERIZAÇÃO E INTERAÇÃO BÁSICA (HEAD) ---
 
   it('deve renderizar o BottomSheet com o formulário inicialmente', () => {
     render(<PixPaymentPage onCancel={mockOnCancel} onFinish={mockOnFinish} />)
@@ -168,8 +155,6 @@ describe('PixPaymentPage', () => {
     fireEvent.click(screen.getByTestId('close-bottom-sheet'))
     expect(mockOnCancel).toHaveBeenCalled()
   })
-
-  // --- TESTES DE FORMULÁRIO (HEAD) ---
 
   it('deve submeter o formulário e chamar a mutação com os dados corretos', async () => {
     mockMutateAsync.mockResolvedValue({ id: 'pay-1', payload: 'pix-code-123' })
@@ -215,21 +200,17 @@ describe('PixPaymentPage', () => {
 
     render(<PixPaymentPage onCancel={mockOnCancel} onFinish={mockOnFinish} />)
 
-    // Simula o sucesso da mutação
     act(() => {
       onSuccessCallback({ id: 'payment-123' })
     })
 
     await waitFor(() => {
-      // O BottomSheet inicial deve fechar
       expect(screen.queryByTestId('input-name')).not.toBeInTheDocument()
     })
 
     expect(screen.getByText(/Este código expira em 30 minutos/)).toBeInTheDocument()
     expect(screen.getByText('pix-payload-mock')).toBeInTheDocument()
   })
-
-  // --- TESTES DE ERRO (HEAD) ---
 
   it('deve exibir erro do servidor quando a mutação falha', async () => {
     let onErrorCallback: () => void = () => {}
@@ -255,8 +236,6 @@ describe('PixPaymentPage', () => {
       )
     })
   })
-
-  // --- TESTES DE COPY & PASTE (MISTO) ---
 
   it('deve copiar o código PIX com sucesso', async () => {
     ;(useMutation as Mock).mockReturnValue({
@@ -297,13 +276,9 @@ describe('PixPaymentPage', () => {
     })
   })
 
-  // --- TESTES DE POLLING E CONFIRMAÇÃO (DEV) ---
-
   it('deve mostrar modal de sucesso quando o status do pagamento for CONFIRMED', async () => {
-    // 1. Renderiza inicialmente sem dados
     const { rerender } = render(<PixPaymentPage onCancel={mockOnCancel} onFinish={mockOnFinish} />)
 
-    // 2. Simula o retorno do polling com status CONFIRMED
     mockPaymentStatusResponse = {
       state: {
         data: {
@@ -312,7 +287,6 @@ describe('PixPaymentPage', () => {
       },
     }
 
-    // Força re-render para o useEffect do mock disparar
     rerender(<PixPaymentPage onCancel={mockOnCancel} onFinish={mockOnFinish} />)
 
     await waitFor(() => {
@@ -321,7 +295,6 @@ describe('PixPaymentPage', () => {
   })
 
   it('deve chamar onFinish ao clicar em continuar no modal de sucesso', async () => {
-    // Configura já como confirmado
     mockPaymentStatusResponse = { state: { data: { status: 'CONFIRMED' } } }
     
     render(<PixPaymentPage onCancel={mockOnCancel} onFinish={mockOnFinish} />)
@@ -330,7 +303,6 @@ describe('PixPaymentPage', () => {
       expect(screen.getByText('Pagamento confirmado!')).toBeInTheDocument()
     })
 
-    // Busca o botão dentro do modal de sucesso (geralmente o último botão renderizado)
     const buttons = screen.getAllByRole('button', { name: /continuar/i })
     const successButton = buttons[buttons.length - 1]
 

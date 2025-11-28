@@ -66,7 +66,6 @@ describe('PaymentStep', () => {
 
     expect(screen.getByTestId('text-title')).toHaveTextContent('Escolha como pagar')
     expect(screen.getByText('Saldo em conta')).toBeInTheDocument()
-    // 240.0 default -> R$ 240,00
     expect(screen.getByText(/R\$\s240,00/)).toBeInTheDocument()
   })
 
