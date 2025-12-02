@@ -27,19 +27,27 @@ export default function AppLayout({ children }: PropsWithChildren) {
       return <HeaderTitle>Resultado da consulta</HeaderTitle>
     }
 
-    if (isMatch('/pedidos/:id/resultado')) {
+    if (isMatch('/pedidos/:id/opcoes')) {
       return <HeaderTitle>Resultado da consulta</HeaderTitle>
     }
 
-    if (isMatch('/pedidos/:id/documentos')) {
+    if (isMatch('/pedidos/:id/opcoes/resultado')) {
+      return <HeaderTitle>Resultado completo</HeaderTitle>
+    }
+
+    if (isMatch('/pedidos/:id/opcoes/documentos')) {
       return <HeaderTitle>Documentos</HeaderTitle>
+    }
+
+    if (isMatch('/pedidos/:id/opcoes/proprietarios')) {
+      return <HeaderTitle>Proprietários</HeaderTitle>
     }
 
     return <></>
   }, [isMatch])
 
   return (
-    <section className="min-h-screen bg-background">
+    <section className="min-h-screen bg-white">
       <header className="flex flex-col pt-4 px-4 bg-primary relative z-40">
         <div className="flex items-center justify-between py-4.5 mb-6">
           <div className="flex items-center justify-center gap-3.5">

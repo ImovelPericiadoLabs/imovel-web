@@ -1,85 +1,65 @@
 'use client'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { MapPin, ChevronRight, FileText, Files, Users } from 'lucide-react'
-import TrafficLight from '@/components/traffic-light'
+import { ChevronRight } from 'lucide-react'
+import { cn } from '@/utils/tailwind'
+import TrafficLightModal from '@/components/traffic-light-modal'
+import Badge from '@/components/badge'
+import { mapCircleStatus, mapBadgeStatus } from '@/sections/orders/constants'
+import OrderHeader from '@/sections/orders/order-header'
 
 export default function OrderPage() {
   const { id } = useParams()
 
-  const buttons = [
+  const boxes = [
     {
-      icon: FileText,
-      title: 'Resultado',
-      subtitle: 'Visualizar resultado completo',
-      href: `/pedidos/${id}/resultado`,
+      id: 1,
+      title: 'Hipoteca',
+      text: 'Há irregularidades graves que impedem compra, venda ou regularização imediata. É necessário correção documental antes de seguir qualquer processo.',
+      status: 'PURCHASE_AND_SALE_BLOCKED',
+      href: `/pedidos/${id}/opcoes`,
     },
     {
-      icon: Files,
-      title: 'Documentos',
-      subtitle: 'Visualizar documentos da consulta',
-      href: `/pedidos/${id}/documentos`,
-    },
-    {
-      icon: Users,
-      title: 'Proprietários ',
-      subtitle: 'Visualizar proprietários da consulta',
-      href: `/pedidos/${id}/proprietarios`,
+      id: 2,
+      title: 'Penhora',
+      text: 'Sem problemas. Pode seguir com a operação.',
+      status: 'ALL_GOOD',
+      href: `/pedidos/${id}/opcoes`,
     },
   ]
 
+  const mapBadgeText: Record<string, string> = {
+    ALL_GOOD: 'Sinal verde',
+    IRREGULARITIES_FOUND: 'Sinal amarelo',
+    PURCHASE_AND_SALE_BLOCKED: 'Sinal vermelho',
+  }
+
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex align-middle justify-between">
-        <p className="text-base font-semibold leading-[130%] self-center">#000001</p>
-
-        <div className="flex flex-col">
-          <p className="text-gray-2 text-[0.65rem] font-normal leading-[130%] self-end">
-            Solicitado em
-          </p>
-
-          <p className="text-base font-semibold leading-[130%]">26/11/2025 16:23</p>
-        </div>
-      </div>
-
-      <div className="bg-box rounded-sm px-4 py-5">
-        <div className="flex gap-4">
-          <MapPin className="size-6" />
-
-          <p className="text-xs font-normal leading-[130%]">
-            Rua Pamplona, 1593, Jardim Paulista, São Paulo, SP, CEP 01405-002.
-          </p>
-        </div>
-      </div>
-
-      <div className="flex align-middle justify-center">
-        <TrafficLight red />
-      </div>
+      <OrderHeader />
 
       <div className="flex flex-col gap-2">
-        {buttons.map((button) => (
+        {boxes.map((item) => (
           <Link
-            key={button.title}
-            href={button.href}
-            className="flex flex-col p-4 border border-box rounded-sm group hover:border-primary"
+            key={item.id}
+            className="flex flex-col gap-2 p-4 border border-box rounded-sm"
+            href={item.href}
           >
-            <div className="flex items-center justify-between">
-              <div className="flex gap-4 items-center">
-                <button.icon className="size-6 text-primary" />
-
-                <div className="flex flex-col gap-2">
-                  <p className="text-sm font-semibold leading-[130%] group-hover:text-primary">
-                    {button.title}
-                  </p>
-
-                  <p className="text-gray-2 text-xs font-normal leading-[130%] group-hover:text-primary">
-                    {button.subtitle}
-                  </p>
-                </div>
-              </div>
-
-              <ChevronRight className="size-6 text-primary" />
+            <div className="flex items-center gap-4.5">
+              <div className={cn('size-2 rounded-full', mapCircleStatus[item.status])} />
+              <p className="text-sm font-semibold leading-[130%]">{item.title}</p>
             </div>
+
+            <Badge variant={mapBadgeStatus[item.status]}>{mapBadgeText[item.status]}</Badge>
+
+            <p className="text-gray-2 text-xs font-normal leading-[130%]">{item.text}</p>
+
+            <TrafficLightModal>
+              <div className="cursor-pointer flex gap-2 text-primary">
+                <p className="text-xs font-normal leading-[130%]">Entender</p>
+                <ChevronRight className="size-4" />
+              </div>
+            </TrafficLightModal>
           </Link>
         ))}
       </div>
