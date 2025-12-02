@@ -1,5 +1,6 @@
 import { Fragment, PropsWithChildren } from 'react'
 import Modal from '@/components/modal'
+import TrafficLight from '@/components/traffic-light'
 
 export default function TrafficLightModal({ children }: PropsWithChildren) {
   const trafficsLightExplanation = [
@@ -25,12 +26,8 @@ export default function TrafficLightModal({ children }: PropsWithChildren) {
       title="Como funciona?"
       content={
         <div className="flex flex-col">
-          <div className="flex items-center justify-center w-full pt-10 bg-background">
-            <div className="flex flex-col gap-3.5 items-center justify-center bg-[#345274] border border-b-none border-[#233D5A] w-18 h-36 rounded-t-sm">
-              <div className="rounded-full bg-red-600 size-6" />
-              <div className="rounded-full bg-yellow-300 size-6" />
-              <div className="rounded-full bg-green-500 size-6" />
-            </div>
+          <div className="flex items-center justify-center w-full py-14 bg-background">
+            <TrafficLight />
           </div>
 
           <div className="flex gap-3 flex-col px-4 py-6 rounded-t-sm border-t border-box">
