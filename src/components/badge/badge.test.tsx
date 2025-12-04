@@ -13,7 +13,7 @@ describe('Badge', () => {
     expect(getByText('Default Badge').className).toContain(
       'text-[0.75rem] px-3 py-1 rounded-[5rem]',
     )
-    expect(getByText('Default Badge').className).toContain('border-[#3BE2C259] text-[#3BE2C2]')
+    expect(getByText('Default Badge').className).toContain('border-primary text-primary')
   })
 
   it('should apply size sm', () => {
@@ -49,7 +49,7 @@ describe('Badge', () => {
 
   it('should apply variant info', () => {
     const { getByText } = render(<Badge variant="info">Info Badge</Badge>)
-    expect(getByText('Info Badge').className).toContain('border-[#3BE2C259] text-[#3BE2C2]')
+    expect(getByText('Info Badge').className).toContain('border-primary text-primary')
   })
 
   it('should apply variant warning', () => {

@@ -13,8 +13,6 @@ interface ModalProps {
   onBack?: () => void
 }
 
-export const ssr = false
-
 export default function Modal({ children, content, title, open, onClose }: ModalProps) {
   const [internalOpen, setInternalOpen] = useState(false)
 
@@ -23,10 +21,21 @@ export default function Modal({ children, content, title, open, onClose }: Modal
 
   const modalRoot = typeof document !== 'undefined' ? document.body : null
 
+  interface TriggerElementProps {
+    onClick?: (e: React.MouseEvent<HTMLElement>) => void
+  }
+
   const trigger =
     children && isValidElement(children)
-      ? cloneElement(children as ReactElement<{ onClick?: () => void }>, {
-          onClick: () => !isControlled && setInternalOpen(true),
+      ? cloneElement(children as ReactElement<TriggerElementProps>, {
+          onClick: (e: React.MouseEvent<HTMLElement>) => {
+            e.preventDefault()
+            e.stopPropagation()
+
+            if (!isControlled) {
+              setInternalOpen(true)
+            }
+          },
         })
       : children
 
@@ -51,7 +60,13 @@ export default function Modal({ children, content, title, open, onClose }: Modal
       {trigger}
 
       {ReactDOM.createPortal(
-        <div className="fixed inset-0 z-50 flex justify-center items-start">
+        <div
+          className="fixed inset-0 z-50 flex justify-center items-start"
+          onClick={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+          }}
+        >
           <div className="absolute inset-0 bg-black/40" onClick={handleClose} />
 
           <div className="relative bg-white w-full h-full shadow-lg animate-slide-up flex flex-col overflow-hidden">
