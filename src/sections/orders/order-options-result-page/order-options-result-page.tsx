@@ -1,5 +1,16 @@
 import { useCallback } from 'react'
-import { User } from 'lucide-react'
+import {
+  Building,
+  Grid2X2,
+  RulerDimensionLineIcon,
+  User,
+  MapPin,
+  FileQuestionMark,
+  House,
+  FileXCorner,
+  IdCard,
+  FileCheckCorner,
+} from 'lucide-react'
 import { cn } from '@/utils/tailwind'
 import Badge from '@/components/badge'
 import { mapCircleStatus, mapBadgeStatus } from '@/sections/orders/constants'
@@ -52,8 +63,8 @@ export default function OrderOptionsResultPage() {
       status: 'PURCHASE_AND_SALE_BLOCKED',
       items: [
         { icon: User, message: 'Proprietário divergente do informado' },
-        { icon: User, message: 'Endereço não coincide com dados da prefeitura' },
-        { icon: User, message: 'Averbação registrada com restrição ativa' },
+        { icon: MapPin, message: 'Endereço não coincide com dados da prefeitura' },
+        { icon: FileQuestionMark, message: 'Averbação registrada com restrição ativa' },
       ],
     },
 
@@ -61,17 +72,17 @@ export default function OrderOptionsResultPage() {
       status: 'PURCHASE_AND_SALE_BLOCKED',
       items: [
         { icon: User, message: 'IPTU em atraso' },
-        { icon: User, message: 'Multas municipais em aberto' },
-        { icon: User, message: 'Débitos vinculados ao imóvel e ao proprietário' },
+        { icon: FileQuestionMark, message: 'Multas municipais em aberto' },
+        { icon: House, message: 'Débitos vinculados ao imóvel e ao proprietário' },
       ],
     },
 
     ['Documentos']: {
       status: 'PURCHASE_AND_SALE_BLOCKED',
       items: [
-        { icon: User, message: 'Certidão negativa não disponíve' },
-        { icon: User, message: 'Divergências em dados cadastrais' },
-        { icon: User, message: 'Histórico da matrícula apresenta inconsistências' },
+        { icon: FileXCorner, message: 'Certidão negativa não disponíve' },
+        { icon: IdCard, message: 'Divergências em dados cadastrais' },
+        { icon: FileCheckCorner, message: 'Histórico da matrícula apresenta inconsistências' },
       ],
     },
 
@@ -108,26 +119,69 @@ export default function OrderOptionsResultPage() {
     )
   }, [])
 
-  const content = useCallback((title: string, message?: string, items?: Item[]) => {
-    if (title === 'Matrícula') {
-      return <p>Matrícula</p>
-    }
+  const content = useCallback(
+    (
+      title: string,
+      message?: string,
+      items?: Item[],
+      office?: string,
+      propertyType?: string,
+      totalArea?: string,
+      builtArea?: string,
+    ) => {
+      if (title === 'Matrícula') {
+        return (
+          <div className="flex flex-col gap-4">
+            <div className="flex gap-2 items-center">
+              <Building className="size-6 text-primary" />
+              <p className="text-new-black text-xs font-normal leading-[130%] truncate">{office}</p>
+            </div>
 
-    if (title === 'Conclusão') {
-      return <p className="text-xs font-normal leading-[150%]">{message}</p>
-    }
+            <div className="flex gap-2 items-center">
+              <Grid2X2 className="size-6 text-primary" />
+              <p className="text-new-black text-xs font-normal leading-[130%]">{propertyType}</p>
+            </div>
 
-    return (
-      <div className="flex flex-col gap-4">
-        {items?.map((item) => (
-          <div key={item.message} className="flex gap-2 items-center">
-            <item.icon className="size-6 text-primary" />
-            <p className="text-new-black text-xs font-normal leading-[130%]">{item.message}</p>
+            <div className="flex gap-2 items-center">
+              <div className="flex gap-2 items-center">
+                <div className="flex items-center gap-2">
+                  <RulerDimensionLineIcon className="size-6 text-primary" />
+                  <p className="text-new-black text-xs font-normal leading-[130%]">Área Total</p>
+                </div>
+                <p className="text-primary text-xs font-normal leading-[130%]">{totalArea}</p>
+              </div>
+
+              <div className="flex gap-2 items-center">
+                <div className="flex items-center gap-2">
+                  <RulerDimensionLineIcon className="size-6 text-primary" />
+                  <p className="text-new-black text-xs font-normal leading-[130%]">
+                    Área Construída
+                  </p>
+                </div>
+                <p className="text-primary text-xs font-normal leading-[130%]">{builtArea}</p>
+              </div>
+            </div>
           </div>
-        ))}
-      </div>
-    )
-  }, [])
+        )
+      }
+
+      if (title === 'Conclusão') {
+        return <p className="text-xs font-normal leading-[150%]">{message}</p>
+      }
+
+      return (
+        <div className="flex flex-col gap-4">
+          {items?.map((item) => (
+            <div key={item.message} className="flex gap-2 items-center">
+              <item.icon className="size-6 text-primary" />
+              <p className="text-new-black text-xs font-normal leading-[130%]">{item.message}</p>
+            </div>
+          ))}
+        </div>
+      )
+    },
+    [],
+  )
 
   return (
     <div className="flex flex-col gap-4 p-4 lg:px-0 w-full mx-auto lg:max-w-lg">
@@ -140,7 +194,15 @@ export default function OrderOptionsResultPage() {
 
           <hr className="border border-box mt-2 mb-4" />
 
-          {content(title, value?.message, value?.items)}
+          {content(
+            title,
+            value?.message,
+            value?.items,
+            value?.office,
+            value?.propertyType,
+            value?.totalArea,
+            value?.builtArea,
+          )}
         </div>
       ))}
     </div>
