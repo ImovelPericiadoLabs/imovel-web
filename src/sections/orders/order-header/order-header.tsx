@@ -8,7 +8,7 @@ type Props = {
 export default function OrderHeader({ Badge }: Props) {
   return (
     <div className="flex flex-col gap-6 px-3 py-4 mb-3 bg-background">
-      <div className="flex align-middle justify-between">
+      <div className="flex align-middle justify-between w-full mx-auto lg:max-w-lg">
         <p className="text-base font-semibold leading-[130%] self-center">#000001</p>
 
         <div className="flex flex-col">
@@ -20,7 +20,7 @@ export default function OrderHeader({ Badge }: Props) {
         </div>
       </div>
 
-      <div className="bg-box rounded-sm px-4 py-5">
+      <div className="bg-box rounded-sm px-4 py-5 w-full mx-auto lg:max-w-lg">
         <div className="flex gap-4">
           <MapPin className="size-6" />
 

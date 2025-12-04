@@ -38,7 +38,7 @@ export default function OrderPage() {
     <div className="flex flex-col gap-3">
       <OrderHeader />
 
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-2 px-3 lg:px-0 w-full mx-auto lg:max-w-lg">
         {boxes.map((item) => (
           <Link
             key={item.id}

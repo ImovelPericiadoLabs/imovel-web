@@ -47,7 +47,7 @@ export default function AppLayout({ children }: PropsWithChildren) {
   }, [isMatch])
 
   return (
-    <section className="min-h-screen bg-white">
+    <section className="min-h-screen bg-white pb-6">
       <header className="flex flex-col pt-4 px-4 bg-primary relative z-40">
         <div className="flex items-center justify-between py-4.5 mb-6">
           <div className="flex items-center justify-center gap-3.5">

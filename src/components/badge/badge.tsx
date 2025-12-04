@@ -13,7 +13,7 @@ const badgeVariants = cva(
       },
       variant: {
         success: 'border-[#04A13A] text-[#04A13A]',
-        info: 'border-[#3BE2C259] text-[#3BE2C2]',
+        info: 'border-primary text-primary',
         warning: 'text-[#FF9500] border-[#FF9500]',
         danger: 'border-[#FF3B30] text-[#FF3B30]',
       },
