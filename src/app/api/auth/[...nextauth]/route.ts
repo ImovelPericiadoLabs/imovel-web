@@ -16,10 +16,18 @@ export const authOptions: NextAuthOptions = {
         }
 
         try {
+          console.log("1. Iniciando login para:", credentials.email);
+
+          // ATENÇÃO: Se verifyAuth for onde você faz o fetch, o erro está lá dentro.
+          // O ideal é ver qual URL ele está chamando.
+          // Se possível, poste o código de 'src/services/account.ts' aqui.
+
           const response = await verifyAuth({
             email: credentials.email,
             code: credentials.code
           })
+
+          console.log("2. Resposta do verifyAuth:", JSON.stringify(response));
 
           if (response && response.access) {
             return {
@@ -30,13 +38,12 @@ export const authOptions: NextAuthOptions = {
               refreshToken: response.refresh,
             }
           }
-
           throw new Error("Código inválido ou resposta inesperada.")
 
         } catch (error: any) {
-          console.error("Erro na autenticação:", error)
-          const errorMessage = error?.response?.data?.detail || error.message || "Falha na verificação";
-          throw new Error(errorMessage);
+          // Isso vai aparecer nos logs da Vercel (Function logs)
+          console.error("ERRO CRÍTICO NO AUTHORIZE:", error);
+          throw error;
         }
       }
     })
@@ -53,11 +60,11 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       session.accessToken = token.accessToken
       session.refreshToken = token.refreshToken
-      
+
       if (session.user) {
         session.user.id = token.id
       }
- 
+
       return session
     }
   },
