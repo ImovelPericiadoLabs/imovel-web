@@ -26,6 +26,10 @@ export const validations = z.object({
     .refine((v) => v.length >= 10 && v.length <= 11, {
       message: 'WhatsApp inválido',
     }),
+
+  code: z.string().optional(), 
+  
+  placeId: z.string().optional(), 
 })
 
 export type FormTypes = z.infer<typeof validations>

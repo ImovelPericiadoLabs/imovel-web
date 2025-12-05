@@ -3,33 +3,39 @@ import { url } from '@/constants/api'
 const apiUrl = url
 
 const api = {
-  async get(url: string) {
+  async get(url: string, token?: string) {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    }
+
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+
     const response = await fetch(`${apiUrl}${url}`, {
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers, 
       method: 'GET',
     })
 
     const result = await response.json()
-
-    if (response.status === 401) {
-      throw result
-    }
-
+    if (response.status === 401) throw result
     return result
   },
 
-  async post(url: string, rawBody: object) {
+  async post(url: string, rawBody: object, token?: string) {
     const isFormData = rawBody instanceof FormData
-    const headers: Record<string, string> = { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' }
-
+    const headers: Record<string, string> = {
+      'User-Agent': 'Mozilla/5.0 ...'
+    }
 
     if (!isFormData) {
       headers['Content-Type'] = 'application/json'
     }
 
-    // Log para garantir qual URL exata o servidor está tentando acessar
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+
     console.log(`[DEBUG] POST URL: ${apiUrl}${url}`)
 
     const response = await fetch(`${apiUrl}${url}`, {
@@ -38,27 +44,15 @@ const api = {
       body: isFormData ? rawBody : JSON.stringify(rawBody),
     })
 
-    // 1. Pegamos o texto puro antes de tentar converter para JSON
     const responseText = await response.text()
-
-    // 2. Tenta fazer o parse manualmente
     let result
     try {
       result = JSON.parse(responseText)
-    } catch (error) {
-      // AQUI ESTÁ O OURO: Se falhar, vamos ver o HTML no log da Vercel
-      console.error('------- ERRO DE PARSE JSON -------')
-      console.error('Status Code:', response.status)
-      console.error('Conteúdo recebido (HTML?):', responseText.slice(0, 500)) // Mostra os primeiros 500 caracteres
-      console.error('----------------------------------')
-
-      throw new Error(`A API retornou HTML em vez de JSON. Status: ${response.status}`)
+    } catch (e) {
+      throw new Error(`Erro parse...`)
     }
 
-    if (response.status === 401) {
-      throw result
-    }
-
+    if (response.status === 401) throw result
     return result
   },
 
