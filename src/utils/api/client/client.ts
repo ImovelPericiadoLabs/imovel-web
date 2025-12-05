@@ -22,12 +22,14 @@ const api = {
 
   async post(url: string, rawBody: object) {
     const isFormData = rawBody instanceof FormData
-
     const headers: Record<string, string> = {}
 
     if (!isFormData) {
       headers['Content-Type'] = 'application/json'
     }
+
+    // Log para garantir qual URL exata o servidor está tentando acessar
+    console.log(`[DEBUG] POST URL: ${apiUrl}${url}`)
 
     const response = await fetch(`${apiUrl}${url}`, {
       method: 'POST',
@@ -35,7 +37,22 @@ const api = {
       body: isFormData ? rawBody : JSON.stringify(rawBody),
     })
 
-    const result = await response.json()
+    // 1. Pegamos o texto puro antes de tentar converter para JSON
+    const responseText = await response.text()
+
+    // 2. Tenta fazer o parse manualmente
+    let result
+    try {
+      result = JSON.parse(responseText)
+    } catch (error) {
+      // AQUI ESTÁ O OURO: Se falhar, vamos ver o HTML no log da Vercel
+      console.error('------- ERRO DE PARSE JSON -------')
+      console.error('Status Code:', response.status)
+      console.error('Conteúdo recebido (HTML?):', responseText.slice(0, 500)) // Mostra os primeiros 500 caracteres
+      console.error('----------------------------------')
+
+      throw new Error(`A API retornou HTML em vez de JSON. Status: ${response.status}`)
+    }
 
     if (response.status === 401) {
       throw result
