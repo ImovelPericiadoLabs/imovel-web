@@ -198,7 +198,6 @@ describe('VerifyCodeStep', () => {
 
       fireEvent.click(screen.getByText('Reenviar agora'))
 
-      // Correção crítica: força a execução da promessa rejeitada e atualização de estado
       await act(async () => {
         await Promise.resolve()
       })
