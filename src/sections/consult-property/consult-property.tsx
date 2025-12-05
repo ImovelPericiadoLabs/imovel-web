@@ -6,7 +6,6 @@ import { useState, useRef, ReactNode } from 'react'
 import { FormProvider, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { ChevronLeft, CircleQuestionMark } from 'lucide-react'
-
 import ProgressBar from '@/components/progress-bar'
 import {
   AddressStep,
@@ -18,7 +17,7 @@ import {
 import { PaymentConfirmationStep } from '@/sections/consult-property/steps/payment-step/payment-confirmation-step/payment-confirmation-step'
 import { SavedCardsPage } from '@/sections/consult-property/steps/payment-step/card/select'
 import { CreditCardPage } from '@/sections/consult-property/steps/payment-step/card/register'
-import TrafficLightModal from '@/sections/consult-property/components/traffic-light-modal'
+import TrafficLightModal from '@/components/traffic-light-modal'
 import { validations, FormTypes } from '@/sections/consult-property/validations'
 
 type FlowState =
@@ -34,10 +33,7 @@ type FlowState =
 
 function Activity({ isActive, children }: { isActive: boolean; children: ReactNode }) {
   return (
-    <div
-      aria-hidden={!isActive}
-      style={{ display: isActive ? 'block' : 'none' }}
-    >
+    <div aria-hidden={!isActive} style={{ display: isActive ? 'block' : 'none' }}>
       {children}
     </div>
   )
@@ -93,7 +89,7 @@ export default function ConsultProperty() {
     'payment-cards',
     'payment-card-new',
     'payment-confirm',
-    'finished'
+    'finished',
   ].includes(flow)
 
   return (
@@ -102,8 +98,9 @@ export default function ConsultProperty() {
         <div className="flex items-center justify-between py-4.5 mb-6">
           <ChevronLeft
             onClick={back}
-            className={`size-7 text-white transition-opacity ${flow === 'address' ? 'opacity-0 pointer-events-none' : 'cursor-pointer'
-              }`}
+            className={`size-7 text-white transition-opacity ${
+              flow === 'address' ? 'opacity-0 pointer-events-none' : 'cursor-pointer'
+            }`}
             role="button"
           />
 
@@ -116,25 +113,19 @@ export default function ConsultProperty() {
           </TrafficLightModal>
         </div>
 
-        {showProgressBar && (
-          <ProgressBar value={currentProgress} className="mb-3" />
-        )}
+        {showProgressBar && <ProgressBar value={currentProgress} className="mb-3" />}
       </header>
 
       <div className="relative bg-primary h-30 -mt-1"></div>
 
       <FormProvider {...methods}>
         <main className="w-full mx-auto lg:max-w-lg pt-5 px-0 -mt-24">
-
           <Activity isActive={flow === 'address'}>
             <AddressStep onNext={() => go('doc-confirmation')} />
           </Activity>
 
           <Activity isActive={flow === 'doc-confirmation'}>
-            <DocumentConfirmationStep
-              onNext={() => go('doc-type')}
-              onSkip={() => go('summary')}
-            />
+            <DocumentConfirmationStep onNext={() => go('doc-type')} onSkip={() => go('summary')} />
           </Activity>
 
           <Activity isActive={flow === 'doc-type'}>
@@ -174,7 +165,6 @@ export default function ConsultProperty() {
               <h2 className="text-xl font-bold">Processando seu pedido...</h2>
             </div>
           </Activity>
-
         </main>
       </FormProvider>
     </section>

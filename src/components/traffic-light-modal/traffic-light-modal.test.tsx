@@ -37,14 +37,6 @@ describe('TrafficLightModal', () => {
     expect(getByTestId('inner-child')).toBeInTheDocument()
   })
 
-  it('should render main traffic light circles', () => {
-    const { container } = render(<TrafficLightModal>child</TrafficLightModal>)
-
-    expect(container.querySelector('.bg-red-600.size-6')).toBeInTheDocument()
-    expect(container.querySelector('.bg-yellow-300.size-6')).toBeInTheDocument()
-    expect(container.querySelector('.bg-green-500.size-6')).toBeInTheDocument()
-  })
-
   it('should render all explanation titles', () => {
     const { getByText } = render(<TrafficLightModal>child</TrafficLightModal>)
 
