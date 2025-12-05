@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { useState, useMemo, useEffect, useEffectEvent } from 'react'
+import { useState, useRef, useEffect } from 'react' 
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useForm, Controller, SubmitHandler } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -22,7 +22,6 @@ import { processPayment, getPaymentStatus } from '@/services/payments'
 import { startAuth } from '@/services/account'
 import { formatMoney } from '@/utils/text'
 import { queryKey } from '@/constants/queries'
-import { formatDateWithTime } from '@/utils/date'
 import { validations, FormTypes } from './validations'
 
 interface PixPaymentPageProps {
@@ -49,6 +48,8 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
   const [timer, setTimer] = useState(59)
   const [isAuthLoading, setIsAuthLoading] = useState(false)
 
+  const authStepRef = useRef<HTMLDivElement>(null)
+
   const {
     handleSubmit,
     register,
@@ -56,7 +57,6 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
     trigger,
     watch,
     getValues,
-    setValue,
     formState: { errors },
   } = useForm<FormTypes>({
     resolver: zodResolver(validations),
@@ -71,6 +71,14 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
     const id = setInterval(() => setTimer((prev) => prev - 1), 1000)
     return () => clearInterval(id)
   }, [timer, step])
+
+  useEffect(() => {
+    if (step === 'auth' && authStepRef.current) {
+      authStepRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+  }, [step])
+
+  useEffect(() => { setIsOpenBottomSheet(true) }, [])
 
   function clearServerError() {
     setServerError('')
@@ -128,8 +136,12 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
       await startAuth({ email })
       setStep('auth')
       setTimer(59)
+
+      setTimeout(() => {
+
+      }, 300);
+
     } catch (error) {
-      console.error(error)
       setServerError('Não foi possível enviar o código. Verifique o e-mail.')
     } finally {
       setIsAuthLoading(false)
@@ -202,9 +214,6 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
       setTimeout(() => setCopied(false), 2000)
     } catch (error) { console.error(error) }
   }
-
-  const openBottomSheet = useEffectEvent(() => setIsOpenBottomSheet(true))
-  useEffect(() => { openBottomSheet() }, [])
 
   const isLoading = isAuthLoading || isPixPending
 
@@ -287,7 +296,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
                 </Button>
               </div>
 
-              <div className={step === 'auth' ? 'flex flex-col items-center animate-in fade-in slide-in-from-right-8' : 'hidden'}>
+              <div className={step === 'auth' ? 'flex flex-col items-center animate-in fade-in slide-in-from-right-8' : 'hidden'} ref={authStepRef}>
                 <div className="mb-4 flex items-center justify-center size-14 rounded-full bg-[#F3E8FF]">
                   <Mail className="size-7 text-primary" />
                 </div>
