@@ -14,7 +14,7 @@ export function VerifyCodeStep({ onBack }: { onBack: () => void }) {
   const { control, watch, handleSubmit, formState: { isSubmitting } } = useFormContext<FormTypes>()
 
   const email = watch('email')
-  
+   
   const [timer, setTimer] = useState(59)
   const [errorMsg, setErrorMsg] = useState('')
   const [isResending, setIsResending] = useState(false)
@@ -50,7 +50,7 @@ export function VerifyCodeStep({ onBack }: { onBack: () => void }) {
 
       if (result?.error) {
         console.error('Erro no login:', result.error)
-    
+     
         const cleanError = result.error.replace("Error: ", "")
         
         setErrorMsg(cleanError || 'Código incorreto ou expirado.')
@@ -89,15 +89,6 @@ export function VerifyCodeStep({ onBack }: { onBack: () => void }) {
       onSubmit={handleSubmit(onSubmit)}
       className="flex flex-col items-center animate-in fade-in slide-in-from-right-4 duration-300 text-center"
     >
-      <div className="w-full flex justify-start mb-2">
-        <button
-          type="button"
-          onClick={onBack}
-          className="text-sm text-gray-500 hover:text-primary flex items-center gap-1 transition-colors"
-        >
-          <ArrowLeft className="size-4" /> Voltar
-        </button>
-      </div>
 
       <div className="mb-6 flex items-center justify-center size-16 rounded-full bg-[#F3E8FF]">
         <Mail className="size-8 text-primary" />

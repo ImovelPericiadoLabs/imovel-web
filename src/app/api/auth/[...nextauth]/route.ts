@@ -16,18 +16,10 @@ export const authOptions: NextAuthOptions = {
         }
 
         try {
-          console.log("1. Iniciando login para:", credentials.email);
-
-          // ATENÇÃO: Se verifyAuth for onde você faz o fetch, o erro está lá dentro.
-          // O ideal é ver qual URL ele está chamando.
-          // Se possível, poste o código de 'src/services/account.ts' aqui.
-
           const response = await verifyAuth({
             email: credentials.email,
             code: credentials.code
           })
-
-          console.log("2. Resposta do verifyAuth:", JSON.stringify(response));
 
           if (response && response.access) {
             return {
@@ -41,9 +33,8 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Código inválido ou resposta inesperada.")
 
         } catch (error: any) {
-          // Isso vai aparecer nos logs da Vercel (Function logs)
-          console.error("ERRO CRÍTICO NO AUTHORIZE:", error);
-          throw error;
+          const errorMessage = error?.response?.data?.detail || error.message || "Falha na verificação";
+          throw new Error(errorMessage);
         }
       }
     })
