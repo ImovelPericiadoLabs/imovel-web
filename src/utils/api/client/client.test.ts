@@ -188,7 +188,7 @@ describe('api.delete', () => {
       const result = await uploadPromise
 
       expect(result).toEqual({ uploaded: true })
-      expect(progressFn).not.toHaveBeenCalled() // no progress fired here
+      expect(progressFn).not.toHaveBeenCalled() 
     })
 
     it('should call progress callback with computed percent', async () => {

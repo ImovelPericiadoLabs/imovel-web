@@ -1,0 +1,1 @@
+export { InputOtp } from './InputOtp'
