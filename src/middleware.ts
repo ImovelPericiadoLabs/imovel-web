@@ -6,6 +6,8 @@ export default withAuth(
     return NextResponse.next()
   },
   {
+    secret: process.env.NEXTAUTH_SECRET, 
+
     callbacks: {
       authorized: ({ req, token }) => {
         const publicPaths = ['/login', '/cadastro', '/esqueci-senha']
@@ -23,16 +25,6 @@ export default withAuth(
 )
 
 export const config = {
-  /*
-   * MATCHER: O segredo para pegar TODAS as rotas.
-   * A expressão regular abaixo diz: 
-   * "Rode o middleware em tudo, EXCETO:"
-   * - /api (rotas de API geralmente tratam auth internamente ou via header)
-   * - /_next/static (arquivos estáticos do next)
-   * - /_next/image (otimização de imagens)
-   * - favicon.ico (ícone do site)
-   * - public (pasta public se tiver imagens lá)
-   */
   matcher: [
     '/((?!api|_next/static|_next/image|favicon.ico|images).*)',
   ],

@@ -16,11 +16,6 @@ export const authOptions: NextAuthOptions = {
         }
 
         try {
-<<<<<<< Updated upstream
-=======
-          console.log("1. Iniciando login para:", credentials.email);
-
->>>>>>> Stashed changes
           const response = await verifyAuth({
             email: credentials.email,
             code: credentials.code
@@ -35,18 +30,11 @@ export const authOptions: NextAuthOptions = {
               refreshToken: response.refresh,
             }
           }
-
           throw new Error("Código inválido ou resposta inesperada.")
 
         } catch (error: any) {
-<<<<<<< Updated upstream
-          console.error("Erro na autenticação:", error)
           const errorMessage = error?.response?.data?.detail || error.message || "Falha na verificação";
           throw new Error(errorMessage);
-=======
-          console.error("ERRO CRÍTICO NO AUTHORIZE:", error);
-          throw error;
->>>>>>> Stashed changes
         }
       }
     })
@@ -63,11 +51,11 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       session.accessToken = token.accessToken
       session.refreshToken = token.refreshToken
-      
+
       if (session.user) {
         session.user.id = token.id
       }
- 
+
       return session
     }
   },
