@@ -6,20 +6,22 @@ export default withAuth(
     return NextResponse.next()
   },
   {
-    secret: process.env.NEXTAUTH_SECRET, 
-
+    secret: process.env.NEXTAUTH_SECRET,
     callbacks: {
       authorized: ({ req, token }) => {
-        const publicPaths = ['/login', '/cadastro', '/esqueci-senha']
+        const publicPaths = ['/consultar-imovel']
+        
         const isPublicPath = publicPaths.includes(req.nextUrl.pathname)
+        
         if (isPublicPath) {
           return true
         }
+        
         return !!token
       },
     },
     pages: {
-      signIn: '/login',
+      signIn: '/consultar-imovel', 
     },
   }
 )

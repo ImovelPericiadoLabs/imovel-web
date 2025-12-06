@@ -60,7 +60,7 @@ export const authOptions: NextAuthOptions = {
     }
   },
   pages: {
-    signIn: '/login',
+    signIn: '/consultar-imovel', 
   },
   session: {
     strategy: "jwt",
