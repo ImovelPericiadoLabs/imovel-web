@@ -76,9 +76,17 @@ export async function listAddress({ address, placeId }: ListAddressRequest) {
     place_id: placeId,
   }
 
-  const result = (await api.post(endpoint.addresses, data)) as ListAddressResponse
+  const result = (await api.post(endpoint.addresses, data)) as AddressApiResponse
 
-  return result?.formattedAddress
+  const firstSuggestion = result?.suggestions?.[0]?.placePrediction
+
+  const finalAddress = firstSuggestion?.text?.text ||
+    firstSuggestion?.structuredFormat?.mainText?.text ||
+    ''
+
+  return {
+    address: finalAddress
+  }
 }
 
 export async function listRegistry(address: string) {

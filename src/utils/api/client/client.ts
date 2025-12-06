@@ -36,8 +36,6 @@ const api = {
       headers['Authorization'] = `Bearer ${token}`
     }
 
-    console.log(`[DEBUG] POST URL: ${apiUrl}${url}`)
-
     const response = await fetch(`${apiUrl}${url}`, {
       method: 'POST',
       headers,

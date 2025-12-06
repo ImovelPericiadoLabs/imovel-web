@@ -100,7 +100,9 @@ export default function AutoCompleteInput({
   async function handleSelectAddress({ placeId }: Option) {
     handleOpenAddressSheet()
 
+
     const result = await onSelectAddress(placeId as string)
+
 
     if (!hasHouseNumber(result as string)) {
       setAddressError({

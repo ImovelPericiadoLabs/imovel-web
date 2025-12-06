@@ -57,7 +57,10 @@ export function AddressStep({ onNext }: { onNext: () => void }) {
 
   async function handleSelectAddress(placeId: string) {
     setValue('placeId', placeId)
-    return await listAddressMutate({ address, placeId })
+
+    const response = await listAddressMutate({ address, placeId })
+
+    return (response as any).address || ''
   }
 
   function handleChangeAddress(e: React.ChangeEvent<HTMLInputElement>) {
