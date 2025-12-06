@@ -133,8 +133,11 @@ export function InputOtp({
               inputsRef.current[index] = el
             }}
             aria-label={`Dígito ${index + 1} do código`}
-            type={type === 'number' ? 'tel' : 'text'}
+
+            type="tel"
             inputMode={type === 'number' ? 'numeric' : 'text'}
+            pattern={type === 'number' ? "[0-9]*" : undefined} 
+
             autoComplete="one-time-code"
             maxLength={1}
             disabled={disabled}
