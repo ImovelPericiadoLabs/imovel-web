@@ -6,6 +6,7 @@ import { ChevronLeft, Menu } from 'lucide-react'
 import WhatsAppIcon from '@/components/icons/whatsapp-icon/whatsapp-icon'
 import HeaderTitle from '@/components/header-title'
 import useIsRouteMatch from '@/hooks/use-is-router-match'
+import { Providers } from '@/providers/'
 
 export default function AppLayout({ children }: PropsWithChildren) {
   const { push, back } = useRouter()
@@ -47,6 +48,7 @@ export default function AppLayout({ children }: PropsWithChildren) {
   }, [isMatch])
 
   return (
+    <Providers>
     <section className="min-h-screen bg-white pb-6">
       <header className="flex flex-col pt-4 px-4 bg-primary relative z-40">
         <div className="flex items-center justify-between py-4.5 mb-6">
@@ -73,5 +75,6 @@ export default function AppLayout({ children }: PropsWithChildren) {
       </header>
       {children}
     </section>
+    </Providers>
   )
 }

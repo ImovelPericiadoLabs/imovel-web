@@ -1,9 +1,19 @@
 'use client'
-import { PropsWithChildren } from 'react'
+
+import { useState } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { SessionProvider } from 'next-auth/react' // <--- Importante
 
-const queryClient = new QueryClient()
+export function Providers({ children }: { children: React.ReactNode }) {
+  // Boa prática no App Router: criar o client dentro do componente para evitar
+  // compartilhamento de estado entre requisições no server-side rendering.
+  const [queryClient] = useState(() => new QueryClient())
 
-export default function Providers({ children }: PropsWithChildren) {
-  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  return (
+    <SessionProvider> {/* Envolvemos tudo com a Sessão */}
+      <QueryClientProvider client={queryClient}>
+        {children}
+      </QueryClientProvider>
+    </SessionProvider>
+  )
 }

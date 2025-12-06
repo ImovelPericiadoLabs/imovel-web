@@ -4,10 +4,10 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { useForm, Controller, SubmitHandler, FormProvider } from 'react-hook-form'
+import { useForm, FormProvider } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Check, Clock, Mail, ArrowLeft, AlertCircle } from 'lucide-react'
-import { signIn } from 'next-auth/react'
+import { Check, Clock } from 'lucide-react'
+import { useSession } from 'next-auth/react'
 
 import Button from '@/components/button'
 import Skeleton from '@/components/skeleton'
@@ -37,6 +37,7 @@ const FIXED_PLAN_ID = '019aea72-ccab-76ee-883c-72cce61cedbb'
 
 export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPageProps) {
   const router = useRouter()
+  const { data: session, status } = useSession()
 
   const [step, setStep] = useState<Step>('details')
   const [copied, setCopied] = useState(false)
@@ -45,7 +46,6 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
   const [paymentId, setPaymentId] = useState<string | null>(null)
   const [isOpenConfirmPaymentBottomSheet, setIsOpenConfirmPaymentBottomSheet] = useState(false)
   const [isAuthLoading, setIsAuthLoading] = useState(false)
-
 
   const methods = useForm<FormTypes>({
     resolver: zodResolver(validations),
@@ -56,23 +56,24 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
   })
 
   const {
-    handleSubmit,
     register,
-    control,
-    trigger,
-    watch,
     getValues,
-    setValue, 
+    setValue,
+    trigger,
     formState: { errors },
   } = methods
 
+  useEffect(() => {
+    if (status === 'authenticated' && session?.user?.email) {
+      setValue('email', session.user.email)
+    }
+  }, [status, session, setValue])
 
   useEffect(() => {
     if (paymentId) {
       setStep('pix')
     }
   }, [paymentId])
-
 
   function clearServerError() {
     setServerError('')
@@ -96,10 +97,9 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
     },
     onError() {
       setServerError('Erro ao gerar PIX. Tente novamente.')
-      setStep('details') 
+      setStep('details')
     },
   })
-
 
   const { data: paymentStatusData } = useQuery({
     queryKey: [queryKey.paymentStatus, paymentId],
@@ -120,29 +120,53 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
 
     if (!isValid) return
 
-    const email = getValues('email')
+    const formData = getValues()
+    const finalPlaceId = formData.placeId || placeId
+
+    if (!finalPlaceId) {
+      setServerError('Erro: Identificador do imóvel não encontrado.')
+      return
+    }
+
     clearServerError()
     setIsAuthLoading(true)
 
-    try {
-      await startAuth({ email })
-      setStep('auth') 
-    } catch (error) {
-      setServerError('Não foi possível enviar o código. Verifique o e-mail.')
-    } finally {
-      setIsAuthLoading(false)
+    if (status === 'authenticated') {
+      try {
+        await generatePix({
+          place_id: finalPlaceId,
+          plan_id: FIXED_PLAN_ID,
+          document_id: undefined,
+          name: formData.name,
+          document: formData.document, 
+        })
+        setStep('pix')
+      } catch (error) {
+        setServerError('Erro ao processar pagamento.')
+      } finally {
+        setIsAuthLoading(false)
+      }
+    } else {
+      try {
+        await startAuth({ email: formData.email })
+        setStep('auth')
+      } catch (error) {
+        setServerError('Não foi possível enviar o código. Verifique o e-mail.')
+      } finally {
+        setIsAuthLoading(false)
+      }
     }
   }
 
   const handleAuthSuccess = async (code: string) => {
     setServerError('')
-    setValue('code', code); 
+    setValue('code', code)
 
-    const formData = getValues();
+    const formData = getValues()
     const finalPlaceId = formData.placeId || placeId
 
     if (!finalPlaceId) {
-      setServerError('Erro: Identificador do imóvel/compra não encontrado.')
+      setServerError('Erro: Identificador do imóvel não encontrado.')
       return
     }
 
@@ -157,11 +181,10 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
         document: formData.document,
       })
 
-      setStep('pix');
-
+      setStep('pix')
     } catch (error) {
       setServerError('Erro inesperado ao processar o pagamento.')
-      setStep('details');
+      setStep('details')
     } finally {
       setIsAuthLoading(false)
     }
@@ -177,7 +200,9 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
 
   const isLoading = isAuthLoading || isPixPending
 
-  const showLoadingOverlay = isLoading && (step === 'details' || step === 'pix');
+  if (status === 'loading') {
+    return <LoadingOverlay isLoading={true} message="Carregando..." />
+  }
 
   return (
     <FormProvider {...methods}>
@@ -193,7 +218,9 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
                     <PixIcon className="size-7 text-primary" />
                   </div>
                 </div>
-                <p className="text-lg font-semibold leading-6 text-dark">Dados para o PIX</p>
+                <div className="flex flex-col">
+                  <p className="text-lg font-semibold leading-6 text-dark">Dados para o PIX</p>
+                </div>
               </div>
 
               <form onSubmit={(e) => e.preventDefault()} className="flex flex-col gap-4">
@@ -201,18 +228,28 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
 
                 <Input {...register('name')} errors={errors} label="Nome do titular" placeholder="Ex: Roberto Silva" onKeyDown={clearServerError} />
                 <Input {...register('document')} errors={errors} label="CPF" placeholder="000.000.000-00" mask="cpf" inputMode="numeric" onKeyDown={clearServerError} />
-                <Input {...register('email')} errors={errors} label="E-mail" placeholder="email@email.com" onKeyDown={clearServerError} />
+
+                {/* MODIFICADO: Campo de email com estilo visual de desabilitado se logado */}
+                <Input
+                  {...register('email')}
+                  errors={errors}
+                  label="E-mail"
+                  placeholder="email@email.com"
+                  onKeyDown={clearServerError}
+                  disabled={status === 'authenticated'}
+                  className={status === 'authenticated' ? "bg-gray-100 text-gray-500 cursor-not-allowed opacity-80" : ""}
+                />
+
                 <Input {...register('whatsapp')} errors={errors} label="WhatsApp" placeholder="(99) 99999-9999" mask="whatsapp" inputMode="numeric" onKeyDown={clearServerError} />
 
                 <Button type="button" onClick={handleDetailsSubmit} disabled={isLoading}>
-                  {isLoading ? 'Enviando Código...' : 'Continuar'}
+                  {isLoading ? 'Processando...' : 'Continuar'}
                 </Button>
               </form>
             </div>
           </BottomSheet>
         )}
 
-        {/* 2. Etapa de Autenticação (Tela Cheia) */}
         {step === 'auth' && (
           <AuthCodePage
             onBack={() => setStep('details')}
@@ -222,9 +259,8 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
 
         {step === 'pix' && !!pixData && (
           <div className="flex flex-col items-center pt-10 -mt-27">
-
             <div className="mb-6 text-white px-1 text-left relative z-10 w-full text-center">
-              <p className="text-   leading-snug font-normal text-color-background">
+              <p className="text- leading-snug font-normal text-color-background">
                 Pague <span className="font-bold">{formatMoney(70.56)}</span> via Pix para garantir <br />
                 sua compra
               </p>
@@ -270,7 +306,6 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
           </div>
         )}
 
-        {/* BottomSheet de Confirmação de Pagamento */}
         <BottomSheet isOpen={isOpenConfirmPaymentBottomSheet} onClose={() => router.push('/pedidos')}>
           <div className="flex flex-col items-center gap-6 pb-12 px-4 py-8">
             <div className="relative">
@@ -286,7 +321,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
           </div>
         </BottomSheet>
 
-        <LoadingOverlay isLoading={showLoadingOverlay} message={step === 'details' ? "Enviando Código..." : "Processando Pagamento..."} />
+        <LoadingOverlay isLoading={isLoading} message={step === 'details' ? "Gerando Pix..." : "Processando..."} />
       </div>
     </FormProvider>
   )
