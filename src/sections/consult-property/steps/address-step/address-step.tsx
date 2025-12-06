@@ -92,10 +92,11 @@ export function AddressStep({ onNext }: { onNext: () => void }) {
 
   async function handleSelectAddress(placeId: string) {
     setValue('placeId', placeId)
-    const response = await listAddressMutate({ address, placeId })
-    return (response as any).address || ''
-  }
 
+    const response = await listAddressMutate({ address, placeId })
+
+    return response as { address: string; addressNumber: string | null }
+  }
   function handleChangeAddress(e: React.ChangeEvent<HTMLInputElement>) {
     setAddress(e.target.value)
   }

@@ -5,6 +5,12 @@ type TextField = {
   text?: string
 }
 
+type AddressComponent = {
+  longText: string
+  shortText: string
+  types: string[]
+}
+
 type StructuredFormat = {
   mainText?: TextField
   secondaryText?: TextField
@@ -94,16 +100,18 @@ export async function listAddress({ address, placeId }: ListAddressRequest) {
     place_id: placeId,
   }
 
-  const result = (await api.post(endpoint.addresses, data)) as AddressApiResponse
+  const result = (await api.post(endpoint.addresses, data)) as any
 
-  const firstSuggestion = result?.suggestions?.[0]?.placePrediction
+  const finalAddress = result?.formattedAddress || ''
 
-  const finalAddress = firstSuggestion?.text?.text ||
-    firstSuggestion?.structuredFormat?.mainText?.text ||
-    ''
+  const addressComponents = result?.addressComponents as AddressComponent[]
+  const numberComponent = addressComponents?.find((c) => 
+    c.types.includes('street_number')
+  )
 
   return {
-    address: finalAddress
+    address: finalAddress,
+    addressNumber: numberComponent?.longText || null
   }
 }
 

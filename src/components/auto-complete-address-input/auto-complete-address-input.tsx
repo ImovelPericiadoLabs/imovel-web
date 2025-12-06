@@ -22,7 +22,7 @@ interface Props extends React.InputHTMLAttributes<HTMLInputElement> {
   isLoading?: boolean
   onConfirm: (address: string) => void
   isLoadingAddress?: boolean
-  onSelectAddress: (value: string) => Promise<string>
+  onSelectAddress: (value: string) => Promise<{ address: string; addressNumber: string | null }>
   error?: {
     title: string
     subtitle: string
@@ -100,23 +100,20 @@ export default function AutoCompleteInput({
   async function handleSelectAddress({ placeId }: Option) {
     handleOpenAddressSheet()
 
-
     const result = await onSelectAddress(placeId as string)
 
-
-    if (!hasHouseNumber(result as string)) {
+    if (!result.addressNumber) {
       setAddressError({
         title: 'Número do endereço obrigatório',
-        subtitle: 'Para prosseguir, informe o número.',
+        subtitle: 'O local selecionado não possui numeração. Por favor, informe o número.',
       })
 
       handleCloseAddressSheet()
-
       inputRef?.current?.blur()
       return
     }
 
-    setValue(result)
+    setValue(result.address)
   }
 
   function handleOpenAddressSheet() {
