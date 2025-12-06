@@ -46,42 +46,44 @@ export type ListAddressResponse = {
 }
 
 export async function listAddresses(address: string) {
-  const payload = {
+  const data = {
     q: address,
     with_registry: false,
   }
 
   try {
-    // Tenta fazer a requisição
-    const response = await api.post(endpoint.addresses, payload)
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('TIMEOUT_LIMIT')), 8000)
+    )
 
-    // SE DER CERTO: Retorna um objeto de Debug de Sucesso
-    return {
-      _DEBUG_STATUS: 'SUCESSO (200 OK)',
-      _DEBUG_TYPE: 'API_RESPONSE',
-      payload_enviado: payload,
-      resposta_recebida: response, // O que veio da API
-    }
+    const requestPromise = api.post(endpoint.addresses, data)
 
+    const result = (await Promise.race([
+      requestPromise,
+      timeoutPromise,
+    ])) as AddressApiResponse
+
+    return (
+      result?.suggestions?.map((item) => {
+        const place = item.placePrediction
+        return {
+          primary: place?.structuredFormat?.mainText?.text ?? '',
+          secondary: place?.structuredFormat?.secondaryText?.text ?? '',
+          value: place?.text?.text ?? '',
+          placeId: place?.placeId,
+        }
+      }) || []
+    )
   } catch (error: any) {
-    // SE DER ERRO: Captura o erro e RETORNA ele (não dá throw)
-
-    // Tenta extrair detalhes se for um erro de Axios/HTTP
-    const errorDetails = {
-      status: error.response?.status || 'Sem status',
-      statusText: error.response?.statusText || 'Sem texto',
-      data: error.response?.data || 'Sem body de resposta',
-      headers: error.response?.headers || 'Sem headers',
-      message: error.message,
-      code: error.code
+    if (error.message === 'Load failed' || error.message === 'Network Error') {
+      throw new Error('Bloqueio de rede (iOS). Desative a Retransmissão Privada ou troque de Wi-Fi.')
     }
 
-    return {
-      _DEBUG_STATUS: 'ERRO / EXCEPTION',
-      _DEBUG_TYPE: 'API_ERROR',
-      payload_enviado: payload,
-      detalhes_erro: errorDetails
+    if (error.message === 'TIMEOUT_LIMIT') {
+      throw new Error('A conexão demorou muito para responder.')
     }
+
+    throw error
   }
 }
 

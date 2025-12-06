@@ -11,6 +11,8 @@ import useDebounce from '@/hooks/use-debounce'
 import { queryKey } from '@/constants/queries'
 import { listAddresses, listAddress, listRegistry } from '@/services/addresses'
 
+const IS_DEBUG_MODE = process.env.NEXT_PUBLIC_ENABLE_DEBUG_MODE === 'true'
+
 const initialHomeItems = [
   { Icon: Home, text: 'Pesquisa rápida que revela tudo do imóvel.' },
   { Icon: MouseOff, text: 'Zero burocracia para entender riscos.' },
@@ -24,7 +26,7 @@ export function AddressStep({ onNext }: { onNext: () => void }) {
 
   const debouncedAddress = useDebounce(address, 1000)
 
-  const getError = () => {
+  const getValidationError = () => {
     if (debouncedAddress?.length > 0) {
       if (debouncedAddress?.length !== address?.length) return null
       if (debouncedAddress.length < 3) {
@@ -40,45 +42,42 @@ export function AddressStep({ onNext }: { onNext: () => void }) {
   const { data, isLoading, isEnabled, isError, error: queryError } = useQuery({
     queryKey: [queryKey.getAddresses, debouncedAddress],
     queryFn: () => listAddresses(debouncedAddress),
-    enabled: !getError() && debouncedAddress === address && address.length >= 3,
+    enabled: !getValidationError() && debouncedAddress === address && address.length >= 3,
     refetchOnWindowFocus: false,
-    retry: 0,
+    retry: 1,
   })
 
-  const getDebugInfo = () => {
-    if (isLoading) return null
+  const getDisplayError = () => {
+    const validation = getValidationError()
+    if (validation) return validation
 
-    const validationError = getError()
-    if (validationError) return validationError
+    if (!isError || !queryError) return null
 
-    if (isError && queryError) {
+    if (IS_DEBUG_MODE) {
       const err = queryError as any
-      const debugData = {
-        TYPE: 'ERROR_CATCH',
+      const debugInfo = {
+        TYPE: 'DEBUG_MODE_ON',
         MESSAGE: err.message,
-        CODE: err.code || err.name,
-        STATUS: err.response?.status,
+        CODE: err.code,
+        STATUS: err.response?.status || 'No Response',
         URL: err.config?.url,
         DATA: err.response?.data,
-        HEADERS: err.response?.headers,
       }
       return {
-        title: `DEBUG: ERRO (${err.response?.status || 'N/A'})`,
-        subtitle: JSON.stringify(debugData, null, 2)
+        title: `DEBUG: ${err.name || 'Erro'}`,
+        subtitle: JSON.stringify(debugInfo, null, 2)
       }
     }
 
-    if (data) {
-      return {
-        title: 'DEBUG: SUCESSO (200)',
-        subtitle: JSON.stringify(data, null, 2)
-      }
-    }
+    const friendlyMessage = (queryError as any).message || 'Não foi possível buscar o endereço.'
 
-    return null
+    return {
+      title: 'Não encontramos endereços',
+      subtitle: friendlyMessage
+    }
   }
 
-  const displayDebug = getDebugInfo()
+  const displayError = getDisplayError()
 
   const { mutateAsync: listRegistryMutate, isPending: isLoadingListRegistry } = useMutation({
     mutationFn: listRegistry,
@@ -117,21 +116,25 @@ export function AddressStep({ onNext }: { onNext: () => void }) {
 
       <AutoCompleteAddressInput
         placeholder="Buscar endereço"
-        options={[]}
+        options={data}
         onChange={handleChangeAddress}
         onConfirm={handleSubmit}
         isLoading={isLoading}
         onSelectAddress={handleSelectAddress}
         isLoadingAddress={isLoadingListAddress}
-        error={displayDebug}
+        error={displayError}
         isDirty={isEnabled}
         onClear={handleClearAddress}
       />
 
-      {(data || isError) && (
-        <div className="w-full overflow-hidden">
-          <pre className="mt-4 p-2 bg-slate-950 text-green-400 text-[10px] leading-tight overflow-x-auto max-h-60 rounded border border-gray-700 whitespace-pre-wrap font-mono break-all">
-            {displayDebug?.subtitle}
+      {IS_DEBUG_MODE && (data || isError) && (
+        <div className="w-full mt-4">
+          <p className="text-[10px] text-gray-500 font-bold mb-1">CONSOLE DEBUG (ENV ON):</p>
+          <pre className="p-2 bg-slate-950 text-green-400 text-[10px] leading-tight overflow-x-auto max-h-60 rounded border border-gray-700 whitespace-pre-wrap font-mono break-all">
+            {isError
+              ? displayError?.subtitle
+              : `SUCESSO:\n${JSON.stringify(data, null, 2)}`
+            }
           </pre>
         </div>
       )}
