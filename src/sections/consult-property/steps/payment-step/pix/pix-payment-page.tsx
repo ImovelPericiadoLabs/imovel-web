@@ -7,7 +7,7 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import { useForm, FormProvider } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Check, Clock } from 'lucide-react'
-import { useSession } from 'next-auth/react'
+import { useSession, signOut } from 'next-auth/react'
 
 import Button from '@/components/button'
 import Skeleton from '@/components/skeleton'
@@ -95,10 +95,6 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
       const formatted = `${String(expiresAt.getHours()).padStart(2, '0')}:${String(expiresAt.getMinutes()).padStart(2, '0')}`
       setExpirationTime(formatted)
     },
-    onError() {
-      setServerError('Erro ao gerar PIX. Tente novamente.')
-      setStep('details')
-    },
   })
 
   const { data: paymentStatusData } = useQuery({
@@ -138,11 +134,36 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
           plan_id: FIXED_PLAN_ID,
           document_id: undefined,
           name: formData.name,
-          document: formData.document, 
+          document: formData.document,
         })
         setStep('pix')
-      } catch (error) {
-        setServerError('Erro ao processar pagamento.')
+      } catch (error: any) {
+        console.log('❌ Erro capturado:', error);
+
+      
+        const isUnauthorized =
+          error?.code === 'token_not_valid' ||
+          error?.detail === 'Given token not valid for any token type' ||
+          error?.response?.status === 401 ||
+          error?.status === 401;
+
+        if (isUnauthorized) {
+          console.log('🔄 Token inválido detectado. Renovando autenticação...');
+
+          await signOut({ redirect: false })
+
+          try {
+            await startAuth({ email: formData.email })
+            setStep('auth')
+          } catch (authError) {
+            console.error(authError)
+            setServerError('Sessão expirada. Verifique seu e-mail.')
+            setStep('details')
+          }
+        } else {
+          setServerError('Erro ao processar pagamento. Tente novamente.')
+          setStep('details')
+        }
       } finally {
         setIsAuthLoading(false)
       }
