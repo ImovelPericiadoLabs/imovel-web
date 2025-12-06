@@ -2,9 +2,9 @@
 
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { useState, useRef, useEffect } from 'react' 
+import { useState, useEffect } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { useForm, Controller, SubmitHandler } from 'react-hook-form'
+import { useForm, Controller, SubmitHandler, FormProvider } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Check, Clock, Mail, ArrowLeft, AlertCircle } from 'lucide-react'
 import { signIn } from 'next-auth/react'
@@ -16,7 +16,6 @@ import Input from '@/components/input'
 import LoadingOverlay from '@/components/loading-overlay'
 import PixIcon from '@/components/icons/pix-icon'
 import Alert from '@/components/alert'
-import { InputOtp } from '@/sections/login/components/InputOtp'
 
 import { processPayment, getPaymentStatus } from '@/services/payments'
 import { startAuth } from '@/services/account'
@@ -24,13 +23,15 @@ import { formatMoney } from '@/utils/text'
 import { queryKey } from '@/constants/queries'
 import { validations, FormTypes } from './validations'
 
+import { AuthCodePage } from './AuthCodePage/AuthCodePage'
+
 interface PixPaymentPageProps {
   onCancel: () => void
   onFinish: () => void
   placeId?: string
 }
 
-type Step = 'details' | 'auth'
+type Step = 'details' | 'auth' | 'pix'
 
 const FIXED_PLAN_ID = '019aea72-ccab-76ee-883c-72cce61cedbb'
 
@@ -39,16 +40,20 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
 
   const [step, setStep] = useState<Step>('details')
   const [copied, setCopied] = useState(false)
-  const [isOpenBottomSheet, setIsOpenBottomSheet] = useState(true)
   const [expirationTime, setExpirationTime] = useState('')
   const [serverError, setServerError] = useState('')
   const [paymentId, setPaymentId] = useState<string | null>(null)
   const [isOpenConfirmPaymentBottomSheet, setIsOpenConfirmPaymentBottomSheet] = useState(false)
-
-  const [timer, setTimer] = useState(59)
   const [isAuthLoading, setIsAuthLoading] = useState(false)
 
-  const authStepRef = useRef<HTMLDivElement>(null)
+
+  const methods = useForm<FormTypes>({
+    resolver: zodResolver(validations),
+    defaultValues: {
+      code: '',
+      placeId: placeId || '',
+    }
+  })
 
   const {
     handleSubmit,
@@ -57,41 +62,27 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
     trigger,
     watch,
     getValues,
+    setValue, 
     formState: { errors },
-  } = useForm<FormTypes>({
-    resolver: zodResolver(validations),
-    defaultValues: {
-      code: '',
-      placeId: placeId || '',
-    }
-  })
+  } = methods
+
 
   useEffect(() => {
-    if (step !== 'auth' || timer === 0) return
-    const id = setInterval(() => setTimer((prev) => prev - 1), 1000)
-    return () => clearInterval(id)
-  }, [timer, step])
-
-  useEffect(() => {
-    if (step === 'auth' && authStepRef.current) {
-      authStepRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    if (paymentId) {
+      setStep('pix')
     }
-  }, [step])
+  }, [paymentId])
 
-  useEffect(() => { setIsOpenBottomSheet(true) }, [])
 
   function clearServerError() {
     setServerError('')
   }
 
   function handleCloseBottomSheet() {
-    if (step === 'auth') {
-      setStep('details')
-      return
-    }
-    setIsOpenBottomSheet(false)
-    if (!paymentId && onCancel) {
-      onCancel()
+    if (step === 'details') {
+      if (!paymentId && onCancel) {
+        onCancel()
+      }
     }
   }
 
@@ -99,15 +90,16 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
     mutationFn: processPayment,
     onSuccess(payment) {
       setPaymentId(payment?.id)
-      setIsOpenBottomSheet(false)
       const expiresAt = new Date(Date.now() + 30 * 60 * 1000)
       const formatted = `${String(expiresAt.getHours()).padStart(2, '0')}:${String(expiresAt.getMinutes()).padStart(2, '0')}`
       setExpirationTime(formatted)
     },
     onError() {
       setServerError('Erro ao gerar PIX. Tente novamente.')
+      setStep('details') 
     },
   })
+
 
   const { data: paymentStatusData } = useQuery({
     queryKey: [queryKey.paymentStatus, paymentId],
@@ -129,18 +121,12 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
     if (!isValid) return
 
     const email = getValues('email')
-    setServerError('')
+    clearServerError()
     setIsAuthLoading(true)
 
     try {
       await startAuth({ email })
-      setStep('auth')
-      setTimer(59)
-
-      setTimeout(() => {
-
-      }, 300);
-
+      setStep('auth') 
     } catch (error) {
       setServerError('Não foi possível enviar o código. Verifique o e-mail.')
     } finally {
@@ -148,14 +134,11 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
     }
   }
 
-  const handleFinalSubmit: SubmitHandler<FormTypes> = async (formData) => {
+  const handleAuthSuccess = async (code: string) => {
     setServerError('')
+    setValue('code', code); 
 
-    if (!formData.code || formData.code.length < 6) {
-      setServerError('O código deve ter 6 dígitos.')
-      return
-    }
-
+    const formData = getValues();
     const finalPlaceId = formData.placeId || placeId
 
     if (!finalPlaceId) {
@@ -166,18 +149,6 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
     setIsAuthLoading(true)
 
     try {
-      const result = await signIn('credentials', {
-        email: formData.email,
-        code: formData.code,
-        redirect: false,
-      })
-
-      if (result?.error) {
-        setServerError('Código incorreto ou expirado.')
-        setIsAuthLoading(false)
-        return
-      }
-
       await generatePix({
         place_id: finalPlaceId,
         plan_id: FIXED_PLAN_ID,
@@ -185,27 +156,16 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
         name: formData.name,
         document: formData.document,
       })
+
+      setStep('pix');
+
     } catch (error) {
-      setServerError('Erro inesperado ao processar.')
+      setServerError('Erro inesperado ao processar o pagamento.')
+      setStep('details');
     } finally {
       setIsAuthLoading(false)
     }
   }
-
-  const handleResendCode = async () => {
-    const email = getValues('email')
-    try {
-      await startAuth({ email })
-      setTimer(59)
-      setServerError('')
-    } catch (error) {
-      setServerError('Erro ao reenviar.')
-    }
-  }
-
-  const qrCodeUrl = pixData?.payload
-    ? `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(pixData.payload)}&margin=0`
-    : ''
 
   const handleCopy = async () => {
     try {
@@ -217,145 +177,117 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
 
   const isLoading = isAuthLoading || isPixPending
 
+  const showLoadingOverlay = isLoading && (step === 'details' || step === 'pix');
+
   return (
-    <div className="flex flex-col relative px-4 mt-6">
-      <div className="mb-6 -mt-20 text-white px-1 text-left relative z-50">
-        <p className="text-[17px] leading-snug font-normal">
-          Pague <span className="font-bold">R$ 67,56</span> via Pix para garantir <br />
-          sua compra
-        </p>
-      </div>
+    <FormProvider {...methods}>
+      <div className="flex flex-col relative px-4 mt-6">
 
-      <div className="mx-auto mb-8 relative z-50 shadow-xl rounded-2xl w-fit">
-        <div className="bg-primary p-1.5 rounded-2xl">
-          <div className="bg-white p-1.5 rounded-xl">
-            <div className="w-44 h-44 bg-white rounded-lg overflow-hidden flex items-center justify-center">
-              {isPixPending && <Skeleton className="w-full h-full object-contain" />}
-              {!pixData && !isPixPending && <PixIcon className="text-gray-300 w-20 h-20" />}
-              {!!pixData && (
-                <Image src={qrCodeUrl} alt="QR Pix" className="w-full h-full object-contain" width={400} height={400} />
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
+        {step === 'details' && (
+          <BottomSheet isOpen={true} onClose={handleCloseBottomSheet}>
+            <div className="p-4 pb-12 max-h-[85vh] overflow-y-auto flex flex-col gap-3">
 
-      {!!pixData && (
-        <div className="flex flex-col items-center w-full px-1 mt-2 animate-in fade-in">
-          <div className="text-center mb-5 w-full">
-            <p className="text-dark text-[15px] font-medium">Este código expira em 30 min, pague até {expirationTime}</p>
-          </div>
-          <div className="w-full bg-white border border-gray-200 rounded-xl p-4 mb-6">
-            <p className="text-[11px] text-gray-600 break-all font-mono text-center uppercase">{pixData.payload}</p>
-          </div>
-          <Button onClick={handleCopy} type="button">
-            <div className="flex items-center justify-center gap-1">
-              {copied ? <Check size={20} /> : null}
-              <span>{copied ? 'Copiado!' : 'Copiar código pix'}</span>
-            </div>
-          </Button>
-          <div className="flex items-center gap-2 text-primary font-medium text-sm py-4">
-            <Clock size={18} className="animate-spin" />
-            <span>Aguardando pagamento</span>
-          </div>
-        </div>
-      )}
-
-      {!isOpenConfirmPaymentBottomSheet && (
-        <BottomSheet isOpen={isOpenBottomSheet} onClose={handleCloseBottomSheet}>
-          <div className="p-4 pb-12 max-h-[85vh] overflow-y-auto flex flex-col gap-3">
-
-            <div className="flex flex-row gap-3 items-center mb-2">
-              {step === 'auth' ? (
-                <button onClick={() => setStep('details')} className="p-2 -ml-2 rounded-full hover:bg-gray-100">
-                  <ArrowLeft className="size-6 text-gray-600" />
-                </button>
-              ) : (
+              <div className="flex flex-row gap-3 items-center mb-2">
                 <div className="rounded-full bg-violet-50 size-14 flex items-center justify-center">
                   <div className="rounded-full size-10 bg-violet-100 flex items-center justify-center">
                     <PixIcon className="size-7 text-primary" />
                   </div>
                 </div>
-              )}
-              <p className="text-lg font-semibold leading-6 text-dark">
-                {step === 'details' ? 'Dados do PIX' : 'Confirmar código'}
-              </p>
-            </div>
+                <p className="text-lg font-semibold leading-6 text-dark">Dados para o PIX</p>
+              </div>
 
-            <form onSubmit={handleSubmit(handleFinalSubmit)} className="flex flex-col gap-4">
-              {!!serverError && <Alert variant="error" message={serverError} />}
+              <form onSubmit={(e) => e.preventDefault()} className="flex flex-col gap-4">
+                {!!serverError && <Alert variant="error" message={serverError} />}
 
-              <div className={step === 'details' ? 'flex flex-col gap-4' : 'hidden'}>
                 <Input {...register('name')} errors={errors} label="Nome do titular" placeholder="Ex: Roberto Silva" onKeyDown={clearServerError} />
                 <Input {...register('document')} errors={errors} label="CPF" placeholder="000.000.000-00" mask="cpf" inputMode="numeric" onKeyDown={clearServerError} />
                 <Input {...register('email')} errors={errors} label="E-mail" placeholder="email@email.com" onKeyDown={clearServerError} />
                 <Input {...register('whatsapp')} errors={errors} label="WhatsApp" placeholder="(99) 99999-9999" mask="whatsapp" inputMode="numeric" onKeyDown={clearServerError} />
 
                 <Button type="button" onClick={handleDetailsSubmit} disabled={isLoading}>
-                  {isLoading ? 'Enviando...' : 'Continuar'}
+                  {isLoading ? 'Enviando Código...' : 'Continuar'}
                 </Button>
-              </div>
+              </form>
+            </div>
+          </BottomSheet>
+        )}
 
-              <div className={step === 'auth' ? 'flex flex-col items-center animate-in fade-in slide-in-from-right-8' : 'hidden'} ref={authStepRef}>
-                <div className="mb-4 flex items-center justify-center size-14 rounded-full bg-[#F3E8FF]">
-                  <Mail className="size-7 text-primary" />
+        {/* 2. Etapa de Autenticação (Tela Cheia) */}
+        {step === 'auth' && (
+          <AuthCodePage
+            onBack={() => setStep('details')}
+            onSuccess={handleAuthSuccess}
+          />
+        )}
+
+        {step === 'pix' && !!pixData && (
+          <div className="flex flex-col items-center pt-10 -mt-27">
+
+            <div className="mb-6 text-white px-1 text-left relative z-10 w-full text-center">
+              <p className="text-   leading-snug font-normal text-color-background">
+                Pague <span className="font-bold">{formatMoney(70.56)}</span> via Pix para garantir <br />
+                sua compra
+              </p>
+            </div>
+
+            <div className="mx-auto mb-8 relative z-10 shadow-xl rounded-2xl w-fit -mt-5">
+              <div className="bg-primary p-1.5 rounded-2xl">
+                <div className="bg-white p-1.5 rounded-xl">
+                  <div className="w-32 h-32 bg-white rounded-lg overflow-hidden flex items-center justify-center">
+                    {isPixPending && <Skeleton className="w-full h-full object-contain" />}
+                    {!!pixData && (
+                      <Image
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(pixData.payload)}&margin=0`}
+                        alt="QR Pix"
+                        className="w-full h-full object-contain"
+                        width={150}
+                        height={150}
+                      />
+                    )}
+                  </div>
                 </div>
-
-                <p className="text-sm text-center text-[#4B4B4B] mb-6 max-w-xs">
-                  Enviamos um código para <span className="font-medium">{watch('email')}</span>.
-                </p>
-
-                <Controller
-                  name="code"
-                  control={control}
-                  render={({ field, fieldState }) => (
-                    <InputOtp
-                      value={field.value ?? ''}
-                      onChange={(val) => {
-                        field.onChange(val)
-                        clearServerError()
-                      }}
-                      length={6}
-                      isError={!!fieldState.error || !!serverError}
-                    />
-                  )}
-                />
-
-                <div className="text-xs text-[#4B4B4B] mt-6 mb-6 flex gap-1">
-                  {timer === 0 ? (
-                    <button type="button" onClick={handleResendCode} className="text-primary font-medium hover:underline">
-                      Reenviar agora
-                    </button>
-                  ) : (
-                    <span className="text-primary font-medium">Reenviar em {timer}s</span>
-                  )}
-                </div>
-
-                <Button type="submit" disabled={isLoading}>
-                  {isLoading ? 'Validando...' : 'Confirmar e Gerar Pix'}
-                </Button>
               </div>
-            </form>
-          </div>
-        </BottomSheet>
-      )}
+            </div>
 
-      <BottomSheet isOpen={isOpenConfirmPaymentBottomSheet} onClose={() => router.push('/pedidos')}>
-        <div className="flex flex-col items-center gap-6 pb-12 px-4 py-8">
-          <div className="relative">
-            <div className="size-16 rounded-full bg-emerald-100 flex items-center justify-center animate-[scale-in_0.4s_ease-out]">
-              <Check className="w-10 h-10 text-emerald-600" />
+            <div className="flex flex-col items-center w-full px-1 mt-2 animate-in fade-in">
+              <div className="text-center mb-5 w-full">
+                <p className="text-dark text-[15px] font-medium">Este código expira em 30 min, pague até {expirationTime}</p>
+              </div>
+              <div className="w-full bg-white border border-gray-200 rounded-xl p-4 mb-6">
+                <p className="text-[11px] text-gray-600 break-all font-mono text-center uppercase">{pixData.payload}</p>
+              </div>
+              <Button onClick={handleCopy} type="button">
+                <div className="flex items-center justify-center gap-1">
+                  {copied ? <Check size={20} /> : null}
+                  <span>{copied ? 'Copiado!' : 'Copiar código pix'}</span>
+                </div>
+              </Button>
+              <div className="flex items-center gap-2 text-primary font-medium text-sm py-4">
+                <Clock size={18} className="animate-spin" />
+                <span>Aguardando pagamento</span>
+              </div>
             </div>
           </div>
-          <div className="flex flex-col items-center gap-2">
-            <span className="text-lg font-semibold text-dark">Pagamento concluído</span>
-            <span className="text-sm font-semibold text-dark">{formatMoney(paymentStatusData?.amount)}</span>
-          </div>
-          <Button onClick={() => router.push('/pedidos')}>Ir para meus pedidos</Button>
-        </div>
-      </BottomSheet>
+        )}
 
-      <LoadingOverlay isLoading={isLoading} message={step === 'auth' ? "Validando..." : "Processando..."} />
-    </div>
+        {/* BottomSheet de Confirmação de Pagamento */}
+        <BottomSheet isOpen={isOpenConfirmPaymentBottomSheet} onClose={() => router.push('/pedidos')}>
+          <div className="flex flex-col items-center gap-6 pb-12 px-4 py-8">
+            <div className="relative">
+              <div className="size-16 rounded-full bg-emerald-100 flex items-center justify-center animate-[scale-in_0.4s_ease-out]">
+                <Check className="w-10 h-10 text-emerald-600" />
+              </div>
+            </div>
+            <div className="flex flex-col items-center gap-2">
+              <span className="text-lg font-semibold text-dark">Pagamento concluído</span>
+              <span className="text-sm font-semibold text-dark">{formatMoney(paymentStatusData?.amount || 0)}</span>
+            </div>
+            <Button onClick={() => router.push('/pedidos')}>Ir para meus pedidos</Button>
+          </div>
+        </BottomSheet>
+
+        <LoadingOverlay isLoading={showLoadingOverlay} message={step === 'details' ? "Enviando Código..." : "Processando Pagamento..."} />
+      </div>
+    </FormProvider>
   )
 }
