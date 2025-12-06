@@ -46,27 +46,43 @@ export type ListAddressResponse = {
 }
 
 export async function listAddresses(address: string) {
-  const data = {
+  const payload = {
     q: address,
     with_registry: false,
   }
 
-  const addresses = (await api.post(endpoint.addresses, data)) as AddressApiResponse
+  try {
+    // Tenta fazer a requisição
+    const response = await api.post(endpoint.addresses, payload)
 
-  return (
-    addresses?.suggestions?.map((item) => {
-      const place = item.placePrediction
+    // SE DER CERTO: Retorna um objeto de Debug de Sucesso
+    return {
+      _DEBUG_STATUS: 'SUCESSO (200 OK)',
+      _DEBUG_TYPE: 'API_RESPONSE',
+      payload_enviado: payload,
+      resposta_recebida: response, // O que veio da API
+    }
 
-      return {
-        primary: place?.structuredFormat?.mainText?.text ?? '',
+  } catch (error: any) {
+    // SE DER ERRO: Captura o erro e RETORNA ele (não dá throw)
 
-        secondary: place?.structuredFormat?.secondaryText?.text ?? '',
+    // Tenta extrair detalhes se for um erro de Axios/HTTP
+    const errorDetails = {
+      status: error.response?.status || 'Sem status',
+      statusText: error.response?.statusText || 'Sem texto',
+      data: error.response?.data || 'Sem body de resposta',
+      headers: error.response?.headers || 'Sem headers',
+      message: error.message,
+      code: error.code
+    }
 
-        value: place?.text?.text ?? '',
-        placeId: place?.placeId,
-      }
-    }) || []
-  )
+    return {
+      _DEBUG_STATUS: 'ERRO / EXCEPTION',
+      _DEBUG_TYPE: 'API_ERROR',
+      payload_enviado: payload,
+      detalhes_erro: errorDetails
+    }
+  }
 }
 
 export async function listAddress({ address, placeId }: ListAddressRequest) {

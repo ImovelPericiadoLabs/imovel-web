@@ -37,12 +37,48 @@ export function AddressStep({ onNext }: { onNext: () => void }) {
     return null
   }
 
-  const { data, isLoading, isEnabled } = useQuery({
+  const { data, isLoading, isEnabled, isError, error: queryError } = useQuery({
     queryKey: [queryKey.getAddresses, debouncedAddress],
     queryFn: () => listAddresses(debouncedAddress),
     enabled: !getError() && debouncedAddress === address && address.length >= 3,
     refetchOnWindowFocus: false,
+    retry: 0,
   })
+
+  const getDebugInfo = () => {
+    if (isLoading) return null
+
+    const validationError = getError()
+    if (validationError) return validationError
+
+    if (isError && queryError) {
+      const err = queryError as any
+      const debugData = {
+        TYPE: 'ERROR_CATCH',
+        MESSAGE: err.message,
+        CODE: err.code || err.name,
+        STATUS: err.response?.status,
+        URL: err.config?.url,
+        DATA: err.response?.data,
+        HEADERS: err.response?.headers,
+      }
+      return {
+        title: `DEBUG: ERRO (${err.response?.status || 'N/A'})`,
+        subtitle: JSON.stringify(debugData, null, 2)
+      }
+    }
+
+    if (data) {
+      return {
+        title: 'DEBUG: SUCESSO (200)',
+        subtitle: JSON.stringify(data, null, 2)
+      }
+    }
+
+    return null
+  }
+
+  const displayDebug = getDebugInfo()
 
   const { mutateAsync: listRegistryMutate, isPending: isLoadingListRegistry } = useMutation({
     mutationFn: listRegistry,
@@ -57,9 +93,7 @@ export function AddressStep({ onNext }: { onNext: () => void }) {
 
   async function handleSelectAddress(placeId: string) {
     setValue('placeId', placeId)
-
     const response = await listAddressMutate({ address, placeId })
-
     return (response as any).address || ''
   }
 
@@ -83,16 +117,24 @@ export function AddressStep({ onNext }: { onNext: () => void }) {
 
       <AutoCompleteAddressInput
         placeholder="Buscar endereço"
-        options={data}
+        options={[]}
         onChange={handleChangeAddress}
         onConfirm={handleSubmit}
         isLoading={isLoading}
         onSelectAddress={handleSelectAddress}
         isLoadingAddress={isLoadingListAddress}
-        error={getError()}
+        error={displayDebug}
         isDirty={isEnabled}
         onClear={handleClearAddress}
       />
+
+      {(data || isError) && (
+        <div className="w-full overflow-hidden">
+          <pre className="mt-4 p-2 bg-slate-950 text-green-400 text-[10px] leading-tight overflow-x-auto max-h-60 rounded border border-gray-700 whitespace-pre-wrap font-mono break-all">
+            {displayDebug?.subtitle}
+          </pre>
+        </div>
+      )}
 
       {!address?.length && (
         <div className="border border-box p-4 flex flex-col gap-8">
