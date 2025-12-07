@@ -280,15 +280,17 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
                 <Input {...register('name')} errors={errors} label="Nome do titular" placeholder="Ex: Roberto Silva" onKeyDown={clearServerError} />
                 <Input {...register('document')} errors={errors} label="CPF" placeholder="000.000.000-00" mask="cpf" inputMode="numeric" onKeyDown={clearServerError} />
 
-                <Input
-                  {...register('email')}
-                  errors={errors}
-                  label="E-mail"
-                  placeholder="email@email.com"
-                  onKeyDown={clearServerError}
-                  disabled={status === 'authenticated'}
-                  className={status === 'authenticated' ? "bg-gray-100 text-gray-500 cursor-not-allowed opacity-80" : ""}
-                />
+                {status === 'authenticated' ? (
+                  <input type="hidden" {...register('email')} />
+                ) : (
+                  <Input
+                    {...register('email')}
+                    errors={errors}
+                    label="E-mail"
+                    placeholder="email@email.com"
+                    onKeyDown={clearServerError}
+                  />
+                )}
 
                 <Input {...register('whatsapp')} errors={errors} label="WhatsApp" placeholder="(99) 99999-9999" mask="whatsapp" inputMode="numeric" onKeyDown={clearServerError} />
 
