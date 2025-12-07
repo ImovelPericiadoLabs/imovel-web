@@ -34,6 +34,7 @@ interface PixPaymentPageProps {
 type Step = 'details' | 'auth' | 'pix'
 
 const FIXED_PLAN_ID = '019aea72-ccab-76ee-883c-72cce61cedbb'
+const STORAGE_KEY = '@pix-payment:form-data'
 
 export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPageProps) {
   const router = useRouter()
@@ -52,6 +53,10 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
     defaultValues: {
       code: '',
       placeId: placeId || '',
+      name: '',
+      document: '',
+      email: '',
+      whatsapp: '',
     }
   })
 
@@ -62,6 +67,24 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
     trigger,
     formState: { errors },
   } = methods
+
+  useEffect(() => {
+    const savedData = localStorage.getItem(STORAGE_KEY)
+    if (savedData) {
+      try {
+        const parsed = JSON.parse(savedData)
+        if (parsed.name) setValue('name', parsed.name)
+        if (parsed.document) setValue('document', parsed.document)
+        if (parsed.whatsapp) setValue('whatsapp', parsed.whatsapp)
+
+        if (parsed.email && status !== 'authenticated') {
+          setValue('email', parsed.email)
+        }
+      } catch (error) {
+        console.error(error)
+      }
+    }
+  }, [setValue, status])
 
   useEffect(() => {
     if (status === 'authenticated' && session?.user?.email) {
@@ -117,6 +140,14 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
     if (!isValid) return
 
     const formData = getValues()
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      name: formData.name,
+      document: formData.document,
+      email: formData.email,
+      whatsapp: formData.whatsapp
+    }))
+
     const finalPlaceId = formData.placeId || placeId
 
     if (!finalPlaceId) {
@@ -140,7 +171,6 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
       } catch (error: any) {
         console.log('❌ Erro capturado:', error);
 
-      
         const isUnauthorized =
           error?.code === 'token_not_valid' ||
           error?.detail === 'Given token not valid for any token type' ||
@@ -250,7 +280,6 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
                 <Input {...register('name')} errors={errors} label="Nome do titular" placeholder="Ex: Roberto Silva" onKeyDown={clearServerError} />
                 <Input {...register('document')} errors={errors} label="CPF" placeholder="000.000.000-00" mask="cpf" inputMode="numeric" onKeyDown={clearServerError} />
 
-                {/* MODIFICADO: Campo de email com estilo visual de desabilitado se logado */}
                 <Input
                   {...register('email')}
                   errors={errors}
