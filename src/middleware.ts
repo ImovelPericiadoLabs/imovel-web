@@ -1,33 +1,17 @@
-import { withAuth } from "next-auth/middleware"
-import { NextResponse } from "next/server"
+// middleware.ts
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
+import { getToken } from 'next-auth/jwt'
 
-export default withAuth(
-  function middleware(req) {
-    return NextResponse.next()
-  },
-  {
-    secret: process.env.NEXTAUTH_SECRET,
-    callbacks: {
-      authorized: ({ req, token }) => {
-        const publicPaths = ['/consultar-imovel']
-        
-        const isPublicPath = publicPaths.includes(req.nextUrl.pathname)
-        
-        if (isPublicPath) {
-          return true
-        }
-        
-        return !!token
-      },
-    },
-    pages: {
-      signIn: '/consultar-imovel', 
-    },
-  }
-)
+export async function middleware(req: NextRequest) {
+  const token = await getToken({ req })
+
+  // Se NÃO estiver autenticado, não fazemos nada aqui (não redirecionamos).
+  // Apenas deixamos o fluxo seguir para a página, onde o Layout vai barrar a renderização.
+
+  return NextResponse.next()
+}
 
 export const config = {
-  matcher: [
-    '/((?!api|_next/static|_next/image|favicon.ico|images).*)',
-  ],
+  matcher: ['/consultar-imovel/:path*', '/outra-rota-protegida/:path*'],
 }
