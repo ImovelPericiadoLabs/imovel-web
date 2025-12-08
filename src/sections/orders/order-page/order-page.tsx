@@ -1,15 +1,40 @@
 'use client'
+
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { ChevronRight } from 'lucide-react'
 import { cn } from '@/utils/tailwind'
 import TrafficLightModal from '@/components/traffic-light-modal'
 import Badge from '@/components/badge'
+import LoadingOverlay from '@/components/loading-overlay'
 import { mapCircleStatus, mapBadgeStatus } from '@/sections/orders/constants'
 import OrderHeader from '@/sections/orders/order-header'
+import { getOrder, Order } from '@/services/orders'
 
 export default function OrderPage() {
   const { id } = useParams()
+
+  const [order, setOrder] = useState<Order | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    async function fetchOrderData() {
+      if (!id) return
+
+      setIsLoading(true)
+      try {
+        const data = await getOrder(id as string)
+        setOrder(data)
+      } catch (error) {
+        console.error('Erro ao buscar detalhes do pedido:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchOrderData()
+  }, [id])
 
   const boxes = [
     {
@@ -34,9 +59,30 @@ export default function OrderPage() {
     PURCHASE_AND_SALE_BLOCKED: 'Sinal vermelho',
   }
 
+  if (isLoading) {
+    return <LoadingOverlay isLoading={true} message="Carregando detalhes..." />
+  }
+
+  if (!order) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[50vh] px-4 text-center">
+        <p className="text-gray-500">Pedido não encontrado.</p>
+        <Link href="/pedidos" className="text-primary mt-4 underline">
+          Voltar para lista
+        </Link>
+      </div>
+    )
+  }
+
   return (
-    <div className="flex flex-col gap-3">
-      <OrderHeader />
+    <div className="flex flex-col gap-3 pb-10">
+      {/* Header agora recebe dados dinâmicos do pedido */}
+      <OrderHeader
+        code={order.code}
+        created={order.created}
+        address={order.formatted_address}
+        analysisStatus={order.analysis_status}
+      />
 
       <div className="flex flex-col gap-2 px-3 lg:px-0 w-full mx-auto lg:max-w-lg">
         {boxes.map((item) => (
