@@ -10,18 +10,32 @@ export type ListOrdersRequest = {
   status?: OrderStatus | string
 }
 
+// Atualizado conforme o JSON real
 export type Order = {
   id: string
-  status: string
-  total: number
-  createdAt: string
+  code: number
+  analysis_status: string
+  payment_status: string
+  amount: string
+  formatted_address: string
+  created: string
+  modified: string
+  place_id: string
 }
 
+// Atualizado: trocamos 'results' por 'items' e adicionamos 'meta'
 export type OrdersApiResponse = {
-  results: Order[]
-  count?: number
-  next?: string | null
-  previous?: string | null
+  items: Order[]
+  meta: {
+    total_items: number
+    total_pages: number
+    page: number
+    limit: number
+  }
+  links: {
+    next: string | null
+    previous: string | null
+  }
 }
 
 export type Plan = {
@@ -54,14 +68,8 @@ export async function listOrders(params: ListOrdersRequest = {}) {
 
   const url = `${endpoint.orders}?${queryParams.toString()}`
 
-  try {
-    return (await api.get(url, token)) as OrdersApiResponse
-  } catch (error: any) {
-    if (error.message === 'Network Error') {
-      throw new Error('Erro de conexão. Verifique sua internet.')
-    }
-    throw error
-  }
+  // Mantendo a forma que funcionou para você (wrapper api/client)
+  return api.get(url, token) as Promise<OrdersApiResponse>
 }
 
 export async function listPlans() {
@@ -72,7 +80,11 @@ export async function listPlans() {
     throw new Error('Usuário não autenticado')
   }
 
-  const response = (await api.get(endpoint.plans, token)) as PlansApiResponse | Plan[]
+  const response = (await api.get(endpoint.plans, token)) as any
 
-  return Array.isArray(response) ? response : (response as PlansApiResponse).plans || []
+  if (Array.isArray(response)) {
+    return response as Plan[]
+  }
+
+  return (response as PlansApiResponse)?.plans || []
 }
