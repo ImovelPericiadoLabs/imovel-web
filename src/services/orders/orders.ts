@@ -82,7 +82,8 @@ export async function getOrder(orderId: string) {
     throw new Error('ID do pedido é obrigatório')
   }
 
-  const url = `${endpoint.orders}/${orderId}/`
+  const baseUrl = endpoint.orders.replace(/\/$/, '')
+  const url = `${baseUrl}/${orderId}/`
 
   return api.get(url, token) as Promise<Order>
 }

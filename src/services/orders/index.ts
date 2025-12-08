@@ -6,5 +6,6 @@ export {
   type Order,
   type OrdersApiResponse,
   type Plan,
-  type PlansApiResponse
+  type PlansApiResponse,
+  getOrder
 } from './orders'
