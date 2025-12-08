@@ -10,20 +10,19 @@ export type ListOrdersRequest = {
   status?: OrderStatus | string
 }
 
-// Atualizado conforme o JSON real
 export type Order = {
   id: string
   code: number
-  analysis_status: string
-  payment_status: string
+  analysis_status: 'PENDING' | 'IN_PROGRESS' | 'APPROVED' | 'REJECTED' | string
+  payment_status: 'CREATED' | 'WAITING' | 'PAID' | 'FAILED' | 'CANCELED' | string
   amount: string
-  formatted_address: string
+  document: string | null
+  place_id: string | null
+  formatted_address: string | null
   created: string
   modified: string
-  place_id: string
 }
 
-// Atualizado: trocamos 'results' por 'items' e adicionamos 'meta'
 export type OrdersApiResponse = {
   items: Order[]
   meta: {
@@ -68,8 +67,24 @@ export async function listOrders(params: ListOrdersRequest = {}) {
 
   const url = `${endpoint.orders}?${queryParams.toString()}`
 
-  // Mantendo a forma que funcionou para você (wrapper api/client)
   return api.get(url, token) as Promise<OrdersApiResponse>
+}
+
+export async function getOrder(orderId: string) {
+  const session = await getSession()
+  const token = session?.accessToken
+
+  if (!token) {
+    throw new Error('Usuário não autenticado')
+  }
+
+  if (!orderId) {
+    throw new Error('ID do pedido é obrigatório')
+  }
+
+  const url = `${endpoint.orders}/${orderId}/`
+
+  return api.get(url, token) as Promise<Order>
 }
 
 export async function listPlans() {
