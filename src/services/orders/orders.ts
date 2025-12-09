@@ -1,6 +1,7 @@
 import api from '@/utils/api/client'
 import { endpoint } from '@/constants/api'
-import { getSession } from 'next-auth/react'
+import { getSession, signOut } from 'next-auth/react'
+
 
 export type OrderStatus = 'CREATED' | 'PAID' | 'CANCELED' | 'PENDING'
 
@@ -48,59 +49,71 @@ export type PlansApiResponse = {
   plans: Plan[]
 }
 
-export async function listOrders(params: ListOrdersRequest = {}) {
+async function guard<T>(callback: (token: string) => Promise<T>): Promise<T> {
+  const handleAuthError = async () => {
+    if (typeof window !== 'undefined') {
+      await signOut({ redirect: false })
+      window.location.reload()
+    }
+  }
+
   const session = await getSession()
   const token = session?.accessToken
 
   if (!token) {
-    throw new Error('Usuário não autenticado')
+    await handleAuthError()
+    throw new Error('Sessão inválida ou expirada.')
   }
 
-  const { limit = 20, p = 0, status } = params
-  const queryParams = new URLSearchParams()
-  queryParams.append('limit', String(limit))
-  queryParams.append('p', String(p))
-
-  if (status) {
-    queryParams.append('status', status)
+  try {
+    return await callback(token)
+  } catch (error: any) {
+    if (error?.status === 401) {
+      await handleAuthError()
+    }
+    
+    throw error
   }
+}
 
-  const url = `${endpoint.orders}?${queryParams.toString()}`
+export async function listOrders(params: ListOrdersRequest = {}) {
+  return guard(async (token) => {
+    const { limit = 20, p = 0, status } = params
+    const queryParams = new URLSearchParams()
+    queryParams.append('limit', String(limit))
+    queryParams.append('p', String(p))
 
-  return api.get(url, token) as Promise<OrdersApiResponse>
+    if (status) {
+      queryParams.append('status', status)
+    }
+
+    const url = `${endpoint.orders}?${queryParams.toString()}`
+
+    return api.get(url, token) as Promise<OrdersApiResponse>
+  })
 }
 
 export async function getOrder(orderId: string) {
-  const session = await getSession()
-  const token = session?.accessToken
+  return guard(async (token) => {
+    if (!orderId) {
+      throw new Error('ID do pedido é obrigatório')
+    }
 
-  if (!token) {
-    throw new Error('Usuário não autenticado')
-  }
+    const baseUrl = endpoint.orders.replace(/\/$/, '')
+    const url = `${baseUrl}/${orderId}/`
 
-  if (!orderId) {
-    throw new Error('ID do pedido é obrigatório')
-  }
-
-  const baseUrl = endpoint.orders.replace(/\/$/, '')
-  const url = `${baseUrl}/${orderId}/`
-
-  return api.get(url, token) as Promise<Order>
+    return api.get(url, token) as Promise<Order>
+  })
 }
 
 export async function listPlans() {
-  const session = await getSession()
-  const token = session?.accessToken
+  return guard(async (token) => {
+    const response = (await api.get(endpoint.plans, token)) as any
 
-  if (!token) {
-    throw new Error('Usuário não autenticado')
-  }
+    if (Array.isArray(response)) {
+      return response as Plan[]
+    }
 
-  const response = (await api.get(endpoint.plans, token)) as any
-
-  if (Array.isArray(response)) {
-    return response as Plan[]
-  }
-
-  return (response as PlansApiResponse)?.plans || []
+    return (response as PlansApiResponse)?.plans || []
+  })
 }
