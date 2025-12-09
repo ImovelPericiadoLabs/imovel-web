@@ -5,7 +5,6 @@ import { Controller, useFormContext } from 'react-hook-form'
 import { Mail, ArrowLeft, AlertCircle } from 'lucide-react'
 import { signIn } from 'next-auth/react'
 
-// Importe os tipos de formulário e componentes do seu projeto
 import Button from '@/components/button'
 import Alert from '@/components/alert'
 import { InputOtp } from '@/sections/login/components/InputOtp'
@@ -33,7 +32,6 @@ export function AuthCodePage({ onBack, onSuccess }: AuthCodePageProps) {
         }
     }, [email, onBack]);
 
-    // Timer para reenviar código
     useEffect(() => {
         if (timer === 0) return
         const id = setInterval(() => {
