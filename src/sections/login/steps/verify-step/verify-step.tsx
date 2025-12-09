@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Controller, useFormContext } from 'react-hook-form'
-import { Mail, ArrowLeft, AlertCircle } from 'lucide-react' 
+import { Mail, AlertCircle } from 'lucide-react'
 import { signIn } from 'next-auth/react'
 import { FormTypes } from '@/sections/login/validations'
 import { InputOtp } from '@/sections/login/components/InputOtp'
@@ -14,14 +14,14 @@ export function VerifyCodeStep({ onBack }: { onBack: () => void }) {
   const { control, watch, handleSubmit, formState: { isSubmitting } } = useFormContext<FormTypes>()
 
   const email = watch('email')
-   
+
   const [timer, setTimer] = useState(59)
   const [errorMsg, setErrorMsg] = useState('')
   const [isResending, setIsResending] = useState(false)
 
   useEffect(() => {
     if (!email) {
-       onBack();
+      onBack();
     }
   }, [email, onBack]);
 
@@ -50,15 +50,15 @@ export function VerifyCodeStep({ onBack }: { onBack: () => void }) {
 
       if (result?.error) {
         console.error('Erro no login:', result.error)
-     
+
         const cleanError = result.error.replace("Error: ", "")
-        
+
         setErrorMsg(cleanError || 'Código incorreto ou expirado.')
         return
       }
 
       console.log('Autenticado com sucesso.')
-      router.push('/consultar-imovel')
+      router.refresh()
 
     } catch (error) {
       console.error('Erro inesperado:', error)
@@ -68,7 +68,7 @@ export function VerifyCodeStep({ onBack }: { onBack: () => void }) {
 
   const handleResendCode = async () => {
     if (!email) return;
-    
+
     try {
       setIsResending(true)
       setErrorMsg('')
@@ -82,7 +82,7 @@ export function VerifyCodeStep({ onBack }: { onBack: () => void }) {
     }
   }
 
-  if (!email) return null; 
+  if (!email) return null;
 
   return (
     <form
@@ -115,8 +115,8 @@ export function VerifyCodeStep({ onBack }: { onBack: () => void }) {
 
       {errorMsg && (
         <div className="flex items-center gap-2 mt-4 text-red-600 bg-red-50 px-4 py-2 rounded-md text-xs font-medium animate-in fade-in">
-           <AlertCircle className="size-4" />
-           <span>{errorMsg}</span>
+          <AlertCircle className="size-4" />
+          <span>{errorMsg}</span>
         </div>
       )}
 

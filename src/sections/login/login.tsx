@@ -24,7 +24,7 @@ function Activity({ isActive, children }: { isActive: boolean; children: ReactNo
     )
 }
 
-export default function Login() {
+export function Login() {
     const [flow, setFlow] = useState<FlowState>('email')
     const router = useRouter()
 
