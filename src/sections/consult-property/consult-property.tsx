@@ -13,7 +13,8 @@ import {
   DocumentTypeStep,
   SendDocumentStep,
   SummaryStep,
-  AddressComplementStep
+  AddressComplementStep,
+  SuccessStep
 } from '@/sections/consult-property/steps'
 import { PaymentConfirmationStep } from '@/sections/consult-property/steps/payment-step/payment-confirmation-step/payment-confirmation-step'
 import { SavedCardsPage } from '@/sections/consult-property/steps/payment-step/card/select'
@@ -23,7 +24,7 @@ import { validations, FormTypes } from '@/sections/consult-property/validations'
 
 type FlowState =
   | 'address'
-  | 'address-complement' 
+  | 'address-complement'
   | 'doc-confirmation'
   | 'doc-type'
   | 'send-doc'
@@ -88,6 +89,8 @@ export default function ConsultProperty() {
 
   const currentProgress = (progressSteps[flow] / 6) * 100
 
+  const isFinished = flow === 'finished'
+
   const showProgressBar = ![
     'payment-cards',
     'payment-card-new',
@@ -97,13 +100,15 @@ export default function ConsultProperty() {
 
   return (
     <section className="min-h-screen bg-background">
-      <header className="flex flex-col pt-4 px-4 bg-primary relative z-40">
+      <header
+        className={`flex flex-col pt-4 px-4 relative z-40 transition-colors duration-500 ${isFinished ? 'bg-emerald-600' : 'bg-primary'
+          }`}
+      >
         <div className="flex items-center justify-between py-4.5 mb-6">
           <ChevronLeft
             onClick={back}
-            className={`size-7 text-white transition-opacity ${
-              flow === 'address' ? 'opacity-0 pointer-events-none' : 'cursor-pointer'
-            }`}
+            className={`size-7 text-white transition-opacity ${flow === 'address' ? 'opacity-0 pointer-events-none' : 'cursor-pointer'
+              }`}
             role="button"
           />
 
@@ -119,7 +124,12 @@ export default function ConsultProperty() {
         {showProgressBar && <ProgressBar value={currentProgress} className="mb-3" />}
       </header>
 
-      <div className="relative bg-primary h-30 -mt-1"></div>
+      {/* 3. DIV DECORATIVA (FUNDO) TAMBÉM CONDICIONAL */}
+      {/* Ela precisa acompanhar a cor do header para não quebrar o layout */}
+      <div
+        className={`relative h-30 -mt-1 transition-colors duration-500 ${isFinished ? 'bg-emerald-600' : 'bg-primary'
+          }`}
+      ></div>
 
       <FormProvider {...methods}>
         <main className="w-full mx-auto lg:max-w-lg pt-5 px-0 -mt-24">
@@ -162,7 +172,9 @@ export default function ConsultProperty() {
 
           <Activity isActive={flow === 'payment-confirm'}>
             <PaymentConfirmationStep
-              onFinish={() => router.push('/activity')}
+              // CORREÇÃO: Mude para go('finished')
+              onFinish={() => go('finished')}
+
               onBackToMethods={back}
               onAddNewCard={() => go('payment-card-new')}
               onSelectCard={() => go('finished')}
@@ -170,9 +182,7 @@ export default function ConsultProperty() {
           </Activity>
 
           <Activity isActive={flow === 'finished'}>
-            <div className="p-6 text-center">
-              <h2 className="text-xl font-bold">Processando seu pedido...</h2>
-            </div>
+            <SuccessStep onNavigateToOrders={() => router.push('/pedidos')} />
           </Activity>
         </main>
       </FormProvider>

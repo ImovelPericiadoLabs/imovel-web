@@ -42,9 +42,9 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
 
   const parentForm = useFormContext()
   const rawComplement = parentForm?.getValues('addressComplement')
-  
-  const addressComplement = rawComplement && rawComplement.trim().length > 0 
-    ? rawComplement 
+
+  const addressComplement = rawComplement && rawComplement.trim().length > 0
+    ? rawComplement
     : undefined
 
   const [step, setStep] = useState<Step>('details')
@@ -133,7 +133,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
     enabled: !!paymentId,
     refetchInterval: (queryData) => {
       if (queryData?.state?.data?.status === 'CONFIRMED') {
-        setIsOpenConfirmPaymentBottomSheet(true)
+        onFinish()
         return false
       }
       return 5000
@@ -173,7 +173,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
           document_id: undefined,
           name: formData.name,
           document: formData.document,
-          complement: addressComplement, 
+          complement: addressComplement,
         })
         setStep('pix')
       } catch (error: any) {
@@ -238,7 +238,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
         document_id: undefined,
         name: formData.name,
         document: formData.document,
-        complement: addressComplement, 
+        complement: addressComplement,
       })
 
       setStep('pix')
@@ -249,13 +249,31 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
       setIsAuthLoading(false)
     }
   }
-
   const handleCopy = async () => {
     try {
+      // 1. Comportamento Padrão: Copiar texto
       await navigator.clipboard.writeText(pixData?.payload || '')
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
-    } catch (error) { console.error(error) }
+
+      // 2. DEV MODE TRIGGER: Simular Sucesso
+      const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true'
+
+      if (isDevMode) {
+        console.log('🔧 DEV MODE: Simulando pagamento confirmado...')
+
+        // Opcional: Feedback visual para você saber que foi o script de dev
+        // toast.success("DEV MODE: Pagamento auto-confirmado!") 
+
+        // Aguarda 1.5s para você ver o "Copiado!" e dar sensação de processamento
+        setTimeout(() => {
+          onFinish() // <--- Chama a função que avança o fluxo para a tela de Sucesso
+        }, 1500)
+      }
+
+    } catch (error) {
+      console.error(error)
+    }
   }
 
   const isLoading = isAuthLoading || isPixPending
@@ -358,6 +376,13 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
                   <span>{copied ? 'Copiado!' : 'Copiar código pix'}</span>
                 </div>
               </Button>
+
+              {/* Aviso visual somente em Dev Mode (Opcional, mas ajuda muito) */}
+              {process.env.NEXT_PUBLIC_DEV_MODE === 'true' && step === 'pix' && (
+                <div className="mt-4 p-2 bg-yellow-100 text-yellow-800 text-xs rounded text-center border border-yellow-200">
+                  🚧 <strong>Modo Dev Ativo:</strong> Ao copiar o código, o pagamento será aprovado automaticamente.
+                </div>
+              )}
               <div className="flex items-center gap-2 text-primary font-medium text-sm py-4">
                 <Clock size={18} className="animate-spin" />
                 <span>Aguardando pagamento</span>
@@ -365,21 +390,6 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
             </div>
           </div>
         )}
-
-        <BottomSheet isOpen={isOpenConfirmPaymentBottomSheet} onClose={() => router.push('/pedidos')}>
-          <div className="flex flex-col items-center gap-6 pb-12 px-4 py-8">
-            <div className="relative">
-              <div className="size-16 rounded-full bg-emerald-100 flex items-center justify-center animate-[scale-in_0.4s_ease-out]">
-                <Check className="w-10 h-10 text-emerald-600" />
-              </div>
-            </div>
-            <div className="flex flex-col items-center gap-2">
-              <span className="text-lg font-semibold text-dark">Pagamento concluído</span>
-              <span className="text-sm font-semibold text-dark">{formatMoney(paymentStatusData?.amount || 0)}</span>
-            </div>
-            <Button onClick={() => router.push('/pedidos')}>Ir para meus pedidos</Button>
-          </div>
-        </BottomSheet>
 
         <LoadingOverlay isLoading={isLoading} message={step === 'details' ? "Gerando Pix..." : "Processando..."} />
       </div>
