@@ -7,18 +7,19 @@ interface SuccessStepProps {
 
 export function SuccessStep({ onNavigateToOrders }: SuccessStepProps) {
   return (
-    <div className="w-full px-4 animate-in fade-in slide-in-from-bottom-8 duration-700">
+    <div className="w-full px-4 animate-in fade-in slide-in-from-bottom-8 duration-700 pb-8">
       
       {/* CARD PRINCIPAL - Branco Limpo com Sombra */}
-      <div className="bg-white rounded-3xl p-6 pt-12 shadow-xl relative flex flex-col items-center text-center mt-6">
+      {/* Adicionei 'pb-8' para dar respiro no final da lista agora que o botão saiu */}
+      <div className="bg-white rounded-3xl p-6 pt-12 pb-8 shadow-xl relative flex flex-col items-center text-center mt-6">
         
-        {/* Ícone de Sucesso Flutuante (Sem borda branca) */}
+        {/* Ícone de Sucesso Flutuante (Somente círculo verde) */}
         <div className="absolute -top-10 left-1/2 -translate-x-1/2">
           <div className="relative">
             {/* Brilho verde atrás do ícone */}
             <div className="absolute inset-0 bg-emerald-400 rounded-full blur-xl opacity-40 animate-pulse"></div>
             
-            {/* Círculo do ícone (Somente o círculo verde) */}
+            {/* Círculo do ícone */}
             <div className="relative size-20 bg-emerald-500 rounded-full flex items-center justify-center shadow-lg">
               <Check className="text-white size-10 stroke-[3]" />
             </div>
@@ -86,18 +87,19 @@ export function SuccessStep({ onNavigateToOrders }: SuccessStepProps) {
 
           </div>
         </div>
-
-        {/* Botão de Ação */}
-        <div className="w-full mt-10">
-          <Button 
-            onClick={onNavigateToOrders} 
-            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-200/50 transition-all active:scale-[0.98]"
-          >
-            Acompanhar meus pedidos
-          </Button>
-        </div>
         
       </div>
+
+      {/* BOTÃO FORA DA BOX (Agora ocupa a largura total fora do card) */}
+      <div className="w-full mt-6">
+        <Button 
+          onClick={onNavigateToOrders} 
+          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-200/50 transition-all active:scale-[0.98]"
+        >
+          Acompanhar meus pedidos
+        </Button>
+      </div>
+
     </div>
   )
 }
