@@ -115,8 +115,16 @@ export function AddressStep({ onNext }: { onNext: () => void }) {
   }
 
   return (
-    <>
-      <div className="flex flex-col gap-5 px-4 pb-32 relative">
+    // CONTAINER PRINCIPAL:
+    // h-full: Ocupa toda a altura disponível fornecida pelo layout.tsx.
+    // flex-col: Organiza verticalmente.
+    <div className="flex flex-col h-full w-full px-4 relative">
+      
+      {/* CONTEÚDO SUPERIOR (Inputs e Lista):
+         flex-1: Esta div vai crescer para ocupar todo o espaço vazio na tela.
+         Isso força o botão (que está abaixo) a ir para o rodapé visualmente.
+      */}
+      <div className="flex-1 flex flex-col gap-5 pt-4">
         <TextTitle>Para começar, onde fica seu imóvel?</TextTitle>
 
         <AutoCompleteAddressInput
@@ -154,26 +162,30 @@ export function AddressStep({ onNext }: { onNext: () => void }) {
             ))}
           </div>
         )}
-
-        <LoadingOverlay
-          isLoading={isLoadingListRegistry}
-          message="Buscando dados do cartório"
-        />
       </div>
 
+      {/* RODAPÉ COM BOTÃO:
+         Não usamos fixed. Como o container acima tem flex-1, ele empurra
+         este bloco para o final.
+         mt-auto: Reforça o comportamento de ir para o fundo.
+         py-6: Espaçamento para não colar na borda do celular.
+      */}
       {!address?.length && (
-        <div className="fixed bottom-6 left-0 w-full p-4 z-50 pointer-events-none">
-          <div className="mx-auto w-full max-w-3xl pointer-events-auto"> 
-            <Button 
-              onClick={() => router.push('/pedidos')}
-              className="flex items-center justify-center gap-2 w-full shadow-xl"
-            >
-              <Package className="size-5" />
-              Meus Pedidos
-            </Button>
-          </div>
+        <div className="w-full mt-auto py-6">
+          <Button 
+            onClick={() => router.push('/pedidos')}
+            className="flex items-center justify-center gap-2 w-full shadow-lg"
+          >
+            <Package className="size-5" />
+            Meus Pedidos
+          </Button>
         </div>
       )}
-    </>
+
+      <LoadingOverlay
+        isLoading={isLoadingListRegistry}
+        message="Buscando dados do cartório"
+      />
+    </div>
   )
 }
