@@ -70,6 +70,12 @@
   --animate-pulse-text: pulse-text 2s ease-in-out infinite;
 }
 
+@media screen and (max-width: 768px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
+
 @layer utilities {
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
