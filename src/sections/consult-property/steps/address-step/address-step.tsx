@@ -1,12 +1,14 @@
 'use client'
 
 import { useState } from 'react'
-import { Home, MouseOff, FileText, BellDot } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Home, MouseOff, FileText, BellDot, Package } from 'lucide-react'
 import { useFormContext } from 'react-hook-form'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import TextTitle from '@/components/text-title'
 import AutoCompleteAddressInput from '@/components/auto-complete-address-input'
 import LoadingOverlay from '@/components/loading-overlay'
+import Button from '@/components/button'
 import useDebounce from '@/hooks/use-debounce'
 import { queryKey } from '@/constants/queries'
 import { listAddresses, listAddress, listRegistry } from '@/services/addresses'
@@ -21,6 +23,7 @@ const initialHomeItems = [
 ]
 
 export function AddressStep({ onNext }: { onNext: () => void }) {
+  const router = useRouter()
   const { setValue } = useFormContext()
   const [address, setAddress] = useState('')
 
@@ -112,49 +115,65 @@ export function AddressStep({ onNext }: { onNext: () => void }) {
   }
 
   return (
-    <div className="flex flex-col gap-5 px-4 relative">
-      <TextTitle>Para começar, onde fica seu imóvel?</TextTitle>
+    <>
+      <div className="flex flex-col gap-5 px-4 pb-32 relative">
+        <TextTitle>Para começar, onde fica seu imóvel?</TextTitle>
 
-      <AutoCompleteAddressInput
-        placeholder="Buscar endereço"
-        options={data}
-        onChange={handleChangeAddress}
-        onConfirm={handleSubmit}
-        isLoading={isLoading}
-        onSelectAddress={handleSelectAddress}
-        isLoadingAddress={isLoadingListAddress}
-        error={displayError}
-        isDirty={isEnabled}
-        onClear={handleClearAddress}
-      />
+        <AutoCompleteAddressInput
+          placeholder="Buscar endereço"
+          options={data}
+          onChange={handleChangeAddress}
+          onConfirm={handleSubmit}
+          isLoading={isLoading}
+          onSelectAddress={handleSelectAddress}
+          isLoadingAddress={isLoadingListAddress}
+          error={displayError}
+          isDirty={isEnabled}
+          onClear={handleClearAddress}
+        />
 
-      {IS_DEBUG_MODE && (data || isError) && (
-        <div className="w-full mt-4">
-          <p className="text-[10px] text-gray-500 font-bold mb-1">CONSOLE DEBUG (ENV ON):</p>
-          <pre className="p-2 bg-slate-950 text-green-400 text-[10px] leading-tight overflow-x-auto max-h-60 rounded border border-gray-700 whitespace-pre-wrap font-mono break-all">
-            {isError
-              ? displayError?.subtitle
-              : `SUCESSO:\n${JSON.stringify(data, null, 2)}`
-            }
-          </pre>
-        </div>
-      )}
+        {IS_DEBUG_MODE && (data || isError) && (
+          <div className="w-full mt-4">
+            <p className="text-[10px] text-gray-500 font-bold mb-1">CONSOLE DEBUG (ENV ON):</p>
+            <pre className="p-2 bg-slate-950 text-green-400 text-[10px] leading-tight overflow-x-auto max-h-60 rounded border border-gray-700 whitespace-pre-wrap font-mono break-all">
+              {isError
+                ? displayError?.subtitle
+                : `SUCESSO:\n${JSON.stringify(data, null, 2)}`
+              }
+            </pre>
+          </div>
+        )}
+
+        {!address?.length && (
+          <div className="border border-box p-4 flex flex-col gap-8 mt-2">
+            {initialHomeItems.map(({ Icon, text }) => (
+              <div className="flex items-center gap-4" key={text}>
+                <Icon className="size-6 text-primary" />
+                <p className="text-xs">{text}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <LoadingOverlay
+          isLoading={isLoadingListRegistry}
+          message="Buscando dados do cartório"
+        />
+      </div>
 
       {!address?.length && (
-        <div className="border border-box p-4 flex flex-col gap-8">
-          {initialHomeItems.map(({ Icon, text }) => (
-            <div className="flex items-center gap-4" key={text}>
-              <Icon className="size-6 text-primary" />
-              <p className="text-xs">{text}</p>
-            </div>
-          ))}
+        <div className="fixed bottom-6 left-0 w-full p-4 z-50 pointer-events-none">
+          <div className="mx-auto w-full max-w-3xl pointer-events-auto"> 
+            <Button 
+              onClick={() => router.push('/pedidos')}
+              className="flex items-center justify-center gap-2 w-full shadow-xl"
+            >
+              <Package className="size-5" />
+              Meus Pedidos
+            </Button>
+          </div>
         </div>
       )}
-
-      <LoadingOverlay
-        isLoading={isLoadingListRegistry}
-        message="Buscando dados do cartório"
-      />
-    </div>
+    </>
   )
 }
