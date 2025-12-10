@@ -8,6 +8,7 @@ type PaymentRequest = {
   document_id?: string
   name: string
   document: string
+  complement?: string
 }
 
 export async function processPayment(data: PaymentRequest) {

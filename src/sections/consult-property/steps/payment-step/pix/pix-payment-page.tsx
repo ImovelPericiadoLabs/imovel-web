@@ -4,7 +4,7 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { useForm, FormProvider } from 'react-hook-form'
+import { useForm, FormProvider, useFormContext } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Check, Clock } from 'lucide-react'
 import { useSession, signOut } from 'next-auth/react'
@@ -39,6 +39,13 @@ const STORAGE_KEY = '@pix-payment:form-data'
 export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPageProps) {
   const router = useRouter()
   const { data: session, status } = useSession()
+
+  const parentForm = useFormContext()
+  const rawComplement = parentForm?.getValues('addressComplement')
+  
+  const addressComplement = rawComplement && rawComplement.trim().length > 0 
+    ? rawComplement 
+    : undefined
 
   const [step, setStep] = useState<Step>('details')
   const [copied, setCopied] = useState(false)
@@ -166,6 +173,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
           document_id: undefined,
           name: formData.name,
           document: formData.document,
+          complement: addressComplement, 
         })
         setStep('pix')
       } catch (error: any) {
@@ -230,6 +238,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
         document_id: undefined,
         name: formData.name,
         document: formData.document,
+        complement: addressComplement, 
       })
 
       setStep('pix')
@@ -258,7 +267,6 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
   return (
     <FormProvider {...methods}>
       <div className="flex flex-col relative px-4 mt-6">
-
         {step === 'details' && (
           <BottomSheet isOpen={true} onClose={handleCloseBottomSheet}>
             <div className="p-4 pb-12 max-h-[85vh] overflow-y-auto flex flex-col gap-3">
