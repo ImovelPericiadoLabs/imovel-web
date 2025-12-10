@@ -18,8 +18,20 @@ export function AddressComplementStep({ onNext }: { onNext: () => void }) {
     }
   }
 
+  const handleInputScroll = (e: React.SyntheticEvent<HTMLTextAreaElement>) => {
+    const target = e.currentTarget
+    
+    setTimeout(() => {
+      target.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+        inline: 'nearest'
+      })
+    }, 300)
+  }
+
   return (
-    <div className="flex flex-col gap-6 min-h-[calc(100vh-7.5rem)] relative px-4">
+    <div className="flex flex-col gap-6 min-h-[calc(100vh-7.5rem)] relative px-4 pb-32">
       <div className="flex flex-col gap-2">
         <TextTitle>Deseja adicionar um complemento?</TextTitle>
       </div>
@@ -52,6 +64,11 @@ export function AddressComplementStep({ onNext }: { onNext: () => void }) {
             rows={4}
             maxLength={150}
             placeholder="Ex: Matrícula nº 123.456, Apartamento 10, Bloco B..."
+            {...register('addressComplement')}
+            
+            onFocus={handleInputScroll}
+            onClick={handleInputScroll}
+            
             className="
               w-full 
               pl-12 pr-4 pt-4 pb-10
@@ -66,7 +83,6 @@ export function AddressComplementStep({ onNext }: { onNext: () => void }) {
               focus:border-primary 
               focus:ring-4 focus:ring-primary/10
             "
-            {...register('addressComplement')}
           />
 
           <span className="absolute bottom-3 right-4 text-xs text-gray-400 font-medium pointer-events-none">
