@@ -6,8 +6,10 @@ import TextTitle from '@/components/text-title'
 import Button from '@/components/button'
 
 export function AddressComplementStep({ onNext }: { onNext: () => void }) {
-  const { register, getValues, trigger } = useFormContext()
+  const { register, getValues, trigger, watch } = useFormContext()
   const currentAddress = getValues('address')
+  const complementValue = watch('addressComplement') || ''
+  const currentLength = complementValue.length
 
   const handleContinue = async () => {
     const isValid = await trigger('addressComplement')
@@ -32,14 +34,14 @@ export function AddressComplementStep({ onNext }: { onNext: () => void }) {
 
       <div className="flex flex-col gap-2">
         <div className="flex justify-between items-end">
-          <label 
-            htmlFor="complement" 
+          <label
+            htmlFor="complement"
             className="text-sm font-semibold text-gray-700 ml-1"
           >
             Informações adicionais <span className="text-gray-400 font-normal text-xs ml-1">(Opcional)</span>
           </label>
         </div>
-        
+
         <div className="relative group">
           <div className="absolute left-4 top-4 text-gray-400 group-focus-within:text-primary transition-colors pointer-events-none">
             <Building className="size-5" />
@@ -48,10 +50,11 @@ export function AddressComplementStep({ onNext }: { onNext: () => void }) {
           <textarea
             id="complement"
             rows={4}
+            maxLength={150}
             placeholder="Ex: Matrícula nº 123.456, Apartamento 10, Bloco B..."
             className="
               w-full 
-              pl-12 pr-4 py-4 
+              pl-12 pr-4 pt-4 pb-10
               bg-white 
               border border-gray-200 
               rounded-xl
@@ -65,6 +68,10 @@ export function AddressComplementStep({ onNext }: { onNext: () => void }) {
             "
             {...register('addressComplement')}
           />
+
+          <span className="absolute bottom-3 right-4 text-xs text-gray-400 font-medium pointer-events-none">
+            {currentLength}/150
+          </span>
         </div>
 
         <p className="text-xs text-gray-500 ml-1 leading-relaxed">
