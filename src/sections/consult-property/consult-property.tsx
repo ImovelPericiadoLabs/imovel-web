@@ -13,6 +13,7 @@ import {
   DocumentTypeStep,
   SendDocumentStep,
   SummaryStep,
+  AddressComplementStep
 } from '@/sections/consult-property/steps'
 import { PaymentConfirmationStep } from '@/sections/consult-property/steps/payment-step/payment-confirmation-step/payment-confirmation-step'
 import { SavedCardsPage } from '@/sections/consult-property/steps/payment-step/card/select'
@@ -22,6 +23,7 @@ import { validations, FormTypes } from '@/sections/consult-property/validations'
 
 type FlowState =
   | 'address'
+  | 'address-complement' 
   | 'doc-confirmation'
   | 'doc-type'
   | 'send-doc'
@@ -73,6 +75,7 @@ export default function ConsultProperty() {
 
   const progressSteps: Record<FlowState, number> = {
     address: 1,
+    'address-complement': 1,
     'doc-confirmation': 2,
     'doc-type': 3,
     'send-doc': 4,
@@ -121,7 +124,13 @@ export default function ConsultProperty() {
       <FormProvider {...methods}>
         <main className="w-full mx-auto lg:max-w-lg pt-5 px-0 -mt-24">
           <Activity isActive={flow === 'address'}>
-            <AddressStep onNext={() => go('doc-confirmation')} />
+            {/* 3. Redireciona para address-complement */}
+            <AddressStep onNext={() => go('address-complement')} />
+          </Activity>
+
+          {/* 4. Nova Activity inserida */}
+          <Activity isActive={flow === 'address-complement'}>
+            <AddressComplementStep onNext={() => go('doc-confirmation')} />
           </Activity>
 
           <Activity isActive={flow === 'doc-confirmation'}>
