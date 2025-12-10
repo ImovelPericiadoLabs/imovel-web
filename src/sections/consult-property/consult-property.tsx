@@ -61,6 +61,11 @@ export default function ConsultProperty() {
   }
 
   function back() {
+    if (flow === 'finished') {
+      window.location.href = '/consultar-imovel'
+      return
+    }
+
     const previous = stack.current.pop()
 
     if (!previous && flow === 'address') {
@@ -124,8 +129,6 @@ export default function ConsultProperty() {
         {showProgressBar && <ProgressBar value={currentProgress} className="mb-3" />}
       </header>
 
-      {/* 3. DIV DECORATIVA (FUNDO) TAMBÉM CONDICIONAL */}
-      {/* Ela precisa acompanhar a cor do header para não quebrar o layout */}
       <div
         className={`relative h-30 -mt-1 transition-colors duration-500 ${isFinished ? 'bg-emerald-600' : 'bg-primary'
           }`}
@@ -134,11 +137,9 @@ export default function ConsultProperty() {
       <FormProvider {...methods}>
         <main className="w-full mx-auto lg:max-w-lg pt-5 px-0 -mt-24">
           <Activity isActive={flow === 'address'}>
-            {/* 3. Redireciona para address-complement */}
             <AddressStep onNext={() => go('address-complement')} />
           </Activity>
 
-          {/* 4. Nova Activity inserida */}
           <Activity isActive={flow === 'address-complement'}>
             <AddressComplementStep onNext={() => go('doc-confirmation')} />
           </Activity>
@@ -172,9 +173,7 @@ export default function ConsultProperty() {
 
           <Activity isActive={flow === 'payment-confirm'}>
             <PaymentConfirmationStep
-              // CORREÇÃO: Mude para go('finished')
               onFinish={() => go('finished')}
-
               onBackToMethods={back}
               onAddNewCard={() => go('payment-card-new')}
               onSelectCard={() => go('finished')}
