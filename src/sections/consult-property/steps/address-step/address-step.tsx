@@ -119,7 +119,7 @@ export function AddressStep({ onNext }: { onNext: () => void }) {
     // h-full: Ocupa toda a altura disponível fornecida pelo layout.tsx.
     // flex-col: Organiza verticalmente.
     <div className="flex flex-col h-full w-full px-4 relative">
-      
+
       {/* CONTEÚDO SUPERIOR (Inputs e Lista):
          flex-1: Esta div vai crescer para ocupar todo o espaço vazio na tela.
          Isso força o botão (que está abaixo) a ir para o rodapé visualmente.
@@ -172,8 +172,8 @@ export function AddressStep({ onNext }: { onNext: () => void }) {
       */}
       {!address?.length && (
         <div className="w-full mt-auto py-6">
-          <Button 
-            onClick={() => router.push('/pedidos')}
+          <Button
+            href="/pedidos" // <--- Mudança aqui
             className="flex items-center justify-center gap-2 w-full shadow-lg"
           >
             <Package className="size-5" />
