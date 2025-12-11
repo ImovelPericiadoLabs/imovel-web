@@ -1,31 +1,30 @@
+import Link, { LinkProps } from 'next/link'
 import { cn } from '@/utils/tailwind'
-import Link from 'next/link'
-import { ComponentProps } from 'react'
 
-type Props = {
-  className?: string
-  href?: string
-  isLoading?: boolean
-} & ComponentProps<'button'> & ComponentProps<typeof Link>
+type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & 
+  Partial<LinkProps> & {
+    href?: string
+    className?: string
+  }
 
-export default function Button({ children, className, href, isLoading, ...rest }: Props) {
+export default function Button({ children, className, href, ...rest }: ButtonProps) {
+  
   const baseClasses = cn(
     `
       cursor-pointer w-full bg-primary hover:bg-primary-hover text-white 
       text-base leading-6 font-semibold px-11 py-3 rounded-full shadow-lg
       disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:bg-gray-300 disabled:shadow-none
-      flex items-center justify-center transition-transform active:scale-95
+      flex items-center justify-center text-center decoration-0
     `,
-    'touch-manipulation', 
     className
   )
 
-  if (href && !rest.disabled && !isLoading) {
+  if (href) {
     return (
       <Link 
         href={href} 
         className={baseClasses}
-        prefetch={true} 
+        {...(rest as Omit<LinkProps, 'href'>)} 
       >
         {children}
       </Link>
@@ -34,9 +33,8 @@ export default function Button({ children, className, href, isLoading, ...rest }
 
   return (
     <button
-      {...rest}
       className={baseClasses}
-      disabled={rest.disabled || isLoading}
+      {...(rest as React.ButtonHTMLAttributes<HTMLButtonElement>)}
     >
       {children}
     </button>
