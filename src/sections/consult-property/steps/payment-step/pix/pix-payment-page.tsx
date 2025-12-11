@@ -43,6 +43,9 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
   const parentForm = useFormContext()
   const rawComplement = parentForm?.getValues('addressComplement')
 
+  const uploadedDoc = parentForm?.getValues('document')
+  const documentId = uploadedDoc?.id
+
   const addressComplement = rawComplement && rawComplement.trim().length > 0
     ? rawComplement
     : undefined
@@ -170,7 +173,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
         await generatePix({
           place_id: finalPlaceId,
           plan_id: FIXED_PLAN_ID,
-          document_id: undefined,
+          document_id: documentId,
           name: formData.name,
           document: formData.document,
           complement: addressComplement,
@@ -235,7 +238,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
       await generatePix({
         place_id: finalPlaceId,
         plan_id: FIXED_PLAN_ID,
-        document_id: undefined,
+        document_id: documentId, 
         name: formData.name,
         document: formData.document,
         complement: addressComplement,
@@ -243,31 +246,23 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
 
       setStep('pix')
     } catch (error) {
-      setServerError('Erro inesperado ao processar o pagamento.')
-      setStep('details')
     } finally {
       setIsAuthLoading(false)
     }
   }
   const handleCopy = async () => {
     try {
-      // 1. Comportamento Padrão: Copiar texto
       await navigator.clipboard.writeText(pixData?.payload || '')
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
 
-      // 2. DEV MODE TRIGGER: Simular Sucesso
       const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true'
 
       if (isDevMode) {
         console.log('🔧 DEV MODE: Simulando pagamento confirmado...')
 
-        // Opcional: Feedback visual para você saber que foi o script de dev
-        // toast.success("DEV MODE: Pagamento auto-confirmado!") 
-
-        // Aguarda 1.5s para você ver o "Copiado!" e dar sensação de processamento
         setTimeout(() => {
-          onFinish() // <--- Chama a função que avança o fluxo para a tela de Sucesso
+          onFinish() 
         }, 1500)
       }
 
