@@ -1,3 +1,5 @@
+'use client'
+
 import { useCallback } from 'react'
 import {
   Building,
@@ -7,9 +9,10 @@ import {
   MapPin,
   FileQuestionMark,
   House,
-  FileXCorner,
-  IdCard,
-  FileCheckCorner,
+  FileCheck,
+  AlertTriangle,
+  Ban,
+  CheckCircle2,
 } from 'lucide-react'
 import { cn } from '@/utils/tailwind'
 import Badge from '@/components/badge'
@@ -51,8 +54,7 @@ export default function OrderOptionsResultPage() {
   const result: ResultSections = {
     ['Matrícula']: {
       number: '35529',
-      status: 'PURCHASE_AND_SALE_BLOCKED',
-      badge: 'Sinal vermelho',
+      status: 'ALL_GOOD',
       office: '6º Ofício De Registro De Imóveis - Vila Mariana - SP',
       propertyType: 'Terreno Urbano com Edificação',
       totalArea: '308.8 m²',
@@ -62,62 +64,68 @@ export default function OrderOptionsResultPage() {
     ['Ônus e Restrições']: {
       status: 'PURCHASE_AND_SALE_BLOCKED',
       items: [
-        { icon: User, message: 'Proprietário divergente do informado' },
-        { icon: MapPin, message: 'Endereço não coincide com dados da prefeitura' },
-        { icon: FileQuestionMark, message: 'Averbação registrada com restrição ativa' },
+        { icon: Ban, message: 'Bloqueio judicial ativo na matrícula' },
+        { icon: MapPin, message: 'Indisponibilidade de bens do proprietário' },
+        { icon: AlertTriangle, message: 'Averbação premonitória identificada' },
       ],
     },
 
     ['Pendências Financeiras']: {
-      status: 'PURCHASE_AND_SALE_BLOCKED',
+      status: 'IRREGULARITIES_FOUND',
       items: [
-        { icon: User, message: 'IPTU em atraso' },
-        { icon: FileQuestionMark, message: 'Multas municipais em aberto' },
-        { icon: House, message: 'Débitos vinculados ao imóvel e ao proprietário' },
+        { icon: User, message: 'IPTU do exercício atual em atraso' },
+        { icon: FileQuestionMark, message: 'Taxa de lixo pendente' },
+        { icon: House, message: 'Débitos de condomínio em aberto' },
       ],
     },
 
     ['Documentos']: {
-      status: 'PURCHASE_AND_SALE_BLOCKED',
+      status: 'ALL_GOOD',
       items: [
-        { icon: FileXCorner, message: 'Certidão negativa não disponíve' },
-        { icon: IdCard, message: 'Divergências em dados cadastrais' },
-        { icon: FileCheckCorner, message: 'Histórico da matrícula apresenta inconsistências' },
+        { icon: CheckCircle2, message: 'Todas as certidões negativas emitidas' },
+        { icon: FileCheck, message: 'Dados cadastrais validados com sucesso' },
+        { icon: CheckCircle2, message: 'Histórico da matrícula sem inconsistências' },
       ],
     },
 
     ['Conclusão']: {
       message:
-        'O imóvel apresenta pendências jurídicas, financeiras e cadastrais. A negociação não é recomendada até a regularização completa.',
+        'O imóvel apresenta restrições graves que impedem a venda imediata (Sinal Vermelho em Ônus), além de pendências financeiras regularizáveis (Sinal Amarelo). Recomenda-se sanar os bloqueios judiciais antes de prosseguir.',
     },
   }
 
-  const header = useCallback((title: string, number?: string, status?: SectionStatus) => {
-    if (title === 'Matrícula')
+  const header = useCallback(
+    (title: string, number?: string, status?: SectionStatus) => {
+      const statusElement = status ? (
+        <div className="flex items-center gap-2">
+          <Badge variant={mapBadgeStatus[status]}>{mapBadgeText[status]}</Badge>
+          <div className={cn('size-2 rounded-full', mapCircleStatus[status])} />
+        </div>
+      ) : null
+
+      if (title === 'Matrícula') {
+        return (
+          <div className="flex justify-between items-center">
+            <div className="flex flex-col">
+              <p className="text-new-black text-xs font-normal leading-[130%]">{title}</p>
+              <p className="text-primary text-sm font-medium leading-[130%]">{number}</p>
+            </div>
+            {statusElement}
+          </div>
+        )
+      }
+
       return (
         <div className="flex justify-between items-center">
-          <div className="flex flex-col">
-            <p className="text-new-black text-xs font-normal leading-[130%]">{title}</p>
-            <p className="text-primary text-sm font-medium leading-[130%]">{number}</p>
+          <div className="flex">
+            <p className="text-new-black text-sm font-medium leading-[140%]">{title}</p>
           </div>
-
-          <div className="flex items-center gap-2">
-            <Badge variant={mapBadgeStatus[status || '']}>{mapBadgeText[status || '']}</Badge>
-            <div className={cn('size-2 rounded-full', mapCircleStatus[status || ''])} />
-          </div>
+          {statusElement}
         </div>
       )
-
-    return (
-      <div className="flex justify-between items-center">
-        <div className="flex">
-          <p className="text-new-black text-sm font-medium leading-[140%]">{title}</p>
-        </div>
-
-        {!!status && <div className={cn('size-2 rounded-full', mapCircleStatus[status || ''])} />}
-      </div>
-    )
-  }, [])
+    },
+    [mapBadgeText],
+  )
 
   const content = useCallback(
     (
@@ -188,7 +196,7 @@ export default function OrderOptionsResultPage() {
       {Object.entries(result).map(([title, value]) => (
         <div
           key={title}
-          className="cursor-pointer p-4 flex flex-col  border border-box rounded-sm group hover:border-primary"
+          className="cursor-pointer p-4 flex flex-col border border-box rounded-sm group hover:border-primary"
         >
           {header(title, value?.number, value.status)}
 
