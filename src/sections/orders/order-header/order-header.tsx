@@ -1,21 +1,52 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { useParams } from 'next/navigation'
 import { MapPin } from 'lucide-react'
 import TrafficLight from '@/components/traffic-light'
 import { formatDateWithTime } from '@/utils/date'
+import { getOrder, Order } from '@/services/orders'
 
 type Props = {
   Badge?: React.ReactNode
-  code?: number | string
-  created?: string
-  address?: string | null
-  analysisStatus?: string 
 }
 
-export default function OrderHeader({ Badge, code, created, address, analysisStatus }: Props) {
-  const displayId = code ? `#${String(code).padStart(6, '0')}` : '...'
+export default function OrderHeader({ Badge }: Props) {
+  const { id } = useParams()
+  const [order, setOrder] = useState<Order | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
-  const isApproved = analysisStatus === 'APPROVED'
-  const isRejected = analysisStatus === 'REJECTED'
+  useEffect(() => {
+    async function fetchHeaderData() {
+      if (!id) return
+
+      try {
+        const data = await getOrder(id as string)
+        setOrder(data)
+      } catch (error) {
+        console.error('Erro ao carregar cabeçalho:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchHeaderData()
+  }, [id])
+
+  // Lógica de visualização
+  const displayId = order?.code ? `#${String(order.code).padStart(6, '0')}` : '...'
+  const isApproved = order?.analysis_status === 'APPROVED'
+  const isRejected = order?.analysis_status === 'REJECTED'
   const isPending = !isApproved && !isRejected
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col gap-6 px-3 py-4 mb-3 bg-background animate-pulse">
+        <div className="h-6 bg-gray-200 rounded w-1/3 mx-auto lg:max-w-lg" />
+        <div className="h-16 bg-gray-200 rounded w-full mx-auto lg:max-w-lg" />
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-col gap-6 px-3 py-4 mb-3 bg-background">
@@ -28,7 +59,7 @@ export default function OrderHeader({ Badge, code, created, address, analysisSta
           </p>
 
           <p className="text-base font-semibold leading-[130%]">
-            {created ? formatDateWithTime(created) : '...'}
+            {order?.created ? formatDateWithTime(order.created) : '...'}
           </p>
         </div>
       </div>
@@ -38,7 +69,7 @@ export default function OrderHeader({ Badge, code, created, address, analysisSta
           <MapPin className="size-6 shrink-0" />
 
           <p className="text-xs font-normal leading-[130%]">
-            {address || 'Endereço não informado'}
+            {order?.formatted_address || 'Endereço não informado'}
           </p>
         </div>
       </div>
