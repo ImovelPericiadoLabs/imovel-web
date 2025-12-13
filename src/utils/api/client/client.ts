@@ -1,3 +1,4 @@
+import { signOut } from 'next-auth/react'
 import { url } from '@/constants/api'
 
 const apiUrl = url
@@ -13,12 +14,19 @@ const api = {
     }
 
     const response = await fetch(`${apiUrl}${url}`, {
-      headers, 
+      headers,
       method: 'GET',
     })
 
     const result = await response.json()
-    if (response.status === 401) throw result
+
+    if (response.status === 401) {
+      if (typeof window !== 'undefined') {
+        signOut()
+      }
+      throw result
+    }
+
     return result
   },
 
@@ -50,7 +58,13 @@ const api = {
       throw new Error(`Erro parse...`)
     }
 
-    if (response.status === 401) throw result
+    if (response.status === 401) {
+      if (typeof window !== 'undefined') {
+        signOut()
+      }
+      throw result
+    }
+
     return result
   },
 
@@ -66,6 +80,9 @@ const api = {
     const result = await response.text()
 
     if (response.status === 401) {
+      if (typeof window !== 'undefined') {
+        signOut()
+      }
       throw result
     }
 
@@ -83,6 +100,9 @@ const api = {
     const result = await response.text()
 
     if (response.status === 401) {
+      if (typeof window !== 'undefined') {
+        signOut()
+      }
       throw result
     }
 
@@ -102,6 +122,14 @@ const api = {
       }
 
       xhr.onload = () => {
+        if (xhr.status === 401) {
+          if (typeof window !== 'undefined') {
+            signOut()
+          }
+          reject(xhr.responseText)
+          return
+        }
+
         try {
           resolve(JSON.parse(xhr.responseText))
         } catch (e) {
