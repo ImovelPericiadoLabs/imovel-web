@@ -8,6 +8,7 @@ type PaymentRequest = {
   document_id?: string
   name: string
   document: string
+  whatsapp: string
   complement?: string
 }
 

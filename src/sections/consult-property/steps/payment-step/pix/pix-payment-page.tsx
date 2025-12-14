@@ -168,6 +168,8 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
     clearServerError()
     setIsAuthLoading(true)
 
+    const whatsappClean = formData.whatsapp.replace(/\D/g, '').slice(0, 12)
+
     if (status === 'authenticated') {
       try {
         await generatePix({
@@ -176,6 +178,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
           document_id: documentId,
           name: formData.name,
           document: formData.document,
+          whatsapp: whatsappClean,
           complement: addressComplement,
         })
         setStep('pix')
@@ -234,6 +237,8 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
 
     setIsAuthLoading(true)
 
+    const whatsappClean = formData.whatsapp.replace(/\D/g, '').slice(0, 12)
+
     try {
       await generatePix({
         place_id: finalPlaceId,
@@ -241,6 +246,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
         document_id: documentId, 
         name: formData.name,
         document: formData.document,
+        whatsapp: whatsappClean,
         complement: addressComplement,
       })
 
