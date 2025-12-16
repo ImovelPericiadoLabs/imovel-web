@@ -39,7 +39,7 @@ export type Registry = {
 }
 
 export type RegistryApiResponse = {
-  registry: Registry
+  registry?: Registry
 }
 
 type ListAddressRequest = {
@@ -48,7 +48,13 @@ type ListAddressRequest = {
 }
 
 export type ListAddressResponse = {
-  formattedAddress: string
+  formattedAddress?: string
+  addressComponents?: AddressComponent[]
+}
+
+export type FormattedAddressResult = {
+  address: string
+  addressNumber: string | null
 }
 
 export async function listAddresses(address: string) {
@@ -58,7 +64,7 @@ export async function listAddresses(address: string) {
   }
 
   try {
-    const timeoutPromise = new Promise((_, reject) =>
+    const timeoutPromise = new Promise<never>((_, reject) =>
       setTimeout(() => reject(new Error('TIMEOUT_LIMIT')), 8000)
     )
 
@@ -80,38 +86,46 @@ export async function listAddresses(address: string) {
         }
       }) || []
     )
-  } catch (error: any) {
-    if (error.message === 'Load failed' || error.message === 'Network Error') {
-      throw new Error('Bloqueio de rede (iOS). Desative a Retransmissão Privada ou troque de Wi-Fi.')
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      if (error.message === 'Load failed' || error.message === 'Network Error') {
+        throw new Error(
+          'Bloqueio de rede (iOS). Desative a Retransmissão Privada ou troque de Wi-Fi.'
+        )
+      }
+      if (error.message === 'TIMEOUT_LIMIT') {
+        throw new Error('A conexão demorou muito para responder.')
+      }
     }
-
-    if (error.message === 'TIMEOUT_LIMIT') {
-      throw new Error('A conexão demorou muito para responder.')
-    }
-
     throw error
   }
 }
 
-export async function listAddress({ address, placeId }: ListAddressRequest) {
+export async function listAddress({
+  address,
+  placeId,
+}: ListAddressRequest): Promise<FormattedAddressResult> {
   const data = {
     q: address,
     with_registry: false,
     place_id: placeId,
   }
 
-  const result = (await api.post(endpoint.addresses, data)) as any
+  const result = (await api.post(
+    endpoint.addresses,
+    data
+  )) as ListAddressResponse
 
   const finalAddress = result?.formattedAddress || ''
+  const addressComponents = result?.addressComponents || []
 
-  const addressComponents = result?.addressComponents as AddressComponent[]
-  const numberComponent = addressComponents?.find((c) => 
+  const numberComponent = addressComponents.find((c) =>
     c.types.includes('street_number')
   )
 
   return {
     address: finalAddress,
-    addressNumber: numberComponent?.longText || null
+    addressNumber: numberComponent?.longText || null,
   }
 }
 
@@ -121,7 +135,10 @@ export async function listRegistry(address: string) {
     with_registry: true,
   }
 
-  const addresses = (await api.post(endpoint.addresses, data)) as RegistryApiResponse
+  const response = (await api.post(
+    endpoint.addresses,
+    data
+  )) as RegistryApiResponse
 
-  return addresses?.registry
+  return response?.registry
 }
