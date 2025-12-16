@@ -116,7 +116,7 @@ export default function OrdersPage() {
               >
                 <Link
                   className="group cursor-pointer p-4 bg-white border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-md transition-all duration-200 ease-in-out block"
-                  href={`/pedidos/${order.id}`}
+                  href={`/pedidos/${order.id}/opcoes`}
                 >
                   <div className="flex items-center">
                     <div className={cn('p-1.5 mr-4 rounded-full flex-shrink-0', mapCircleStatus[order.status])} />
