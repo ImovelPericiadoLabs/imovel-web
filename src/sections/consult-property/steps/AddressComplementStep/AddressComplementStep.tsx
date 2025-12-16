@@ -20,7 +20,7 @@ export function AddressComplementStep({ onNext }: { onNext: () => void }) {
 
   const handleInputScroll = (e: React.SyntheticEvent<HTMLTextAreaElement>) => {
     const target = e.currentTarget
-    
+
     setTimeout(() => {
       target.scrollIntoView({
         behavior: 'smooth',
@@ -65,10 +65,10 @@ export function AddressComplementStep({ onNext }: { onNext: () => void }) {
             maxLength={150}
             placeholder="Ex: Matrícula nº 123.456, Apartamento 10, Bloco B..."
             {...register('addressComplement')}
-            
+
             onFocus={handleInputScroll}
             onClick={handleInputScroll}
-            
+
             className="
               w-full 
               pl-12 pr-4 pt-4 pb-10
@@ -94,12 +94,18 @@ export function AddressComplementStep({ onNext }: { onNext: () => void }) {
           Preencha aqui caso tenha informações além do endereço, como o <strong>número da matrícula</strong>, lote, quadra ou unidade (apto/sala).
         </p>
       </div>
-
-      <div className="fixed bottom-0 left-0 right-0 px-4 pt-5 pb-7 bg-white mt-auto border-t border-gray-100 z-10">
+      <div className="
+        fixed bottom-0 left-0 right-0 
+        px-4 pt-5 pb-7 
+        bg-white mt-auto 
+        border-t border-gray-100 
+        z-10
+        supports-[-webkit-touch-callout:none]:pb-22
+      ">
         <Button className="w-full h-12 text-base" onClick={handleContinue}>
           Continuar
         </Button>
       </div>
-    </div>
+    </div >
   )
 }
