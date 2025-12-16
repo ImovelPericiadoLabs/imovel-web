@@ -1,1 +1,1 @@
-export { listAddresses } from './addresses'
+export { listAddresses, listRegistry, type Registry, listAddress } from './addresses'

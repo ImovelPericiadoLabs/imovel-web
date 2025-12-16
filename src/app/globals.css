@@ -12,6 +12,8 @@
     /* ---------------------------------------------------------------------- */
     /* 1a. BASE COLOR PALETTE (Universal Primitive Tokens)                    */
     /* ---------------------------------------------------------------------- */
+    --color-violet-50: #F9F5FF;
+    --color-violet-100: #F4EBFF;
     --color-violet-600: #7F56D9;
   }
 }
@@ -29,19 +31,29 @@
   --color-background: #F6F5FA;
   --color-dark: #222222;
   --color-input-border: #D5D7DA;
+  --color-new-black:  #031C2F;
+
   --color-gray:#ADADAD;
   --color-gray-2: #5C5C5C;
   --color-gray-200: #E9EAEB;
   --color-gray-600: #535862;
+  --color-gray-700: #414651;
+
   --color-hr: #E6E6E6;
   --color-box: #E7E7E7;
   --color-handle: #79747E;
+  
+  --color-error-50: #FEF3F2;
+  --color-error-100: #FEE4E2;
+  --color-error-600: #D92D20;
 
   /* ---------------------------------------------------------------------- */
   /* Primary Actions (Main buttons, highlighted links, etc.)                */
   /* ---------------------------------------------------------------------- */
   --color-primary: var(--color-violet-600);
   --color-primary-hover:  var(--color-violet-500);
+
+  --color-secondary: #E8DEF8;
   
 
   /* ====================================================================== */
@@ -55,8 +67,13 @@
   /* ====================================================================== */
   /* 3. ANIMATIONS                                                          */
   /* ====================================================================== */
-  --animate-travel-square: travel-square 4s linear infinite;
   --animate-pulse-text: pulse-text 2s ease-in-out infinite;
+}
+
+@media screen and (max-width: 768px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
 }
 
 @layer utilities {
@@ -67,4 +84,54 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+
+  .animate-pulse-text {
+    animation: var(--animate-pulse-text);
+  }
+
+  .direction-rtl {
+    direction: rtl;
+  }
 }
+
+@layer base {
+  @keyframes pulse-text {
+    0% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.4;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
+
+  @keyframes scale-in {
+    0% {
+      transform: scale(0);
+      opacity: 0;
+    }
+    50% {
+      transform: scale(1.1);
+    }
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+
+  @keyframes check-draw {
+    0% {
+      opacity: 0;
+      transform: scale(0) rotate(-45deg);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1) rotate(0deg);
+    }
+  }
+
+}
+
+

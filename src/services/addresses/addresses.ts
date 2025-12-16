@@ -5,6 +5,12 @@ type TextField = {
   text?: string
 }
 
+type AddressComponent = {
+  longText: string
+  shortText: string
+  types: string[]
+}
+
 type StructuredFormat = {
   mainText?: TextField
   secondaryText?: TextField
@@ -13,15 +19,36 @@ type StructuredFormat = {
 type Prediction = {
   structuredFormat?: StructuredFormat
   text?: TextField
+  placeId?: string
 }
 
 type Suggestion = {
   placePrediction?: Prediction
-  queryPrediction?: Prediction
 }
 
-type AddressApiResponse = {
+export type AddressApiResponse = {
   suggestions?: Suggestion[]
+}
+
+export type Registry = {
+  id: string
+  name: string
+  number: number
+  slug: string
+  coverage: string[]
+}
+
+export type RegistryApiResponse = {
+  registry: Registry
+}
+
+type ListAddressRequest = {
+  address: string
+  placeId: string
+}
+
+export type ListAddressResponse = {
+  formattedAddress: string
 }
 
 export async function listAddresses(address: string) {
@@ -30,24 +57,71 @@ export async function listAddresses(address: string) {
     with_registry: false,
   }
 
-  const addresses = (await api.post(endpoint.addresses, data)) as AddressApiResponse
+  try {
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('TIMEOUT_LIMIT')), 8000)
+    )
 
-  return (
-    addresses?.suggestions?.map((item) => {
-      const place = item.placePrediction
-      const query = item.queryPrediction
+    const requestPromise = api.post(endpoint.addresses, data)
 
-      return {
-        street:
-          place?.structuredFormat?.mainText?.text ?? query?.structuredFormat?.mainText?.text ?? '',
+    const result = (await Promise.race([
+      requestPromise,
+      timeoutPromise,
+    ])) as AddressApiResponse
 
-        city:
-          place?.structuredFormat?.secondaryText?.text ??
-          query?.structuredFormat?.secondaryText?.text ??
-          '',
+    return (
+      result?.suggestions?.map((item) => {
+        const place = item.placePrediction
+        return {
+          primary: place?.structuredFormat?.mainText?.text ?? '',
+          secondary: place?.structuredFormat?.secondaryText?.text ?? '',
+          value: place?.text?.text ?? '',
+          placeId: place?.placeId,
+        }
+      }) || []
+    )
+  } catch (error: any) {
+    if (error.message === 'Load failed' || error.message === 'Network Error') {
+      throw new Error('Bloqueio de rede (iOS). Desative a Retransmissão Privada ou troque de Wi-Fi.')
+    }
 
-        value: place?.text?.text ?? query?.text?.text ?? '',
-      }
-    }) || []
+    if (error.message === 'TIMEOUT_LIMIT') {
+      throw new Error('A conexão demorou muito para responder.')
+    }
+
+    throw error
+  }
+}
+
+export async function listAddress({ address, placeId }: ListAddressRequest) {
+  const data = {
+    q: address,
+    with_registry: false,
+    place_id: placeId,
+  }
+
+  const result = (await api.post(endpoint.addresses, data)) as any
+
+  const finalAddress = result?.formattedAddress || ''
+
+  const addressComponents = result?.addressComponents as AddressComponent[]
+  const numberComponent = addressComponents?.find((c) => 
+    c.types.includes('street_number')
   )
+
+  return {
+    address: finalAddress,
+    addressNumber: numberComponent?.longText || null
+  }
+}
+
+export async function listRegistry(address: string) {
+  const data = {
+    q: address,
+    with_registry: true,
+  }
+
+  const addresses = (await api.post(endpoint.addresses, data)) as RegistryApiResponse
+
+  return addresses?.registry
 }

@@ -1,37 +1,67 @@
+import { signOut } from 'next-auth/react'
 import { url } from '@/constants/api'
 
 const apiUrl = url
 
 const api = {
-  async get(url: string) {
+  async get(url: string, token?: string) {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    }
+
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+
     const response = await fetch(`${apiUrl}${url}`, {
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       method: 'GET',
     })
 
     const result = await response.json()
 
     if (response.status === 401) {
+      if (typeof window !== 'undefined') {
+        signOut()
+      }
       throw result
     }
 
     return result
   },
 
-  async post(url: string, body: object) {
+  async post(url: string, rawBody: object, token?: string) {
+    const isFormData = rawBody instanceof FormData
+    const headers: Record<string, string> = {
+      'User-Agent': 'Mozilla/5.0 ...'
+    }
+
+    if (!isFormData) {
+      headers['Content-Type'] = 'application/json'
+    }
+
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+
     const response = await fetch(`${apiUrl}${url}`, {
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(body),
       method: 'POST',
+      headers,
+      body: isFormData ? rawBody : JSON.stringify(rawBody),
     })
 
-    const result = await response.json()
+    const responseText = await response.text()
+    let result
+    try {
+      result = JSON.parse(responseText)
+    } catch (e) {
+      throw new Error(`Erro parse...`)
+    }
 
     if (response.status === 401) {
+      if (typeof window !== 'undefined') {
+        signOut()
+      }
       throw result
     }
 
@@ -50,6 +80,9 @@ const api = {
     const result = await response.text()
 
     if (response.status === 401) {
+      if (typeof window !== 'undefined') {
+        signOut()
+      }
       throw result
     }
 
@@ -67,10 +100,49 @@ const api = {
     const result = await response.text()
 
     if (response.status === 401) {
+      if (typeof window !== 'undefined') {
+        signOut()
+      }
       throw result
     }
 
     return result
+  },
+
+  async upload(url: string, file: File, onProgress: (percent: number) => void) {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest()
+      xhr.open('POST', `${apiUrl}${url}`)
+
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable) {
+          const percent = Math.round((event.loaded / event.total) * 100)
+          onProgress(percent)
+        }
+      }
+
+      xhr.onload = () => {
+        if (xhr.status === 401) {
+          if (typeof window !== 'undefined') {
+            signOut()
+          }
+          reject(xhr.responseText)
+          return
+        }
+
+        try {
+          resolve(JSON.parse(xhr.responseText))
+        } catch (e) {
+          reject(e)
+        }
+      }
+
+      xhr.onerror = reject
+
+      const form = new FormData()
+      form.append('file_path', file)
+      xhr.send(form)
+    })
   },
 }
 

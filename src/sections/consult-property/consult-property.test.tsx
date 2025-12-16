@@ -1,31 +1,15 @@
+import React from 'react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react'
-import type { ComponentProps } from 'react'
-import type { FormContextWithSteps } from '@/sections/consult-property/types'
+import { render, screen, fireEvent, cleanup } from '@testing-library/react'
 import ConsultProperty from './consult-property'
 
 const mockPush = vi.fn()
 vi.mock('next/navigation', () => ({
-  useRouter: () => ({
-    push: mockPush,
-  }),
+  useRouter: () => ({ push: mockPush }),
 }))
 
-vi.mock('react', async (importOriginal) => {
-  const actualReact = await importOriginal<typeof import('react')>()
-  return {
-    ...actualReact,
-    Activity: ({ mode, children }: { mode: string; children: React.ReactNode }) => {
-      if (mode === 'visible') {
-        return <div data-testid="activity-visible">{children}</div>
-      }
-      return null
-    },
-  }
-})
-
 vi.mock('@hookform/resolvers/zod', () => ({
-  zodResolver: (schema: object) => schema,
+  zodResolver: (schema: any) => schema,
 }))
 
 vi.mock('@/components/progress-bar', () => ({
@@ -33,45 +17,74 @@ vi.mock('@/components/progress-bar', () => ({
 }))
 
 vi.mock('lucide-react', () => ({
-  ChevronLeft: (props: ComponentProps<'div'>) => <div data-testid="chevron-left" {...props} />,
+  ChevronLeft: ({ onClick, className, ...props }: any) => (
+    <div
+      data-testid="chevron-left"
+      onClick={onClick}
+      className={className}
+      {...props}
+    />
+  ),
+  Menu: (props: any) => <div data-testid="menu" {...props} />,
+  CircleQuestionMark: (props: any) => (
+    <div data-testid="circle-question-mark" {...props} />
+  ),
 }))
 
-vi.mock('@/sections/consult-property/steps', async () => {
-  const rhf = await vi.importActual<typeof import('react-hook-form')>('react-hook-form')
+vi.mock('@/sections/consult-property/components/traffic-light-modal', () => ({
+  default: ({ children }: { children: React.ReactNode }) => <div>{children}</div>
+}))
 
-  const MockStep = ({ testId, name }: { testId: string; name: string }) => {
-    const { handleNextStep } = rhf.useFormContext() as FormContextWithSteps
-    return (
-      <div data-testid={testId}>
-        {name}
-        <button onClick={handleNextStep}>Next Step</button>
-      </div>
-    )
-  }
-
-  return {
-    AddressStep: () => <MockStep testId="address-step" name="AddressStep" />,
-    DocumentConfirmationStep: () => (
-      <MockStep testId="document-confirmation-step" name="DocumentConfirmationStep" />
+vi.mock(
+  '@/sections/consult-property/steps/payment-step/payment-confirmation-step/payment-confirmation-step',
+  () => ({
+    PaymentConfirmationStep: () => (
+      <div data-testid="payment-confirmation-step">Payment Confirmation</div>
     ),
-    DocumentTypeStep: () => <MockStep testId="document-type-step" name="DocumentTypeStep" />,
-    SendDocumentStep: () => <MockStep testId="send-document-step" name="SendDocumentStep" />,
-    SummaryStep: () => <MockStep testId="summary-step" name="SummaryStep" />,
-    PaymentStep: () => <MockStep testId="payment-step" name="PaymentStep" />,
+  }),
+)
+
+vi.mock('@/sections/consult-property/steps/payment-step/card/select', () => ({
+  SavedCardsPage: () => <div data-testid="saved-cards-page">Saved Cards</div>
+}))
+
+vi.mock('@/sections/consult-property/steps/payment-step/card/register', () => ({
+  CreditCardPage: () => <div data-testid="credit-card-page">Credit Card Register</div>
+}))
+
+vi.mock('@/sections/consult-property/steps', () => {
+  return {
+    AddressStep: ({ onNext }: { onNext: () => void }) => (
+      <div data-testid="address-step">
+        <button onClick={onNext}>Next Address</button>
+      </div>
+    ),
+    DocumentConfirmationStep: ({ onNext }: { onNext: () => void }) => (
+      <div data-testid="document-confirmation-step">
+        <button onClick={onNext}>Next DocConfirm</button>
+      </div>
+    ),
+    DocumentTypeStep: ({ onNext }: { onNext: () => void }) => (
+      <div data-testid="document-type-step">
+        <button onClick={onNext}>Next DocType</button>
+      </div>
+    ),
+    SendDocumentStep: ({ onNext }: { onNext: () => void }) => (
+      <div data-testid="send-document-step">
+        <button onClick={onNext}>Next SendDoc</button>
+      </div>
+    ),
+    SummaryStep: ({ onNext }: { onNext: () => void }) => (
+      <div data-testid="summary-step">
+        <button onClick={onNext}>Next Summary</button>
+      </div>
+    ),
   }
 })
 
-describe('ConsultProperty', () => {
-  const steps = [
-    { step: 1, testId: 'address-step' },
-    { step: 2, testId: 'document-confirmation-step' },
-    { step: 3, testId: 'document-type-step' },
-    { step: 4, testId: 'send-document-step' },
-    { step: 5, testId: 'summary-step' },
-    { step: 6, testId: 'payment-step' },
-  ]
-
+describe('ConsultProperty Flow', () => {
   beforeEach(() => {
+    Object.defineProperty(window, 'scrollTo', { value: vi.fn(), writable: true })
     render(<ConsultProperty />)
   })
 
@@ -80,99 +93,52 @@ describe('ConsultProperty', () => {
     cleanup()
   })
 
-  it('should render the initial step correctly', () => {
-    expect(screen.getByRole('heading', { name: /consultar imóvel/i })).toBeInTheDocument()
-    expect(screen.getByText('1')).toBeInTheDocument()
-    expect(screen.getByText(/de/)).toBeInTheDocument()
-    expect(screen.getByText('6')).toBeInTheDocument()
-    expect(screen.getByTestId('progress-bar')).toHaveAttribute('data-value', String((1 / 6) * 100))
+  it('should render ONLY the first step initially', () => {
+    const addressStep = screen.getByTestId('address-step')
+    const docConfirmStep = screen.getByTestId('document-confirmation-step')
+
+    expect(addressStep).toBeVisible()
+    expect(docConfirmStep).not.toBeVisible()
   })
 
-  it('should display the AddressStep on initial render and hide other steps', () => {
-    expect(screen.getByTestId('address-step')).toBeInTheDocument()
-    expect(screen.queryByTestId('document-confirmation-step')).not.toBeInTheDocument()
-    expect(screen.queryByTestId('document-type-step')).not.toBeInTheDocument()
-    expect(screen.queryByTestId('send-document-step')).not.toBeInTheDocument()
-    expect(screen.queryByTestId('summary-step')).not.toBeInTheDocument()
-    expect(screen.queryByTestId('payment-step')).not.toBeInTheDocument()
+  it('should switch steps correctly when Next is clicked', () => {
+    fireEvent.click(screen.getByText('Next Address'))
+
+    const addressStep = screen.getByTestId('address-step')
+    const docConfirmStep = screen.getByTestId('document-confirmation-step')
+
+    expect(docConfirmStep).toBeVisible()
+    expect(addressStep).not.toBeVisible()
   })
 
-  it('should call router.push and not decrement step when back is clicked on the first step', () => {
-    expect(screen.getByText('1')).toBeInTheDocument()
-    expect(screen.getByTestId('address-step')).toBeInTheDocument()
-
-    fireEvent.click(screen.getByTestId('chevron-left'))
-
-    expect(mockPush).toHaveBeenCalledWith('/')
-
-    expect(screen.getByText('1')).toBeInTheDocument()
-    expect(screen.queryByText('0')).not.toBeInTheDocument()
-  })
-
-  it('should advance to the next step when the next action is triggered', async () => {
-    const nextButton = screen.getByRole('button', { name: /next step/i })
-    fireEvent.click(nextButton)
-
-    await waitFor(() => {
-      expect(screen.getByText('2')).toBeInTheDocument()
-      expect(screen.getByTestId('progress-bar')).toHaveAttribute(
-        'data-value',
-        String((2 / 6) * 100),
-      )
-      expect(screen.getByTestId('document-confirmation-step')).toBeInTheDocument()
-      expect(screen.queryByTestId('address-step')).not.toBeInTheDocument()
-    })
-  })
-
-  it('should navigate back to the previous step when back is clicked on a subsequent step', async () => {
-    fireEvent.click(screen.getByRole('button', { name: /next step/i }))
-    await screen.findByTestId('document-confirmation-step')
+  it('should handle the "go back" logic correctly using ChevronLeft', () => {
+    fireEvent.click(screen.getByText('Next Address'))
+    expect(screen.getByTestId('document-confirmation-step')).toBeVisible()
 
     const backButton = screen.getByTestId('chevron-left')
     fireEvent.click(backButton)
 
-    await waitFor(() => {
-      expect(screen.getByText('1')).toBeInTheDocument()
-      expect(screen.getByTestId('address-step')).toBeInTheDocument()
-      expect(screen.queryByTestId('document-confirmation-step')).not.toBeInTheDocument()
-    })
+    expect(screen.getByTestId('address-step')).toBeVisible()
+    expect(screen.getByTestId('document-confirmation-step')).not.toBeVisible()
   })
 
-  it('should not advance past the final step', async () => {
-    for (let i = 0; i < steps.length - 1; i++) {
-      fireEvent.click(screen.getByRole('button', { name: /next step/i }))
-      await screen.findByTestId(steps[i + 1].testId)
-    }
+  it('should go straight from Summary to Payment Confirmation (Pix)', () => {
+    fireEvent.click(screen.getByText('Next Address'))
+    fireEvent.click(screen.getByText('Next DocConfirm'))
+    fireEvent.click(screen.getByText('Next DocType'))
+    fireEvent.click(screen.getByText('Next SendDoc'))
 
-    expect(screen.getByTestId('payment-step')).toBeInTheDocument()
-    expect(screen.getAllByText('6').length).toBe(2)
+    expect(screen.getByTestId('summary-step')).toBeVisible()
+    fireEvent.click(screen.getByText('Next Summary'))
 
-    fireEvent.click(screen.getByRole('button', { name: /next step/i }))
-
-    await waitFor(() => {
-      expect(screen.getByTestId('payment-step')).toBeInTheDocument()
-      expect(screen.getAllByText('6').length).toBe(2)
-    })
+    expect(screen.getByTestId('payment-confirmation-step')).toBeVisible()
+    expect(screen.getByTestId('summary-step')).not.toBeVisible()
   })
 
-  describe('Step visibility validation', () => {
-    for (const currentStep of steps) {
-      it(`should only display ${currentStep.testId} when on step ${currentStep.step}`, async () => {
-        for (let j = 0; j < currentStep.step - 1; j++) {
-          fireEvent.click(screen.getByRole('button', { name: /next step/i }))
-          await screen.findByTestId(steps[j + 1].testId)
-        }
+  it('should have the back button hidden/disabled on the first step', () => {
+    const backButton = screen.getByTestId('chevron-left')
 
-        await screen.findByTestId(currentStep.testId)
-
-        steps.forEach((stepToCheck) => {
-          if (stepToCheck.testId === currentStep.testId) {
-            expect(screen.getByTestId(stepToCheck.testId)).toBeInTheDocument()
-          } else {
-            expect(screen.queryByTestId(stepToCheck.testId)).not.toBeInTheDocument()
-          }
-        })
-      })
-    }
+    expect(backButton).toHaveClass('opacity-0')
+    expect(backButton).toHaveClass('pointer-events-none')
   })
 })

@@ -20,7 +20,7 @@ describe('RootLayout', () => {
   })
 
   it('should have correct title and description', () => {
-    expect(metadata.title).toBe('Imóvel Web')
-    expect(metadata.description).toBe('Imóvel Web')
+    expect(metadata.title).toBe('Imóvel Periciado')
+    expect(metadata.description).toBe('Imóvel Periciado')
   })
 })

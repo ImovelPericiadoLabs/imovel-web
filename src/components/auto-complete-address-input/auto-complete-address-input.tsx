@@ -1,15 +1,19 @@
 'use client'
 
-import { useState, useRef } from 'react'
-import { Search, X, MapPin } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
+import { Search, X, MapPin, CircleAlert, MapPinX } from 'lucide-react'
 import { cn } from '@/utils/tailwind'
 import Button from '@/components/button'
 import TextTitle from '@/components/text-title'
+import TextSubtitle from '../text-subtitle'
 import Skeleton from '@/components/skeleton'
+import BottomSheet from '@/components/bottom-sheet'
+import Input from '@/components/input'
 
 type Option = {
-  street?: string
-  city?: string
+  primary?: string
+  secondary?: string
+  placeId?: string
   value?: string
 }
 
@@ -17,17 +21,56 @@ interface Props extends React.InputHTMLAttributes<HTMLInputElement> {
   options?: Option[]
   isLoading?: boolean
   onConfirm: (address: string) => void
+  isLoadingAddress?: boolean
+  onSelectAddress: (value: string) => Promise<{ address: string; addressNumber: string | null }>
+  error?: {
+    title: string
+    subtitle: string
+  } | null
+  isDirty?: boolean
+  onClear?: () => void
 }
 
 const loadingOptions = Array.from({ length: 5 }, (_, i) => ({
   value: i,
 }))
 
-export default function AutoCompleteInput({ options, isLoading, onConfirm, ...props }: Props) {
+export default function AutoCompleteInput({
+  options,
+  isLoading,
+  isLoadingAddress,
+  onConfirm,
+  onSelectAddress,
+  error,
+  isDirty,
+  onClear,
+  ...props
+}: Props) {
   const [value, setValue] = useState('')
   const [isOpenAddressSheet, setIsOpenAddressSheet] = useState(false)
+  const [isOpenErrorSheet, setIsOpenErrorSheet] = useState(false)
+  const [isOpenNotFoundAddressSheet, setIsOpenNotFoundAddressSheet] = useState(false)
+  const [addressError, setAddressError] = useState<{ title: string; subtitle: string } | null>(null)
 
   const inputRef = useRef<HTMLInputElement>(null)
+
+  function handleFocusInput() {
+    const el = inputRef?.current
+
+    el?.focus()
+    el?.setSelectionRange(el.value.length, el.value.length)
+  }
+
+  function handleCloseErrorSheet() {
+    handleFocusInput()
+    setIsOpenErrorSheet(false)
+    setAddressError(null)
+  }
+
+  function handleCloseNotFoundAddressSheet() {
+    handleFocusInput()
+    setIsOpenNotFoundAddressSheet(false)
+  }
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     if (props.onChange) {
@@ -38,13 +81,39 @@ export default function AutoCompleteInput({ options, isLoading, onConfirm, ...pr
   }
 
   function handleClearInput() {
+    if (onClear) {
+      onClear()
+    }
     setValue('')
     inputRef.current?.focus()
   }
 
-  function handleSelectAddress(address: string) {
+  function hasHouseNumber(address: string): boolean {
+    const afterFirstComma = address.split(',')[1]?.trim()
+
+    if (!afterFirstComma) return false
+
+    const regex = /^(\d+[A-Za-z]?|s\/?n)\b/i
+    return regex.test(afterFirstComma)
+  }
+
+  async function handleSelectAddress({ placeId }: Option) {
     handleOpenAddressSheet()
-    setValue(address)
+
+    const result = await onSelectAddress(placeId as string)
+
+    if (!result.addressNumber) {
+      setAddressError({
+        title: 'Número do endereço obrigatório',
+        subtitle: 'O local selecionado não possui numeração. Por favor, informe o número.',
+      })
+
+      handleCloseAddressSheet()
+      inputRef?.current?.blur()
+      return
+    }
+
+    setValue(result.address)
   }
 
   function handleOpenAddressSheet() {
@@ -56,18 +125,38 @@ export default function AutoCompleteInput({ options, isLoading, onConfirm, ...pr
   }
 
   function handleChangeAddress() {
-    const el = inputRef?.current
-
-    el?.focus()
-    el?.setSelectionRange(el.value.length, el.value.length)
+    handleFocusInput()
 
     handleCloseAddressSheet()
+
+    handleCloseErrorSheet()
+
+    handleCloseNotFoundAddressSheet()
+
+    setAddressError(null)
   }
+
+  useEffect(() => {
+    setIsOpenErrorSheet(error !== null)
+  }, [error])
+
+  useEffect(() => {
+    if (error) {
+      inputRef.current?.blur()
+    }
+  }, [error])
+
+  useEffect(() => {
+    if (!isLoading && isDirty && value?.length && !options?.length) {
+      setIsOpenNotFoundAddressSheet(true)
+      inputRef.current?.blur()
+    }
+  }, [options, isLoading, isDirty, value])
 
   return (
     <div
       className={cn({
-        'bg-white p-3 rounded-2xl': !!value.length,
+        'bg-white rounded-t-4xl rounded-b-[1.75rem]': !!options?.length,
       })}
     >
       <div className="relative">
@@ -80,15 +169,9 @@ export default function AutoCompleteInput({ options, isLoading, onConfirm, ...pr
           />
         )}
 
-        <input
+        <Input
           ref={inputRef}
           autoFocus
-          className="
-            px-9.5  py-4 bg-white w-full rounded-[6rem] border 
-            border-input-border shadow-[0_1px_2px_rgba(10,13,18,0.05)] 
-             placeholder:text-gray placeholder:text-base placeholder:font-normal placeholder:leading-6
-            focus:border-primary focus:ring-1 focus:ring-primary outline-none
-            "
           type="text"
           {...props}
           value={value}
@@ -101,7 +184,7 @@ export default function AutoCompleteInput({ options, isLoading, onConfirm, ...pr
           {loadingOptions?.map((address) => (
             <div
               key={address.value}
-              className="flex items-start gap-4 pb-4 border-b border-hr last:border-b-0 cursor-pointer"
+              className="flex items-start gap-4 px-7 pb-4 border-b border-hr last:border-b-0 cursor-pointer"
             >
               <div className="shrink-0 mt-1">
                 <MapPin className="size-6" />
@@ -121,17 +204,19 @@ export default function AutoCompleteInput({ options, isLoading, onConfirm, ...pr
           {options?.map((address) => (
             <button
               key={address.value}
-              className="w-full flex items-start gap-4 pb-4 border-b border-hr last:border-b-0 cursor-pointer"
-              onClick={() => handleSelectAddress(`${address.street}, ${address.city}`)}
+              className="w-full flex items-start gap-4 px-7 pb-4 border-b border-hr last:border-b-0 cursor-pointer"
+              onClick={() => {
+                handleSelectAddress(address)
+              }}
             >
               <div className="shrink-0 mt-1">
                 <MapPin className="size-6" />
               </div>
               <div className="flex-1 text-start min-w-0">
-                <h3 className="text-sm font-medium leading-[130%]">{address.city}</h3>
+                <h3 className="text-sm font-medium leading-[130%]">{address.primary}</h3>
 
                 <p className="text-xs font-normal leading-[130%] text-gray mt-1">
-                  {address.street}
+                  {address.secondary}
                 </p>
               </div>
             </button>
@@ -139,41 +224,72 @@ export default function AutoCompleteInput({ options, isLoading, onConfirm, ...pr
         </div>
       )}
 
-      {isOpenAddressSheet && (
-        <div
-          className="fixed inset-0 bg-black/50 z-40 transition-opacity duration-500"
-          onClick={handleChangeAddress}
-        />
-      )}
-
-      <div
-        className={`fixed bottom-0 left-0 right-0 bg-white shadow-[0px_4px_8px_3px_rgba(0,0,0,0.15),0px_1px_3px_rgba(0,0,0,0.3)] rounded-t-[1.75rem] z-50 transition-all duration-500 ease-out ${
-          isOpenAddressSheet ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'
-        }`}
+      <BottomSheet
+        isOpen={isOpenErrorSheet || !!addressError?.title?.length}
+        onClose={handleChangeAddress}
       >
-        <div className="flex justify-center pt-4 pb-2">
-          <div className="w-8 h-1 rounded-full bg-handle" />
+        <div className="px-6 py-8 pb-12 max-h-[70vh] overflow-y-auto flex flex-col items-center gap-2 text-center">
+          <div className="rounded-full bg-error-50 size-14 flex items-center justify-center">
+            <div className="rounded-full size-10 bg-error-100 flex items-center justify-center">
+              <CircleAlert stroke="#D92D20" className="size-7 text-amber-100" />
+            </div>
+          </div>
+          <TextTitle className="text-dark">{error?.title || addressError?.title}</TextTitle>
+          <TextSubtitle className="mb-2 text-gray-2">
+            {error?.subtitle || addressError?.subtitle}
+          </TextSubtitle>
+          <Button onClick={handleCloseErrorSheet}>Entendi</Button>
         </div>
+      </BottomSheet>
 
+      <BottomSheet isOpen={isOpenNotFoundAddressSheet && !error} onClose={handleChangeAddress}>
+        <div className="px-6 py-8 pb-12 max-h-[70vh] overflow-y-auto flex flex-col items-center gap-2 text-center">
+          <div className="rounded-full bg-violet-50 size-14 flex items-center justify-center">
+            <div className="rounded-full size-10 bg-violet-100 flex items-center justify-center">
+              <MapPinX className="size-7 text-primary" />
+            </div>
+          </div>
+          <TextTitle className="text-dark">Não encontramos seu endereço</TextTitle>
+          <TextSubtitle className="mb-2 text-gray-2">
+            Verifique o local e tente novamente.
+          </TextSubtitle>
+          <Button onClick={handleCloseNotFoundAddressSheet}>Entendi</Button>
+        </div>
+      </BottomSheet>
+
+      <BottomSheet isOpen={isOpenAddressSheet} onClose={handleChangeAddress}>
         <div className="px-6 py-8 pb-12 max-h-[70vh] overflow-y-auto">
-          <TextTitle className="mb-7">Confirmar este endereço?</TextTitle>
+          <TextTitle className="mb-7 text-dark">Confirmar este endereço?</TextTitle>
 
           <div className="border border-[#EBEBEB] rounded-[0.25rem] px-4 py-3 mb-6 bg-white">
             <div className="flex flex-col items-start">
-              <MapPin className="size- text-dark mb-2" />
-              <p className="text-dark font-medium text-base leading-6 mb-3">{value}</p>
-              <button
-                onClick={handleChangeAddress}
-                className="cursor-pointer text-primary font-semibold text-sm transition-colors"
-              >
-                Mudar
-              </button>
+              <MapPin className="size-5 text-dark mb-2" />
+              {isLoadingAddress ? (
+                <Skeleton className="w-80 h-4 mt-2 rounded-full" />
+              ) : (
+                <p className="text-dark font-medium text-base leading-6 mb-3">{value}</p>
+              )}
+
+              {isLoadingAddress ? (
+                <Skeleton className="w-20 h-4 mt-4 rounded-full" />
+              ) : (
+                <button
+                  onClick={handleChangeAddress}
+                  className="cursor-pointer text-primary font-semibold text-sm transition-colors"
+                >
+                  Mudar
+                </button>
+              )}
             </div>
           </div>
 
-          <Button onClick={() => onConfirm(value)}>Confirmar</Button>
+          {!isLoadingAddress ? (
+            <Button onClick={() => onConfirm(value)}>Confirmar</Button>
+          ) : (
+            <Skeleton className="w-full h-12 mt-4 rounded-full" />
+          )}
         </div>
-      </div>
+      </BottomSheet>
     </div>
   )
 }

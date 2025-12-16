@@ -2,4 +2,16 @@ export const url = process.env.NEXT_PUBLIC_API_URL || 'https://api.imovelpericia
 
 export const endpoint = {
   addresses: '/places/autocomplete/',
+  documents: {
+    upload: '/documents/upload/',
+  },
+  payments: {
+    process: '/payments/',
+    status: '/payments',
+  },
+  start: '/auth/start/',
+  verify: '/auth/verify/',
+  refresh: '/auth/refresh/',
+  orders: '/orders/',
+  plans: '/plans/',
 }
