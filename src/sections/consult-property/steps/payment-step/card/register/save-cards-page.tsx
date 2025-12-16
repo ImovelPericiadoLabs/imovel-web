@@ -37,7 +37,7 @@ function FormInput({ label, icon, className, ...props }: InputProps) {
 }
 
 export function CreditCardPage({
-    amount = '67,56',
+    amount = '59,00',
     onSave,
 }: {
     amount?: string
