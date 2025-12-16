@@ -8,12 +8,16 @@ vi.mock('next/font/google', () => ({
   })),
 }))
 
+vi.mock('@/providers', () => ({
+  Providers: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}))
+
 describe('RootLayout', () => {
   it('should render children correctly', () => {
     render(
       <RootLayout>
         <div data-testid="child">Hello</div>
-      </RootLayout>,
+      </RootLayout>
     )
     expect(screen.getByTestId('child')).toBeInTheDocument()
     expect(screen.getByText('Hello')).toBeVisible()
