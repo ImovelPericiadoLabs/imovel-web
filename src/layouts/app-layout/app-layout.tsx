@@ -14,7 +14,7 @@ export default function AppLayout({ children }: PropsWithChildren) {
 
   function handleGoBack() {
     const mapRoutes: Record<string, string> = {
-      '/pedidos': '/',
+      '/pedidos': '/consultar-imovel',
     }
     if (mapRoutes[pathname]) {
       push(mapRoutes[pathname])

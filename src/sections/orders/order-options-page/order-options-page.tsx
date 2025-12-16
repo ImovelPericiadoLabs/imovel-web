@@ -12,7 +12,7 @@ export default function OrderOptionsPage() {
       icon: FileText,
       title: 'Resultado',
       subtitle: 'Visualizar resultado completo',
-      href: `/pedidos/${id}/opcoes/resultado`,
+      href: `/pedidos/${id}`,
     },
     {
       icon: Files,

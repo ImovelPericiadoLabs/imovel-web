@@ -134,7 +134,7 @@ export function SummaryStep({ onNext }: { onNext: () => void }) {
         <div className="flex w-full justify-between">
           <div className="flex flex-col pl-4">
             <p className="text-sm font-medium leading-[130%]">Total</p>
-            <p className="text-sm font-medium leading-[130%]">R$ 67,56</p>
+            <p className="text-sm font-medium leading-[130%]">R$ 59,00</p>
           </div>
 
           <Button className="w-fit" onClick={onNext}>

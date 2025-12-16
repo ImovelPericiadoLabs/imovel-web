@@ -29,12 +29,9 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    // ADICIONADO: h-full no html
     <html lang="pt-br" className="h-full">
-      {/* ADICIONADO: h-full e flex flex-col no body */}
       <body className={`${notoSans.variable} antialiased h-full flex flex-col`}>
         <Providers>
-          {/* ADICIONADO: flex-1 e h-full no main */}
           <main className="flex-1 flex flex-col h-full w-full">
             {children}
           </main>

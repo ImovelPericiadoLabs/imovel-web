@@ -99,7 +99,7 @@ describe('SummaryStep', () => {
     render(<SummaryStep onNext={mockOnNext} />)
 
     expect(screen.getByText('Total')).toBeInTheDocument()
-    expect(screen.getByText('R$ 67,56')).toBeInTheDocument()
+    expect(screen.getByText('R$ 59,00')).toBeInTheDocument()
 
     const continueBtn = screen.getByTestId('continue-btn')
     expect(continueBtn).toBeInTheDocument()

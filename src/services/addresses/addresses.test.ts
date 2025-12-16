@@ -18,7 +18,6 @@ vi.mock('@/utils/api/client', () => ({
 }))
 
 const mockPost = vi.mocked(api.post)
-
 const endpointAddresses = endpoint.addresses
 
 describe('Address Services', () => {
@@ -107,6 +106,27 @@ describe('Address Services', () => {
 
       expect(result).toEqual([])
     })
+
+    it('should throw timeout error when request takes too long', async () => {
+      vi.useFakeTimers()
+      mockPost.mockImplementation(
+        () => new Promise((resolve) => setTimeout(resolve, 9000))
+      )
+
+      const promise = listAddresses('timeout')
+      vi.advanceTimersByTime(8000)
+
+      await expect(promise).rejects.toThrow('A conexão demorou muito para responder.')
+      vi.useRealTimers()
+    })
+
+    it('should throw specific iOS network error', async () => {
+      mockPost.mockRejectedValue(new Error('Load failed'))
+
+      await expect(listAddresses('ios error')).rejects.toThrow(
+        'Bloqueio de rede (iOS). Desative a Retransmissão Privada ou troque de Wi-Fi.'
+      )
+    })
   })
 
   describe('listRegistry', () => {
@@ -141,6 +161,7 @@ describe('Address Services', () => {
     it('should call api.post with correct payload', async () => {
       mockPost.mockResolvedValue({
         formattedAddress: 'Rua A, São Paulo',
+        addressComponents: [],
       } satisfies ListAddressResponse)
 
       await listAddress({
@@ -155,7 +176,7 @@ describe('Address Services', () => {
       })
     })
 
-    it('should return formattedAddress when API returns it', async () => {
+    it('should return formattedAddress and null number when no components present', async () => {
       mockPost.mockResolvedValue({
         formattedAddress: 'Rua A, São Paulo',
       } satisfies ListAddressResponse)
@@ -165,10 +186,32 @@ describe('Address Services', () => {
         placeId: 'place-id-123',
       })
 
-      expect(result).toBe('Rua A, São Paulo')
+      expect(result).toEqual({
+        address: 'Rua A, São Paulo',
+        addressNumber: null,
+      })
     })
 
-    it('should return undefined when formattedAddress is missing', async () => {
+    it('should extract addressNumber correctly', async () => {
+      mockPost.mockResolvedValue({
+        formattedAddress: 'Rua A, 123',
+        addressComponents: [
+          { longText: '123', shortText: '123', types: ['street_number'] },
+        ],
+      } satisfies ListAddressResponse)
+
+      const result = await listAddress({
+        address: 'Rua A',
+        placeId: 'place-id-123',
+      })
+
+      expect(result).toEqual({
+        address: 'Rua A, 123',
+        addressNumber: '123',
+      })
+    })
+
+    it('should return empty string and null when formattedAddress is missing', async () => {
       mockPost.mockResolvedValue({} as ListAddressResponse)
 
       const result = await listAddress({
@@ -176,7 +219,10 @@ describe('Address Services', () => {
         placeId: 'place-id-987',
       })
 
-      expect(result).toBeUndefined()
+      expect(result).toEqual({
+        address: '',
+        addressNumber: null,
+      })
     })
   })
 })
