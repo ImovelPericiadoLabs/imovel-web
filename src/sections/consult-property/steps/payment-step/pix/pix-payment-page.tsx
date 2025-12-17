@@ -243,7 +243,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
       await generatePix({
         place_id: finalPlaceId,
         plan_id: FIXED_PLAN_ID,
-        document_id: documentId, 
+        document_id: documentId,
         name: formData.name,
         document: formData.document,
         whatsapp: whatsappClean,
@@ -268,7 +268,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
         console.log('🔧 DEV MODE: Simulando pagamento confirmado...')
 
         setTimeout(() => {
-          onFinish() 
+          onFinish()
         }, 1500)
       }
 
@@ -340,7 +340,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
           <div className="flex flex-col items-center pt-10 -mt-27">
             <div className="mb-6 text-white px-1 text-left relative z-10 w-full text-center">
               <p className="text- leading-snug font-normal text-color-background">
-                Pague <span className="font-bold">{formatMoney(70.56)}</span> via Pix para garantir <br />
+                Pague <span className="font-bold">{formatMoney(pixData.value)}</span> via Pix para garantir <br />
                 sua compra
               </p>
             </div>
