@@ -77,7 +77,7 @@ export default function ConsultarImovelPage() {
   }
 
   return (
-    <main className="relative w-full h-screen overflow-hidden bg-black font-sans text-white">
+    <main className="relative w-full h-dvh overflow-hidden bg-black font-sans text-white">
       <video
         ref={videoRef}
         src="/vsl.mp4"
@@ -95,7 +95,7 @@ export default function ConsultarImovelPage() {
       <div className="absolute inset-0 bg-black/40 pointer-events-none" />
       <div className="absolute bottom-0 left-0 right-0 h-3/4 bg-gradient-to-t from-black/90 via-black/20 to-transparent pointer-events-none" />
 
-      <div className="relative z-10 flex flex-col h-full justify-between px-6 py-8 pointer-events-none">
+      <div className="relative z-10 flex flex-col h-full justify-between px-6 pt-8 pb-12 pointer-events-none">
         <div className="flex flex-col items-center mt-4 opacity-40">
           <Image
             src="/images/logo.png"
@@ -141,7 +141,7 @@ export default function ConsultarImovelPage() {
           )}
         </div>
 
-        <div className="flex flex-col gap-6 w-full max-w-md mx-auto">
+        <div className="flex flex-col gap-4 w-full max-w-md mx-auto mb-4">
           <p className="text-left text-xl font-light leading-[140%] text-gray-200">
             Assista ao vídeo tutorial acima até o final <br className="hidden sm:block" />
             para desbloquear o botão <strong className="font-bold text-white">“Começar”</strong>
