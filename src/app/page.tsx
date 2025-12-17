@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { VolumeX } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
@@ -16,6 +16,14 @@ export default function ConsultarImovelPage() {
   const [isUnlocked, setIsUnlocked] = useState(false)
   const [hasStartedAudio, setHasStartedAudio] = useState(false)
   const [isPlaying, setIsPlaying] = useState(false)
+
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.play().catch((err) => {
+        console.log("Autoplay aguardando interação ou bloqueado:", err)
+      })
+    }
+  }, [])
 
   const handleTimeUpdate = (e: React.SyntheticEvent<HTMLVideoElement>) => {
     const video = e.currentTarget
@@ -36,7 +44,6 @@ export default function ConsultarImovelPage() {
 
   const handleLoadedMetadata = (e: React.SyntheticEvent<HTMLVideoElement>) => {
     setRemainingTime(Math.ceil(e.currentTarget.duration))
-    e.currentTarget.play().catch(() => { })
   }
 
   const handleUnmuteAndRestart = useCallback(() => {
@@ -45,23 +52,21 @@ export default function ConsultarImovelPage() {
 
     video.muted = false
     setIsMuted(false)
-
-    if (!hasStartedAudio) {
-      video.currentTime = 0
-      setHasStartedAudio(true)
-    }
+    
+    video.currentTime = 0
+    setHasStartedAudio(true)
 
     video.play().then(() => setIsPlaying(true)).catch(() => { })
-  }, [hasStartedAudio])
+  }, [])
 
   const togglePlay = useCallback(() => {
+    const video = videoRef.current
+    if (!video) return
+
     if (!hasStartedAudio) {
       handleUnmuteAndRestart()
       return
     }
-
-    const video = videoRef.current
-    if (!video) return
 
     if (video.paused) {
       video.play()
@@ -78,12 +83,18 @@ export default function ConsultarImovelPage() {
 
   return (
     <main className="relative w-full h-dvh overflow-hidden bg-black font-sans text-white">
+      {/* Atributos vitais para iPhone: 
+          - autoPlay + muted + playsInline (obrigatórios para iniciar sem clique)
+          - preload="auto" (ajuda a carregar o buffer mais rápido)
+      */}
       <video
         ref={videoRef}
         src="/vsl.mp4"
         className="absolute inset-0 w-full h-full object-cover cursor-pointer"
         playsInline
-        muted={isMuted}
+        autoPlay
+        muted
+        preload="auto"
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleLoadedMetadata}
         onPlay={() => setIsPlaying(true)}
@@ -92,10 +103,12 @@ export default function ConsultarImovelPage() {
         onClick={togglePlay}
       />
 
+      {/* Camadas de Overlay */}
       <div className="absolute inset-0 bg-black/40 pointer-events-none" />
       <div className="absolute bottom-0 left-0 right-0 h-3/4 bg-gradient-to-t from-black/90 via-black/20 to-transparent pointer-events-none" />
 
       <div className="relative z-10 flex flex-col h-full justify-between px-6 pt-8 pb-12 pointer-events-none">
+        {/* Logo */}
         <div className="flex flex-col items-center mt-4 opacity-40">
           <Image
             src="/images/logo.png"
@@ -106,6 +119,7 @@ export default function ConsultarImovelPage() {
           />
         </div>
 
+        {/* Área Central: Botão Ativar Som */}
         <div className="flex-1 flex items-center justify-center relative">
           <button
             onClick={(e) => {
@@ -131,7 +145,7 @@ export default function ConsultarImovelPage() {
               <div className="size-20 rounded-full bg-white/20 backdrop-blur-[3px] flex items-center justify-center animate-in fade-in zoom-in duration-300">
                 <svg
                   viewBox="0 0 24 24"
-                  className="size-10 fill-black/20 pl-1"
+                  className="size-10 fill-white/80 pl-1"
                   xmlns="http://www.w3.org/2000/svg"
                 >
                   <path d="M5.25 5.054a2 2 0 0 1 3.097-1.67l11.405 7.128a2 2 0 0 1 0 3.376L8.347 21.016A2 2 0 0 1 5.25 19.346V5.054Z" />
@@ -141,6 +155,7 @@ export default function ConsultarImovelPage() {
           )}
         </div>
 
+        {/* Rodapé: Texto e Progresso */}
         <div className="flex flex-col gap-4 w-full max-w-md mx-auto mb-4">
           <p className="text-left text-xl font-light leading-[140%] text-gray-200">
             Assista ao vídeo tutorial acima até o final <br className="hidden sm:block" />
@@ -164,6 +179,7 @@ export default function ConsultarImovelPage() {
               </Button>
             </div>
 
+            {/* Barra de Progresso */}
             <div className="w-full h-1.5 bg-gray-600/50 rounded-full overflow-hidden backdrop-blur-sm mb-4 mt-4">
               <div
                 className={`h-full transition-all duration-200 ease-linear rounded-full ${isUnlocked ? 'bg-white' : 'bg-gray-300'}`}
