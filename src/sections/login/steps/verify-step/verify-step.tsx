@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Controller, useFormContext } from 'react-hook-form'
 import { Mail, AlertCircle } from 'lucide-react'
@@ -9,87 +9,81 @@ import { FormTypes } from '@/sections/login/validations'
 import { InputOtp } from '@/sections/login/components/InputOtp'
 import { startAuth } from '@/services/account'
 
-export function VerifyCodeStep({ onBack }: { onBack: () => void }) {
+export function VerifyCodeStep({
+  onBack,
+  enableTimer = true,
+  initialTimer = 59,
+}: {
+  onBack: () => void
+  enableTimer?: boolean
+  initialTimer?: number
+}) {
+  const [timer, setTimer] = useState(initialTimer)
+  
   const router = useRouter()
   const { control, watch, handleSubmit, formState: { isSubmitting } } = useFormContext<FormTypes>()
 
   const email = watch('email')
-
-  const [timer, setTimer] = useState(59)
   const [errorMsg, setErrorMsg] = useState('')
   const [isResending, setIsResending] = useState(false)
 
   useEffect(() => {
-    if (!email) {
-      onBack();
-    }
-  }, [email, onBack]);
+    if (!email) onBack()
+  }, [email, onBack])
 
   useEffect(() => {
+    if (!enableTimer) return
     if (timer === 0) return
+
     const id = setInterval(() => {
-      setTimer((prev) => prev - 1)
+      setTimer((prev) => (prev <= 1 ? 0 : prev - 1))
     }, 1000)
+
     return () => clearInterval(id)
-  }, [timer])
+  }, [enableTimer])
 
   const onSubmit = async (data: FormTypes) => {
     setErrorMsg('')
-
-    if (!email) {
-      setErrorMsg("Email não encontrado. Volte e tente novamente.")
-      return
-    }
-
     try {
       const result = await signIn('credentials', {
-        email: email,
+        email,
         code: data.code,
         redirect: false,
       })
 
       if (result?.error) {
-        console.error('Erro no login:', result.error)
-
         const cleanError = result.error.replace("Error: ", "")
-
-        setErrorMsg(cleanError || 'Código incorreto ou expirado.')
-        return
+        return setErrorMsg(cleanError || 'Código incorreto ou expirado.')
       }
 
-      console.log('Autenticado com sucesso.')
       router.refresh()
-
+      router.push('/dashboard')
     } catch (error) {
-      console.error('Erro inesperado:', error)
       setErrorMsg('Ocorreu um erro ao validar o código.')
     }
   }
 
-  const handleResendCode = async () => {
-    if (!email) return;
-
+  const handleResendCode = useCallback(async () => {
+    if (!email || isResending) return
+    setIsResending(true)
+    setErrorMsg('')
     try {
-      setIsResending(true)
-      setErrorMsg('')
       await startAuth({ email })
       setTimer(59)
-    } catch (error: any) {
-      console.error('Erro ao reenviar:', error)
+    } catch (error) {
       setErrorMsg('Aguarde alguns instantes antes de tentar novamente.')
     } finally {
       setIsResending(false)
     }
-  }
+  }, [email, isResending])
 
-  if (!email) return null;
+  if (!email) return null
 
   return (
     <form
       onSubmit={handleSubmit(onSubmit)}
       className="flex flex-col items-center animate-in fade-in slide-in-from-right-4 duration-300 text-center"
     >
-
       <div className="mb-6 flex items-center justify-center size-16 rounded-full bg-[#F3E8FF]">
         <Mail className="size-8 text-primary" />
       </div>
@@ -105,8 +99,8 @@ export function VerifyCodeStep({ onBack }: { onBack: () => void }) {
         defaultValue=""
         render={({ field, fieldState }) => (
           <InputOtp
-            value={field.value}
-            onChange={field.onChange}
+            {...field}
+            value={field.value ?? ''}
             length={6}
             isError={!!fieldState.error || !!errorMsg}
           />
@@ -114,13 +108,13 @@ export function VerifyCodeStep({ onBack }: { onBack: () => void }) {
       />
 
       {errorMsg && (
-        <div className="flex items-center gap-2 mt-4 text-red-600 bg-red-50 px-4 py-2 rounded-md text-xs font-medium animate-in fade-in">
+        <div className="flex items-center gap-2 mt-4 text-red-600 bg-red-50 px-4 py-2 rounded-md text-xs font-medium animate-in fade-in fill-mode-both">
           <AlertCircle className="size-4" />
           <span>{errorMsg}</span>
         </div>
       )}
 
-      <div className="text-xs text-[#4B4B4B] mt-6 mb-6 flex gap-1">
+      <div className="text-xs text-[#4B4B4B] mt-6 mb-6">
         {timer === 0 ? (
           <button
             type="button"
