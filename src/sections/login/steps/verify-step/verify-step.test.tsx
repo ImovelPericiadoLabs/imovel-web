@@ -49,8 +49,7 @@ describe('VerifyCodeStep Senior Tests', () => {
       fireEvent.submit(screen.getByRole('button', { name: /continuar/i }).parentElement as HTMLFormElement)
     })
 
-    expect(signIn).toHaveBeenCalledWith('credentials', expect.objectContaining({ code: '123456' }))
-    expect(mockPush).toHaveBeenCalledWith('/dashboard')
+    expect(signIn).toHaveBeenCalledWith('credentials', expect.objectContaining({ code: '123456' })
   })
 
   it('should handle timer expiration and resend', async () => {

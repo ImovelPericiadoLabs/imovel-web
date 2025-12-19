@@ -57,7 +57,6 @@ export function VerifyCodeStep({
       }
 
       router.refresh()
-      router.push('/dashboard')
     } catch (error) {
       setErrorMsg('Ocorreu um erro ao validar o código.')
     }

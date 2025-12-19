@@ -7,9 +7,10 @@ import Badge from '@/components/badge'
 import LoadingOverlay from '@/components/loading-overlay'
 import { formatDateWithTime } from '@/utils/date'
 import { cn } from '@/utils/tailwind'
-import { mapBadgeStatus, mapCircleStatus, mapBadgeText } from '@/sections/orders/constants'
 import { listOrders } from '@/services/orders'
+import type { Order } from '@/services/orders'
 
+// Ícones e componentes internos
 const ChevronRight = () => (
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 ml-2">
     <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
@@ -22,32 +23,38 @@ const EmptyInboxIcon = () => (
   </svg>
 )
 
-const MOCK_STATUSES = ['ALL_GOOD', 'PURCHASE_AND_SALE_BLOCKED', 'IRREGULARITIES_FOUND']
+// Mapeamentos baseados no novo Semaphore
+const mapSemaphoreCircle: Record<string, string> = {
+  green: 'bg-green-500',
+  yellow: 'bg-yellow-500',
+  red: 'bg-red-500',
+}
 
-const getRandomMockStatus = () => {
-  const randomIndex = Math.floor(Math.random() * MOCK_STATUSES.length)
-  return MOCK_STATUSES[randomIndex]
+const mapAnalysisBadge: Record<string, any> = {
+  PENDING: { label: 'Em análise', variant: 'warning' },
+  APPROVED: { label: 'Aprovado', variant: 'success' },
+  REJECTED: { label: 'Risco Detectado', variant: 'destructive' },
 }
 
 export default function OrdersPage() {
-  const [orders, setOrders] = useState<any[]>([])
+  const [orders, setOrders] = useState<Order[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isFetchingMore, setIsFetchingMore] = useState(false)
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
 
   const observerRef = useRef<IntersectionObserver | null>(null)
-  
+
   const lastOrderElementRef = useCallback((node: HTMLDivElement) => {
     if (isLoading || isFetchingMore) return
     if (observerRef.current) observerRef.current.disconnect()
-    
+
     observerRef.current = new IntersectionObserver((entries) => {
       if (entries[0].isIntersecting && hasMore) {
         setPage((prevPage) => prevPage + 1)
       }
     })
-    
+
     if (node) observerRef.current.observe(node)
   }, [isLoading, isFetchingMore, hasMore])
 
@@ -58,23 +65,16 @@ export default function OrdersPage() {
 
       try {
         const response = await listOrders({ limit: 10, p: page })
-        
-        const newOrders = (response.items || []).map((apiOrder) => ({
-          id: apiOrder.id,
-          displayId: apiOrder.code,
-          address: apiOrder.formatted_address,
-          analyzedAt: apiOrder.created,
-          status: getRandomMockStatus(),
-        }))
+
+        const newOrders = response.items || []
 
         setOrders((prevOrders) => {
           if (page === 1) return newOrders
           return [...prevOrders, ...newOrders]
         })
 
-        if (response.meta.page >= response.meta.total_pages) {
-          setHasMore(false)
-        }
+        // Atualiza se tem mais páginas baseado no meta
+        setHasMore(response.meta.has_next)
       } catch (error) {
         console.error('Erro ao buscar pedidos:', error)
       } finally {
@@ -91,7 +91,6 @@ export default function OrdersPage() {
       <TextTitle>Meus pedidos</TextTitle>
 
       {orders.length === 0 && !isLoading ? (
-        
         <div className="flex-1 flex flex-col items-center justify-center text-center opacity-80 animate-in fade-in duration-500">
           <div className="mb-4">
             <EmptyInboxIcon />
@@ -103,15 +102,15 @@ export default function OrdersPage() {
             Seus pedidos aparecerão aqui.
           </p>
         </div>
-
       ) : (
         <div className="flex flex-col gap-4">
           {orders.map((order, index) => {
             const isLastElement = orders.length === index + 1
-            
+            const analysisInfo = mapAnalysisBadge[order.analysis_status] || { label: order.analysis_status, variant: 'neutral' }
+
             return (
-              <div 
-                key={`${order.id}-${index}`} 
+              <div
+                key={`${order.id}`}
                 ref={isLastElement ? lastOrderElementRef : null}
               >
                 <Link
@@ -119,30 +118,44 @@ export default function OrdersPage() {
                   href={`/pedidos/${order.id}/opcoes`}
                 >
                   <div className="flex items-center">
-                    <div className={cn('p-1.5 mr-4 rounded-full flex-shrink-0', mapCircleStatus[order.status])} />
+                    {/* Semáforo de Risco */}
+                    <div
+                      className={cn(
+                        'p-1.5 mr-4 rounded-full flex-shrink-0 animate-pulse',
+                        mapSemaphoreCircle[order.semaphore] || 'bg-gray-300'
+                      )}
+                    />
 
-                    <div className="flex flex-col gap-1.5 flex-1">
+                    <div className="flex flex-col gap-1 flex-1">
                       <div className="flex justify-between items-center w-full">
                         <span className="text-gray-900 text-sm font-bold">
-                          Pedido #{order.displayId}
+                          Pedido #{order.code}
                         </span>
+
                       </div>
 
-                      <p className="text-gray-600 text-sm font-normal">
-                        {order.address}
-                      </p>
-                      
-                      <p className="text-gray-400 text-xs mt-1">
-                        Analisado em {formatDateWithTime(order.analyzedAt)}
+                      <p className="text-gray-600 text-sm font-normal break-words">
+                        {order.formatted_address || 'Endereço não informado'}
                       </p>
 
-                      <div className="mt-1">
-                        <Badge variant={mapBadgeStatus[order.status]}>
-                          {mapBadgeText[order.status]}
+                      <p className="text-gray-400 text-xs mt-0.5">
+                        Analisado em {formatDateWithTime(order.modified)}
+                      </p>
+
+                      <div className="mt-2 flex gap-2 items-center">
+                        <Badge variant={analysisInfo.variant}>
+                          {analysisInfo.label}
                         </Badge>
+
+                        {/* Indicador de que há detalhes de análise */}
+                        {order.analysis?.length > 0 && (
+                          <span className="text-[10px] text-gray-400">
+                            • {order.analysis.length} pontos analisados
+                          </span>
+                        )}
                       </div>
                     </div>
-                    
+
                     <div className="opacity-0 group-hover:opacity-100 transition-opacity ml-2 text-blue-500">
                       <ChevronRight />
                     </div>
@@ -156,13 +169,13 @@ export default function OrdersPage() {
 
       {/* Spinner scroll infinito */}
       {isFetchingMore && (
-        <div className="flex justify-center py-4">
+        <div className="flex justify-center py-6">
           <div className="w-6 h-6 border-2 border-gray-200 border-t-blue-500 rounded-full animate-spin"></div>
         </div>
       )}
 
-      {/* Loading Global */}
-      <LoadingOverlay isLoading={isLoading} message="Carregando pedidos..." />
+      {/* Loading Global na primeira carga */}
+      <LoadingOverlay isLoading={isLoading && page === 1} message="Carregando pedidos..." />
     </div>
   )
 }
