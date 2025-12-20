@@ -10,7 +10,6 @@ import { cn } from '@/utils/tailwind'
 import { listOrders } from '@/services/orders'
 import type { Order } from '@/services/orders'
 
-// Ícones e componentes internos
 const ChevronRight = () => (
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 ml-2">
     <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
@@ -23,17 +22,11 @@ const EmptyInboxIcon = () => (
   </svg>
 )
 
-// Mapeamentos baseados no novo Semaphore
-const mapSemaphoreCircle: Record<string, string> = {
-  green: 'bg-green-500',
-  yellow: 'bg-yellow-500',
-  red: 'bg-red-500',
-}
-
 const mapAnalysisBadge: Record<string, any> = {
-  PENDING: { label: 'Em análise', variant: 'warning' },
-  APPROVED: { label: 'Aprovado', variant: 'success' },
-  REJECTED: { label: 'Risco Detectado', variant: 'destructive' },
+  IN_PROGRESS: { label: 'Em análise', dot: 'bg-blue-500', border: 'border-blue-500', text: 'text-blue-500', badgeClass: 'border-blue-500 text-blue-500 bg-transparent' },
+  PENDING: { label: 'Aguardando Pagamento', dot: 'bg-blue-500', border: 'border-blue-500', text: 'text-blue-500', badgeClass: 'border-blue-500 text-blue-500 bg-transparent' },
+  APPROVED: { label: 'Aprovado', dot: 'bg-green-500', border: 'border-green-500', text: 'text-green-500', badgeClass: 'border-green-500 text-green-500 bg-transparent' },
+  REJECTED: { label: 'Risco Detectado', dot: 'bg-red-500', border: 'border-red-500', text: 'text-red-500', badgeClass: 'border-red-500 text-red-500 bg-transparent' },
 }
 
 export default function OrdersPage() {
@@ -65,7 +58,6 @@ export default function OrdersPage() {
 
       try {
         const response = await listOrders({ limit: 10, p: page })
-
         const newOrders = response.items || []
 
         setOrders((prevOrders) => {
@@ -73,7 +65,6 @@ export default function OrdersPage() {
           return [...prevOrders, ...newOrders]
         })
 
-        // Atualiza se tem mais páginas baseado no meta
         setHasMore(response.meta.has_next)
       } catch (error) {
         console.error('Erro ao buscar pedidos:', error)
@@ -106,7 +97,13 @@ export default function OrdersPage() {
         <div className="flex flex-col gap-4">
           {orders.map((order, index) => {
             const isLastElement = orders.length === index + 1
-            const analysisInfo = mapAnalysisBadge[order.analysis_status] || { label: order.analysis_status, variant: 'neutral' }
+            const style = mapAnalysisBadge[order.analysis_status] || { 
+              label: order.analysis_status, 
+              dot: 'bg-gray-300', 
+              border: 'border-gray-200',
+              text: 'text-gray-400',
+              badgeClass: 'border-gray-300 text-gray-400 bg-transparent'
+            }
 
             return (
               <div
@@ -114,15 +111,17 @@ export default function OrdersPage() {
                 ref={isLastElement ? lastOrderElementRef : null}
               >
                 <Link
-                  className="group cursor-pointer p-4 bg-white border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-md transition-all duration-200 ease-in-out block"
+                  className={cn(
+                    "group cursor-pointer p-4 bg-white border rounded-lg transition-all duration-200 ease-in-out block shadow-sm",
+                    style.border
+                  )}
                   href={`/pedidos/${order.id}/opcoes`}
                 >
                   <div className="flex items-center">
-                    {/* Semáforo de Risco */}
                     <div
                       className={cn(
                         'p-1.5 mr-4 rounded-full flex-shrink-0 animate-pulse',
-                        mapSemaphoreCircle[order.semaphore] || 'bg-gray-300'
+                        style.dot
                       )}
                     />
 
@@ -131,7 +130,6 @@ export default function OrdersPage() {
                         <span className="text-gray-900 text-sm font-bold">
                           Pedido #{order.code}
                         </span>
-
                       </div>
 
                       <p className="text-gray-600 text-sm font-normal break-words">
@@ -143,11 +141,10 @@ export default function OrdersPage() {
                       </p>
 
                       <div className="mt-2 flex gap-2 items-center">
-                        <Badge variant={analysisInfo.variant}>
-                          {analysisInfo.label}
+                        <Badge className={cn("border bg-transparent shadow-none font-medium", style.badgeClass)}>
+                          {style.label}
                         </Badge>
 
-                        {/* Indicador de que há detalhes de análise */}
                         {order.analysis?.length > 0 && (
                           <span className="text-[10px] text-gray-400">
                             • {order.analysis.length} pontos analisados
@@ -156,7 +153,10 @@ export default function OrdersPage() {
                       </div>
                     </div>
 
-                    <div className="opacity-0 group-hover:opacity-100 transition-opacity ml-2 text-blue-500">
+                    <div className={cn(
+                      "opacity-0 group-hover:opacity-100 transition-opacity ml-2",
+                      style.text
+                    )}>
                       <ChevronRight />
                     </div>
                   </div>
@@ -167,14 +167,12 @@ export default function OrdersPage() {
         </div>
       )}
 
-      {/* Spinner scroll infinito */}
       {isFetchingMore && (
         <div className="flex justify-center py-6">
           <div className="w-6 h-6 border-2 border-gray-200 border-t-blue-500 rounded-full animate-spin"></div>
         </div>
       )}
 
-      {/* Loading Global na primeira carga */}
       <LoadingOverlay isLoading={isLoading && page === 1} message="Carregando pedidos..." />
     </div>
   )
