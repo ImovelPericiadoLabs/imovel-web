@@ -95,7 +95,7 @@ export default function OrdersPage() {
           </p>
 
           {/* Usando seu componente Button com a prop href */}
-          <Button href="/consultar-imoveis" className="max-w-xs">
+          <Button href="/consultar-imovel" className="max-w-xs">
             Consultar Imóvel
           </Button>
         </div>

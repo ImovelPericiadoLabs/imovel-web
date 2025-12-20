@@ -99,7 +99,7 @@ describe('OrdersPage', () => {
 
       const button = screen.getByRole('link', { name: /consultar imóvel/i })
       expect(button).toBeInTheDocument()
-      expect(button).toHaveAttribute('href', '/consultar-imoveis')
+      expect(button).toHaveAttribute('href', '/consultar-imovel')
     })
   })
   it('deve carregar mais itens ao acionar o scroll infinito', async () => {
