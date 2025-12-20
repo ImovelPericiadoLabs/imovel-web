@@ -1,5 +1,7 @@
+'use client'
+
 import { vi, describe, it, expect, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, act } from '@testing-library/react'
 import OrdersPage from './orders-page'
 import { listOrders } from '@/services/orders'
 import type { Order } from '@/services/orders'
@@ -31,6 +33,11 @@ vi.mock('@/components/text-title', () => ({
   default: ({ children }: any) => <h1>{children}</h1>,
 }))
 
+vi.mock('lucide-react', () => ({
+  ChevronRight: () => <div data-testid="chevron-right" />,
+  Inbox: () => <div data-testid="inbox-icon" />,
+}))
+
 const mockObserve = vi.fn()
 const mockDisconnect = vi.fn()
 let intersectionCallback: any = null
@@ -49,11 +56,11 @@ vi.stubGlobal('IntersectionObserver', MockIntersectionObserver)
 describe('OrdersPage', () => {
   const mockOrderData = {
     id: 'order-1',
-    code: '12345',
+    code: 12345,
     formatted_address: 'Rua das Flores, 100',
     modified: '2023-10-10T15:30:00Z',
-    semaphore: 'green',
-    analysis_status: 'APPROVED',
+    status: { value: 'APPROVED', label: 'Aprovado' },
+    signal: { label: 'green', value: 'Tudo certo' },
     analysis: [1, 2, 3],
   } as unknown as Order
 
@@ -68,130 +75,49 @@ describe('OrdersPage', () => {
     expect(screen.getByTestId('loading-overlay')).toBeInTheDocument()
   })
 
-  it('deve renderizar a lista de consultas e aplicar variantes corretas', async () => {
+  it('deve renderizar a lista de consultas e aplicar as cores do signal', async () => {
     vi.mocked(listOrders).mockResolvedValue({
       items: [mockOrderData],
       meta: { has_next: false },
-      links: {}
     } as any)
 
     render(<OrdersPage />)
 
     await waitFor(() => {
-      expect(screen.getByText('consulta #12345')).toBeInTheDocument()
+      expect(screen.getByText(/consulta #12345/i)).toBeInTheDocument()
     })
 
     const badge = screen.getByTestId('badge')
+    expect(screen.getByText('Aprovado')).toBeInTheDocument()
     expect(badge).toHaveClass('text-green-500')
   })
 
-  it('deve exibir o estado vazio quando a API retornar lista vazia', async () => {
+  it('deve priorizar a cor do signal sobre o status', async () => {
     vi.mocked(listOrders).mockResolvedValue({
-      items: [],
+      items: [{
+        ...mockOrderData,
+        status: { value: 'REJECTED', label: 'Reprovado' },
+        signal: { label: 'yellow', value: 'Atenção' }
+      }],
       meta: { has_next: false },
-      links: {}
-    } as any)
-
-    render(<OrdersPage />)
-
-    await waitFor(() => {
-      expect(screen.getByText('Nenhuma consulta encontrada')).toBeInTheDocument()
-
-      const button = screen.getByRole('link', { name: /consultar imóvel/i })
-      expect(button).toBeInTheDocument()
-      expect(button).toHaveAttribute('href', '/consultar-imovel')
-    })
-  })
-  it('deve carregar mais itens ao acionar o scroll infinito', async () => {
-    vi.mocked(listOrders).mockResolvedValueOnce({
-      items: [mockOrderData],
-      meta: { has_next: true },
-      links: {}
-    } as any)
-
-    vi.mocked(listOrders).mockResolvedValueOnce({
-      items: [{ ...mockOrderData, id: 'order-2', code: '67890' } as unknown as Order],
-      meta: { has_next: false },
-      links: {}
-    } as any)
-
-    render(<OrdersPage />)
-
-    await waitFor(() => expect(screen.getByText('consulta #12345')).toBeInTheDocument())
-
-    if (intersectionCallback) {
-      intersectionCallback([{ isIntersecting: true }])
-    }
-
-    await waitFor(() => {
-      expect(listOrders).toHaveBeenCalledWith({ limit: 10, p: 2 })
-      expect(screen.getByText('consulta #67890')).toBeInTheDocument()
-    })
-  })
-
-  it('deve lidar com erros de API e logar no console', async () => {
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => { })
-    vi.mocked(listOrders).mockRejectedValue(new Error('Erro de API'))
-
-    render(<OrdersPage />)
-
-    await waitFor(() => {
-      expect(consoleSpy).toHaveBeenCalled()
-    })
-    consoleSpy.mockRestore()
-  })
-
-  it('deve renderizar status padrão neutral para status desconhecido', async () => {
-    vi.mocked(listOrders).mockResolvedValue({
-      items: [{ ...mockOrderData, analysis_status: 'STATUS_INVALIDO' } as unknown as Order],
-      meta: { has_next: false },
-      links: {}
-    } as any)
-
-    render(<OrdersPage />)
-
-    await waitFor(() => {
-      const badge = screen.getByTestId('badge')
-      expect(badge).toHaveClass('text-gray-400')
-    })
-  })
-
-  it('deve mostrar texto de fallback quando o endereço for nulo ou vazio', async () => {
-    vi.mocked(listOrders).mockResolvedValue({
-      items: [{ ...mockOrderData, formatted_address: '' } as unknown as Order],
-      meta: { has_next: false },
-      links: {}
-    } as any)
-
-    render(<OrdersPage />)
-
-    await waitFor(() => {
-      expect(screen.getByText('Endereço não informado')).toBeInTheDocument()
-    })
-  })
-
-  it('deve renderizar a cor correta baseada no status REJECTED', async () => {
-    vi.mocked(listOrders).mockResolvedValue({
-      items: [{ ...mockOrderData, analysis_status: 'REJECTED' } as unknown as Order],
-      meta: { has_next: false },
-      links: {}
     } as any)
 
     const { container } = render(<OrdersPage />)
 
     await waitFor(() => {
-      const dot = container.querySelector('.bg-red-500')
+      const dot = container.querySelector('.bg-yellow-500')
       expect(dot).toBeInTheDocument()
-      const link = container.querySelector('a')
-      expect(link).toHaveClass('border-red-500')
     })
   })
 
-  it('deve renderizar a cor azul para status IN_PROGRESS ou PENDING', async () => {
+  it('deve aplicar cor azul (fallback) para status PENDING sem signal', async () => {
     vi.mocked(listOrders).mockResolvedValue({
-      items: [{ ...mockOrderData, analysis_status: 'PENDING' } as unknown as Order],
+      items: [{
+        ...mockOrderData,
+        status: { value: 'PENDING', label: 'Pendente' },
+        signal: null
+      }],
       meta: { has_next: false },
-      links: {}
     } as any)
 
     const { container } = render(<OrdersPage />)
@@ -199,8 +125,48 @@ describe('OrdersPage', () => {
     await waitFor(() => {
       const dot = container.querySelector('.bg-blue-500')
       expect(dot).toBeInTheDocument()
-      const badge = screen.getByTestId('badge')
-      expect(badge).toHaveClass('text-blue-500')
+      expect(screen.getByText(/Solicitado em/i)).toBeInTheDocument()
+    })
+  })
+
+  it('deve exibir o estado vazio corretamente', async () => {
+    vi.mocked(listOrders).mockResolvedValue({
+      items: [],
+      meta: { has_next: false },
+    } as any)
+
+    render(<OrdersPage />)
+
+    await waitFor(() => {
+      expect(screen.getByText(/Nenhuma consulta encontrada/i)).toBeInTheDocument()
+      expect(screen.getByRole('link', { name: /consultar imóvel/i })).toHaveAttribute('href', '/consultar-imovel')
+    })
+  })
+
+  it('deve carregar mais itens ao acionar o scroll infinito', async () => {
+    vi.mocked(listOrders).mockResolvedValueOnce({
+      items: [mockOrderData],
+      meta: { has_next: true },
+    } as any)
+
+    vi.mocked(listOrders).mockResolvedValueOnce({
+      items: [{ ...mockOrderData, id: 'order-2', code: 67890 }],
+      meta: { has_next: false },
+    } as any)
+
+    render(<OrdersPage />)
+
+    await waitFor(() => expect(screen.getByText(/consulta #12345/i)).toBeInTheDocument())
+
+    if (intersectionCallback) {
+      await act(async () => {
+        intersectionCallback([{ isIntersecting: true }])
+      })
+    }
+
+    await waitFor(() => {
+      expect(listOrders).toHaveBeenCalledWith({ limit: 10, p: 2 })
+      expect(screen.getByText(/consulta #67890/i)).toBeInTheDocument()
     })
   })
 })

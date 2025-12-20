@@ -33,12 +33,6 @@ export default function OrderHeader({ Badge }: Props) {
     fetchHeaderData()
   }, [id])
 
-  const displayId = order?.code ? `#${String(order.code).padStart(6, '0')}` : '...'
-  
-  const isRed = order?.semaphore === 'red'
-  const isGreen = order?.semaphore === 'green'
-  const isYellow = order?.semaphore === 'yellow'
-
   if (isLoading) {
     return (
       <div className="flex flex-col gap-6 px-3 py-4 mb-3 bg-background animate-pulse">
@@ -47,6 +41,12 @@ export default function OrderHeader({ Badge }: Props) {
       </div>
     )
   }
+
+  const displayId = order?.code ? `#${String(order.code).padStart(6, '0')}` : '...'
+  
+  const isRed = order?.signal?.label === 'red'
+  const isGreen = order?.signal?.label === 'green'
+  const isYellow = order?.signal?.label === 'yellow'
 
   return (
     <div className="flex flex-col gap-6 px-3 py-4 mb-3 bg-background">
@@ -83,15 +83,31 @@ export default function OrderHeader({ Badge }: Props) {
         </div>
       </div>
 
-      <div className="flex flex-col gap-2 items-center align-middle justify-center">
-        <TrafficLight
-          red={isRed}
-          green={isGreen}
-          yellow={isYellow}
-        />
+      <div className="flex flex-col gap-2 items-center align-middle justify-center text-center">
+        {order?.signal ? (
+          <>
+            <TrafficLight
+              red={isRed}
+              green={isGreen}
+              yellow={isYellow}
+            />
+            {order.signal.value && (
+              <span className="text-sm font-medium text-gray-700">
+                {order.signal.value}
+              </span>
+            )}
+          </>
+        ) : (
+          <div className="py-2">
+             <span className="px-3 py-1 rounded-full border border-blue-500 text-blue-500 text-xs font-bold uppercase">
+              {order?.status?.label || 'Pendente'}
+            </span>
+          </div>
+        )}
+
         {!!Badge && Badge}
         
-        {order?.payment_status === 'FAILED' && (
+        {order?.status?.value === 'FAILED' && (
           <span className="text-[10px] text-red-500 font-bold uppercase tracking-tighter">
             Pagamento Falhou
           </span>

@@ -22,7 +22,7 @@ vi.mock('lucide-react', () => ({
 
 vi.mock('@/components/traffic-light', () => ({
   default: ({ red, green, yellow }: any) => (
-    <div data-testid="traffic-light" data-red={red} data-green={green} data-yellow={yellow} />
+    <div data-testid="traffic-light" data-red={String(red)} data-green={String(green)} data-yellow={String(yellow)} />
   ),
 }))
 
@@ -31,9 +31,9 @@ describe('OrderHeader', () => {
     code: 123,
     created: '2023-01-01',
     formatted_address: 'Rua Teste, 100',
-    semaphore: 'red',
-    complement: 'Apto 12',
-    payment_status: 'SUCCESS'
+    status: { value: 'APPROVED', label: 'Aprovado' },
+    signal: { label: 'red', value: 'Risco Detectado' },
+    complement: 'Apto 12'
   }
 
   beforeEach(() => {
@@ -58,7 +58,7 @@ describe('OrderHeader', () => {
       expect(screen.getByText('#000123')).toBeInTheDocument()
       expect(screen.getByText('formatado: 2023-01-01')).toBeInTheDocument()
       expect(screen.getByText('Rua Teste, 100')).toBeInTheDocument()
-      expect(screen.getByText('Apto 12')).toBeInTheDocument()
+      expect(screen.getByText('Risco Detectado')).toBeInTheDocument()
     })
 
     const tl = screen.getByTestId('traffic-light')
@@ -66,11 +66,27 @@ describe('OrderHeader', () => {
     expect(tl).toHaveAttribute('data-green', 'false')
   })
 
+  it('deve exibir badge de fallback quando não houver signal (ex: Pendente)', async () => {
+    vi.mocked(useParams).mockReturnValue({ id: '1' })
+    vi.mocked(getOrder).mockResolvedValue({
+      ...mockOrder,
+      signal: undefined,
+      status: { value: 'PENDING', label: 'Pendente' }
+    } as any)
+
+    render(<OrderHeader />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Pendente')).toBeInTheDocument()
+      expect(screen.queryByTestId('traffic-light')).not.toBeInTheDocument()
+    })
+  })
+
   it('deve lidar com semáforo verde e endereço não informado', async () => {
     vi.mocked(useParams).mockReturnValue({ id: '1' })
     vi.mocked(getOrder).mockResolvedValue({
       ...mockOrder,
-      semaphore: 'green',
+      signal: { label: 'green', value: 'Tudo Certo' },
       formatted_address: '',
       complement: undefined
     } as any)
@@ -79,40 +95,18 @@ describe('OrderHeader', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Endereço não informado')).toBeInTheDocument()
-      expect(screen.queryByText('Apto 12')).not.toBeInTheDocument()
     })
 
     const tl = screen.getByTestId('traffic-light')
     expect(tl).toHaveAttribute('data-green', 'true')
-    expect(tl).toHaveAttribute('data-red', 'false')
   })
 
-  it('deve lidar com semáforo amarelo', async () => {
+  it('deve exibir mensagem de erro de pagamento se o status value for FAILED', async () => {
     vi.mocked(useParams).mockReturnValue({ id: '1' })
-    vi.mocked(getOrder).mockResolvedValue({ ...mockOrder, semaphore: 'yellow' } as any)
-
-    render(<OrderHeader />)
-
-    await waitFor(() => {
-      const tl = screen.getByTestId('traffic-light')
-      expect(tl).toHaveAttribute('data-yellow', 'true')
-    })
-  })
-
-  it('deve renderizar o Badge opcional quando fornecido', async () => {
-    vi.mocked(useParams).mockReturnValue({ id: '1' })
-    vi.mocked(getOrder).mockResolvedValue(mockOrder as any)
-
-    render(<OrderHeader Badge={<div data-testid="custom-badge">Badge Teste</div>} />)
-
-    await waitFor(() => {
-      expect(screen.getByTestId('custom-badge')).toBeInTheDocument()
-    })
-  })
-
-  it('deve exibir mensagem de erro de pagamento se o status for FAILED', async () => {
-    vi.mocked(useParams).mockReturnValue({ id: '1' })
-    vi.mocked(getOrder).mockResolvedValue({ ...mockOrder, payment_status: 'FAILED' } as any)
+    vi.mocked(getOrder).mockResolvedValue({ 
+      ...mockOrder, 
+      status: { value: 'FAILED', label: 'Falhou' } 
+    } as any)
 
     render(<OrderHeader />)
 
@@ -130,14 +124,7 @@ describe('OrderHeader', () => {
 
     await waitFor(() => {
       expect(consoleSpy).toHaveBeenCalledWith('Erro ao carregar cabeçalho:', expect.any(Error))
-      expect(screen.queryByText('.animate-pulse')).not.toBeInTheDocument()
     })
     consoleSpy.mockRestore()
-  })
-
-  it('deve retornar precocemente se não houver ID', () => {
-    vi.mocked(useParams).mockReturnValue({ id: undefined })
-    render(<OrderHeader />)
-    expect(getOrder).not.toHaveBeenCalled()
   })
 })

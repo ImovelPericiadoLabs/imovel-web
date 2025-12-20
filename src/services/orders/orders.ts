@@ -6,19 +6,29 @@ export type SemaphoreStatus = 'green' | 'yellow' | 'red'
 export type AnalysisStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
 export type PaymentStatus = 'CREATED' | 'PROCESSING' | 'PAID' | 'FAILED'
 
+// Novo tipo para refletir a estrutura do sinal
+export type Signal = {
+  label: SemaphoreStatus
+  value: string
+}
+
 export type OrderAnalysisResult = {
-  id: string 
+  id: string
   title: string
-  signal: SemaphoreStatus
+  signal: Signal // Alterado de SemaphoreStatus para Signal
   reason: string
+}
+
+export type GenericStatus = {
+  value: string; // Ex: "PENDING", "APPROVED"
+  label: string; // Ex: "Pendente", "Aprovado"
 }
 
 export type Order = {
   id: string 
   code: number
-  semaphore: SemaphoreStatus
-  analysis_status: AnalysisStatus
-  payment_status: PaymentStatus
+  status: GenericStatus;    // Mudou de analysis_status/payment_status para 'status' objeto
+  signal?: Signal;          // Agora opcional, pois pode não vir se estiver pendente
   amount: string
   document: string | null
   place_id: string
@@ -26,12 +36,12 @@ export type Order = {
   complement: string | null
   created: string 
   modified: string 
-  analysis: OrderAnalysisResult[]
+  analysis?: OrderAnalysisResult[] // Opcional
 }
 
 export type ListOrdersRequest = {
   limit?: number
-  p?: number 
+  p?: number
   status?: PaymentStatus
 }
 
@@ -77,12 +87,11 @@ async function guard<T>(callback: (token: string) => Promise<T>): Promise<T> {
   }
 }
 
-
 export async function listOrders(params: ListOrdersRequest = {}) {
   return guard(async (token) => {
     const { limit = 20, p = 1, status } = params
     const queryParams = new URLSearchParams()
-    
+
     queryParams.append('limit', String(limit))
     queryParams.append('p', String(p))
 

@@ -1,33 +1,35 @@
 'use client'
 
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 import Link from 'next/link'
+import { ChevronRight, Inbox } from 'lucide-react'
 import TextTitle from '@/components/text-title'
 import Badge from '@/components/badge'
 import LoadingOverlay from '@/components/loading-overlay'
+import Button from '@/components/button'
 import { formatDateWithTime } from '@/utils/date'
 import { cn } from '@/utils/tailwind'
-import { listOrders } from '@/services/orders'
-import type { Order } from '@/services/orders'
-import  Button  from '@/components/button'
+import { listOrders, type Order } from '@/services/orders'
 
-const ChevronRight = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 ml-2">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-  </svg>
-)
+const STATUS_STYLES = {
+  green: { dot: 'bg-green-500', border: 'border-green-500', text: 'text-green-500', badge: 'border-green-500 text-green-500 bg-transparent' },
+  yellow: { dot: 'bg-yellow-500', border: 'border-yellow-500', text: 'text-yellow-500', badge: 'border-yellow-500 text-yellow-500 bg-transparent' },
+  red: { dot: 'bg-red-500', border: 'border-red-500', text: 'text-red-500', badge: 'border-red-500 text-red-500 bg-transparent' },
+  blue: { dot: 'bg-blue-500', border: 'border-blue-500', text: 'text-blue-500', badge: 'border-blue-500 text-blue-500 bg-transparent' },
+  gray: { dot: 'bg-gray-300', border: 'border-gray-200', text: 'text-gray-400', badge: 'border-gray-300 text-gray-400 bg-transparent' },
+}
 
-const EmptyInboxIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor" className="w-12 h-12 text-gray-300">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 13.5h3.86a2.25 2.25 0 012.012 1.244l.256.512a2.25 2.25 0 002.013 1.244h3.218a2.25 2.25 0 002.013-1.244l.256-.512a2.25 2.25 0 012.013-1.244h3.859m-19.5.338V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18v-4.162c0-.224-.034-.447-.1-.661L19.24 5.338a2.25 2.25 0 00-2.15-1.588H6.911a2.25 2.25 0 00-2.15 1.588L2.35 13.177a2.25 2.25 0 00-.1.661z" />
-  </svg>
-)
+const getOrderStyle = (order: Order) => {
+  if (order.signal?.label) return STATUS_STYLES[order.signal.label as keyof typeof STATUS_STYLES] || STATUS_STYLES.gray
+  
+  const statusMap: Record<string, keyof typeof STATUS_STYLES> = {
+    PENDING: 'blue',
+    APPROVED: 'green',
+    REJECTED: 'red'
+  }
 
-const mapAnalysisBadge: Record<string, any> = {
-  IN_PROGRESS: { label: 'Em análise', dot: 'bg-blue-500', border: 'border-blue-500', text: 'text-blue-500', badgeClass: 'border-blue-500 text-blue-500 bg-transparent' },
-  PENDING: { label: 'Aguardando Pagamento', dot: 'bg-blue-500', border: 'border-blue-500', text: 'text-blue-500', badgeClass: 'border-blue-500 text-blue-500 bg-transparent' },
-  APPROVED: { label: 'Aprovado', dot: 'bg-green-500', border: 'border-green-500', text: 'text-green-500', badgeClass: 'border-green-500 text-green-500 bg-transparent' },
-  REJECTED: { label: 'Risco Detectado', dot: 'bg-red-500', border: 'border-red-500', text: 'text-red-500', badgeClass: 'border-red-500 text-red-500 bg-transparent' },
+  const key = statusMap[order.status?.value] || 'gray'
+  return STATUS_STYLES[key]
 }
 
 export default function OrdersPage() {
@@ -39,119 +41,85 @@ export default function OrdersPage() {
 
   const observerRef = useRef<IntersectionObserver | null>(null)
 
-  const lastOrderElementRef = useCallback((node: HTMLDivElement) => {
-    if (isLoading || isFetchingMore) return
+  const fetchOrders = useCallback(async (targetPage: number) => {
+    if (targetPage === 1) setIsLoading(true)
+    else setIsFetchingMore(true)
+
+    try {
+      const { items, meta } = await listOrders({ limit: 10, p: targetPage })
+      setOrders(prev => targetPage === 1 ? items : [...prev, ...items])
+      setHasMore(meta.has_next)
+    } catch (error) {
+      console.error('Falha ao carregar ordens:', error)
+    } finally {
+      setIsLoading(false)
+      setIsFetchingMore(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchOrders(page)
+  }, [page, fetchOrders])
+
+  const lastOrderElementRef = useCallback((node: HTMLElement | null) => {
+    if (isLoading || isFetchingMore || !hasMore) return
     if (observerRef.current) observerRef.current.disconnect()
 
-    observerRef.current = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting && hasMore) {
-        setPage((prevPage) => prevPage + 1)
-      }
+    observerRef.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting) setPage(prev => prev + 1)
     })
 
     if (node) observerRef.current.observe(node)
   }, [isLoading, isFetchingMore, hasMore])
 
-  useEffect(() => {
-    async function fetchOrders() {
-      if (page === 1) setIsLoading(true)
-      else setIsFetchingMore(true)
-
-      try {
-        const response = await listOrders({ limit: 10, p: page })
-        const newOrders = response.items || []
-
-        setOrders((prevOrders) => {
-          if (page === 1) return newOrders
-          return [...prevOrders, ...newOrders]
-        })
-
-        setHasMore(response.meta.has_next)
-      } catch (error) {
-        console.error('Erro ao buscar consultas:', error)
-      } finally {
-        setIsLoading(false)
-        setIsFetchingMore(false)
-      }
-    }
-
-    fetchOrders()
-  }, [page])
+  const renderEmptyState = () => (
+    <div className="flex-1 flex flex-col items-center justify-center text-center opacity-80 animate-in fade-in duration-500">
+      <Inbox className="w-12 h-12 text-gray-300 mb-4" />
+      <h3 className="text-gray-900 font-medium text-base">Nenhuma consulta encontrada</h3>
+      <p className="text-gray-400 text-sm mt-1 mb-6">Suas consultas aparecerão aqui.</p>
+      <Button href="/consultar-imovel" className="max-w-xs">Consultar Imóvel</Button>
+    </div>
+  )
 
   return (
     <div className="relative z-40 flex-1 px-4 flex flex-col gap-5 pb-24 md:pb-0 max-w-4xl mx-auto w-full min-h-[80vh]">
       <TextTitle>Minhas Consultas</TextTitle>
 
-      {orders.length === 0 && !isLoading ? (
-        <div className="flex-1 flex flex-col items-center justify-center text-center opacity-80 animate-in fade-in duration-500">
-          <div className="mb-4">
-            <EmptyInboxIcon />
-          </div>
-          <h3 className="text-gray-900 font-medium text-base">
-            Nenhuma consulta encontrada
-          </h3>
-          <p className="text-gray-400 text-sm mt-1 mb-6">
-            suas consultas aparecerão aqui.
-          </p>
-
-          {/* Usando seu componente Button com a prop href */}
-          <Button href="/consultar-imovel" className="max-w-xs">
-            Consultar Imóvel
-          </Button>
-        </div>
+      {!isLoading && orders.length === 0 ? (
+        renderEmptyState()
       ) : (
         <div className="flex flex-col gap-4">
           {orders.map((order, index) => {
-            const isLastElement = orders.length === index + 1
-            const style = mapAnalysisBadge[order.analysis_status] || {
-              label: order.analysis_status,
-              dot: 'bg-gray-300',
-              border: 'border-gray-200',
-              text: 'text-gray-400',
-              badgeClass: 'border-gray-300 text-gray-400 bg-transparent'
-            }
+            const isLast = orders.length === index + 1
+            const style = getOrderStyle(order)
+            const dateLabel = order.status?.value === 'PENDING' ? 'Solicitado em' : 'Analisado em'
 
             return (
-              <div
-                key={`${order.id}`}
-                ref={isLastElement ? lastOrderElementRef : null}
-              >
+              <div key={order.id} ref={isLast ? lastOrderElementRef : null}>
                 <Link
+                  href={`/consultas/${order.id}/opcoes`}
                   className={cn(
-                    "group cursor-pointer p-4 bg-white border rounded-lg transition-all duration-200 ease-in-out block shadow-sm",
+                    "group p-4 bg-white border rounded-lg transition-all duration-200 block shadow-sm hover:shadow-md",
                     style.border
                   )}
-                  href={`/consultas/${order.id}/opcoes`}
                 >
                   <div className="flex items-center">
-                    <div
-                      className={cn(
-                        'p-1.5 mr-4 rounded-full flex-shrink-0 animate-pulse',
-                        style.dot
-                      )}
-                    />
+                    <div className={cn('p-1.5 mr-4 rounded-full flex-shrink-0 animate-pulse', style.dot)} />
 
                     <div className="flex flex-col gap-1 flex-1">
-                      <div className="flex justify-between items-center w-full">
-                        <span className="text-gray-900 text-sm font-bold">
-                          consulta #{order.code}
-                        </span>
-                      </div>
-
+                      <span className="text-gray-900 text-sm font-bold">consulta #{order.code}</span>
                       <p className="text-gray-600 text-sm font-normal break-words">
                         {order.formatted_address || 'Endereço não informado'}
                       </p>
-
                       <p className="text-gray-400 text-xs mt-0.5">
-                        Analisado em {formatDateWithTime(order.modified)}
+                        {dateLabel} {formatDateWithTime(order.modified || order.created)}
                       </p>
 
                       <div className="mt-2 flex gap-2 items-center">
-                        <Badge className={cn("border bg-transparent shadow-none font-medium", style.badgeClass)}>
-                          {style.label}
+                        <Badge className={cn("border bg-transparent shadow-none font-medium", style.badge)}>
+                          {order.status?.label || 'Processando'}
                         </Badge>
-
-                        {order.analysis?.length > 0 && (
+                        {!!order.analysis?.length && (
                           <span className="text-[10px] text-gray-400">
                             • {order.analysis.length} pontos analisados
                           </span>
@@ -159,11 +127,8 @@ export default function OrdersPage() {
                       </div>
                     </div>
 
-                    <div className={cn(
-                      "opacity-0 group-hover:opacity-100 transition-opacity ml-2",
-                      style.text
-                    )}>
-                      <ChevronRight />
+                    <div className={cn("opacity-0 group-hover:opacity-100 transition-opacity ml-2", style.text)}>
+                      <ChevronRight className="w-4 h-4" />
                     </div>
                   </div>
                 </Link>
@@ -175,7 +140,7 @@ export default function OrdersPage() {
 
       {isFetchingMore && (
         <div className="flex justify-center py-6">
-          <div className="w-6 h-6 border-2 border-gray-200 border-t-blue-500 rounded-full animate-spin"></div>
+          <div className="w-6 h-6 border-2 border-gray-200 border-t-blue-500 rounded-full animate-spin" />
         </div>
       )}
 
