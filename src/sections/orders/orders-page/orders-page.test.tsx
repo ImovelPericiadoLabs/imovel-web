@@ -70,7 +70,7 @@ describe('OrdersPage', () => {
     expect(screen.getByTestId('loading-overlay')).toBeInTheDocument()
   })
 
-  it('deve renderizar a lista de pedidos e aplicar variantes corretas', async () => {
+  it('deve renderizar a lista de consultas e aplicar variantes corretas', async () => {
     vi.mocked(listOrders).mockResolvedValue({
       items: [mockOrderData],
       meta: { has_next: false },
@@ -80,7 +80,7 @@ describe('OrdersPage', () => {
     render(<OrdersPage />)
 
     await waitFor(() => {
-      expect(screen.getByText('Pedido #12345')).toBeInTheDocument()
+      expect(screen.getByText('consulta #12345')).toBeInTheDocument()
     })
 
     const badge = screen.getByTestId('badge')
@@ -98,7 +98,7 @@ describe('OrdersPage', () => {
     render(<OrdersPage />)
 
     await waitFor(() => {
-      expect(screen.getByText('Nenhum pedido encontrado')).toBeInTheDocument()
+      expect(screen.getByText('Nenhum consulta encontrado')).toBeInTheDocument()
     })
   })
 
@@ -117,7 +117,7 @@ describe('OrdersPage', () => {
 
     render(<OrdersPage />)
 
-    await waitFor(() => expect(screen.getByText('Pedido #12345')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText('consulta #12345')).toBeInTheDocument())
 
     if (intersectionCallback) {
       intersectionCallback([{ isIntersecting: true }])
@@ -125,7 +125,7 @@ describe('OrdersPage', () => {
 
     await waitFor(() => {
       expect(listOrders).toHaveBeenCalledWith({ limit: 10, p: 2 })
-      expect(screen.getByText('Pedido #67890')).toBeInTheDocument()
+      expect(screen.getByText('consulta #67890')).toBeInTheDocument()
     })
   })
 

@@ -44,7 +44,7 @@ vi.mock('@/sections/orders/constants', () => ({
 }))
 
 describe('OrderPage', () => {
-  it('deve renderizar o componente com o ID do pedido correto na URL', () => {
+  it('deve renderizar o componente com o ID do consulta correto na URL', () => {
     vi.mocked(useParams).mockReturnValue({ id: '123' })
 
     render(<OrderPage />)
@@ -52,8 +52,8 @@ describe('OrderPage', () => {
     expect(screen.getByTestId('order-header')).toBeInTheDocument()
 
     const links = screen.getAllByRole('link')
-    expect(links[0]).toHaveAttribute('href', '/pedidos/123/opcoes')
-    expect(links[1]).toHaveAttribute('href', '/pedidos/123/opcoes')
+    expect(links[0]).toHaveAttribute('href', '/consultas/123/opcoes')
+    expect(links[1]).toHaveAttribute('href', '/consultas/123/opcoes')
   })
 
   it('deve renderizar as informações de Hipoteca (Sinal Vermelho)', () => {

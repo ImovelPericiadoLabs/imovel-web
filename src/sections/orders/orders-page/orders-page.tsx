@@ -67,7 +67,7 @@ export default function OrdersPage() {
 
         setHasMore(response.meta.has_next)
       } catch (error) {
-        console.error('Erro ao buscar pedidos:', error)
+        console.error('Erro ao buscar consultas:', error)
       } finally {
         setIsLoading(false)
         setIsFetchingMore(false)
@@ -79,7 +79,7 @@ export default function OrdersPage() {
 
   return (
     <div className="relative z-40 flex-1 px-4 flex flex-col gap-5 pb-24 md:pb-0 max-w-4xl mx-auto w-full min-h-[80vh]">
-      <TextTitle>Meus pedidos</TextTitle>
+      <TextTitle>Minhas Consultas</TextTitle>
 
       {orders.length === 0 && !isLoading ? (
         <div className="flex-1 flex flex-col items-center justify-center text-center opacity-80 animate-in fade-in duration-500">
@@ -87,10 +87,10 @@ export default function OrdersPage() {
             <EmptyInboxIcon />
           </div>
           <h3 className="text-gray-900 font-medium text-base">
-            Nenhum pedido encontrado
+            Nenhum consulta encontrada
           </h3>
           <p className="text-gray-400 text-sm mt-1">
-            Seus pedidos aparecerão aqui.
+            suas consultas aparecerão aqui.
           </p>
         </div>
       ) : (
@@ -115,7 +115,7 @@ export default function OrdersPage() {
                     "group cursor-pointer p-4 bg-white border rounded-lg transition-all duration-200 ease-in-out block shadow-sm",
                     style.border
                   )}
-                  href={`/pedidos/${order.id}/opcoes`}
+                  href={`/consultas/${order.id}/opcoes`}
                 >
                   <div className="flex items-center">
                     <div
@@ -128,7 +128,7 @@ export default function OrdersPage() {
                     <div className="flex flex-col gap-1 flex-1">
                       <div className="flex justify-between items-center w-full">
                         <span className="text-gray-900 text-sm font-bold">
-                          Pedido #{order.code}
+                          consulta #{order.code}
                         </span>
                       </div>
 
@@ -173,7 +173,7 @@ export default function OrdersPage() {
         </div>
       )}
 
-      <LoadingOverlay isLoading={isLoading && page === 1} message="Carregando pedidos..." />
+      <LoadingOverlay isLoading={isLoading && page === 1} message="Carregando consultas..." />
     </div>
   )
 }

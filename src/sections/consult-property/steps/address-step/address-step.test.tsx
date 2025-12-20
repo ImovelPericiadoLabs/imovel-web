@@ -78,10 +78,10 @@ describe('AddressStep', () => {
 
   afterEach(cleanup)
 
-  it('deve renderizar itens iniciais e botão de pedidos quando o input está vazio', () => {
+  it('deve renderizar itens iniciais e botão de consultas quando o input está vazio', () => {
     render(<AddressStep onNext={onNextMock} />)
     expect(screen.getByText(/Pesquisa rápida/)).toBeInTheDocument()
-    expect(screen.getByText(/Meus Pedidos/)).toBeInTheDocument()
+    expect(screen.getByText(/Minhas Consultas/)).toBeInTheDocument()
   })
 
   it('deve chamar listAddresses apenas quando o texto tiver 3 ou mais caracteres', async () => {

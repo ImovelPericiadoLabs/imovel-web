@@ -99,7 +99,7 @@ export async function listOrders(params: ListOrdersRequest = {}) {
 export async function getOrder(orderId: string) {
   return guard(async (token) => {
     if (!orderId) {
-      throw new Error('ID do pedido é obrigatório')
+      throw new Error('ID do consulta é obrigatório')
     }
 
     const baseUrl = endpoint.orders.replace(/\/$/, '')

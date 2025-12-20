@@ -181,7 +181,7 @@ export default function ConsultProperty() {
           </Activity>
 
           <Activity isActive={flow === 'finished'}>
-            <SuccessStep onNavigateToOrders={() => router.push('/pedidos')} />
+            <SuccessStep onNavigateToOrders={() => router.push('/consultas')} />
           </Activity>
         </main>
       </FormProvider>

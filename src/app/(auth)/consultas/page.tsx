@@ -1,6 +1,6 @@
 import OrdersPage from '@/sections/orders/orders-page'
 
-export default function PedidosPage() {
+export default function consultasPage() {
   return (
     <>
       <div className="relative bg-primary h-30 -mt-1"></div>

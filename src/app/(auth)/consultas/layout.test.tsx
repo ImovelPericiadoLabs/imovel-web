@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { getServerSession } from 'next-auth'
-import PedidosLayout from './layout'
+import consultasLayout from './layout'
 
 vi.mock('next-auth', () => ({
   getServerSession: vi.fn(),
@@ -21,7 +21,7 @@ vi.mock('@/sections/login', () => ({
   Login: () => <div data-testid="login-component">Login Page</div>,
 }))
 
-describe('PedidosLayout', () => {
+describe('consultasLayout', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
@@ -31,7 +31,7 @@ describe('PedidosLayout', () => {
 
     const childNode = <div data-testid="test-child">Child Content</div>
     
-    const component = await PedidosLayout({ children: childNode })
+    const component = await consultasLayout({ children: childNode })
     
     render(component)
 
@@ -49,7 +49,7 @@ describe('PedidosLayout', () => {
 
     const childNode = <div data-testid="test-child">Child Content</div>
 
-    const component = await PedidosLayout({ children: childNode })
+    const component = await consultasLayout({ children: childNode })
 
     render(component)
 

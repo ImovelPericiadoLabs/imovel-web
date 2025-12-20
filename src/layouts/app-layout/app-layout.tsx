@@ -14,7 +14,7 @@ export default function AppLayout({ children }: PropsWithChildren) {
 
   function handleGoBack() {
     const mapRoutes: Record<string, string> = {
-      '/pedidos': '/consultar-imovel',
+      '/consultas': '/consultar-imovel',
     }
     if (mapRoutes[pathname]) {
       push(mapRoutes[pathname])
@@ -24,23 +24,23 @@ export default function AppLayout({ children }: PropsWithChildren) {
   }
 
   const headerTitle = useMemo(() => {
-    if (isMatch('/pedidos/:id')) {
+    if (isMatch('/consultas/:id')) {
       return <HeaderTitle>Resultado da consulta</HeaderTitle>
     }
 
-    if (isMatch('/pedidos/:id/opcoes')) {
+    if (isMatch('/consultas/:id/opcoes')) {
       return <HeaderTitle>Resultado da consulta</HeaderTitle>
     }
 
-    if (isMatch('/pedidos/:id/opcoes/resultado')) {
+    if (isMatch('/consultas/:id/opcoes/resultado')) {
       return <HeaderTitle>Resultado completo</HeaderTitle>
     }
 
-    if (isMatch('/pedidos/:id/opcoes/documentos')) {
+    if (isMatch('/consultas/:id/opcoes/documentos')) {
       return <HeaderTitle>Documentos</HeaderTitle>
     }
 
-    if (isMatch('/pedidos/:id/opcoes/proprietarios')) {
+    if (isMatch('/consultas/:id/opcoes/proprietarios')) {
       return <HeaderTitle>Proprietários</HeaderTitle>
     }
 
@@ -61,7 +61,7 @@ export default function AppLayout({ children }: PropsWithChildren) {
             {headerTitle}
           </div>
 
-          {pathname === '/pedidos' && (
+          {pathname === '/consultas' && (
             <div className="relative">
               <Image src="/images/logo-mini.png" alt="Logo" width={30} height={50} />
             </div>
@@ -69,7 +69,7 @@ export default function AppLayout({ children }: PropsWithChildren) {
 
           <div className="flex gap-2">
             <WhatsAppIcon className="cursor-pointer size-7 text-white" />
-            {pathname === '/pedidos' && <Menu className="cursor-pointer size-7 text-white" />}
+            {pathname === '/consultas' && <Menu className="cursor-pointer size-7 text-white" />}
           </div>
         </div>
       </header>

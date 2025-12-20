@@ -12,19 +12,19 @@ export default function OrderOptionsPage() {
       icon: FileText,
       title: 'Resultado',
       subtitle: 'Visualizar resultado completo',
-      href: `/pedidos/${id}`,
+      href: `/consultas/${id}`,
     },
     {
       icon: Files,
       title: 'Documentos',
       subtitle: 'Visualizar documentos da consulta',
-      href: `/pedidos/${id}/opcoes/documentos`,
+      href: `/consultas/${id}/opcoes/documentos`,
     },
     {
       icon: Users,
       title: 'Proprietários ',
       subtitle: 'Visualizar proprietários da consulta',
-      href: `/pedidos/${id}/opcoes/proprietarios`,
+      href: `/consultas/${id}/opcoes/proprietarios`,
     },
   ]
 

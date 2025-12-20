@@ -30,9 +30,9 @@ describe('OrderOptionsPage', () => {
     const links = screen.getAllByRole('link')
     expect(links).toHaveLength(3)
 
-    expect(links[0]).toHaveAttribute('href', `/pedidos/${mockId}`)
-    expect(links[1]).toHaveAttribute('href', `/pedidos/${mockId}/opcoes/documentos`)
-    expect(links[2]).toHaveAttribute('href', `/pedidos/${mockId}/opcoes/proprietarios`)
+    expect(links[0]).toHaveAttribute('href', `/consultas/${mockId}`)
+    expect(links[1]).toHaveAttribute('href', `/consultas/${mockId}/opcoes/documentos`)
+    expect(links[2]).toHaveAttribute('href', `/consultas/${mockId}/opcoes/proprietarios`)
   })
 
   it('deve exibir os títulos e subtítulos corretamente', () => {
