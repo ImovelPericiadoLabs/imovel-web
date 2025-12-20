@@ -33,11 +33,11 @@ export default function OrderHeader({ Badge }: Props) {
     fetchHeaderData()
   }, [id])
 
-  // Lógica de visualização
   const displayId = order?.code ? `#${String(order.code).padStart(6, '0')}` : '...'
-  const isApproved = order?.analysis_status === 'APPROVED'
-  const isRejected = order?.analysis_status === 'REJECTED'
-  const isPending = !isApproved && !isRejected
+  
+  const isRed = order?.semaphore === 'red'
+  const isGreen = order?.semaphore === 'green'
+  const isYellow = order?.semaphore === 'yellow'
 
   if (isLoading) {
     return (
@@ -65,22 +65,37 @@ export default function OrderHeader({ Badge }: Props) {
       </div>
 
       <div className="bg-box rounded-sm px-4 py-5 w-full mx-auto lg:max-w-lg">
-        <div className="flex gap-4">
-          <MapPin className="size-6 shrink-0" />
+        <div className="flex flex-col gap-2">
+          <div className="flex gap-4">
+            <MapPin className="size-6 shrink-0" />
 
-          <p className="text-xs font-normal leading-[130%]">
-            {order?.formatted_address || 'Endereço não informado'}
-          </p>
+            <div className="flex flex-col gap-1">
+              <p className="text-xs font-normal leading-[130%] break-words">
+                {order?.formatted_address || 'Endereço não informado'}
+              </p>
+              {order?.complement && (
+                <p className="text-[10px] text-gray-400 italic">
+                  {order.complement}
+                </p>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
       <div className="flex flex-col gap-2 items-center align-middle justify-center">
         <TrafficLight
-          red={isRejected}
-          green={isApproved}
-          yellow={isPending}
+          red={isRed}
+          green={isGreen}
+          yellow={isYellow}
         />
         {!!Badge && Badge}
+        
+        {order?.payment_status === 'FAILED' && (
+          <span className="text-[10px] text-red-500 font-bold uppercase tracking-tighter">
+            Pagamento Falhou
+          </span>
+        )}
       </div>
     </div>
   )

@@ -1,11 +1,14 @@
 export { 
   listOrders,
   listPlans,
-  type OrderStatus,
-  type ListOrdersRequest,
+  getOrder,
+
   type Order,
-  type OrdersApiResponse,
-  type Plan,
-  type PlansApiResponse,
-  getOrder
+  type OrderAnalysisResult,
+  type SemaphoreStatus,
+  type AnalysisStatus,
+  type PaymentStatus,
+
+  type ListOrdersRequest,
+  type OrdersApiResponse
 } from './orders'

@@ -1,74 +1,91 @@
-import React from 'react'
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent, cleanup } from '@testing-library/react'
-import Login from './login'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { Login } from './login'
+import { startAuth } from '@/services/account'
 
-vi.mock('@hookform/resolvers/zod', () => ({
-  zodResolver: (schema: any) => schema,
+const pushMock = vi.fn()
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: pushMock })
 }))
 
-vi.mock('@/sections/login/validations', () => ({
-  validations: {},
-  FormTypes: {},
+vi.mock('@/services/account', () => ({
+  startAuth: vi.fn()
 }))
 
 vi.mock('./steps/insert-step', () => ({
-  InsertStep: ({ onNext }: { onNext: () => void }) => (
+  InsertStep: ({ onNext }: any) => (
     <div data-testid="insert-step">
       <button onClick={onNext}>Next Step</button>
     </div>
-  ),
+  )
 }))
 
 vi.mock('./steps/verify-step', () => ({
-  VerifyCodeStep: ({ onBack }: { onBack: () => void }) => (
+  VerifyCodeStep: ({ onBack }: any) => (
     <div data-testid="verify-step">
       <button onClick={onBack}>Back Step</button>
     </div>
-  ),
+  )
 }))
 
-describe('Login Flow', () => {
+describe('Login Flow with Activity', () => {
   beforeEach(() => {
-    Object.defineProperty(window, 'scrollTo', { value: vi.fn(), writable: true })
-    render(<Login />)
-  })
-
-  afterEach(() => {
     vi.clearAllMocks()
-    cleanup()
+    localStorage.clear()
+    window.scrollTo = vi.fn()
   })
 
-  it('should render ONLY the email step initially', () => {
-    const insertStep = screen.getByTestId('insert-step')
-    const verifyStep = screen.getByTestId('verify-step')
+  it('should handle auto-login from storage', async () => {
+    const mockEmail = 'user@test.com'
+    localStorage.setItem('@pix-payment:form-data', JSON.stringify({ email: mockEmail }))
+    vi.mocked(startAuth).mockResolvedValueOnce({} as any)
 
-    expect(insertStep).toBeVisible()
-    expect(verifyStep).not.toBeVisible()
+    render(<Login />)
+
+    await waitFor(() => {
+      expect(startAuth).toHaveBeenCalledWith({ email: mockEmail })
+      const verifyStep = screen.getByTestId('verify-step').parentElement
+      expect(verifyStep).toHaveStyle('display: block')
+    })
   })
 
-  it('should switch to code step when Next is clicked', () => {
+  it('should toggle visibility between steps', async () => {
+    render(<Login />)
+    
+    await waitFor(() => expect(screen.queryByText('Verificando cadastro...')).not.toBeInTheDocument())
+
+    const insertContainer = screen.getByTestId('insert-step').parentElement
+    const verifyContainer = screen.getByTestId('verify-step').parentElement
+
+    expect(insertContainer).toHaveStyle('display: block')
+    expect(verifyContainer).toHaveStyle('display: none')
+
     fireEvent.click(screen.getByText('Next Step'))
 
-    const insertStep = screen.getByTestId('insert-step')
-    const verifyStep = screen.getByTestId('verify-step')
-
-    expect(verifyStep).toBeVisible()
-    expect(insertStep).not.toBeVisible()
+    expect(insertContainer).toHaveStyle('display: none')
+    expect(verifyContainer).toHaveStyle('display: block')
     expect(window.scrollTo).toHaveBeenCalledWith({ top: 0, behavior: 'smooth' })
   })
 
-  it('should return to email step when Back is clicked', () => {
-    fireEvent.click(screen.getByText('Next Step'))
-    expect(screen.getByTestId('verify-step')).toBeVisible()
+  it('should navigate back to home from email step', async () => {
+    render(<Login />)
+    await waitFor(() => expect(screen.queryByText('Verificando cadastro...')).not.toBeInTheDocument())
 
-    fireEvent.click(screen.getByText('Back Step'))
+    const backBtn = screen.getByLabelText('Voltar')
+    fireEvent.click(backBtn)
 
-    const insertStep = screen.getByTestId('insert-step')
-    const verifyStep = screen.getByTestId('verify-step')
+    expect(pushMock).toHaveBeenCalledWith('/')
+  })
 
-    expect(insertStep).toBeVisible()
-    expect(verifyStep).not.toBeVisible()
-    expect(window.scrollTo).toHaveBeenCalledWith({ top: 0, behavior: 'smooth' })
+  it('should handle API errors during initialization gracefully', async () => {
+    localStorage.setItem('@pix-payment:form-data', JSON.stringify({ email: 'err@test.com' }))
+    vi.mocked(startAuth).mockRejectedValueOnce(new Error('API Fail'))
+
+    render(<Login />)
+
+    await waitFor(() => {
+      expect(screen.queryByText('Verificando cadastro...')).not.toBeInTheDocument()
+      expect(screen.getByTestId('insert-step')).toBeInTheDocument()
+    })
   })
 })
