@@ -115,15 +115,7 @@ export function AddressStep({ onNext }: { onNext: () => void }) {
   }
 
   return (
-    // CONTAINER PRINCIPAL:
-    // h-full: Ocupa toda a altura disponível fornecida pelo layout.tsx.
-    // flex-col: Organiza verticalmente.
     <div className="flex flex-col h-full w-full px-4 relative">
-
-      {/* CONTEÚDO SUPERIOR (Inputs e Lista):
-         flex-1: Esta div vai crescer para ocupar todo o espaço vazio na tela.
-         Isso força o botão (que está abaixo) a ir para o rodapé visualmente.
-      */}
       <div className="flex-1 flex flex-col gap-5 pt-4">
         <TextTitle>Para começar, onde fica seu imóvel?</TextTitle>
 
@@ -164,16 +156,10 @@ export function AddressStep({ onNext }: { onNext: () => void }) {
         )}
       </div>
 
-      {/* RODAPÉ COM BOTÃO:
-         Não usamos fixed. Como o container acima tem flex-1, ele empurra
-         este bloco para o final.
-         mt-auto: Reforça o comportamento de ir para o fundo.
-         py-6: Espaçamento para não colar na borda do celular.
-      */}
       {!address?.length && (
         <div className="w-full mt-auto py-6">
           <Button
-            href="/pedidos" // <--- Mudança aqui
+            href="/pedidos" 
             className="flex items-center justify-center gap-2 w-full shadow-lg"
           >
             <Package className="size-5" />
