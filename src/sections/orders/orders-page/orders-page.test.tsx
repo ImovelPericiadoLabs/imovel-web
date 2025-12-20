@@ -84,7 +84,7 @@ describe('OrdersPage', () => {
     render(<OrdersPage />)
 
     await waitFor(() => {
-      expect(screen.getByText(/consulta #12345/i)).toBeInTheDocument()
+      expect(screen.getByText(/Consulta #12345/i)).toBeInTheDocument()
     })
 
     const badge = screen.getByTestId('badge')
@@ -156,7 +156,7 @@ describe('OrdersPage', () => {
 
     render(<OrdersPage />)
 
-    await waitFor(() => expect(screen.getByText(/consulta #12345/i)).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText(/Consulta #12345/i)).toBeInTheDocument())
 
     if (intersectionCallback) {
       await act(async () => {
@@ -166,7 +166,7 @@ describe('OrdersPage', () => {
 
     await waitFor(() => {
       expect(listOrders).toHaveBeenCalledWith({ limit: 10, p: 2 })
-      expect(screen.getByText(/consulta #67890/i)).toBeInTheDocument()
+      expect(screen.getByText(/Consulta #67890/i)).toBeInTheDocument()
     })
   })
 })
