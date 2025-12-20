@@ -107,7 +107,7 @@ export default function OrdersPage() {
                     <div className={cn('p-1.5 mr-4 rounded-full flex-shrink-0 animate-pulse', style.dot)} />
 
                     <div className="flex flex-col gap-1 flex-1">
-                      <span className="text-gray-900 text-sm font-bold">consulta #{order.code}</span>
+                      <span className="text-gray-900 text-sm font-bold">Consulta #{order.code}</span>
                       <p className="text-gray-600 text-sm font-normal break-words">
                         {order.formatted_address || 'Endereço não informado'}
                       </p>
