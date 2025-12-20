@@ -93,7 +93,7 @@ export function SuccessStep({ onNavigateToOrders }: SuccessStepProps) {
           onClick={onNavigateToOrders} 
           className="w-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-200/50 transition-all active:scale-[0.98]"
         >
-          Acompanhar meus pedidos
+          Acompanhar minhas consultas
         </Button>
       </div>
 

@@ -18,14 +18,14 @@ export default function OrderPage() {
       title: 'Hipoteca',
       text: 'Há irregularidades graves que impedem compra, venda ou regularização imediata. É necessário correção documental antes de seguir qualquer processo.',
       status: 'PURCHASE_AND_SALE_BLOCKED',
-      href: `/pedidos/${id}/opcoes`,
+      href: `/consultas/${id}/opcoes`,
     },
     {
       id: 2,
       title: 'Penhora',
       text: 'Sem problemas. Pode seguir com a operação.',
       status: 'ALL_GOOD',
-      href: `/pedidos/${id}/opcoes`,
+      href: `/consultas/${id}/opcoes`,
     },
   ]
 

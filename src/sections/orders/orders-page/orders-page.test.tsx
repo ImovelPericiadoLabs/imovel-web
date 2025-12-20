@@ -1,6 +1,6 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
-import OrdersPage from './orders-page' 
+import OrdersPage from './orders-page'
 import { listOrders } from '@/services/orders'
 import type { Order } from '@/services/orders'
 
@@ -17,12 +17,10 @@ vi.mock('@/utils/tailwind', () => ({
 }))
 
 vi.mock('@/components/loading-overlay', () => ({
-  default: ({ isLoading }: { isLoading: boolean }) => 
+  default: ({ isLoading }: { isLoading: boolean }) =>
     isLoading ? <div data-testid="loading-overlay">Carregando...</div> : null,
 }))
 
-// Mock ajustado: O componente real não usa mais a prop variant como filtro principal,
-// agora ele recebe classes CSS via className.
 vi.mock('@/components/badge', () => ({
   default: ({ children, className }: any) => (
     <span data-testid="badge" className={className}>{children}</span>
@@ -54,10 +52,10 @@ describe('OrdersPage', () => {
     code: '12345',
     formatted_address: 'Rua das Flores, 100',
     modified: '2023-10-10T15:30:00Z',
-    semaphore: 'green', // Este campo agora é ignorado pelo componente
+    semaphore: 'green',
     analysis_status: 'APPROVED',
     analysis: [1, 2, 3],
-  } as unknown as Order 
+  } as unknown as Order
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -65,12 +63,12 @@ describe('OrdersPage', () => {
   })
 
   it('deve exibir o loading global no primeiro carregamento', () => {
-    vi.mocked(listOrders).mockReturnValue(new Promise(() => {}))
+    vi.mocked(listOrders).mockReturnValue(new Promise(() => { }))
     render(<OrdersPage />)
     expect(screen.getByTestId('loading-overlay')).toBeInTheDocument()
   })
 
-  it('deve renderizar a lista de pedidos e aplicar variantes corretas', async () => {
+  it('deve renderizar a lista de consultas e aplicar variantes corretas', async () => {
     vi.mocked(listOrders).mockResolvedValue({
       items: [mockOrderData],
       meta: { has_next: false },
@@ -80,11 +78,10 @@ describe('OrdersPage', () => {
     render(<OrdersPage />)
 
     await waitFor(() => {
-      expect(screen.getByText('Pedido #12345')).toBeInTheDocument()
+      expect(screen.getByText('consulta #12345')).toBeInTheDocument()
     })
 
     const badge = screen.getByTestId('badge')
-    // Agora verificamos se a classe de cor correta está presente (verde para APPROVED)
     expect(badge).toHaveClass('text-green-500')
   })
 
@@ -98,10 +95,13 @@ describe('OrdersPage', () => {
     render(<OrdersPage />)
 
     await waitFor(() => {
-      expect(screen.getByText('Nenhum pedido encontrado')).toBeInTheDocument()
+      expect(screen.getByText('Nenhuma consulta encontrada')).toBeInTheDocument()
+
+      const button = screen.getByRole('link', { name: /consultar imóvel/i })
+      expect(button).toBeInTheDocument()
+      expect(button).toHaveAttribute('href', '/consultar-imoveis')
     })
   })
-
   it('deve carregar mais itens ao acionar o scroll infinito', async () => {
     vi.mocked(listOrders).mockResolvedValueOnce({
       items: [mockOrderData],
@@ -117,7 +117,7 @@ describe('OrdersPage', () => {
 
     render(<OrdersPage />)
 
-    await waitFor(() => expect(screen.getByText('Pedido #12345')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText('consulta #12345')).toBeInTheDocument())
 
     if (intersectionCallback) {
       intersectionCallback([{ isIntersecting: true }])
@@ -125,12 +125,12 @@ describe('OrdersPage', () => {
 
     await waitFor(() => {
       expect(listOrders).toHaveBeenCalledWith({ limit: 10, p: 2 })
-      expect(screen.getByText('Pedido #67890')).toBeInTheDocument()
+      expect(screen.getByText('consulta #67890')).toBeInTheDocument()
     })
   })
 
   it('deve lidar com erros de API e logar no console', async () => {
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => { })
     vi.mocked(listOrders).mockRejectedValue(new Error('Erro de API'))
 
     render(<OrdersPage />)
@@ -152,7 +152,6 @@ describe('OrdersPage', () => {
 
     await waitFor(() => {
       const badge = screen.getByTestId('badge')
-      // Verifica o fallback definido no seu componente (gray-400)
       expect(badge).toHaveClass('text-gray-400')
     })
   })
@@ -179,12 +178,10 @@ describe('OrdersPage', () => {
     } as any)
 
     const { container } = render(<OrdersPage />)
-    
+
     await waitFor(() => {
-      // Bolinha deve ser vermelha
       const dot = container.querySelector('.bg-red-500')
       expect(dot).toBeInTheDocument()
-      // Card deve ter borda vermelha
       const link = container.querySelector('a')
       expect(link).toHaveClass('border-red-500')
     })
@@ -198,7 +195,7 @@ describe('OrdersPage', () => {
     } as any)
 
     const { container } = render(<OrdersPage />)
-    
+
     await waitFor(() => {
       const dot = container.querySelector('.bg-blue-500')
       expect(dot).toBeInTheDocument()

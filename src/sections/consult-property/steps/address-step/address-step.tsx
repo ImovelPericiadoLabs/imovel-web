@@ -159,11 +159,11 @@ export function AddressStep({ onNext }: { onNext: () => void }) {
       {!address?.length && (
         <div className="w-full mt-auto py-6">
           <Button
-            href="/pedidos" 
+            href="/consultas" 
             className="flex items-center justify-center gap-2 w-full shadow-lg"
           >
             <Package className="size-5" />
-            Meus Pedidos
+            Meus consultas
           </Button>
         </div>
       )}

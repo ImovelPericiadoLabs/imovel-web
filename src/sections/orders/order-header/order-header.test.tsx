@@ -48,7 +48,7 @@ describe('OrderHeader', () => {
     expect(container.querySelector('.animate-pulse')).toBeInTheDocument()
   })
 
-  it('deve renderizar os dados do pedido com sucesso e semáforo vermelho', async () => {
+  it('deve renderizar os dados do consulta com sucesso e semáforo vermelho', async () => {
     vi.mocked(useParams).mockReturnValue({ id: '1' })
     vi.mocked(getOrder).mockResolvedValue(mockOrder as any)
 

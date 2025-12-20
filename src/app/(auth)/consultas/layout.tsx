@@ -3,7 +3,7 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route"
 import AppLayout from '@/layouts/app-layout'
 import { Login } from '@/sections/login'
 
-export default async function PedidosLayout({ children }: { children: React.ReactNode }) {
+export default async function consultasLayout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession(authOptions)
 
   if (!session) {
