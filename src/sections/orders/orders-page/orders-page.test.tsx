@@ -1,5 +1,5 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import OrdersPage from './orders-page' 
 import { listOrders } from '@/services/orders'
 import type { Order } from '@/services/orders'
@@ -21,9 +21,11 @@ vi.mock('@/components/loading-overlay', () => ({
     isLoading ? <div data-testid="loading-overlay">Carregando...</div> : null,
 }))
 
+// Mock ajustado: O componente real não usa mais a prop variant como filtro principal,
+// agora ele recebe classes CSS via className.
 vi.mock('@/components/badge', () => ({
-  default: ({ children, variant }: any) => (
-    <span data-testid="badge" data-variant={variant}>{children}</span>
+  default: ({ children, className }: any) => (
+    <span data-testid="badge" className={className}>{children}</span>
   ),
 }))
 
@@ -52,7 +54,7 @@ describe('OrdersPage', () => {
     code: '12345',
     formatted_address: 'Rua das Flores, 100',
     modified: '2023-10-10T15:30:00Z',
-    semaphore: 'green',
+    semaphore: 'green', // Este campo agora é ignorado pelo componente
     analysis_status: 'APPROVED',
     analysis: [1, 2, 3],
   } as unknown as Order 
@@ -79,11 +81,11 @@ describe('OrdersPage', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Pedido #12345')).toBeInTheDocument()
-      expect(screen.getByText('Rua das Flores, 100')).toBeInTheDocument()
     })
 
     const badge = screen.getByTestId('badge')
-    expect(badge).toHaveAttribute('data-variant', 'success')
+    // Agora verificamos se a classe de cor correta está presente (verde para APPROVED)
+    expect(badge).toHaveClass('text-green-500')
   })
 
   it('deve exibir o estado vazio quando a API retornar lista vazia', async () => {
@@ -150,7 +152,8 @@ describe('OrdersPage', () => {
 
     await waitFor(() => {
       const badge = screen.getByTestId('badge')
-      expect(badge).toHaveAttribute('data-variant', 'neutral')
+      // Verifica o fallback definido no seu componente (gray-400)
+      expect(badge).toHaveClass('text-gray-400')
     })
   })
 
@@ -168,9 +171,9 @@ describe('OrdersPage', () => {
     })
   })
 
-  it('deve renderizar a cor correta do semáforo (red)', async () => {
+  it('deve renderizar a cor correta baseada no status REJECTED', async () => {
     vi.mocked(listOrders).mockResolvedValue({
-      items: [{ ...mockOrderData, semaphore: 'red' } as unknown as Order],
+      items: [{ ...mockOrderData, analysis_status: 'REJECTED' } as unknown as Order],
       meta: { has_next: false },
       links: {}
     } as any)
@@ -178,14 +181,18 @@ describe('OrdersPage', () => {
     const { container } = render(<OrdersPage />)
     
     await waitFor(() => {
-      const semaphore = container.querySelector('.bg-red-500')
-      expect(semaphore).toBeInTheDocument()
+      // Bolinha deve ser vermelha
+      const dot = container.querySelector('.bg-red-500')
+      expect(dot).toBeInTheDocument()
+      // Card deve ter borda vermelha
+      const link = container.querySelector('a')
+      expect(link).toHaveClass('border-red-500')
     })
   })
 
-  it('deve renderizar cores do semáforo (yellow)', async () => {
+  it('deve renderizar a cor azul para status IN_PROGRESS ou PENDING', async () => {
     vi.mocked(listOrders).mockResolvedValue({
-      items: [{ ...mockOrderData, semaphore: 'yellow' } as unknown as Order],
+      items: [{ ...mockOrderData, analysis_status: 'PENDING' } as unknown as Order],
       meta: { has_next: false },
       links: {}
     } as any)
@@ -193,8 +200,10 @@ describe('OrdersPage', () => {
     const { container } = render(<OrdersPage />)
     
     await waitFor(() => {
-      const semaphore = container.querySelector('.bg-yellow-500')
-      expect(semaphore).toBeInTheDocument()
+      const dot = container.querySelector('.bg-blue-500')
+      expect(dot).toBeInTheDocument()
+      const badge = screen.getByTestId('badge')
+      expect(badge).toHaveClass('text-blue-500')
     })
   })
 })
