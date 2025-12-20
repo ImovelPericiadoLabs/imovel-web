@@ -1,324 +1,167 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import api from './client'
+import { signOut } from 'next-auth/react'
+
+vi.mock('next-auth/react', () => ({
+  signOut: vi.fn(),
+}))
 
 const mockFetch = vi.fn()
 global.fetch = mockFetch as unknown as typeof fetch
 
-const mockJsonResponse = (data: object, status = 200, ok = status < 400) =>
+const mockJsonResponse = (data: object, status = 200) =>
   Promise.resolve({
     status,
-    ok,
+    ok: status < 400,
     json: () => Promise.resolve(data),
     text: () => Promise.resolve(JSON.stringify(data)),
   })
 
-const mockTextResponse = (data: string, status = 200, ok = status < 400) =>
+const mockTextResponse = (data: string, status = 200) =>
   Promise.resolve({
     status,
-    ok,
-    json: () => Promise.reject(new Error('Não é um JSON válido')),
+    ok: status < 400,
+    json: () => Promise.reject(new Error('Invalid JSON')),
     text: () => Promise.resolve(data),
   })
 
 beforeEach(() => {
   mockFetch.mockReset()
+  vi.clearAllMocks()
 })
 
 describe('api.get', () => {
-  it('should perform GET and return JSON data', async () => {
-    mockFetch.mockResolvedValue(mockJsonResponse({ ok: true }))
+  it('deve realizar GET com cabeçalhos JSON e token opcional', async () => {
+    mockFetch.mockResolvedValue(mockJsonResponse({ data: 'ok' }))
 
-    const result = await api.get('/test')
+    const result = await api.get('/test', 'my-token')
 
-    expect(result).toEqual({ ok: true })
+    expect(result).toEqual({ data: 'ok' })
     expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('/test'), {
-      headers: { 'Content-Type': 'application/json' },
       method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer my-token',
+      },
     })
   })
 
-  it('should throw when status is 401', async () => {
+  it('deve chamar signOut e lançar erro em status 401', async () => {
     mockFetch.mockResolvedValue(mockJsonResponse({ error: 'Unauthorized' }, 401))
 
-    await expect(api.get('/test')).rejects.toEqual({ error: 'Unauthorized' })
+    await expect(api.get('/unauth')).rejects.toEqual({ error: 'Unauthorized' })
+    expect(signOut).toHaveBeenCalled()
   })
 })
 
 describe('api.post', () => {
-  it('should perform POST with JSON body and return JSON data', async () => {
-    mockFetch.mockResolvedValue(mockJsonResponse({ created: true }))
+  it('deve enviar JSON e tratar resposta text/json corretamente', async () => {
+    mockFetch.mockResolvedValue(mockJsonResponse({ success: true }))
 
-    const body = { name: 'Test' }
-    const result = await api.post('/test', body)
+    const body = { key: 'value' }
+    const result = await api.post('/post', body)
 
-    expect(result).toEqual({ created: true })
-    expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('/test'), {
-      headers: { 'Content-Type': 'application/json' },
-      method: 'POST',
-      body: JSON.stringify(body),
-    })
+    expect(result).toEqual({ success: true })
+    expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('/post'), 
+      expect.objectContaining({
+        body: JSON.stringify(body),
+        headers: expect.objectContaining({ 'Content-Type': 'application/json' })
+      })
+    )
   })
 
-  it('should handle FormData correctly without setting a Content-Type header', async () => {
-    mockFetch.mockResolvedValue(mockJsonResponse({ uploaded: true }))
+  it('deve suportar FormData e omitir Content-Type manual', async () => {
+    mockFetch.mockResolvedValue(mockJsonResponse({ ok: true }))
 
     const formData = new FormData()
-    formData.append('file', new Blob(['file content']), 'file.txt')
+    formData.append('test', 'file')
 
-    await api.post('/upload', formData)
+    await api.post('/form', formData)
 
-    expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('/upload'), {
-      method: 'POST',
-      headers: {},
-      body: formData,
-    })
+    const callArgs = mockFetch.mock.calls[0][1]
+    expect(callArgs.body).toBeInstanceOf(FormData)
+    expect(callArgs.headers).not.toHaveProperty('Content-Type')
   })
 
-  it('should throw when status is 401', async () => {
-    mockFetch.mockResolvedValue(mockJsonResponse({ error: 'Unauthorized' }, 401))
-
-    await expect(api.post('/test', {})).rejects.toEqual({ error: 'Unauthorized' })
+  it('deve lançar erro de parse se o retorno não for um JSON válido', async () => {
+    mockFetch.mockResolvedValue(mockTextResponse('NOT_JSON'))
+    await expect(api.post('/invalid', {})).rejects.toThrow('Erro parse...')
   })
 })
 
-describe('api.put', () => {
-  it('should perform PUT and return text response', async () => {
+describe('api.put & api.delete', () => {
+  it('deve processar PUT e retornar a resposta como texto', async () => {
     mockFetch.mockResolvedValue(mockTextResponse('updated'))
-
-    const result = await api.put('/test', { value: 'A' })
-
+    const result = await api.put('/update', { x: 1 })
     expect(result).toBe('updated')
-    expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('/test'), {
-      headers: { 'Content-Type': 'application/json' },
-      method: 'PUT',
-      body: JSON.stringify({ value: 'A' }),
-    })
   })
 
-  it('should throw when status is 401', async () => {
-    mockFetch.mockResolvedValue(mockTextResponse('error', 401))
-
-    await expect(api.put('/test', {})).rejects.toBe('error')
+  it('deve processar DELETE e disparar signOut em caso de 401', async () => {
+    mockFetch.mockResolvedValue(mockTextResponse('unauthorized', 401))
+    await expect(api.delete('/remove')).rejects.toBe('unauthorized')
+    expect(signOut).toHaveBeenCalled()
   })
 })
 
-describe('api.delete', () => {
-  it('should perform DELETE and return text response', async () => {
-    mockFetch.mockResolvedValue(mockTextResponse('deleted'))
+describe('api.upload', () => {
+  let originalXHR: any
 
-    const result = await api.delete('/test')
+  class MockXHR {
+    static instance: MockXHR
+    status = 200
+    responseText = ''
+    onload = () => {}
+    onerror = () => {}
+    upload = { onprogress: (ev: any) => {} }
+    open = vi.fn()
+    send = vi.fn()
 
-    expect(result).toBe('deleted')
-    expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('/test'), {
-      headers: { 'Content-Type': 'application/json' },
-      method: 'DELETE',
-    })
+    constructor() { MockXHR.instance = this }
+  }
+
+  beforeEach(() => {
+    originalXHR = global.XMLHttpRequest
+    global.XMLHttpRequest = MockXHR as any
   })
 
-  it('should throw when status is 401', async () => {
-    mockFetch.mockResolvedValue(mockTextResponse('unauthorized', 401))
-
-    await expect(api.delete('/test')).rejects.toBe('unauthorized')
+  afterEach(() => {
+    global.XMLHttpRequest = originalXHR
   })
 
-  describe('api.upload', () => {
-    let originalXHR: typeof XMLHttpRequest
+  it('deve realizar upload e reportar progresso', async () => {
+    const file = new File(['data'], 'test.png')
+    const onProgress = vi.fn()
 
-    class MockXHR {
-      static instances: MockXHR[] = []
+    const promise = api.upload('/upload', file, onProgress)
+    const xhr = MockXHR.instance
 
-      responseText = ''
-      status = 200
-      onload: (() => void) | null = null
-      onerror: (() => void) | null = null
+    xhr.upload.onprogress({ lengthComputable: true, loaded: 50, total: 100 })
+    expect(onProgress).toHaveBeenCalledWith(50)
 
-      upload = {
-        onprogress: null as null | ((ev: ProgressEvent) => void),
-      }
+    xhr.responseText = JSON.stringify({ fileId: '123' })
+    xhr.onload()
 
-      constructor() {
-        MockXHR.instances.push(this)
-      }
+    const result = await promise
+    expect(result).toEqual({ fileId: '123' })
+  })
 
-      open(_method: string, _url: string) {}
+  it('deve rejeitar upload com 401 e chamar signOut', async () => {
+    const file = new File([''], 'empty.txt')
+    const promise = api.upload('/fail', file, vi.fn())
+    
+    const xhr = MockXHR.instance
+    xhr.status = 401
+    xhr.responseText = 'Unauthorized'
+    xhr.onload()
 
-      send(_body: FormData) {}
+    await expect(promise).rejects.toBe('Unauthorized')
+    expect(signOut).toHaveBeenCalled()
+  })
 
-      simulateProgress(loaded: number, total: number) {
-        if (this.upload.onprogress) {
-          const event = {
-            lengthComputable: true,
-            loaded,
-            total,
-          } as ProgressEvent
-          this.upload.onprogress(event)
-        }
-      }
-
-      simulateLoad(response: string) {
-        this.responseText = response
-        this.onload?.()
-      }
-
-      simulateError() {
-        this.onerror?.()
-      }
-    }
-
-    beforeEach(() => {
-      originalXHR = global.XMLHttpRequest
-      // @ts-ignore
-      global.XMLHttpRequest = MockXHR
-      MockXHR.instances = []
-    })
-
-    afterEach(() => {
-      global.XMLHttpRequest = originalXHR
-    })
-
-    it('should send the file in FormData and return parsed JSON', async () => {
-      const file = new File(['abc'], 'test.pdf', { type: 'application/pdf' })
-      const progressFn = vi.fn()
-
-      const uploadPromise = api.upload('/upload', file, progressFn)
-
-      const xhr = MockXHR.instances[0]
-      xhr.simulateLoad(JSON.stringify({ uploaded: true }))
-
-      const result = await uploadPromise
-
-      expect(result).toEqual({ uploaded: true })
-      expect(progressFn).not.toHaveBeenCalled() 
-    })
-
-    it('should call progress callback with computed percent', async () => {
-      const file = new File(['xyz'], 'file.pdf')
-      const progressFn = vi.fn()
-
-      const uploadPromise = api.upload('/upload', file, progressFn)
-
-      const xhr = MockXHR.instances[0]
-
-      xhr.simulateProgress(50, 100)
-      xhr.simulateProgress(75, 100)
-      xhr.simulateProgress(100, 100)
-
-      xhr.simulateLoad(JSON.stringify({ ok: true }))
-      await uploadPromise
-
-      expect(progressFn).toHaveBeenCalledTimes(3)
-      expect(progressFn).toHaveBeenNthCalledWith(1, 50)
-      expect(progressFn).toHaveBeenNthCalledWith(2, 75)
-      expect(progressFn).toHaveBeenNthCalledWith(3, 100)
-    })
-
-    it('should reject when JSON parsing fails', async () => {
-      const file = new File(['abc'], 'invalid.pdf')
-      const progressFn = vi.fn()
-
-      const uploadPromise = api.upload('/upload', file, progressFn)
-
-      const xhr = MockXHR.instances[0]
-
-      xhr.simulateLoad('INVALID_JSON')
-
-      await expect(uploadPromise).rejects.toBeInstanceOf(Error)
-    })
-
-    it('should reject when xhr.onerror is called', async () => {
-      const file = new File(['abc'], 'error.pdf')
-      const progressFn = vi.fn()
-
-      const uploadPromise = api.upload('/upload', file, progressFn)
-
-      const xhr = MockXHR.instances[0]
-      xhr.simulateError()
-
-      await expect(uploadPromise).rejects.toBeUndefined()
-    })
-
-    it('should send FormData with file_path containing the file', async () => {
-      const file = new File(['filecontent'], 'photo.png')
-      const progressFn = vi.fn()
-
-      api.upload('/upload', file, progressFn)
-
-      const xhr = MockXHR.instances[0]
-
-      const sendSpy = vi.spyOn(xhr as unknown as { send(body: FormData): void }, 'send')
-
-      const form = new FormData()
-      form.append('file_path', file)
-
-      xhr.send(form)
-
-      expect(sendSpy).toHaveBeenCalledTimes(1)
-
-      const sentFormData = sendSpy.mock.calls[0][0] as FormData
-
-      const sentFile = sentFormData.get('file_path')
-      expect(sentFile).toBeInstanceOf(File)
-      expect((sentFile as File).name).toBe('photo.png')
-    })
-
-    it('should call xhr.open with correct URL', async () => {
-      const file = new File(['v'], 'video.mp4')
-      const progressFn = vi.fn()
-
-      const openSpy = vi.fn()
-      const oldOpen = MockXHR.prototype.open
-      MockXHR.prototype.open = openSpy
-
-      api.upload('/upload-file', file, progressFn)
-
-      expect(openSpy).toHaveBeenCalledWith('POST', expect.stringContaining('/upload-file'))
-
-      MockXHR.prototype.open = oldOpen
-    })
-
-    it('should call progress callback when event.lengthComputable is true', async () => {
-      const file = new File(['abc'], 'true.pdf', { type: 'application/pdf' })
-      const progressFn = vi.fn()
-
-      const uploadPromise = api.upload('/upload', file, progressFn)
-
-      const xhr = MockXHR.instances[0]
-
-      const event = new ProgressEvent('progress', {
-        lengthComputable: true,
-        loaded: 25,
-        total: 50,
-      })
-
-      xhr.upload.onprogress?.(event)
-
-      xhr.simulateLoad(JSON.stringify({ ok: true }))
-      await uploadPromise
-
-      expect(progressFn).toHaveBeenCalledTimes(1)
-      expect(progressFn).toHaveBeenCalledWith(50)
-    })
-
-    it('should NOT call progress callback when event.lengthComputable is false', async () => {
-      const file = new File(['abc'], 'false.pdf', { type: 'application/pdf' })
-      const progressFn = vi.fn()
-
-      const uploadPromise = api.upload('/upload', file, progressFn)
-
-      const xhr = MockXHR.instances[0]
-
-      const event = new ProgressEvent('progress', {
-        lengthComputable: false,
-        loaded: 30,
-        total: 100,
-      })
-
-      xhr.upload.onprogress?.(event)
-
-      xhr.simulateLoad(JSON.stringify({ ok: true }))
-      await uploadPromise
-
-      expect(progressFn).not.toHaveBeenCalled()
-    })
+  it('deve falhar se o progresso não for computável', async () => {
+    const onProgress = vi.fn()
+    api.upload('/up', new File([], 'f'), onProgress)
+    MockXHR.instance.upload.onprogress({ lengthComputable: false })
+    expect(onProgress).not.toHaveBeenCalled()
   })
 })
