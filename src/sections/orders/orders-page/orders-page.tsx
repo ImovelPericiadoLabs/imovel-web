@@ -9,6 +9,7 @@ import { formatDateWithTime } from '@/utils/date'
 import { cn } from '@/utils/tailwind'
 import { listOrders } from '@/services/orders'
 import type { Order } from '@/services/orders'
+import  Button  from '@/components/button'
 
 const ChevronRight = () => (
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 ml-2">
@@ -87,19 +88,24 @@ export default function OrdersPage() {
             <EmptyInboxIcon />
           </div>
           <h3 className="text-gray-900 font-medium text-base">
-            Nenhum consulta encontrada
+            Nenhuma consulta encontrada
           </h3>
-          <p className="text-gray-400 text-sm mt-1">
+          <p className="text-gray-400 text-sm mt-1 mb-6">
             suas consultas aparecerão aqui.
           </p>
+
+          {/* Usando seu componente Button com a prop href */}
+          <Button href="/consultar-imoveis" className="max-w-xs">
+            Consultar Imóvel
+          </Button>
         </div>
       ) : (
         <div className="flex flex-col gap-4">
           {orders.map((order, index) => {
             const isLastElement = orders.length === index + 1
-            const style = mapAnalysisBadge[order.analysis_status] || { 
-              label: order.analysis_status, 
-              dot: 'bg-gray-300', 
+            const style = mapAnalysisBadge[order.analysis_status] || {
+              label: order.analysis_status,
+              dot: 'bg-gray-300',
               border: 'border-gray-200',
               text: 'text-gray-400',
               badgeClass: 'border-gray-300 text-gray-400 bg-transparent'
