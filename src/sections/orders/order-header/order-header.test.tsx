@@ -1,3 +1,5 @@
+'use client'
+
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import OrderHeader from './order-header'
@@ -26,13 +28,20 @@ vi.mock('@/components/traffic-light', () => ({
   ),
 }))
 
+// Mock do componente Badge para garantir que renderiza o que passamos
+vi.mock('@/components/badge', () => ({
+  default: ({ children, variant }: any) => (
+    <div data-testid="badge" data-variant={variant}>{children}</div>
+  ),
+}))
+
 describe('OrderHeader', () => {
   const mockOrder = {
     code: 123,
     created: '2023-01-01',
     formatted_address: 'Rua Teste, 100',
-    status: { value: 'APPROVED', label: 'Aprovado' },
-    signal: { label: 'red', value: 'Risco Detectado' },
+    status: { value: 'FINISHED', label: 'Concluído' }, // Status alterado para FINISHED para mostrar semáforo
+    semaphore: 'red', // Usando semaphore como no seu código
     complement: 'Apto 12'
   }
 
@@ -48,7 +57,7 @@ describe('OrderHeader', () => {
     expect(container.querySelector('.animate-pulse')).toBeInTheDocument()
   })
 
-  it('deve renderizar os dados do consulta com sucesso e semáforo vermelho', async () => {
+  it('deve renderizar os dados da consulta com sucesso e semáforo vermelho', async () => {
     vi.mocked(useParams).mockReturnValue({ id: '1' })
     vi.mocked(getOrder).mockResolvedValue(mockOrder as any)
 
@@ -58,7 +67,8 @@ describe('OrderHeader', () => {
       expect(screen.getByText('#000123')).toBeInTheDocument()
       expect(screen.getByText('formatado: 2023-01-01')).toBeInTheDocument()
       expect(screen.getByText('Rua Teste, 100')).toBeInTheDocument()
-      expect(screen.getByText('Risco Detectado')).toBeInTheDocument()
+      // O seu código renderiza "Sinal Vermelho" quando semaphore é red e status é FINISHED
+      expect(screen.getByText('Sinal Vermelho')).toBeInTheDocument()
     })
 
     const tl = screen.getByTestId('traffic-light')
@@ -66,18 +76,20 @@ describe('OrderHeader', () => {
     expect(tl).toHaveAttribute('data-green', 'false')
   })
 
-  it('deve exibir badge de fallback quando não houver signal (ex: Pendente)', async () => {
+  it('deve exibir badge de fallback quando não for FINISHED (ex: APPROVED)', async () => {
     vi.mocked(useParams).mockReturnValue({ id: '1' })
     vi.mocked(getOrder).mockResolvedValue({
       ...mockOrder,
-      signal: undefined,
-      status: { value: 'PENDING', label: 'Pendente' }
+      status: { value: 'APPROVED', label: 'Aprovado' },
+      semaphore: 'red' 
     } as any)
 
     render(<OrderHeader />)
 
     await waitFor(() => {
-      expect(screen.getByText('Pendente')).toBeInTheDocument()
+      // Como não é FINISHED, deve mostrar o label do status
+      expect(screen.getByText('Aprovado')).toBeInTheDocument()
+      // E não deve mostrar o semáforo
       expect(screen.queryByTestId('traffic-light')).not.toBeInTheDocument()
     })
   })
@@ -86,7 +98,8 @@ describe('OrderHeader', () => {
     vi.mocked(useParams).mockReturnValue({ id: '1' })
     vi.mocked(getOrder).mockResolvedValue({
       ...mockOrder,
-      signal: { label: 'green', value: 'Tudo Certo' },
+      status: { value: 'FINISHED', label: 'Concluído' },
+      semaphore: 'green',
       formatted_address: '',
       complement: undefined
     } as any)
@@ -95,6 +108,7 @@ describe('OrderHeader', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Endereço não informado')).toBeInTheDocument()
+      expect(screen.getByText('Sinal Verde')).toBeInTheDocument()
     })
 
     const tl = screen.getByTestId('traffic-light')
@@ -105,7 +119,8 @@ describe('OrderHeader', () => {
     vi.mocked(useParams).mockReturnValue({ id: '1' })
     vi.mocked(getOrder).mockResolvedValue({ 
       ...mockOrder, 
-      status: { value: 'FAILED', label: 'Falhou' } 
+      status: { value: 'FAILED', label: 'Falhou' },
+      semaphore: undefined
     } as any)
 
     render(<OrderHeader />)
