@@ -9,7 +9,7 @@ import LoadingOverlay from '@/components/loading-overlay'
 import Button from '@/components/button'
 import { formatDateWithTime } from '@/utils/date'
 import { cn } from '@/utils/tailwind'
-import { listOrders, type Order, type AnalysisStatus } from '@/services/orders'
+import { listOrders, type Order, type AnalysisStatus, type SemaphoreStatus } from '@/services/orders'
 
 const STATUS_STYLES = {
   green: { dot: 'bg-green-500', border: 'border-green-500', text: 'text-green-500', badge: 'border-green-500 text-green-500 bg-transparent' },
@@ -17,6 +17,12 @@ const STATUS_STYLES = {
   red: { dot: 'bg-red-500', border: 'border-red-500', text: 'text-red-500', badge: 'border-red-500 text-red-500 bg-transparent' },
   blue: { dot: 'bg-blue-500', border: 'border-blue-500', text: 'text-blue-500', badge: 'border-blue-500 text-blue-500 bg-transparent' },
   gray: { dot: 'bg-gray-300', border: 'border-gray-200', text: 'text-gray-400', badge: 'border-gray-300 text-gray-400 bg-transparent' },
+}
+
+const SEMAPHORE_LABELS: Partial<Record<SemaphoreStatus, string>> = {
+  green: 'TUDO CERTO',
+  yellow: 'IRREGULARIDADES ENCONTRADAS',
+  red: 'IMPEDITIVO DE COMPRA E VENDA',
 }
 
 const getOrderStyle = (order: Order) => {
@@ -59,8 +65,6 @@ export default function OrdersPage() {
       const { items, meta } = await listOrders({ limit: 10, p: targetPage })
       setOrders(prev => (targetPage === 1 ? items : [...prev, ...items]))
       setHasMore(meta.has_next)
-    } catch {
-      setHasMore(false)
     } finally {
       setIsLoading(false)
       setIsFetchingMore(false)
@@ -111,6 +115,11 @@ export default function OrdersPage() {
             const style = getOrderStyle(order)
             const dateLabel = order.status?.value === 'PENDING' ? 'Solicitado em' : 'Analisado em'
 
+            const badgeLabel =
+              order.semaphore && SEMAPHORE_LABELS[order.semaphore]
+                ? SEMAPHORE_LABELS[order.semaphore]
+                : order.status?.label || 'Processando'
+
             return (
               <div key={order.id} ref={isLast ? lastOrderElementRef : null}>
                 <Link
@@ -134,7 +143,7 @@ export default function OrdersPage() {
 
                       <div className="mt-2 flex gap-2 items-center">
                         <Badge className={cn('border bg-transparent shadow-none font-medium', style.badge)}>
-                          {order.status?.label || 'Processando'}
+                          {badgeLabel}
                         </Badge>
                         {!!order.analysis?.length && (
                           <span className="text-[10px] text-gray-400">
