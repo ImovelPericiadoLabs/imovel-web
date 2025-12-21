@@ -3,10 +3,21 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { MapPin } from 'lucide-react'
+
 import TrafficLight from '@/components/traffic-light'
-import Badge from '@/components/badge' 
+import Badge from '@/components/badge'
+
 import { formatDateWithTime } from '@/utils/date'
-import { getOrder, Order, SemaphoreStatus } from '@/services/orders'
+import { cn } from '@/utils/tailwind'
+
+// service
+import { getOrder, type Order } from '@/services/orders'
+
+// domínio (nível sênior)
+import {
+  resolveOrderTheme,
+  resolveBadgeLabel
+} from '@/sections/orders/constants'
 
 type Props = {
   Badge?: React.ReactNode
@@ -20,6 +31,7 @@ export default function OrderHeader({ Badge: ExtraBadge }: Props) {
   useEffect(() => {
     async function fetchHeaderData() {
       if (!id) return
+
       try {
         const data = await getOrder(id as string)
         setOrder(data)
@@ -29,105 +41,93 @@ export default function OrderHeader({ Badge: ExtraBadge }: Props) {
         setIsLoading(false)
       }
     }
+
     fetchHeaderData()
   }, [id])
-
-  // Função para definir o texto e a variante do Badge
-  const getBadgeConfig = (semaphore?: SemaphoreStatus, isFinished?: boolean) => {
-    // Se NÃO estiver concluído, mostra o status normal (ex: "Criado", "Processando")
-    if (!isFinished) {
-      return {
-        label: order?.status?.label || 'Pendente',
-        variant: 'info' as const
-      }
-    }
-
-    // Se ESTIVER concluído, mostra o texto baseado no sinalizador
-    switch (semaphore) {
-      case 'red':
-        return { label: 'Sinal Vermelho', variant: 'danger' as const }
-      case 'yellow':
-        return { label: 'Sinal Amarelo', variant: 'warning' as const }
-      case 'green':
-        return { label: 'Sinal Verde', variant: 'success' as const }
-      case 'blue':
-        return { label: 'Sinal Azul', variant: 'info' as const }
-      default:
-        return { label: order?.status?.label || 'Concluído', variant: 'info' as const }
-    }
-  }
 
   if (isLoading) {
     return (
       <div className="flex flex-col gap-6 px-3 py-4 mb-3 bg-background animate-pulse">
         <div className="h-6 bg-gray-200 rounded w-1/3 mx-auto lg:max-w-lg" />
-        <div className="h-16 bg-gray-200 rounded w-full mx-auto lg:max-w-lg" />
+        <div className="h-24 bg-gray-200 rounded w-full mx-auto lg:max-w-lg" />
       </div>
     )
   }
 
-  const displayId = order?.code ? `#${String(order.code).padStart(6, '0')}` : '...'
-  const isFinished = order?.status?.value === 'FINISHED'
-  const { label, variant } = getBadgeConfig(order?.semaphore, isFinished)
+  if (!order) return null
+
+  const theme = resolveOrderTheme(order)
+  const badgeLabel = resolveBadgeLabel(order)
+  const isFinished = order.status?.value === 'FINISHED'
+
+  const displayId = order.code
+    ? `#${String(order.code).padStart(6, '0')}`
+    : '...'
 
   return (
     <div className="flex flex-col gap-6 px-3 py-4 mb-3 bg-background">
-      {/* Informações de ID e Data */}
-      <div className="flex align-middle justify-between w-full mx-auto lg:max-w-lg">
-        <p className="text-base font-semibold leading-[130%] self-center">{displayId}</p>
-        <div className="flex flex-col">
-          <p className="text-gray-2 text-[0.65rem] font-normal leading-[130%] self-end">Solicitado em</p>
+      {/* ID e Data */}
+      <div className="flex items-center justify-between w-full mx-auto lg:max-w-lg">
+        <p className="text-base font-semibold leading-[130%]">
+          {displayId}
+        </p>
+
+        <div className="flex flex-col text-right">
+          <p className="text-gray-2 text-[0.65rem] font-normal leading-[130%]">
+            {isFinished ? 'Analisado em' : 'Solicitado em'}
+          </p>
           <p className="text-base font-semibold leading-[130%]">
-            {order?.created ? formatDateWithTime(order.created) : '...'}
+            {formatDateWithTime(order.modified || order.created)}
           </p>
         </div>
       </div>
 
-      {/* Box de Endereço */}
+      {/* Endereço */}
       <div className="bg-box rounded-sm px-4 py-5 w-full mx-auto lg:max-w-lg">
-        <div className="flex flex-col gap-2">
-          <div className="flex gap-4">
-            <MapPin className="size-6 shrink-0" />
-            <div className="flex flex-col gap-1">
-              <p className="text-xs font-normal leading-[130%] break-words">
-                {order?.formatted_address || 'Endereço não informado'}
+        <div className="flex gap-4">
+          <MapPin className={cn('size-6 shrink-0', theme.text)} />
+
+          <div className="flex flex-col gap-1">
+            <p className="text-xs font-normal leading-[130%] break-words text-gray-900">
+              {order.formatted_address || 'Endereço não informado'}
+            </p>
+
+            {order.complement && (
+              <p className="text-[10px] text-gray-400 italic">
+                {order.complement}
               </p>
-              {order?.complement && (
-                <p className="text-[10px] text-gray-400 italic">{order.complement}</p>
-              )}
-            </div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Seção de Status e Semáforo */}
+      {/* Status / Semáforo */}
       <div className="flex flex-col gap-4 items-center justify-center text-center">
-        
-        {/* Mostra o TrafficLight apenas quando concluído */}
+        {/* Semáforo só quando finalizado */}
         {isFinished && (
           <TrafficLight
-            red={order?.semaphore === 'red'}
-            green={order?.semaphore === 'green'}
-            yellow={order?.semaphore === 'yellow'}
+            red={order.semaphore === 'red'}
+            green={order.semaphore === 'green'}
+            yellow={order.semaphore === 'yellow'}
           />
         )}
 
-        {/* Badge Customizado */}
-        <Badge 
-          variant={variant} 
-          size="md" 
-          className="bg-transparent"
+        {/* Badge principal */}
+        <Badge
+          variant={theme.variant}
+          size="md"
+          className={cn('bg-transparent border', theme.badge)}
         >
-          {label}
+          {badgeLabel}
         </Badge>
 
-        {/* Badge Extra via Props */}
+        {/* Badge extra opcional */}
         {!!ExtraBadge && ExtraBadge}
-        
-        {/* Mensagem de erro caso o pagamento falhe */}
-        {order?.status?.value === 'FAILED' && (
+
+        {/* Falha de pagamento */}
+        {order.status?.value === 'FAILED' && (
           <span className="text-[10px] text-red-500 font-bold uppercase tracking-tighter">
-            Pagamento Falhou
+            Pagamento falhou
           </span>
         )}
       </div>
