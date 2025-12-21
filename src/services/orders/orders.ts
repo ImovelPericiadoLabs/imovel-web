@@ -4,22 +4,6 @@ import { getSession, signOut } from 'next-auth/react'
 
 export type SemaphoreStatus = 'green' | 'yellow' | 'red' | 'blue' | 'gray'
 
-export type AnalysisStatus =
-  | 'PENDING'
-  | 'SEARCHING_DOCUMENT'
-  | 'IN_PROGRESS'
-  | 'FINISHED'
-  | 'CANCELED'
-  | 'APPROVED'
-  | 'REJECTED'
-
-export type PaymentStatus =
-  | 'CREATED'
-  | 'PROCESSING'
-  | 'PAID'
-  | 'FAILED'
-  | 'FINISHED'
-
 export type GenericStatus = {
   value: string
   label: string
@@ -35,7 +19,6 @@ export type OrderAnalysisResult = {
 export type Order = {
   id: string
   code: number
-  semaphore?: SemaphoreStatus
   status: GenericStatus
   amount: string
   document: string | null
@@ -44,11 +27,13 @@ export type Order = {
   complement: string | null
   created: string
   modified: string
+
+  semaphore?: SemaphoreStatus
   analysis?: OrderAnalysisResult[]
 }
 
 export type AnalysisStatusDetail = {
-  value: SemaphoreStatus
+  value: string
   label: string
 }
 
@@ -66,20 +51,6 @@ export type OrderAnalysisDetail = {
   status: AnalysisStatusDetail
   reason: string
   documents: AnalysisDocument | null
-}
-
-export async function getOrderAnalysisDetail(orderId: string, analysisId: string) {
-  return guard(async (token) => {
-    const url = `${endpoint.orders}${orderId}/analysis/${analysisId}/`
-
-    return api.get(url, token) as Promise<OrderAnalysisDetail>
-  })
-}
-
-export type ListOrdersRequest = {
-  limit?: number
-  p?: number
-  status?: PaymentStatus
 }
 
 export type OrdersApiResponse = {
@@ -121,9 +92,16 @@ async function guard<T>(callback: (token: string) => Promise<T>): Promise<T> {
   }
 }
 
+export type ListOrdersRequest = {
+  limit?: number
+  p?: number
+  status?: string
+}
+
 export async function listOrders(params: ListOrdersRequest = {}) {
   return guard(async (token) => {
     const { limit = 20, p = 1, status } = params
+
     const queryParams = new URLSearchParams({
       limit: String(limit),
       p: String(p),
@@ -145,6 +123,16 @@ export async function getOrder(orderId: string) {
     const url = `${baseUrl}/${orderId}/`
 
     return api.get(url, token) as Promise<Order>
+  })
+}
+
+export async function getOrderAnalysisDetail(
+  orderId: string,
+  analysisId: string,
+) {
+  return guard(async (token) => {
+    const url = `${endpoint.orders}${orderId}/analysis/${analysisId}/`
+    return api.get(url, token) as Promise<OrderAnalysisDetail>
   })
 }
 
