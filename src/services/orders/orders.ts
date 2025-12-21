@@ -47,6 +47,35 @@ export type Order = {
   analysis?: OrderAnalysisResult[]
 }
 
+export type AnalysisStatusDetail = {
+  value: SemaphoreStatus
+  label: string
+}
+
+export type AnalysisDocument = {
+  id: string
+  file_path: string
+  file_hash: string | null
+  original_name: string
+  extension: string
+}
+
+export type OrderAnalysisDetail = {
+  id: string
+  title: string
+  status: AnalysisStatusDetail
+  reason: string
+  documents: AnalysisDocument | null
+}
+
+export async function getOrderAnalysisDetail(orderId: string, analysisId: string) {
+  return guard(async (token) => {
+    const url = `${endpoint.orders}${orderId}/analysis/${analysisId}/`
+
+    return api.get(url, token) as Promise<OrderAnalysisDetail>
+  })
+}
+
 export type ListOrdersRequest = {
   limit?: number
   p?: number
