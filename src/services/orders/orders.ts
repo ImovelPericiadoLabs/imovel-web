@@ -2,41 +2,49 @@ import api from '@/utils/api/client'
 import { endpoint } from '@/constants/api'
 import { getSession, signOut } from 'next-auth/react'
 
-export type SemaphoreStatus = 'green' | 'yellow' | 'red'
-export type AnalysisStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
-export type PaymentStatus = 'CREATED' | 'PROCESSING' | 'PAID' | 'FAILED'
+export type SemaphoreStatus = 'green' | 'yellow' | 'red' | 'blue' | 'gray'
 
-// Novo tipo para refletir a estrutura do sinal
-export type Signal = {
-  label: SemaphoreStatus
+export type AnalysisStatus =
+  | 'PENDING'
+  | 'SEARCHING_DOCUMENT'
+  | 'IN_PROGRESS'
+  | 'FINISHED'
+  | 'CANCELED'
+  | 'APPROVED'
+  | 'REJECTED'
+
+export type PaymentStatus =
+  | 'CREATED'
+  | 'PROCESSING'
+  | 'PAID'
+  | 'FAILED'
+  | 'FINISHED'
+
+export type GenericStatus = {
   value: string
+  label: string
 }
 
 export type OrderAnalysisResult = {
   id: string
   title: string
-  signal: Signal // Alterado de SemaphoreStatus para Signal
+  semaphore: SemaphoreStatus
   reason: string
 }
 
-export type GenericStatus = {
-  value: string; // Ex: "PENDING", "APPROVED"
-  label: string; // Ex: "Pendente", "Aprovado"
-}
-
 export type Order = {
-  id: string 
+  id: string
   code: number
-  status: GenericStatus;    // Mudou de analysis_status/payment_status para 'status' objeto
-  signal?: Signal;          // Agora opcional, pois pode não vir se estiver pendente
+  semaphore?: SemaphoreStatus
+  status: GenericStatus
   amount: string
   document: string | null
   place_id: string
   formatted_address: string | null
   complement: string | null
-  created: string 
-  modified: string 
-  analysis?: OrderAnalysisResult[] // Opcional
+  created: string
+  modified: string
+  analysis?: OrderAnalysisResult[]
 }
 
 export type ListOrdersRequest = {
@@ -62,26 +70,23 @@ export type OrdersApiResponse = {
 }
 
 async function guard<T>(callback: (token: string) => Promise<T>): Promise<T> {
-  const handleAuthError = async () => {
-    if (typeof window !== 'undefined') {
-      await signOut({ redirect: false })
-      window.location.reload()
-    }
-  }
-
   const session = await getSession()
   const token = session?.accessToken
 
   if (!token) {
-    await handleAuthError()
+    if (typeof window !== 'undefined') {
+      await signOut({ redirect: false })
+      window.location.reload()
+    }
     throw new Error('Sessão inválida ou expirada.')
   }
 
   try {
     return await callback(token)
   } catch (error: any) {
-    if (error?.status === 401) {
-      await handleAuthError()
+    if (error?.status === 401 && typeof window !== 'undefined') {
+      await signOut({ redirect: false })
+      window.location.reload()
     }
     throw error
   }
@@ -90,10 +95,10 @@ async function guard<T>(callback: (token: string) => Promise<T>): Promise<T> {
 export async function listOrders(params: ListOrdersRequest = {}) {
   return guard(async (token) => {
     const { limit = 20, p = 1, status } = params
-    const queryParams = new URLSearchParams()
-
-    queryParams.append('limit', String(limit))
-    queryParams.append('p', String(p))
+    const queryParams = new URLSearchParams({
+      limit: String(limit),
+      p: String(p),
+    })
 
     if (status) {
       queryParams.append('status', status)
@@ -107,10 +112,6 @@ export async function listOrders(params: ListOrdersRequest = {}) {
 
 export async function getOrder(orderId: string) {
   return guard(async (token) => {
-    if (!orderId) {
-      throw new Error('ID do consulta é obrigatório')
-    }
-
     const baseUrl = endpoint.orders.replace(/\/$/, '')
     const url = `${baseUrl}/${orderId}/`
 
@@ -121,7 +122,6 @@ export async function getOrder(orderId: string) {
 export async function listPlans() {
   return guard(async (token) => {
     const response = (await api.get(endpoint.plans, token)) as any
-    if (Array.isArray(response)) return response as any[]
-    return response?.plans || []
+    return Array.isArray(response) ? response : response?.plans || []
   })
 }

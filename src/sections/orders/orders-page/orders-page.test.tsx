@@ -60,7 +60,7 @@ describe('OrdersPage', () => {
     formatted_address: 'Rua das Flores, 100',
     modified: '2023-10-10T15:30:00Z',
     status: { value: 'APPROVED', label: 'Aprovado' },
-    signal: { label: 'green', value: 'Tudo certo' },
+    semaphore: 'green', 
     analysis: [1, 2, 3],
   } as unknown as Order
 
@@ -75,7 +75,7 @@ describe('OrdersPage', () => {
     expect(screen.getByTestId('loading-overlay')).toBeInTheDocument()
   })
 
-  it('deve renderizar a lista de consultas e aplicar as cores do signal', async () => {
+  it('deve renderizar a lista de consultas e aplicar as cores e labels do semaphore', async () => {
     vi.mocked(listOrders).mockResolvedValue({
       items: [mockOrderData],
       meta: { has_next: false },
@@ -88,16 +88,16 @@ describe('OrdersPage', () => {
     })
 
     const badge = screen.getByTestId('badge')
-    expect(screen.getByText('Aprovado')).toBeInTheDocument()
-    expect(badge).toHaveClass('text-green-500')
+    expect(screen.getByText('TUDO CERTO')).toBeInTheDocument()
+    expect(badge).toHaveClass('border-green-500 text-green-500')
   })
 
-  it('deve priorizar a cor do signal sobre o status', async () => {
+  it('deve priorizar o semaphore sobre o status para estilização', async () => {
     vi.mocked(listOrders).mockResolvedValue({
       items: [{
         ...mockOrderData,
         status: { value: 'REJECTED', label: 'Reprovado' },
-        signal: { label: 'yellow', value: 'Atenção' }
+        semaphore: 'yellow' 
       }],
       meta: { has_next: false },
     } as any)
@@ -107,15 +107,16 @@ describe('OrdersPage', () => {
     await waitFor(() => {
       const dot = container.querySelector('.bg-yellow-500')
       expect(dot).toBeInTheDocument()
+      expect(screen.getByText('IRREGULARIDADES ENCONTRADAS')).toBeInTheDocument()
     })
   })
 
-  it('deve aplicar cor azul (fallback) para status PENDING sem signal', async () => {
+  it('deve aplicar cor azul e label de solicitado para status PENDING sem semaphore', async () => {
     vi.mocked(listOrders).mockResolvedValue({
       items: [{
         ...mockOrderData,
         status: { value: 'PENDING', label: 'Pendente' },
-        signal: null
+        semaphore: null
       }],
       meta: { has_next: false },
     } as any)
@@ -125,7 +126,7 @@ describe('OrdersPage', () => {
     await waitFor(() => {
       const dot = container.querySelector('.bg-blue-500')
       expect(dot).toBeInTheDocument()
-      expect(screen.getByText(/Solicitado em/i)).toBeInTheDocument()
+      expect(screen.getByText('Pendente')).toBeInTheDocument()
     })
   })
 
