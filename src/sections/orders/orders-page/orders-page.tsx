@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import { ChevronRight, Inbox } from 'lucide-react'
 import TextTitle from '@/components/text-title'
@@ -9,7 +9,7 @@ import LoadingOverlay from '@/components/loading-overlay'
 import Button from '@/components/button'
 import { formatDateWithTime } from '@/utils/date'
 import { cn } from '@/utils/tailwind'
-import { listOrders, type Order } from '@/services/orders'
+import { listOrders, type Order, type AnalysisStatus } from '@/services/orders'
 
 const STATUS_STYLES = {
   green: { dot: 'bg-green-500', border: 'border-green-500', text: 'text-green-500', badge: 'border-green-500 text-green-500 bg-transparent' },
@@ -20,16 +20,27 @@ const STATUS_STYLES = {
 }
 
 const getOrderStyle = (order: Order) => {
-  if (order.signal?.label) return STATUS_STYLES[order.signal.label as keyof typeof STATUS_STYLES] || STATUS_STYLES.gray
-  
-  const statusMap: Record<string, keyof typeof STATUS_STYLES> = {
-    PENDING: 'blue',
-    APPROVED: 'green',
-    REJECTED: 'red'
+  if (order.semaphore) {
+    return STATUS_STYLES[order.semaphore]
   }
 
-  const key = statusMap[order.status?.value] || 'gray'
-  return STATUS_STYLES[key]
+  const statusToColorMap: Record<AnalysisStatus, keyof typeof STATUS_STYLES> = {
+    PENDING: 'blue',
+    SEARCHING_DOCUMENT: 'blue',
+    IN_PROGRESS: 'blue',
+    APPROVED: 'green',
+    REJECTED: 'red',
+    CANCELED: 'gray',
+    FINISHED: 'gray',
+  }
+
+  const statusValue = order.status?.value as AnalysisStatus | undefined
+
+  if (statusValue && statusToColorMap[statusValue]) {
+    return STATUS_STYLES[statusToColorMap[statusValue]]
+  }
+
+  return STATUS_STYLES.gray
 }
 
 export default function OrdersPage() {
@@ -42,15 +53,14 @@ export default function OrdersPage() {
   const observerRef = useRef<IntersectionObserver | null>(null)
 
   const fetchOrders = useCallback(async (targetPage: number) => {
-    if (targetPage === 1) setIsLoading(true)
-    else setIsFetchingMore(true)
+    targetPage === 1 ? setIsLoading(true) : setIsFetchingMore(true)
 
     try {
       const { items, meta } = await listOrders({ limit: 10, p: targetPage })
-      setOrders(prev => targetPage === 1 ? items : [...prev, ...items])
+      setOrders(prev => (targetPage === 1 ? items : [...prev, ...items]))
       setHasMore(meta.has_next)
-    } catch (error) {
-      console.error('Falha ao carregar ordens:', error)
+    } catch {
+      setHasMore(false)
     } finally {
       setIsLoading(false)
       setIsFetchingMore(false)
@@ -61,23 +71,30 @@ export default function OrdersPage() {
     fetchOrders(page)
   }, [page, fetchOrders])
 
-  const lastOrderElementRef = useCallback((node: HTMLElement | null) => {
-    if (isLoading || isFetchingMore || !hasMore) return
-    if (observerRef.current) observerRef.current.disconnect()
+  const lastOrderElementRef = useCallback(
+    (node: HTMLElement | null) => {
+      if (isLoading || isFetchingMore || !hasMore) return
+      if (observerRef.current) observerRef.current.disconnect()
 
-    observerRef.current = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting) setPage(prev => prev + 1)
-    })
+      observerRef.current = new IntersectionObserver(entries => {
+        if (entries[0].isIntersecting) {
+          setPage(prev => prev + 1)
+        }
+      })
 
-    if (node) observerRef.current.observe(node)
-  }, [isLoading, isFetchingMore, hasMore])
+      if (node) observerRef.current.observe(node)
+    },
+    [isLoading, isFetchingMore, hasMore]
+  )
 
   const renderEmptyState = () => (
     <div className="flex-1 flex flex-col items-center justify-center text-center opacity-80 animate-in fade-in duration-500">
       <Inbox className="w-12 h-12 text-gray-300 mb-4" />
       <h3 className="text-gray-900 font-medium text-base">Nenhuma consulta encontrada</h3>
       <p className="text-gray-400 text-sm mt-1 mb-6">Suas consultas aparecerão aqui.</p>
-      <Button href="/consultar-imovel" className="max-w-xs">Consultar Imóvel</Button>
+      <Button href="/consultar-imovel" className="max-w-xs">
+        Consultar Imóvel
+      </Button>
     </div>
   )
 
@@ -99,7 +116,7 @@ export default function OrdersPage() {
                 <Link
                   href={`/consultas/${order.id}/opcoes`}
                   className={cn(
-                    "group p-4 bg-white border rounded-lg transition-all duration-200 block shadow-sm hover:shadow-md",
+                    'group p-4 bg-white border rounded-lg transition-all duration-200 block shadow-sm hover:shadow-md',
                     style.border
                   )}
                 >
@@ -108,7 +125,7 @@ export default function OrdersPage() {
 
                     <div className="flex flex-col gap-1 flex-1">
                       <span className="text-gray-900 text-sm font-bold">Consulta #{order.code}</span>
-                      <p className="text-gray-600 text-sm font-normal break-words">
+                      <p className="text-gray-600 text-sm break-words">
                         {order.formatted_address || 'Endereço não informado'}
                       </p>
                       <p className="text-gray-400 text-xs mt-0.5">
@@ -116,7 +133,7 @@ export default function OrdersPage() {
                       </p>
 
                       <div className="mt-2 flex gap-2 items-center">
-                        <Badge className={cn("border bg-transparent shadow-none font-medium", style.badge)}>
+                        <Badge className={cn('border bg-transparent shadow-none font-medium', style.badge)}>
                           {order.status?.label || 'Processando'}
                         </Badge>
                         {!!order.analysis?.length && (
@@ -127,7 +144,7 @@ export default function OrdersPage() {
                       </div>
                     </div>
 
-                    <div className={cn("opacity-0 group-hover:opacity-100 transition-opacity ml-2", style.text)}>
+                    <div className={cn('opacity-0 group-hover:opacity-100 transition-opacity ml-2', style.text)}>
                       <ChevronRight className="w-4 h-4" />
                     </div>
                   </div>
