@@ -68,7 +68,7 @@ export function AddressComplementStep({ onNext }: { onNext: () => void }) {
     type="text"
     inputMode="numeric"
     placeholder="Ex: 123456 ou 123.456"
-    maxLength={20}
+    maxLength={7}
     {...register('registrationNumber', {
       pattern: {
         value: /^[0-9.\-/]+$/,

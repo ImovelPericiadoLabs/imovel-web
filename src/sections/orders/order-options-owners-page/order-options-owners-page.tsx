@@ -1,40 +1,41 @@
+'use client'
+
 import { User } from 'lucide-react'
 import OrderHeader from '@/sections/orders/order-header'
 import BadgeComponent from '@/components/badge'
+import { useParams } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { getOrder, Order } from '@/services/orders'
 
 export default function OrderOptionsOwnersPage() {
-  const owners = [
-    {
-      id: 1,
-      name: 'JULIO BARBOSA LEMES FILHO',
-      document: '159.256.252-00',
-      percentage: 100,
-    },
-    {
-      id: 2,
-      name: 'MARIANA SANTOS',
-      document: '123.456.789-01',
-      percentage: 75,
-    },
-    {
-      id: 3,
-      name: 'CARLOS ANDRADE',
-      document: '987.654.321-09',
-      percentage: 50,
-    },
-    {
-      id: 4,
-      name: 'ANA CARLA DA SILVA',
-      document: '123.456.789-10',
-      percentage: 75,
-    },
-  ]
+
+  const { id } = useParams()
+    const [order, setOrder] = useState<Order | null>(null)
+    const [isLoading, setIsLoading] = useState(true)
+  
+    useEffect(() => {
+      async function fetchData() {
+        if (!id) return
+        try {
+          const data = await getOrder(id as string)
+          setOrder(data)
+        } catch (error) {
+          console.error('Erro ao buscar pedido:', error)
+        } finally {
+          setIsLoading(false)
+        }
+      }
+  
+      fetchData()
+    }, [id])
+
+    
   return (
     <div className="flex flex-col gap-3">
-      <OrderHeader Badge={<BadgeComponent variant="danger">Sinal Vermelho</BadgeComponent>} />
+      <OrderHeader/>
 
       <div className="flex flex-col gap-2 px-3 lg:px-0 w-full mx-auto lg:max-w-lg">
-        {owners.map((owner) => (
+        {order?.owners?.map((owner) => (
           <div
             key={owner.id}
             className="flex flex-col p-4 border border-box rounded-sm group hover:border-primary"
@@ -44,14 +45,14 @@ export default function OrderOptionsOwnersPage() {
 
               <div className="flex flex-col gap-2">
                 <p className="text-sm font-semibold leading-[130%] group-hover:text-primary">
-                  {owner.name}
+                  {owner.name || "Não Disponível"}
                 </p>
 
                 <p className="text-dark text-xs font-normal leading-4 group-hover:text-primary">
-                  {owner.document}
+                  {owner.textId || "Não Disponível"}
                 </p>
 
-                <BadgeComponent>Possui {owner.percentage}%</BadgeComponent>
+                <BadgeComponent>Possui {owner.undivided_interest + "%" || "Não Disponível"}</BadgeComponent>
               </div>
             </div>
           </div>

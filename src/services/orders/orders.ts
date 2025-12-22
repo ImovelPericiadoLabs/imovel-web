@@ -31,9 +31,17 @@ export type Order = {
   complement: string | null
   created: string
   modified: string
-
+  
+  owners?: OwnersDetails[]
   semaphore?: SemaphoreStatus
   analysis?: OrderAnalysisResult[]
+}
+
+export type OwnersDetails = {
+    id: string
+    name: string,
+    textId: string,
+    undivided_interest: number
 }
 
 export type AnalysisStatusDetail = {
