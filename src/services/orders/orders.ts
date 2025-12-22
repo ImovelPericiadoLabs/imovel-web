@@ -25,7 +25,7 @@ export type Order = {
   code: number
   status: GenericStatus
   amount: string
-  document: string | null
+  documents: Document[]
   place_id: string
   formatted_address: string | null
   complement: string | null
@@ -39,6 +39,14 @@ export type Order = {
 export type AnalysisStatusDetail = {
   value: string
   label: string
+}
+
+export type Document = {
+  id: string
+  file_path: string
+  file_hash: string | null
+  original_name: string
+  extension: string
 }
 
 export type AnalysisDocument = {

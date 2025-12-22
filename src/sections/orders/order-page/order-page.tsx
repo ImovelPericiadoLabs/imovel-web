@@ -21,7 +21,6 @@ export default function OrderPage() {
   const { id } = useParams()
 
   const [order, setOrder] = useState<Order | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     async function fetchHeaderData() {
@@ -32,9 +31,7 @@ export default function OrderPage() {
         setOrder(data)
       } catch (error) {
         console.error('Erro ao carregar cabeçalho:', error)
-      } finally {
-        setIsLoading(false)
-      }
+      } 
     }
 
     fetchHeaderData()
