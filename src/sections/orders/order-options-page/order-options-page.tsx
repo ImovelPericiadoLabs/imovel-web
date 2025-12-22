@@ -61,7 +61,7 @@ export default function OrderOptionsPage() {
     )
   }
 
-  const isNotFinished = order?.status.value !== 'FINISHED'
+  const isNotFinished = order?.status?.value !== 'FINISHED'
 
   return (
     <div className="flex flex-col gap-3">

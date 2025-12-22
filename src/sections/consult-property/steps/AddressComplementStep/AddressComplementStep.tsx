@@ -12,7 +12,7 @@ export function AddressComplementStep({ onNext }: { onNext: () => void }) {
   const currentLength = complementValue.length
 
   const handleContinue = async () => {
-    const isValid = await trigger('addressComplement')
+    const isValid = await trigger(['addressComplement', 'registrationNumber'])
     if (isValid) {
       onNext()
     }
