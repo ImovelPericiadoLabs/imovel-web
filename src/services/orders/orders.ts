@@ -2,9 +2,9 @@ import api from '@/utils/api/client'
 import { endpoint } from '@/constants/api'
 import { getSession, signOut } from 'next-auth/react'
 
-export type SemaphoreStatusValue = 'green' | 'yellow' | 'red' | 'blue' | 'gray'
-export type SemaphoreStatus = {
-  value: SemaphoreStatusValue
+export type SemaphoreStatus = 'green' | 'yellow' | 'red' | 'blue' | 'gray'
+export type AnalisisStatus = {
+  value: SemaphoreStatus
   label: string
 }
 
@@ -16,7 +16,7 @@ export type GenericStatus = {
 export type OrderAnalysisResult = {
   id: string
   title: string
-  status: SemaphoreStatus
+  status: AnalisisStatus
   reason: string
 }
 

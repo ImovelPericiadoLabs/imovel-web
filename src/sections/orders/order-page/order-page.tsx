@@ -15,6 +15,7 @@ import {
 } from '@/sections/orders/constants'
 import { useEffect, useState } from 'react'
 import { getOrder, Order } from '@/services/orders'
+import { SemaphoreStatus } from '@/services/orders/orders'
 
 export default function OrderPage() {
   const { id } = useParams()
@@ -40,6 +41,17 @@ export default function OrderPage() {
   }, [id])
 
 
+  const SEMAPHORE_STATUS_THEME_MAP: Record<
+  SemaphoreStatus,
+  keyof typeof STATUS_THEME
+> = {
+  green: 'success',
+  yellow: 'warning',
+  red: 'danger',
+  blue: 'info',
+  gray: 'info'
+}
+
 
   return (
     <div className="flex flex-col gap-3 pb-10">
@@ -50,7 +62,8 @@ export default function OrderPage() {
       <div className="flex flex-col gap-2 px-3 lg:px-0 w-full mx-auto lg:max-w-lg">
         {order?.analysis?.map(item => {
           // const config = ITEM_STATUS_CONFIG[item.status.value]
-          // const theme = STATUS_THEME[config.theme]
+          const themekey = SEMAPHORE_STATUS_THEME_MAP[item.status.value]
+            const theme = STATUS_THEME[themekey]
 
           return (
             <Link
@@ -59,18 +72,18 @@ export default function OrderPage() {
               className="flex flex-col gap-2 p-4 border border-box rounded-sm transition-colors hover:border-primary group"
             >
               <div className="flex items-center gap-4.5">
-                {/* <div className={cn('size-2 rounded-full', theme.dot)} /> */}
+                <div className={cn('size-2 rounded-full', theme.dot)} />
                 <p className="text-sm font-semibold leading-[130%] group-hover:text-primary">
                   {item.title}
                 </p>
               </div>
-              {/* 
+              
               <Badge
                 variant={theme.variant}
                 className={cn('bg-transparent border', theme.badge)}
               >
-                {config.label}
-              </Badge> */}
+                {item.status.label}
+              </Badge>
 
               <p className="text-gray-2 text-xs font-normal leading-[130%]">
                 {item.reason}
