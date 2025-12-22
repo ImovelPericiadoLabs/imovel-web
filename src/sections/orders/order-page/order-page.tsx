@@ -66,11 +66,16 @@ export default function OrderPage() {
             const theme = STATUS_THEME[themekey]
 
           return (
-            <Link
-              key={item.id}
-              href={'#'}
-              className="flex flex-col gap-2 p-4 border border-box rounded-sm transition-colors hover:border-primary group"
-            >
+           <Link
+  key={item.id}
+  href="#"
+  className={cn(
+    'flex flex-col gap-2 p-4 border rounded-sm transition-colors group',
+    theme.border,
+    'hover:border-primary'
+  )}
+>
+
               <div className="flex items-center gap-4.5">
                 <div className={cn('size-2 rounded-full', theme.dot)} />
                 <p className="text-sm font-semibold leading-[130%] group-hover:text-primary">
