@@ -106,9 +106,9 @@ export default function OrderHeader({ Badge: ExtraBadge }: Props) {
         {/* Semáforo só quando finalizado */}
         {isFinished && (
           <TrafficLight
-            red={order.semaphore === 'red'}
-            green={order.semaphore === 'green'}
-            yellow={order.semaphore === 'yellow'}
+            red={order.status.value === 'red'}
+            green={order.status.value === 'green'}
+            yellow={order.status.value === 'yellow'}
           />
         )}
 
