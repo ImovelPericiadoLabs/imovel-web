@@ -19,32 +19,34 @@ import { getOrder, Order } from '@/services/orders'
 export default function OrderPage() {
   const { id } = useParams()
 
-   const [order, setOrder] = useState<Order | null>(null)
-    const [isLoading, setIsLoading] = useState(true)
-  
-    useEffect(() => {
-      async function fetchHeaderData() {
-        if (!id) return
-  
-        try {
-          const data = await getOrder(id as string)
-          setOrder(data)
-        } catch (error) {
-          console.error('Erro ao carregar cabeçalho:', error)
-        } finally {
-          setIsLoading(false)
-        }
-      }
-  
-      fetchHeaderData()
-    }, [id])
+  const [order, setOrder] = useState<Order | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
-    
+  useEffect(() => {
+    async function fetchHeaderData() {
+      if (!id) return
+
+      try {
+        const data = await getOrder(id as string)
+        setOrder(data)
+      } catch (error) {
+        console.error('Erro ao carregar cabeçalho:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchHeaderData()
+  }, [id])
+
+
 
   return (
     <div className="flex flex-col gap-3 pb-10">
       <OrderHeader />
 
+
+      {/* Correção das cores das Badges em andamento */}
       <div className="flex flex-col gap-2 px-3 lg:px-0 w-full mx-auto lg:max-w-lg">
         {order?.analysis?.map(item => {
           // const config = ITEM_STATUS_CONFIG[item.status.value]
@@ -62,7 +64,7 @@ export default function OrderPage() {
                   {item.title}
                 </p>
               </div>
-{/* 
+              {/* 
               <Badge
                 variant={theme.variant}
                 className={cn('bg-transparent border', theme.badge)}
