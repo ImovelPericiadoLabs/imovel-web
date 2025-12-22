@@ -31,7 +31,7 @@ export default function OrderPage() {
         setOrder(data)
       } catch (error) {
         console.error('Erro ao carregar cabeçalho:', error)
-      } 
+      }
     }
 
     fetchHeaderData()
@@ -39,39 +39,49 @@ export default function OrderPage() {
 
 
   const SEMAPHORE_STATUS_THEME_MAP: Record<
-  SemaphoreStatus,
-  keyof typeof STATUS_THEME
-> = {
-  green: 'success',
-  yellow: 'warning',
-  red: 'danger',
-  blue: 'info',
-  gray: 'info'
-}
+    SemaphoreStatus,
+    keyof typeof STATUS_THEME
+  > = {
+    green: 'success',
+    yellow: 'warning',
+    red: 'danger',
+    blue: 'info',
+    gray: 'info'
+  }
 
 
   return (
     <div className="flex flex-col gap-3 pb-10">
       <OrderHeader />
 
-
-      {/* Correção das cores das Badges em andamento */}
       <div className="flex flex-col gap-2 px-3 lg:px-0 w-full mx-auto lg:max-w-lg">
+        {order && (!order.analysis || order.analysis.length === 0) && (
+          <div className="flex flex-col gap-2 p-4 border border-dashed rounded-sm text-center text-gray-2">
+            <p className="text-sm font-semibold">
+              Nenhuma análise disponível no momento
+            </p>
+            <p className="text-xs leading-[130%]">
+              As informações deste pedido ainda estão sendo processadas.
+              Tente novamente mais tarde.
+            </p>
+          </div>
+        )}
+        
         {order?.analysis?.map(item => {
           // const config = ITEM_STATUS_CONFIG[item.status.value]
           const themekey = SEMAPHORE_STATUS_THEME_MAP[item.status.value]
-            const theme = STATUS_THEME[themekey]
+          const theme = STATUS_THEME[themekey]
 
           return (
-           <Link
-  key={item.id}
-  href="#"
-  className={cn(
-    'flex flex-col gap-2 p-4 border rounded-sm transition-colors group',
-    theme.border,
-    'hover:border-primary'
-  )}
->
+            <Link
+              key={item.id}
+              href="#"
+              className={cn(
+                'flex flex-col gap-2 p-4 border rounded-sm transition-colors group',
+                theme.border,
+                'hover:border-primary'
+              )}
+            >
 
               <div className="flex items-center gap-4.5">
                 <div className={cn('size-2 rounded-full', theme.dot)} />
@@ -79,7 +89,7 @@ export default function OrderPage() {
                   {item.title}
                 </p>
               </div>
-              
+
               <Badge
                 variant={theme.variant}
                 className={cn('bg-transparent border', theme.badge)}

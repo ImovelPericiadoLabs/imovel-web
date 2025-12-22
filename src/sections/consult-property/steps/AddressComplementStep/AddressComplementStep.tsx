@@ -45,12 +45,62 @@ export function AddressComplementStep({ onNext }: { onNext: () => void }) {
       </div>
 
       <div className="flex flex-col gap-2">
+        
+        <div className="flex justify-between items-end">
+          <label
+  htmlFor="registrationNumber"
+  className="text-sm font-semibold text-gray-700 ml-1"
+>
+  Número da matrícula
+  <span className="text-gray-400 font-normal text-xs ml-1">(Opcional)</span>
+</label>
+        </div>
+
+        <div className="relative group">
+  <div className="absolute left-4 top-4 text-gray-400 group-focus-within:text-primary transition-colors pointer-events-none">
+    <Building className="size-5" />
+  </div>
+
+  <input
+    id="registrationNumber"
+    type="text"
+    inputMode="numeric"
+    placeholder="Ex: 123456 ou 123.456"
+    maxLength={20}
+    {...register('registrationNumber', {
+      pattern: {
+        value: /^[0-9.\-/]+$/,
+        message: 'Informe apenas números ou separadores válidos'
+      }
+    })}
+    className="
+      w-full 
+      pl-12 pr-4 py-4
+      bg-white 
+      border border-gray-200 
+      rounded-xl
+      text-sm text-gray-900 
+      placeholder:text-gray-400 
+      outline-none 
+      transition-all duration-200
+      focus:border-primary 
+      focus:ring-4 focus:ring-primary/10
+    "
+  />
+</div>
+
+        <p className="text-xs text-gray-500 ml-1 leading-relaxed">
+          Preencha aqui caso tenha informações além do endereço, como o <strong>número da matrícula</strong>, lote, quadra ou unidade (apto/sala).
+        </p>
+      </div>
+      <div className="flex flex-col gap-2">
+        
         <div className="flex justify-between items-end">
           <label
             htmlFor="complement"
             className="text-sm font-semibold text-gray-700 ml-1"
           >
-            Informações adicionais <span className="text-gray-400 font-normal text-xs ml-1">(Opcional)</span>
+            Complementos <span className="text-gray-400 font-normal text-xs ml-1">(Opcional)</span>
           </label>
         </div>
 
