@@ -20,14 +20,14 @@ interface UploadedDocument {
 }
 
 export function SendDocumentStep({ onNext }: { onNext: () => void }) {
-  const { setValue, watch, formState, trigger, clearErrors, setError } =
-    useFormContext()
+  const { setValue, getValues, watch, formState, trigger, clearErrors, setError } = useFormContext()
 
   const [uploadProgress, setUploadProgress] = useState(0)
   const documentPreview = watch('documentPreview')
+  const documentType: string = getValues('documentType')
 
   const { mutateAsync, isPending } = useMutation({
-    mutationFn: async (file: File) => uploadDocument(file, setUploadProgress),
+    mutationFn: async (file: File) => uploadDocument(file, documentType, setUploadProgress),
     onSuccess(data) {
       setValue('document', data)
     },

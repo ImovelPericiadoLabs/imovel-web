@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-const DocumentTypeEnum = z.enum(['contract', 'registration', 'deed'])
+const DocumentTypeEnum = z.enum(['agreement', 'registration', 'deed'])
 
 export const validations = z
   .object({
