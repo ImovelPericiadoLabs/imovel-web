@@ -42,6 +42,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
 
   const parentForm = useFormContext()
   const rawComplement = parentForm?.getValues('addressComplement')
+  const rawRegistrationNumber = parentForm?.getValues('registrationNumber')
 
   const uploadedDoc = parentForm?.getValues('document')
   const documentId = uploadedDoc?.id
@@ -49,6 +50,11 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
   const addressComplement = rawComplement && rawComplement.trim().length > 0
     ? rawComplement
     : undefined
+
+  const registrationNumber = rawRegistrationNumber && rawRegistrationNumber.trim().length > 0
+    ? rawRegistrationNumber
+    : undefined
+
 
   const [step, setStep] = useState<Step>('details')
   const [copied, setCopied] = useState(false)
@@ -155,7 +161,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
       name: formData.name,
       document: formData.document,
       email: formData.email,
-      whatsapp: formData.whatsapp
+      whatsapp: formData.whatsapp,
     }))
 
     const finalPlaceId = formData.placeId || placeId
@@ -180,6 +186,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
           document: formData.document,
           whatsapp: whatsappClean,
           complement: addressComplement,
+          registration_number: registrationNumber
         })
         setStep('pix')
       } catch (error: any) {

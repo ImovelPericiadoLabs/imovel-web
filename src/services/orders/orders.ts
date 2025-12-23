@@ -3,22 +3,10 @@ import { endpoint } from '@/constants/api'
 import { getSession, signOut } from 'next-auth/react'
 
 export type SemaphoreStatus = 'green' | 'yellow' | 'red' | 'blue' | 'gray'
-
-export type AnalysisStatus =
-  | 'PENDING'
-  | 'SEARCHING_DOCUMENT'
-  | 'IN_PROGRESS'
-  | 'FINISHED'
-  | 'CANCELED'
-  | 'APPROVED'
-  | 'REJECTED'
-
-export type PaymentStatus =
-  | 'CREATED'
-  | 'PROCESSING'
-  | 'PAID'
-  | 'FAILED'
-  | 'FINISHED'
+export type AnalisisStatus = {
+  value: SemaphoreStatus
+  label: string
+}
 
 export type GenericStatus = {
   value: string
@@ -28,29 +16,61 @@ export type GenericStatus = {
 export type OrderAnalysisResult = {
   id: string
   title: string
-  semaphore: SemaphoreStatus
+  status: AnalisisStatus
   reason: string
 }
 
 export type Order = {
   id: string
   code: number
-  semaphore?: SemaphoreStatus
   status: GenericStatus
   amount: string
-  document: string | null
+  documents: Document[]
   place_id: string
   formatted_address: string | null
   complement: string | null
   created: string
   modified: string
+  
+  owners?: OwnersDetails[]
+  semaphore?: SemaphoreStatus
   analysis?: OrderAnalysisResult[]
 }
 
-export type ListOrdersRequest = {
-  limit?: number
-  p?: number
-  status?: PaymentStatus
+export type OwnersDetails = {
+    id: string
+    name: string,
+    textId: string,
+    undivided_interest: number
+}
+
+export type AnalysisStatusDetail = {
+  value: string
+  label: string
+}
+
+export type Document = {
+  id: string
+  file_path: string
+  file_hash: string | null
+  original_name: string
+  extension: string
+}
+
+export type AnalysisDocument = {
+  id: string
+  file_path: string
+  file_hash: string | null
+  original_name: string
+  extension: string
+}
+
+export type OrderAnalysisDetail = {
+  id: string
+  title: string
+  status: AnalysisStatusDetail
+  reason: string
+  documents: AnalysisDocument | null
 }
 
 export type OrdersApiResponse = {
@@ -92,9 +112,16 @@ async function guard<T>(callback: (token: string) => Promise<T>): Promise<T> {
   }
 }
 
+export type ListOrdersRequest = {
+  limit?: number
+  p?: number
+  status?: string
+}
+
 export async function listOrders(params: ListOrdersRequest = {}) {
   return guard(async (token) => {
     const { limit = 20, p = 1, status } = params
+
     const queryParams = new URLSearchParams({
       limit: String(limit),
       p: String(p),
@@ -116,6 +143,16 @@ export async function getOrder(orderId: string) {
     const url = `${baseUrl}/${orderId}/`
 
     return api.get(url, token) as Promise<Order>
+  })
+}
+
+export async function getOrderAnalysisDetail(
+  orderId: string,
+  analysisId: string,
+) {
+  return guard(async (token) => {
+    const url = `${endpoint.orders}${orderId}/analysis/${analysisId}/`
+    return api.get(url, token) as Promise<OrderAnalysisDetail>
   })
 }
 

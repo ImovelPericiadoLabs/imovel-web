@@ -88,7 +88,7 @@ describe('DocumentTypeStep', () => {
     it('should call setValue and onNext when "Contrato" is selected', () => {
       const { optionContract, setValueMock, onNextMock } = setup()
       fireEvent.click(optionContract)
-      expect(setValueMock).toHaveBeenCalledWith('documentType', 'contract', {
+      expect(setValueMock).toHaveBeenCalledWith('documentType', 'agreement', {
         shouldValidate: true,
       })
       expect(onNextMock).toHaveBeenCalled()

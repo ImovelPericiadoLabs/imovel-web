@@ -7,7 +7,7 @@ import TextTitle from '@/components/text-title'
 import TextSubtitle from '@/components/text-subtitle'
 import OptionCard from '@/components/option-card/option-card.tsx'
 
-type DocumentType = 'contract' | 'registration' | 'deed'
+type DocumentType = 'agreement' | 'registration' | 'deed'
 
 export function DocumentTypeStep({ onNext }: { onNext: () => void }) {
   const { setValue } = useFormContext()
@@ -34,7 +34,7 @@ export function DocumentTypeStep({ onNext }: { onNext: () => void }) {
             icon={Users}
             title="Contrato de compra e venda"
             subtitle="Acordo particular entre comprador e vendedor"
-            onClick={() => handleSelect('contract')}
+            onClick={() => handleSelect('agreement')}
           />
 
           <OptionCard

@@ -31,7 +31,7 @@ export function SummaryStep({ onNext }: { onNext: () => void }) {
   const { getValues } = useFormContext()
 
   const mapDocumentType: Record<string, string> = {
-    contract: 'Contrato de compra e venda',
+    agreement: 'Contrato de compra e venda',
     registration: 'Matrícula',
     deed: 'Escritura',
   }

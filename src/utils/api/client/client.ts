@@ -109,7 +109,7 @@ const api = {
     return result
   },
 
-  async upload(url: string, file: File, onProgress: (percent: number) => void) {
+  async upload(url: string, documentType: string, file: File, onProgress: (percent: number) => void) {
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest()
       xhr.open('POST', `${apiUrl}${url}`)
@@ -140,6 +140,7 @@ const api = {
       xhr.onerror = reject
 
       const form = new FormData()
+      form.append('type', documentType.toUpperCase())
       form.append('file_path', file)
       xhr.send(form)
     })

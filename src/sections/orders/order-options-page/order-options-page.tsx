@@ -61,7 +61,7 @@ export default function OrderOptionsPage() {
     )
   }
 
-  const isNotFinished = order?.status.value !== 'FINISHED'
+  const isNotFinished = order?.status?.value !== 'FINISHED'
 
   return (
     <div className="flex flex-col gap-3">
@@ -85,17 +85,30 @@ export default function OrderOptionsPage() {
           </div>
         ) : (
           buttons.map((button) => (
+
             <Link
               key={button.title}
               href={button.href}
-              className="flex flex-col p-4 border border-box rounded-sm group hover:border-primary transition-colors"
+              className={cn(
+                'flex flex-col p-4 border border-box rounded-sm group transition-colors',
+                button.title === "Resultado"
+                  ? 'border-primary'
+                  : 'hover:border-primary'
+              )}
             >
+
               <div className="flex items-center justify-between">
                 <div className="flex gap-4 items-center">
                   <button.icon className="size-6 text-primary" />
                   <div className="flex flex-col gap-2">
-                    <p className="text-sm font-semibold leading-[130%] group-hover:text-primary">
-                      {button.title}
+                    <p
+                      className={cn(
+                        'text-sm font-semibold leading-[130%]',
+                        button.title === 'Resultado'
+                          ? 'text-primary'
+                          : 'group-hover:text-primary'
+                      )}
+                    >{button.title}
                     </p>
                     <p className="text-gray-2 text-xs font-normal leading-[130%] group-hover:text-primary">
                       {button.subtitle}

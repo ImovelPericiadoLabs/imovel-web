@@ -6,8 +6,8 @@ export {
   type Order,
   type OrderAnalysisResult,
   type SemaphoreStatus,
-  type AnalysisStatus,
-  type PaymentStatus,
+  //type AnalysisStatus,
+  //type PaymentStatus,
 
   type ListOrdersRequest,
   type OrdersApiResponse
