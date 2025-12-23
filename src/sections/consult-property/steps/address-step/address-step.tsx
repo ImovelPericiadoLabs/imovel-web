@@ -163,7 +163,7 @@ export function AddressStep({ onNext }: { onNext: () => void }) {
             className="flex items-center justify-center gap-2 w-full shadow-lg"
           >
             <Package className="size-5" />
-            Meus consultas
+            Minhas Consultas
           </Button>
         </div>
       )}

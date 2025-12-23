@@ -47,6 +47,8 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
   const uploadedDoc = parentForm?.getValues('document')
   const documentId = uploadedDoc?.id
 
+  const notary = parentForm?.getValues('registry')?.name
+
   const addressComplement = rawComplement && rawComplement.trim().length > 0
     ? rawComplement
     : undefined
@@ -186,7 +188,8 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
           document: formData.document,
           whatsapp: whatsappClean,
           complement: addressComplement,
-          registration_number: registrationNumber
+          registration_number: registrationNumber,
+          notary
         })
         setStep('pix')
       } catch (error: any) {
@@ -255,6 +258,8 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
         document: formData.document,
         whatsapp: whatsappClean,
         complement: addressComplement,
+        registration_number: registrationNumber,
+        notary
       })
 
       setStep('pix')
