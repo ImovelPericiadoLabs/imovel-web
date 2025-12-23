@@ -35,6 +35,13 @@ export const STATUS_THEME = {
   },
   info: {
     variant: 'info' as BadgeStatus,
+    dot: 'bg-primary',
+    border: 'border-primary',
+    text: 'text-primary',
+    badge: 'text-primary border-primary'
+  },
+  blue: {
+    variant: 'info' as BadgeStatus,
     dot: 'bg-blue-500',
     border: 'border-blue-500',
     text: 'text-blue-500',
@@ -57,7 +64,7 @@ export const SEMAPHORE_CONFIG: Record<
   },
   yellow: {
     label: 'Sinal Amarelo',
-    theme: 'warning'
+    theme: 'info'
   },
   red: {
     label: 'Sinal Vermelho',
@@ -65,7 +72,7 @@ export const SEMAPHORE_CONFIG: Record<
   },
   blue: {
     label: 'Sinal Azul',
-    theme: 'info'
+    theme: 'blue'
   }
 }
 
@@ -84,6 +91,7 @@ export const STATUS_LABEL: Record<
 export interface OrderLike {
   status?: {
     value?: string
+    label?: string
   }
   semaphore?: unknown
 }
@@ -109,9 +117,7 @@ function isOrderStatus(value: unknown): value is OrderStatus {
 }
 
 export function resolveOrderTheme(order: OrderLike) {
-  const status = order.status?.value
-
-  if (status === 'FINISHED' && isSemaphore(order.semaphore)) {
+  if (isSemaphore(order.semaphore)) {
     const config = SEMAPHORE_CONFIG[order.semaphore]
     return STATUS_THEME[config.theme]
   }
@@ -134,6 +140,10 @@ export function resolveBadgeLabel(order: OrderLike) {
 }
 
 export function resolveListBadgeLabel(order: OrderLike) {
+  if (order.status?.label) {
+    return order.status.label
+  }
+
   const status = order.status?.value
 
   if (!status) return '—'

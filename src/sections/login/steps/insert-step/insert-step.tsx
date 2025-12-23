@@ -1,12 +1,15 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useFormContext } from 'react-hook-form'
 import { cn } from '@/utils/tailwind'
 import { FormTypes } from '@/sections/login/validations'
 import { startAuth } from '@/services/account'
+import Button from '@/components/button'
 
 export function InsertStep({ onNext }: { onNext: () => void }) {
+    const router = useRouter()
     const { register, watch, trigger, formState: { errors } } = useFormContext<FormTypes>()
 
     const [isLoading, setIsLoading] = useState(false)
@@ -82,16 +85,24 @@ export function InsertStep({ onNext }: { onNext: () => void }) {
 
                 <button
                     type="submit"
-                    disabled={!email || isLoading}
+                    disabled={!!errors.email || !email || isLoading}
                     className={cn(
                         "w-full h-14 rounded-full font-semibold text-base transition-colors flex items-center justify-center",
-                        (!email || isLoading)
+                        (!!errors.email || !email || isLoading)
                             ? "bg-[#EAEAEA] text-[#A3A3A3] cursor-not-allowed"
                             : "bg-primary text-white hover:bg-primary/90 shadow-md"
                     )}
                 >
                     {isLoading ? 'Enviando...' : 'Continuar'}
                 </button>
+
+                <Button
+                    type="button"
+                    href="/consultar-imovel"
+                    className="bg-transparent text-primary border-2 border-primary hover:bg-primary/5 mt-2 shadow-none"
+                >
+                    Voltar
+                </Button>
             </form>
         </div>
     )
