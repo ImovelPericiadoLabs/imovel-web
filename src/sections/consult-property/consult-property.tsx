@@ -49,7 +49,13 @@ export default function ConsultProperty() {
 
   const methods = useForm<FormTypes>({
     resolver: zodResolver(validations),
-    defaultValues: { paymentMethod: 'pix' },
+    defaultValues: {
+      paymentMethod: 'pix',
+      addressComplement: '',
+      registrationNumber: '',
+      unknownRegistration: false,
+      noComplement: false
+    },
     shouldUnregister: false,
     mode: 'onChange',
   })
