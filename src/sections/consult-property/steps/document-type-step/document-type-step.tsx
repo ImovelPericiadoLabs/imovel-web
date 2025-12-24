@@ -47,7 +47,7 @@ export function DocumentTypeStep({ onNext }: { onNext: () => void }) {
           <OptionCard
             icon={FileSignature}
             title="Escritura"
-            subtitle="Contrato oficial registrado no cartório"
+            subtitle="Escritura pública lavrada e feita por um cartório tabelião"
             onClick={() => handleSelect('deed')}
           />
         </div>
