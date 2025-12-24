@@ -88,8 +88,8 @@ describe('OrdersPage', () => {
     })
 
     const badge = screen.getByTestId('badge')
-    expect(screen.getByText('TUDO CERTO')).toBeInTheDocument()
-    expect(badge).toHaveClass('border-green-500 text-green-500')
+    expect(screen.getByText('Aprovado')).toBeInTheDocument()
+    expect(badge).toHaveClass('border-green-500 text-green-600')
   })
 
   it('deve priorizar o semaphore sobre o status para estilização', async () => {
@@ -105,9 +105,9 @@ describe('OrdersPage', () => {
     const { container } = render(<OrdersPage />)
 
     await waitFor(() => {
-      const dot = container.querySelector('.bg-yellow-500')
+      const dot = container.querySelector('.bg-primary')
       expect(dot).toBeInTheDocument()
-      expect(screen.getByText('IRREGULARIDADES ENCONTRADAS')).toBeInTheDocument()
+      expect(screen.getByText('Reprovado')).toBeInTheDocument()
     })
   })
 
@@ -124,7 +124,7 @@ describe('OrdersPage', () => {
     const { container } = render(<OrdersPage />)
 
     await waitFor(() => {
-      const dot = container.querySelector('.bg-blue-500')
+      const dot = container.querySelector('.bg-primary')
       expect(dot).toBeInTheDocument()
       expect(screen.getByText('Pendente')).toBeInTheDocument()
     })

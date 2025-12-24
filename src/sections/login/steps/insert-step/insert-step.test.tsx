@@ -1,20 +1,25 @@
 import React from 'react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, cleanup, act } from '@testing-library/react'
 import { useForm, FormProvider } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { InsertStep } from './insert-step'
 import { startAuth } from '@/services/account'
+import { validations } from '@/sections/login/validations'
+
+const mockPush = vi.fn()
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: mockPush }),
+}))
 
 vi.mock('@/services/account', () => ({
   startAuth: vi.fn(),
 }))
 
-vi.mock('@/sections/login/validations', () => ({
-  FormTypes: {},
-}))
-
 const Wrapper = ({ children }: { children: React.ReactNode }) => {
   const methods = useForm({
+    resolver: zodResolver(validations),
     defaultValues: { email: '' },
     mode: 'onChange'
   })
@@ -47,13 +52,25 @@ describe('InsertStep', () => {
     expect(button).toBeDisabled()
   })
 
-  it('should enable the button when email is typed', () => {
+  it('should enable the button when email is valid', async () => {
     const input = screen.getByPlaceholderText('Seu e-mail')
     const button = screen.getByRole('button', { name: /Continuar/i })
 
-    fireEvent.change(input, { target: { value: 'test@example.com' } })
+    await act(async () => {
+      fireEvent.change(input, { target: { value: 'invalid-email' } })
+    })
 
-    expect(button).not.toBeDisabled()
+    await waitFor(() => {
+      expect(button).toBeDisabled()
+    })
+
+    await act(async () => {
+      fireEvent.change(input, { target: { value: 'test@example.com' } })
+    })
+
+    await waitFor(() => {
+      expect(button).not.toBeDisabled()
+    })
   })
 
   it('should call startAuth and onNext on successful submission', async () => {
@@ -62,8 +79,17 @@ describe('InsertStep', () => {
     const input = screen.getByPlaceholderText('Seu e-mail')
     const button = screen.getByRole('button', { name: /Continuar/i })
 
-    fireEvent.change(input, { target: { value: 'user@example.com' } })
-    fireEvent.click(button)
+    await act(async () => {
+      fireEvent.change(input, { target: { value: 'user@example.com' } })
+    })
+
+    await waitFor(() => {
+      expect(button).not.toBeDisabled()
+    })
+
+    await act(async () => {
+      fireEvent.click(button)
+    })
 
     await waitFor(() => {
       expect(startAuth).toHaveBeenCalledWith({ email: 'user@example.com' })
@@ -87,8 +113,17 @@ describe('InsertStep', () => {
     const input = screen.getByPlaceholderText('Seu e-mail')
     const button = screen.getByRole('button', { name: /Continuar/i })
 
-    fireEvent.change(input, { target: { value: 'error@example.com' } })
-    fireEvent.click(button)
+    await act(async () => {
+      fireEvent.change(input, { target: { value: 'error@example.com' } })
+    })
+
+    await waitFor(() => {
+      expect(button).not.toBeDisabled()
+    })
+
+    await act(async () => {
+      fireEvent.click(button)
+    })
 
     await waitFor(() => {
       expect(screen.getByText(errorMessage)).toBeVisible()
@@ -104,8 +139,17 @@ describe('InsertStep', () => {
     const input = screen.getByPlaceholderText('Seu e-mail')
     const button = screen.getByRole('button', { name: /Continuar/i })
 
-    fireEvent.change(input, { target: { value: 'fail@example.com' } })
-    fireEvent.click(button)
+    await act(async () => {
+      fireEvent.change(input, { target: { value: 'fail@example.com' } })
+    })
+
+    await waitFor(() => {
+      expect(button).not.toBeDisabled()
+    })
+
+    await act(async () => {
+      fireEvent.click(button)
+    })
 
     await waitFor(() => {
       expect(screen.getByText('Não foi possível enviar o código. Tente novamente.')).toBeVisible()

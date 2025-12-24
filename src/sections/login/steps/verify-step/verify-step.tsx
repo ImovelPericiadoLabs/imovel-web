@@ -8,6 +8,7 @@ import { signIn } from 'next-auth/react'
 import { FormTypes } from '@/sections/login/validations'
 import { InputOtp } from '@/sections/login/components/InputOtp'
 import { startAuth } from '@/services/account'
+import Button from '@/components/button'
 
 export function VerifyCodeStep({
   onBack,

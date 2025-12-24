@@ -23,7 +23,8 @@ describe('Payments Service', () => {
     name: 'Jeff',
     document: '99999999999',
     whatsapp: '11999999999',
-    complement: 'Apto 101'
+    complement: 'Apto 101',
+    notary: '1º Cartório de Registro de Imóveis'
   }
 
   beforeEach(() => {

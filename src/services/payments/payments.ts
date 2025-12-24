@@ -11,6 +11,7 @@ type PaymentRequest = {
   whatsapp: string
   complement?: string
   registration_number?:number
+  notary?: string
 }
 
 export async function processPayment(data: PaymentRequest) {
