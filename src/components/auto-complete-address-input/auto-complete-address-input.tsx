@@ -141,10 +141,20 @@ export default function AutoCompleteInput({
   }, [error])
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      inputRef.current?.focus()
-    }, 100)
-    return () => clearTimeout(timer)
+    // No iOS, o foco precisa ocorrer muito rápido após a interação do usuário.
+    // Como estamos navegando de uma página para outra, o autoFocus nativo do Next.js
+    // nem sempre é disparado a tempo para o iOS abrir o teclado.
+    // Tentar forçar o foco imediatamente na montagem e também em um microtask.
+    if (inputRef.current) {
+      inputRef.current.focus()
+      inputRef.current.setSelectionRange(inputRef.current.value.length, inputRef.current.value.length)
+      
+      // Fallback para garantir em diferentes ciclos de renderização do iOS
+      const rafId = requestAnimationFrame(() => {
+        inputRef.current?.focus()
+      })
+      return () => cancelAnimationFrame(rafId)
+    }
   }, [])
 
   useEffect(() => {

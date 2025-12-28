@@ -63,7 +63,8 @@ export default function ConsultProperty() {
   function go(next: FlowState) {
     stack.current.push(flow)
     setFlow(next)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    // Usar scroll imediato em vez de smooth para evitar atrasos na percepção de troca de página
+    window.scrollTo({ top: 0, behavior: 'auto' })
   }
 
   function back() {
@@ -81,7 +82,7 @@ export default function ConsultProperty() {
 
     if (previous) {
       setFlow(previous)
-      window.scrollTo({ top: 0, behavior: 'smooth' })
+      window.scrollTo({ top: 0, behavior: 'auto' })
     }
   }
 
