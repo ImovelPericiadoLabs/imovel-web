@@ -141,6 +141,13 @@ export default function AutoCompleteInput({
   }, [error])
 
   useEffect(() => {
+    const timer = setTimeout(() => {
+      inputRef.current?.focus()
+    }, 100)
+    return () => clearTimeout(timer)
+  }, [])
+
+  useEffect(() => {
     if (error) {
       inputRef.current?.blur()
     }

@@ -78,6 +78,7 @@ const Input = forwardRef<HTMLInputElement, ComponentProps<'input'> & Props>(
               `
             px-9.5 py-4 bg-white w-full rounded-[6rem] border 
             border-input-border shadow-[0_1px_2px_rgba(10,13,18,0.05)]
+            text-base
             placeholder:text-gray placeholder:text-base placeholder:font-normal placeholder:leading-6
             focus:border-primary focus:ring-1 focus:ring-primary outline-none
             aria-invalid:ring-red-500/20 aria-invalid:border-red-500
