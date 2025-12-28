@@ -157,11 +157,6 @@ export default function ConsultarImovelPage() {
 
         {/* Rodapé: Texto e Progresso */}
         <div className="flex flex-col gap-4 w-full max-w-md mx-auto mb-4">
-          <p className="text-left text-xl font-light leading-[140%] text-gray-200">
-            Assista ao vídeo tutorial acima até o final <br className="hidden sm:block" />
-            para desbloquear o botão <strong className="font-bold text-white">“Começar”</strong>
-          </p>
-
           <div className="flex flex-col gap-5">
             <div className="pointer-events-auto">
               <Button
