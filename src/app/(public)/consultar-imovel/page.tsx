@@ -1,5 +1,10 @@
+import { Suspense } from 'react'
 import ConsultProperty from '@/sections/consult-property'
 
 export default function ConsultarImovelPage() {
-  return <ConsultProperty />
+  return (
+    <Suspense>
+      <ConsultProperty />
+    </Suspense>
+  )
 }

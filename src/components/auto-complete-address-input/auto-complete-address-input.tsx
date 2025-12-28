@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Search, X, MapPin, CircleAlert, MapPinX } from 'lucide-react'
 import { cn } from '@/utils/tailwind'
 import Button from '@/components/button'
@@ -51,6 +52,9 @@ export default function AutoCompleteInput({
   const [isOpenErrorSheet, setIsOpenErrorSheet] = useState(false)
   const [isOpenNotFoundAddressSheet, setIsOpenNotFoundAddressSheet] = useState(false)
   const [addressError, setAddressError] = useState<{ title: string; subtitle: string } | null>(null)
+
+  const searchParams = useSearchParams()
+  const shouldFocus = searchParams.get('focus') === 'true'
 
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -146,16 +150,34 @@ export default function AutoCompleteInput({
     // nem sempre é disparado a tempo para o iOS abrir o teclado.
     // Tentar forçar o foco imediatamente na montagem e também em um microtask.
     if (inputRef.current) {
-      inputRef.current.focus()
-      inputRef.current.setSelectionRange(inputRef.current.value.length, inputRef.current.value.length)
+      if (shouldFocus) {
+        console.log('[iOS Focus] Attempting immediate focus')
+        inputRef.current.focus()
+        inputRef.current.setSelectionRange(inputRef.current.value.length, inputRef.current.value.length)
+      }
       
       // Fallback para garantir em diferentes ciclos de renderização do iOS
       const rafId = requestAnimationFrame(() => {
-        inputRef.current?.focus()
+        if (shouldFocus) {
+          console.log('[iOS Focus] Attempting RAF focus')
+          inputRef.current?.focus()
+        }
       })
-      return () => cancelAnimationFrame(rafId)
+      
+      // Segundo fallback com um pequeno delay para garantir que o teclado abra após a transição
+      const timeoutId = setTimeout(() => {
+        if (shouldFocus) {
+          console.log('[iOS Focus] Attempting Timeout focus')
+          inputRef.current?.focus()
+        }
+      }, 300)
+
+      return () => {
+        cancelAnimationFrame(rafId)
+        clearTimeout(timeoutId)
+      }
     }
-  }, [])
+  }, [shouldFocus])
 
   useEffect(() => {
     if (error) {

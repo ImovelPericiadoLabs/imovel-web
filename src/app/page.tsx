@@ -88,9 +88,11 @@ export default function ConsultarImovelPage() {
   const handleStart = () => {
     if (isUnlocked) {
       localStorage.setItem('vsl-unlocked', 'true')
-      // Pequeno delay síncrono pode ser prejudicial, mas aqui garantimos que a navegação
-      // ocorra o mais rápido possível. 
-      router.push('/consultar-imovel')
+      
+      // No iOS, para abrir o teclado via programação, o foco deve ser originado 
+      // de uma interação direta do usuário. Ao clicar em "Começar", tentamos 
+      // sinalizar que a próxima tela deve abrir o teclado imediatamente.
+      router.push('/consultar-imovel?focus=true')
     }
   }
 
