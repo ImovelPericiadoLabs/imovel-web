@@ -3,9 +3,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import ConsultarImovelPage from './page'
 
 const mockPush = vi.fn()
+const mockPrefetch = vi.fn()
 vi.mock('next/navigation', () => ({
   useRouter: () => ({
     push: mockPush,
+    prefetch: mockPrefetch,
   }),
 }))
 
@@ -20,6 +22,7 @@ vi.mock('@/components/button', () => ({
 describe('ConsultarImovelPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    localStorage.clear()
     
     Object.defineProperty(HTMLMediaElement.prototype, 'play', {
       configurable: true,
@@ -95,5 +98,25 @@ describe('ConsultarImovelPage', () => {
     const startButton = screen.getByRole('button', { name: /Começar/i })
     fireEvent.click(startButton)
     expect(mockPush).not.toHaveBeenCalled()
+  })
+
+  it('should persist the unlocked state in localStorage', () => {
+    const { container, unmount } = render(<ConsultarImovelPage />)
+    const video = container.querySelector('video') as HTMLVideoElement
+    
+    setVideoProperty(video, 'duration', 100)
+    fireEvent.loadedMetadata(video)
+    
+    setVideoProperty(video, 'currentTime', 99)
+    fireEvent.timeUpdate(video)
+
+    expect(localStorage.getItem('vsl-unlocked')).toBe('true')
+    
+    unmount()
+    
+    render(<ConsultarImovelPage />)
+    const startButton = screen.getByRole('button', { name: 'Começar' })
+    expect(startButton).toBeEnabled()
+    expect(startButton).not.toHaveTextContent('faltam')
   })
 })

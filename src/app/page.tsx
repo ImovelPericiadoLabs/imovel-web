@@ -18,6 +18,13 @@ export default function ConsultarImovelPage() {
   const [isPlaying, setIsPlaying] = useState(false)
 
   useEffect(() => {
+    const unlocked = localStorage.getItem('vsl-unlocked') === 'true'
+    if (unlocked) {
+      setIsUnlocked(true)
+    }
+  }, [])
+
+  useEffect(() => {
     router.prefetch('/consultar-imovel')
 
     if (videoRef.current) {
@@ -41,6 +48,7 @@ export default function ConsultarImovelPage() {
     if (currentProgress > 98 && !isUnlocked) {
       setIsUnlocked(true)
       setRemainingTime(0)
+      localStorage.setItem('vsl-unlocked', 'true')
     }
   }
 
@@ -79,6 +87,7 @@ export default function ConsultarImovelPage() {
 
   const handleStart = () => {
     if (isUnlocked) {
+      localStorage.setItem('vsl-unlocked', 'true')
       // Pequeno delay síncrono pode ser prejudicial, mas aqui garantimos que a navegação
       // ocorra o mais rápido possível. 
       router.push('/consultar-imovel')
@@ -104,7 +113,10 @@ export default function ConsultarImovelPage() {
           onLoadedMetadata={handleLoadedMetadata}
           onPlay={() => setIsPlaying(true)}
           onPause={() => setIsPlaying(false)}
-          onEnded={() => setIsUnlocked(true)}
+          onEnded={() => {
+            setIsUnlocked(true)
+            localStorage.setItem('vsl-unlocked', 'true')
+          }}
           onClick={togglePlay}
         />
 
