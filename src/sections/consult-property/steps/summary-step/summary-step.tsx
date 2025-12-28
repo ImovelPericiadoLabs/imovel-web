@@ -130,7 +130,7 @@ export function SummaryStep({ onNext }: { onNext: () => void }) {
         </div>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 px-4 pt-5 pb-7 bg-white mt-auto border-t border-box">
+      <div className="fixed bottom-0 left-0 right-0 px-4 pt-5 pb-7 bg-white mt-auto border-t border-box z-10">
         <div className="flex w-full justify-between">
           <div className="flex flex-col pl-4">
             <p className="text-sm font-medium leading-[130%]">Total</p>

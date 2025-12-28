@@ -82,6 +82,7 @@ const Input = forwardRef<HTMLInputElement, ComponentProps<'input'> & Props>(
             placeholder:text-gray placeholder:text-base placeholder:font-normal placeholder:leading-6
             focus:border-primary focus:ring-1 focus:ring-primary outline-none
             aria-invalid:ring-red-500/20 aria-invalid:border-red-500
+            disabled:bg-gray-100 disabled:text-gray-400 disabled:border-gray-100 disabled:cursor-not-allowed
             `,
               className,
             )}
