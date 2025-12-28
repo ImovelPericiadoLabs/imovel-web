@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Home, MouseOff, FileText, BellDot, Package } from 'lucide-react'
+import { Home, MouseOff, FileText, BellDot, Package, ArrowUp } from 'lucide-react'
 import { useFormContext } from 'react-hook-form'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import TextTitle from '@/components/text-title'
@@ -119,18 +119,29 @@ export function AddressStep({ onNext }: { onNext: () => void }) {
       <div className="flex-1 flex flex-col gap-5 pt-4">
         <TextTitle>Para começar, onde fica seu imóvel?</TextTitle>
 
-        <AutoCompleteAddressInput
-          placeholder="Buscar endereço"
-          options={data}
-          onChange={handleChangeAddress}
-          onConfirm={handleSubmit}
-          isLoading={isLoading}
-          onSelectAddress={handleSelectAddress}
-          isLoadingAddress={isLoadingListAddress}
-          error={displayError}
-          isDirty={isEnabled}
-          onClear={handleClearAddress}
-        />
+        <div className="relative">
+          <AutoCompleteAddressInput
+            placeholder="Buscar endereço"
+            options={data}
+            onChange={handleChangeAddress}
+            onConfirm={handleSubmit}
+            isLoading={isLoading}
+            onSelectAddress={handleSelectAddress}
+            isLoadingAddress={isLoadingListAddress}
+            error={displayError}
+            isDirty={isEnabled}
+            onClear={handleClearAddress}
+          />
+
+          {!address?.length && (
+            <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 flex flex-col items-center animate-bounce pointer-events-none">
+              <ArrowUp className="size-6 text-primary mb-1" />
+              <span className="text-primary font-bold text-sm bg-primary/10 px-3 py-1 rounded-full whitespace-nowrap">
+                Toque aqui para digitar o endereço
+              </span>
+            </div>
+          )}
+        </div>
 
         {IS_DEBUG_MODE && (data || isError) && (
           <div className="w-full mt-4">
@@ -145,7 +156,7 @@ export function AddressStep({ onNext }: { onNext: () => void }) {
         )}
 
         {!address?.length && (
-          <div className="border border-box p-4 flex flex-col gap-8 mt-2">
+          <div className="border border-box p-4 flex flex-col gap-8 mt-10">
             {initialHomeItems.map(({ Icon, text }) => (
               <div className="flex items-center gap-4" key={text}>
                 <Icon className="size-6 text-primary" />
