@@ -6,10 +6,12 @@ import { useState, useEffect } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useForm, FormProvider, useFormContext } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Check, Clock } from 'lucide-react'
+import { Check, Clock, ChevronRight } from 'lucide-react'
 import { useSession, signOut } from 'next-auth/react'
 
 import SelectedAddressCard from '@/components/selected-address-card'
+import TextTitle from '@/components/text-title'
+import TextSubtitle from '@/components/text-subtitle'
 import Button from '@/components/button'
 import Skeleton from '@/components/skeleton'
 import BottomSheet from '@/components/bottom-sheet'
@@ -304,17 +306,16 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
           className="mb-6"
         />
         {step === 'details' && (
-          <BottomSheet isOpen={true} onClose={handleCloseBottomSheet} className="bg-primary !border-t-0">
-            <div className="p-4 pb-12 max-h-[85vh] overflow-y-auto flex flex-col gap-3">
+          <BottomSheet isOpen={true} onClose={handleCloseBottomSheet} className="bg-white">
+            <div className="p-6 pb-12 max-h-[85vh] overflow-y-auto flex flex-col gap-6">
 
-              <div className="flex flex-row gap-3 items-center mb-2">
-                <div className="rounded-full bg-violet-50 size-14 flex items-center justify-center">
-                  <div className="rounded-full size-10 bg-violet-100 flex items-center justify-center">
-                    <PixIcon className="size-7 text-primary" />
-                  </div>
+              <div className="flex flex-row gap-3 items-center">
+                <div className="p-2 bg-primary/5 rounded-xl">
+                  <PixIcon className="size-7 text-primary" />
                 </div>
-                <div className="flex flex-col">
-                  <p className="text-lg font-semibold leading-6 text-white">Dados para o PIX</p>
+                <div className="flex flex-col gap-1">
+                  <TextTitle className="text-xl font-bold text-dark">Dados para o PIX</TextTitle>
+                  <TextSubtitle className="text-gray-500">Informe seus dados para gerar o código</TextSubtitle>
                 </div>
               </div>
 
@@ -338,9 +339,17 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
 
                 <Input {...register('whatsapp')} errors={errors} label="WhatsApp" placeholder="(99) 99999-9999" mask="whatsapp" inputMode="numeric" onKeyDown={clearServerError} />
 
-                <Button type="button" onClick={handleDetailsSubmit} disabled={isLoading} className="rounded-xl h-12">
-                  {isLoading ? 'Processando...' : 'Continuar'}
-                </Button>
+                <div className="pt-2">
+                  <Button 
+                    type="button" 
+                    onClick={handleDetailsSubmit} 
+                    disabled={isLoading} 
+                    className="rounded-xl h-12"
+                    icon={<ChevronRight className="size-5" />}
+                  >
+                    {isLoading ? 'Processando...' : 'Gerar código PIX'}
+                  </Button>
+                </div>
               </form>
             </div>
           </BottomSheet>
@@ -362,8 +371,8 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
               </p>
             </div>
 
-            <div className="mx-auto mb-8 relative z-10 shadow-xl rounded-2xl w-fit -mt-5">
-              <div className="bg-primary p-1.5 rounded-2xl">
+            <div className="mx-auto mb-8 relative z-10 shadow-xl rounded-xl w-fit -mt-5">
+              <div className="bg-primary p-1.5 rounded-xl">
                 <div className="bg-white p-1.5 rounded-xl">
                   <div className="w-32 h-32 bg-white rounded-lg overflow-hidden flex items-center justify-center">
                     {isPixPending && <Skeleton className="w-full h-full object-contain" />}

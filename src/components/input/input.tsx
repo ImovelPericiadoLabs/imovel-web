@@ -76,7 +76,7 @@ const Input = forwardRef<HTMLInputElement, ComponentProps<'input'> & Props>(
             aria-invalid={props['aria-invalid'] || !!error?.message?.length}
             className={cn(
               `
-            px-9.5 py-4 bg-white w-full rounded-[6rem] border 
+            px-9.5 py-4 bg-white w-full rounded-xl border 
             border-input-border shadow-[0_1px_2px_rgba(10,13,18,0.05)]
             text-base
             placeholder:text-gray placeholder:text-base placeholder:font-normal placeholder:leading-6

@@ -62,7 +62,7 @@ export function InsertStep({ onNext }: { onNext: () => void }) {
                         placeholder="Seu e-mail"
                         disabled={isLoading}
                         className={cn(
-                            "w-full h-14 px-8 rounded-full border bg-white text-[#1A1A1A] outline-none transition-all",
+                            "w-full h-14 px-8 rounded-xl border bg-white text-[#1A1A1A] outline-none transition-all",
                             errors.email || errorMsg
                                 ? "border-red-500 focus:border-red-500"
                                 : "border-[#E5E5E5] focus:border-primary focus:ring-1 focus:ring-primary",
@@ -87,7 +87,7 @@ export function InsertStep({ onNext }: { onNext: () => void }) {
                     type="submit"
                     disabled={!!errors.email || !email || isLoading}
                     className={cn(
-                        "w-full h-14 rounded-full font-semibold text-base transition-colors flex items-center justify-center",
+                        "w-full h-14 rounded-xl font-semibold text-base transition-colors flex items-center justify-center",
                         (!!errors.email || !email || isLoading)
                             ? "bg-[#EAEAEA] text-[#A3A3A3] cursor-not-allowed"
                             : "bg-primary text-white hover:bg-primary/90 shadow-md"

@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { Switch } from '@/components/switch'
 import { useFormContext } from 'react-hook-form'
 import SelectedAddressCard from '@/components/selected-address-card'
+import TextTitle from '@/components/text-title'
+import TextSubtitle from '@/components/text-subtitle'
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
     label?: string
@@ -93,8 +95,14 @@ export function CreditCardPage({
 
     return (
         <form className="flex flex-col relative w-full z-50 -mt-15 px-6">
-            <SelectedAddressCard address={getValues('address')} className="mb-4 mt-4" />
-            <div className="bg-background min-h-[calc(100vh-80px)] px-0 pt-4 pb-8 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)]">
+            <SelectedAddressCard address={getValues('address')} className="mb-6 mt-4" />
+            
+            <div className="flex flex-col gap-2 mb-6 px-1">
+                <TextTitle className="text-dark">Novo cartão</TextTitle>
+                <TextSubtitle>Preencha os dados do cartão para continuar</TextSubtitle>
+            </div>
+
+            <div className="bg-background min-h-[calc(100vh-80px)] px-0 pt-0 pb-8 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)]">
                 <div className="flex flex-col gap-5">
 
                     <FormInput

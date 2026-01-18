@@ -2,6 +2,7 @@
 
 import { useFormContext } from 'react-hook-form'
 import TextTitle from '@/components/text-title'
+import TextSubtitle from '@/components/text-subtitle'
 import { ChoiceCards } from '@/components/choice-cards'
 import SelectedAddressCard from '@/components/selected-address-card'
 
@@ -33,7 +34,10 @@ export function DocumentConfirmationStep({
     <div className="relative flex-1 px-4">
       <div className="flex flex-col gap-5 pb-24 md:pb-0">
         <SelectedAddressCard address={currentAddress} />
-        <TextTitle className="text-dark">Você tem o documento do imóvel?</TextTitle>
+        <div className="flex flex-col gap-2">
+          <TextTitle className="text-dark">Você tem o documento do imóvel?</TextTitle>
+          <TextSubtitle>Isso agiliza a análise do seu pedido</TextSubtitle>
+        </div>
 
         <ChoiceCards
           value={hasDocument}

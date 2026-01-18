@@ -132,7 +132,7 @@ export function VerifyCodeStep({
       <button
         type="submit"
         disabled={isSubmitting || isResending}
-        className="w-full h-14 rounded-full font-semibold text-base transition-colors bg-primary text-white hover:bg-primary/90 shadow-md disabled:opacity-70 disabled:cursor-not-allowed"
+        className="w-full h-14 rounded-xl font-semibold text-base transition-colors bg-primary text-white hover:bg-primary/90 shadow-md disabled:opacity-70 disabled:cursor-not-allowed"
       >
         {isSubmitting ? 'Verificando...' : 'Continuar'}
       </button>

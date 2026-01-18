@@ -6,9 +6,10 @@ type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> &
     href?: string
     className?: string
     variant?: 'primary' | 'outline'
+    icon?: React.ReactNode
   }
 
-export default function Button({ children, className, href, variant = 'primary', ...rest }: ButtonProps) {
+export default function Button({ children, className, href, variant = 'primary', icon, ...rest }: ButtonProps) {
   
   const variants = {
     primary: 'bg-primary hover:bg-primary-hover text-white shadow-lg',
@@ -18,7 +19,7 @@ export default function Button({ children, className, href, variant = 'primary',
   const baseClasses = cn(
     `
       cursor-pointer w-full 
-      text-base leading-6 font-semibold px-11 py-3 rounded-full 
+      text-base leading-6 font-semibold px-11 py-3 rounded-xl 
       disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:bg-gray-300 disabled:shadow-none
       flex items-center justify-center text-center decoration-0
     `,
@@ -34,6 +35,7 @@ export default function Button({ children, className, href, variant = 'primary',
         {...(rest as Omit<LinkProps, 'href'>)} 
       >
         {children}
+        {icon && <span className="ml-2 flex items-center">{icon}</span>}
       </Link>
     )
   }
@@ -44,6 +46,7 @@ export default function Button({ children, className, href, variant = 'primary',
       {...(rest as React.ButtonHTMLAttributes<HTMLButtonElement>)}
     >
       {children}
+      {icon && <span className="ml-2 flex items-center">{icon}</span>}
     </button>
   )
 }

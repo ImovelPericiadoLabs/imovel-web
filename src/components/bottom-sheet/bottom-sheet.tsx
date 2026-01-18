@@ -20,7 +20,7 @@ export default function BottomSheet({ isOpen, onClose, children, variant = 'defa
       <div
         data-testid="bottom-sheet"
         className={cn(
-          'fixed bottom-0 left-0 right-0 bg-white shadow-[0px_4px_8px_3px_rgba(0,0,0,0.15),0px_1px_3px_rgba(0,0,0,0.3)] rounded-t-[1.75rem] z-50 transition-all duration-500 ease-out',
+          'fixed bottom-0 left-0 right-0 bg-white shadow-[0px_4px_8px_3px_rgba(0,0,0,0.15),0px_1px_3px_rgba(0,0,0,0.3)] rounded-t-xl z-50 transition-all duration-500 ease-out',
           variant === 'alert' && 'border-t-4 border-yellow-400',
           isOpen ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0',
           className

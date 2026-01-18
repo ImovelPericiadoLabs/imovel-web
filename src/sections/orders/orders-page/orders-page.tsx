@@ -99,7 +99,7 @@ export default function OrdersPage() {
                 <Link
                   href={`/consultas/${order.id}/opcoes`}
                   className={cn(
-                    'group p-4 bg-white border rounded-lg transition-all duration-200 block shadow-sm hover:shadow-md',
+                    'group p-4 bg-white border rounded-xl transition-all duration-200 block shadow-sm hover:shadow-md',
                     theme.border
                   )}
                 >

@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { Check } from 'lucide-react'
 import { useFormContext } from 'react-hook-form'
 import SelectedAddressCard from '@/components/selected-address-card'
+import TextTitle from '@/components/text-title'
+import TextSubtitle from '@/components/text-subtitle'
 
 interface Card {
   id: string
@@ -42,9 +44,13 @@ export function SavedCardsPage({
   const { getValues } = useFormContext()
 
   return (
-    <div className="flex flex-col relative p-6">
+    <div className="flex flex-col relative px-6 py-4">
       <SelectedAddressCard address={getValues('address')} className="mb-6 -mt-2" />
-      <div className="flex flex-col gap-4 relative z-50 -mt-5">
+      <div className="flex flex-col gap-2 relative z-50 -mt-2 mb-6 px-1">
+        <TextTitle className="text-dark">Seus cartões</TextTitle>
+        <TextSubtitle>Escolha um cartão salvo para realizar o pagamento</TextSubtitle>
+      </div>
+      <div className="flex flex-col gap-4 relative z-50">
         {cards.map((card) => {
           const cardClasses = `flex flex-col p-4 rounded-xl border bg-white cursor-pointer transition-all duration-200
             ${card.isSelected ? 'bg-primary/5 border-primary shadow-sm shadow-primary/10' : 'bg-white border-gray-200 hover:border-gray-300'}`

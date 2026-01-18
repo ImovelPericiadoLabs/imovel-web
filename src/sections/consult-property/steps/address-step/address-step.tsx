@@ -159,7 +159,7 @@ export function AddressStep({ onNext }: { onNext: () => void }) {
           <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex flex-col gap-6 mt-10">
             {initialHomeItems.map(({ Icon, text }) => (
               <div className="flex items-start gap-4" key={text}>
-                <div className="p-2 bg-primary/5 rounded-lg">
+                <div className="p-2 bg-primary/5 rounded-xl">
                   <Icon className="size-5 text-primary" />
                 </div>
                 <p className="text-sm text-gray-600 leading-tight pt-1.5">{text}</p>

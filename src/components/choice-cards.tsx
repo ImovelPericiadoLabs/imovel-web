@@ -14,8 +14,8 @@ export interface ChoiceCardsProps {
 export function ChoiceCards({ 
   value, 
   onChange, 
-  yesLabel = 'Sim', 
-  noLabel = 'Não',
+  yesLabel = 'Tenho', 
+  noLabel = 'Não Tenho',
   yesSubtitle = 'Eu possuo esta informação',
   noSubtitle = 'Não possuo ou não sei'
 }: ChoiceCardsProps) {

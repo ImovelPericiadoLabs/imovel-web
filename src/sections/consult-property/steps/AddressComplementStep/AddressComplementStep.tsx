@@ -1,11 +1,12 @@
 'use client'
 
 import { ChoiceCards } from '@/components/choice-cards'
-import { MapPin, Building, Clock, Box, Layout, Hash, Info } from 'lucide-react'
+import { MapPin, Building, Clock, Box, Layout, Hash, Info, ChevronRight, Check } from 'lucide-react'
 import { useFormContext } from 'react-hook-form'
 import { useState, useRef, useImperativeHandle, forwardRef } from 'react'
 import { flushSync } from 'react-dom'
 import TextTitle from '@/components/text-title'
+import TextSubtitle from '@/components/text-subtitle'
 import Button from '@/components/button'
 import BottomSheet from '@/components/bottom-sheet'
 import SelectedAddressCard from '@/components/selected-address-card'
@@ -36,69 +37,6 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
   const allotmentRef = useRef<HTMLInputElement>(null)
   const blockRef = useRef<HTMLInputElement>(null)
   const lotRef = useRef<HTMLInputElement>(null)
-
-  const helpInfo = {
-    registrationNumber: {
-      content: (
-        <div className="mt-2 flex flex-col gap-3">
-          <p className="text-sm text-gray-600 leading-relaxed">
-            A <strong>matrícula</strong> é o documento único que contém todo o histórico do imóvel, como proprietários e possíveis dívidas.
-          </p>
-          <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
-            <h4 className="font-bold text-blue-900 text-xs mb-1">Onde encontrar?</h4>
-            <p className="text-xs text-blue-800 leading-relaxed">
-              Consulte a <strong>escritura</strong> ou o <strong>contrato de compra e venda</strong>. Procure por "Matrícula nº".
-            </p>
-          </div>
-        </div>
-      )
-    },
-    allotment: {
-      content: (
-        <div className="mt-2 flex flex-col gap-3">
-          <p className="text-sm text-gray-600 leading-relaxed">
-            O <strong>loteamento</strong> é a divisão de uma área em lotes com abertura de novas ruas.
-          </p>
-          <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
-            <h4 className="font-bold text-blue-900 text-xs mb-1">Onde encontrar?</h4>
-            <p className="text-xs text-blue-800 leading-relaxed">
-              Esta informação costuma estar no <strong>endereço completo</strong> ou no <strong>contrato do imóvel</strong>.
-            </p>
-          </div>
-        </div>
-      )
-    },
-    block: {
-      content: (
-        <div className="mt-2 flex flex-col gap-3">
-          <p className="text-sm text-gray-600 leading-relaxed">
-            A <strong>quadra</strong> é a área delimitada por ruas onde o lote está localizado.
-          </p>
-          <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
-            <h4 className="font-bold text-blue-900 text-xs mb-1">Onde encontrar?</h4>
-            <p className="text-xs text-blue-800 leading-relaxed">
-              Verifique no seu <strong>carnê de IPTU</strong> ou no <strong>contrato de compra e venda</strong>.
-            </p>
-          </div>
-        </div>
-      )
-    },
-    lot: {
-      content: (
-        <div className="mt-2 flex flex-col gap-3">
-          <p className="text-sm text-gray-600 leading-relaxed">
-            O <strong>lote</strong> é a parcela específica de terra identificada dentro de uma quadra.
-          </p>
-          <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
-            <h4 className="font-bold text-blue-900 text-xs mb-1">Onde encontrar?</h4>
-            <p className="text-xs text-blue-800 leading-relaxed">
-              Consulte o seu <strong>carnê de IPTU</strong> ou a <strong>escritura</strong> do imóvel.
-            </p>
-          </div>
-        </div>
-      )
-    }
-  }
 
   const handleContinue = async (forceAdvance?: boolean) => {
     let fieldsToValidate: any[] = []
@@ -212,19 +150,16 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
 
         <div className="flex flex-col gap-2">
           <TextTitle className="text-dark">
-            {subSteps[currentSubStep] === 'registration' && 'Você possui o número da matrícula?'}
-            {subSteps[currentSubStep] === 'allotment' && 'Você possui o loteamento?'}
-            {subSteps[currentSubStep] === 'block' && 'Você possui a quadra?'}
-            {subSteps[currentSubStep] === 'lot' && 'Você possui o lote?'}
+            {subSteps[currentSubStep] === 'registration' && 'Qual o número da matrícula?'}
+            {subSteps[currentSubStep] === 'allotment' && 'Qual o loteamento?'}
+            {subSteps[currentSubStep] === 'block' && 'Qual a quadra?'}
+            {subSteps[currentSubStep] === 'lot' && 'Qual o lote?'}
           </TextTitle>
+          <TextSubtitle>Precisamos dessa informação para localizar seu imóvel</TextSubtitle>
         </div>
 
         {subSteps[currentSubStep] === 'registration' && (
           <div className="flex flex-col gap-3">
-            <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm">
-              {helpInfo.registrationNumber.content}
-            </div>
-
             {unknownRegistration === undefined ? (
               <ChoiceCards
                 value={undefined}
@@ -308,19 +243,11 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
                 )}
               </div>
             )}
-
-            <p className="text-sm text-gray-500 ml-1 leading-relaxed">
-              O número da matrícula é o registro único do imóvel no cartório.
-            </p>
           </div>
         )}
 
         {subSteps[currentSubStep] === 'allotment' && (
           <div className="flex flex-col gap-3">
-            <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm mb-2">
-              {helpInfo.allotment.content}
-            </div>
-
             {noAllotment === undefined ? (
               <ChoiceCards
                 value={undefined}
@@ -402,10 +329,6 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
 
         {subSteps[currentSubStep] === 'block' && (
           <div className="flex flex-col gap-3">
-            <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm mb-2">
-              {helpInfo.block.content}
-            </div>
-
             {noBlock === undefined ? (
               <ChoiceCards
                 value={undefined}
@@ -488,10 +411,6 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
 
         {subSteps[currentSubStep] === 'lot' && (
           <div className="flex-1 flex flex-col gap-3">
-            <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm mb-2">
-              {helpInfo.lot.content}
-            </div>
-
             {noLot === undefined ? (
               <ChoiceCards
                 value={undefined}
@@ -580,7 +499,11 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
         z-10
         supports-[-webkit-touch-callout:none]:pb-10
       ">
-        <Button className="w-full h-12 text-base rounded-xl" onClick={() => handleContinue()}>
+        <Button 
+          className="w-full h-12 text-base rounded-xl" 
+          onClick={() => handleContinue()}
+          icon={<ChevronRight className="size-5" />}
+        >
           {currentSubStep < subSteps.length - 1 ? 'Próximo' : 'Continuar'}
         </Button>
       </div>
@@ -592,18 +515,20 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
       >
         <div className="p-6 flex flex-col gap-6">
           <div className="flex flex-col gap-4">
-            <div className="flex items-center gap-2 text-yellow-600">
-              <Clock className="size-6" />
+            <div className={`flex items-center gap-3 ${unknownRegistration ? 'text-yellow-600' : 'text-emerald-600'}`}>
+              <div className={`p-2 rounded-xl ${unknownRegistration ? 'bg-yellow-50' : 'bg-emerald-50'}`}>
+                <Clock className="size-6" />
+              </div>
               <h3 className="text-xl font-bold">Atenção ao prazo</h3>
             </div>
             
-            <p className={`text-lg font-semibold leading-tight ${unknownRegistration ? 'text-yellow-700' : 'text-emerald-700'}`}>
+            <p className={`text-lg font-semibold leading-tight ${unknownRegistration ? 'text-gray-700' : 'text-gray-700'}`}>
               {unknownRegistration
                 ? "Sem o número da matrícula, o prazo para a consulta é de até 2 dias úteis."
                 : "Com o número da matrícula, sua consulta será realizada em apenas 1 hora!"}
             </p>
 
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-gray-500 leading-relaxed">
               {unknownRegistration 
                 ? "Dica: Informar a matrícula agiliza o processo juridicamente."
                 : "Seu pedido terá prioridade total no processamento."}
@@ -611,12 +536,17 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
           </div>
 
           <div className="flex flex-col gap-3">
-            <Button onClick={handleConfirm} className="w-full h-12 rounded-xl">
+            <Button 
+              onClick={handleConfirm} 
+              className="w-full h-12 rounded-xl"
+              icon={<Check className="size-5" />}
+            >
               Confirmar
             </Button>
             <Button 
               onClick={() => setIsBottomSheetOpen(false)}
               className="bg-gray-100 hover:bg-gray-200 text-gray-600 shadow-none border border-gray-200 h-12 rounded-xl"
+              icon={<ChevronRight className="size-5 rotate-180" />}
             >
               Voltar
             </Button>
@@ -631,8 +561,10 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
       >
         <div className="p-6 flex flex-col gap-6">
           <div className="flex flex-col gap-4">
-            <div className="flex items-center gap-2 text-primary">
-              <Info className="size-6" />
+            <div className="flex items-center gap-3 text-primary">
+              <div className="p-2 bg-primary/5 rounded-xl">
+                <Info className="size-6" />
+              </div>
               <h3 className="text-xl font-bold">Campo obrigatório</h3>
             </div>
             
@@ -640,13 +572,17 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
               Por favor, informe {missingFieldLabel} para prosseguir.
             </p>
 
-            <p className="text-sm text-gray-500">
-              Esta informação é necessária para localizarmos o seu imóvel com precisão. Caso não possua a informação, você pode marcar a opção "Não possuo" acima.
+            <p className="text-sm text-gray-500 leading-relaxed">
+              Esta informação é necessária para localizarmos o seu imóvel com precisão. Caso não possua a informação, você pode marcar a opção "Não Tenho" acima.
             </p>
           </div>
 
           <div className="flex flex-col gap-3">
-            <Button onClick={() => setIsValidationBottomSheetOpen(false)} className="w-full h-12 rounded-xl">
+            <Button 
+              onClick={() => setIsValidationBottomSheetOpen(false)} 
+              className="w-full h-12 rounded-xl"
+              icon={<Check className="size-5" />}
+            >
               Entendido
             </Button>
           </div>

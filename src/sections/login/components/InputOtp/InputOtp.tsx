@@ -14,7 +14,7 @@ const inputOtpVariants = cva(
         error: "bg-red-50 border border-red-500 text-red-500 focus:border-red-500 focus:ring-4 focus:ring-red-500/10",
       },
       size: {
-        md: "h-14 w-12 text-2xl rounded-lg font-semibold",
+        md: "h-14 w-12 text-2xl rounded-xl font-semibold",
       }
     },
     defaultVariants: {

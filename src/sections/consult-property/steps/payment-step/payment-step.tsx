@@ -3,6 +3,7 @@
 import { useFormContext } from 'react-hook-form'
 import { QrCode, CreditCard, Barcode, DollarSign, LucideIcon, Check } from 'lucide-react'
 import TextTitle from '@/components/text-title'
+import TextSubtitle from '@/components/text-subtitle'
 import { Switch } from '@/components/switch'
 import SelectedAddressCard from '@/components/selected-address-card'
 
@@ -63,14 +64,15 @@ export function PaymentStep({
     <div className="relative flex-1 px-4">
       <div className="flex flex-col gap-5 pb-24 md:pb-0">
         <SelectedAddressCard address={watch('address')} />
-        <div className="px-1">
+        <div className="flex flex-col gap-2 px-1">
           <TextTitle className="text-dark">Escolha como pagar</TextTitle>
+          <TextSubtitle>Selecione o método de pagamento de sua preferência</TextSubtitle>
         </div>
 
         <div className="flex flex-col gap-3">
           <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between mb-2">
             <div className="flex items-center gap-4">
-              <div className="p-2 bg-gray-50 rounded-lg text-gray-600">
+              <div className="p-2 bg-gray-50 rounded-xl text-gray-600">
                 <DollarSign className="w-6 h-6" />
               </div>
               <div className="flex flex-col">

@@ -29,7 +29,7 @@ const Icons: Record<AlertVariant, ReactNode> = {
 export default function Alert({ variant = 'default', message, icon, className = '' }: AlertProps) {
   return (
     <div
-      className={`w-full border rounded-md p-4 flex items-start gap-3 ${variantConfig[variant]} ${className}`}
+      className={`w-full border rounded-xl p-4 flex items-start gap-3 ${variantConfig[variant]} ${className}`}
       data-testid="alert"
     >
       <div>{icon ?? Icons[variant]}</div>
