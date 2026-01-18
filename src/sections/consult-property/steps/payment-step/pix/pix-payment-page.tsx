@@ -9,6 +9,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Check, Clock } from 'lucide-react'
 import { useSession, signOut } from 'next-auth/react'
 
+import SelectedAddressCard from '@/components/selected-address-card'
 import Button from '@/components/button'
 import Skeleton from '@/components/skeleton'
 import BottomSheet from '@/components/bottom-sheet'
@@ -298,8 +299,12 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
   return (
     <FormProvider {...methods}>
       <div className="flex flex-col relative px-4 mt-6">
+        <SelectedAddressCard 
+          address={parentForm?.getValues('address')} 
+          className="mb-6"
+        />
         {step === 'details' && (
-          <BottomSheet isOpen={true} onClose={handleCloseBottomSheet}>
+          <BottomSheet isOpen={true} onClose={handleCloseBottomSheet} className="bg-primary !border-t-0">
             <div className="p-4 pb-12 max-h-[85vh] overflow-y-auto flex flex-col gap-3">
 
               <div className="flex flex-row gap-3 items-center mb-2">
@@ -309,7 +314,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
                   </div>
                 </div>
                 <div className="flex flex-col">
-                  <p className="text-lg font-semibold leading-6 text-dark">Dados para o PIX</p>
+                  <p className="text-lg font-semibold leading-6 text-white">Dados para o PIX</p>
                 </div>
               </div>
 
@@ -333,7 +338,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
 
                 <Input {...register('whatsapp')} errors={errors} label="WhatsApp" placeholder="(99) 99999-9999" mask="whatsapp" inputMode="numeric" onKeyDown={clearServerError} />
 
-                <Button type="button" onClick={handleDetailsSubmit} disabled={isLoading}>
+                <Button type="button" onClick={handleDetailsSubmit} disabled={isLoading} className="rounded-xl h-12">
                   {isLoading ? 'Processando...' : 'Continuar'}
                 </Button>
               </form>
@@ -351,7 +356,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
         {step === 'pix' && !!pixData && (
           <div className="flex flex-col items-center pt-10 -mt-27">
             <div className="mb-6 text-white px-1 text-left relative z-10 w-full text-center">
-              <p className="text- leading-snug font-normal text-color-background">
+              <p className="text- leading-snug font-normal">
                 Pague <span className="font-bold">{formatMoney(pixData.value)}</span> via Pix para garantir <br />
                 sua compra
               </p>
@@ -378,12 +383,12 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
 
             <div className="flex flex-col items-center w-full px-1 mt-2 animate-in fade-in">
               <div className="text-center mb-5 w-full">
-                <p className="text-dark text-[15px] font-medium">Este código expira em 30 min, pague até {expirationTime}</p>
+                <p className="text-white text-[15px] font-medium">Este código expira em 30 min, pague até {expirationTime}</p>
               </div>
               <div className="w-full bg-white border border-gray-200 rounded-xl p-4 mb-6">
                 <p className="text-[11px] text-gray-600 break-all font-mono text-center uppercase">{pixData.payload}</p>
               </div>
-              <Button onClick={handleCopy} type="button">
+              <Button onClick={handleCopy} type="button" className="rounded-xl h-12">
                 <div className="flex items-center justify-center gap-1">
                   {copied ? <Check size={20} /> : null}
                   <span>{copied ? 'Copiado!' : 'Copiar código pix'}</span>

@@ -1,11 +1,9 @@
 'use client'
 
-import { useEffect } from 'react'
 import { useFormContext } from 'react-hook-form'
-import { ThumbsUp, ThumbsDown } from 'lucide-react'
-import OptionCard from '@/components/option-card/option-card.tsx'
 import TextTitle from '@/components/text-title'
-import { useEffectEvent } from 'react'
+import { ChoiceCards } from '@/components/choice-cards'
+import SelectedAddressCard from '@/components/selected-address-card'
 
 export function DocumentConfirmationStep({
   onNext,
@@ -14,49 +12,37 @@ export function DocumentConfirmationStep({
   onNext: () => void
   onSkip: () => void
 }) {
-  const { setValue } = useFormContext()
+  const { setValue, watch, getValues } = useFormContext()
+  const hasDocument = watch('hasDocument')
+  const currentAddress = getValues('address')
 
-  function handleSelect(hasDocument: boolean) {
-    setValue('hasDocument', hasDocument, { shouldValidate: true })
+  function handleSelect(value: boolean) {
+    setValue('hasDocument', value, { shouldValidate: true })
 
-    if (hasDocument) {
-      onNext()
+    if (value) {
+      setTimeout(() => onNext(), 300)
     } else {
       setValue('documentType', undefined)
       setValue('document', undefined)
       setValue('documentPreview', undefined)
-      onSkip()
+      setTimeout(() => onSkip(), 300)
     }
   }
-
-  const resetValue = useEffectEvent(() =>
-    setValue('hasDocument', undefined, { shouldValidate: true })
-  )
-
-  useEffect(() => {
-    resetValue()
-  }, [])
 
   return (
     <div className="relative flex-1 px-4">
       <div className="flex flex-col gap-5 pb-24 md:pb-0">
-        <TextTitle>Você tem o documento do imóvel?</TextTitle>
+        <SelectedAddressCard address={currentAddress} />
+        <TextTitle className="text-dark">Você tem o documento do imóvel?</TextTitle>
 
-        <div className="grid auto-rows-fr gap-4">
-          <OptionCard
-            icon={ThumbsUp}
-            title="Sim, eu tenho"
-            subtitle="Aceitamos PDF, Imagem ou Word"
-            onClick={() => handleSelect(true)}
-          />
-
-          <OptionCard
-            icon={ThumbsDown}
-            title="Não tenho"
-            subtitle="Sem problemas, você pode continuar"
-            onClick={() => handleSelect(false)}
-          />
-        </div>
+        <ChoiceCards
+          value={hasDocument}
+          onChange={handleSelect}
+          yesLabel="Sim, eu tenho"
+          yesSubtitle="Aceitamos PDF, Imagem ou Word"
+          noLabel="Não tenho"
+          noSubtitle="Sem problemas, você pode continuar"
+        />
       </div>
     </div>
   )

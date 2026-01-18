@@ -50,6 +50,7 @@ export default function AutoCompleteInput({
   const [isOpenAddressSheet, setIsOpenAddressSheet] = useState(false)
   const [isOpenErrorSheet, setIsOpenErrorSheet] = useState(false)
   const [isOpenNotFoundAddressSheet, setIsOpenNotFoundAddressSheet] = useState(false)
+  const [isOpenConsentSheet, setIsOpenConsentSheet] = useState(false)
   const [addressError, setAddressError] = useState<{ title: string; subtitle: string } | null>(null)
 
   const inputRef = useRef<HTMLInputElement>(null)
@@ -103,17 +104,19 @@ export default function AutoCompleteInput({
     const result = await onSelectAddress(placeId as string)
 
     if (!result.addressNumber) {
-      setAddressError({
-        title: 'Número do endereço obrigatório',
-        subtitle: 'O local selecionado não possui numeração. Por favor, informe o número.',
-      })
-
+      setIsOpenConsentSheet(true)
       handleCloseAddressSheet()
       inputRef?.current?.blur()
+      setValue(result.address)
       return
     }
 
     setValue(result.address)
+  }
+
+  function handleContinueWithoutNumber() {
+    setIsOpenConsentSheet(false)
+    onConfirm(value)
   }
 
   function handleOpenAddressSheet() {
@@ -132,6 +135,8 @@ export default function AutoCompleteInput({
     handleCloseErrorSheet()
 
     handleCloseNotFoundAddressSheet()
+
+    setIsOpenConsentSheet(false)
 
     setAddressError(null)
   }
@@ -288,6 +293,26 @@ export default function AutoCompleteInput({
           ) : (
             <Skeleton className="w-full h-12 mt-4 rounded-full" />
           )}
+        </div>
+      </BottomSheet>
+
+      <BottomSheet isOpen={isOpenConsentSheet} onClose={handleChangeAddress}>
+        <div className="px-6 py-8 pb-12 max-h-[70vh] overflow-y-auto flex flex-col items-center gap-2 text-center">
+          <div className="rounded-full bg-error-50 size-14 flex items-center justify-center">
+            <div className="rounded-full size-10 bg-error-100 flex items-center justify-center">
+              <CircleAlert stroke="#D92D20" className="size-7 text-amber-100" />
+            </div>
+          </div>
+          <TextTitle className="text-dark">Endereço sem número</TextTitle>
+          <TextSubtitle className="mb-6 text-gray-2">
+            O endereço selecionado não possui um número. Deseja continuar assim mesmo ou prefere corrigir?
+          </TextSubtitle>
+          <div className="flex flex-col w-full gap-3">
+            <Button onClick={handleContinueWithoutNumber}>Continuar assim mesmo</Button>
+            <Button variant="outline" onClick={handleChangeAddress}>
+              Corrigir endereço
+            </Button>
+          </div>
         </div>
       </BottomSheet>
     </div>

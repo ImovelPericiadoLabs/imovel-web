@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import { Switch } from '@/components/switch'
+import { useFormContext } from 'react-hook-form'
+import SelectedAddressCard from '@/components/selected-address-card'
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
     label?: string
@@ -24,8 +26,8 @@ function FormInput({ label, icon, className, ...props }: InputProps) {
                 )}
                 <input
                     className={`
-            w-full h-[50px] bg-white border border-gray-300 rounded-[10000px] 
-            focus:outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]
+            w-full h-[50px] bg-white border border-gray-300 rounded-xl 
+            focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20
             transition-all placeholder:text-gray-400 text-gray-700 text-[16px]
             ${icon ? 'pl-14' : 'pl-4'} ${className}
           `}
@@ -87,9 +89,12 @@ export function CreditCardPage({
         onSave()
     }
 
+    const { getValues } = useFormContext()
+
     return (
-        <form className="flex flex-col relative w-full z-50 -mt-15">
-            <div className="bg-background min-h-[calc(100vh-80px)] px-6 pt-8 pb-8 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)]">
+        <form className="flex flex-col relative w-full z-50 -mt-15 px-6">
+            <SelectedAddressCard address={getValues('address')} className="mb-4 mt-4" />
+            <div className="bg-background min-h-[calc(100vh-80px)] px-0 pt-4 pb-8 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)]">
                 <div className="flex flex-col gap-5">
 
                     <FormInput
@@ -150,7 +155,7 @@ export function CreditCardPage({
                         <button
                             type="button"
                             onClick={handleSubmit}
-                            className="w-full bg-[var(--color-primary)] hover:opacity-90 active:opacity-100 text-white font-semibold text-base h-12 rounded-full flex items-center justify-center gap-2 transition-all shadow-lg shadow-violet-100 mb-6"
+                            className="w-full bg-primary hover:opacity-90 active:opacity-100 text-white font-semibold text-base h-12 rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm mb-6"
                         >
                             Pagar
                         </button>

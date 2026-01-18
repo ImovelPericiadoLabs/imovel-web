@@ -117,7 +117,7 @@ export function AddressStep({ onNext }: { onNext: () => void }) {
   return (
     <div className="flex flex-col h-full w-full px-4 relative">
       <div className="flex-1 flex flex-col gap-5 pt-4">
-        <TextTitle>Para começar, onde fica seu imóvel?</TextTitle>
+        <TextTitle className="text-white">Para começar, onde fica seu imóvel?</TextTitle>
 
         <div className="relative">
           <AutoCompleteAddressInput
@@ -156,11 +156,13 @@ export function AddressStep({ onNext }: { onNext: () => void }) {
         )}
 
         {!address?.length && (
-          <div className="border border-box p-4 flex flex-col gap-8 mt-10">
+          <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex flex-col gap-6 mt-10">
             {initialHomeItems.map(({ Icon, text }) => (
-              <div className="flex items-center gap-4" key={text}>
-                <Icon className="size-6 text-primary" />
-                <p className="text-xs">{text}</p>
+              <div className="flex items-start gap-4" key={text}>
+                <div className="p-2 bg-primary/5 rounded-lg">
+                  <Icon className="size-5 text-primary" />
+                </div>
+                <p className="text-sm text-gray-600 leading-tight pt-1.5">{text}</p>
               </div>
             ))}
           </div>

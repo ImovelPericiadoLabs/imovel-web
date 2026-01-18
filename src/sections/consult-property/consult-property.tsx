@@ -11,7 +11,6 @@ import {
   AddressStep,
   DocumentConfirmationStep,
   DocumentTypeStep,
-  SendDocumentStep,
   SummaryStep,
   AddressComplementStep,
   SuccessStep
@@ -27,7 +26,6 @@ type FlowState =
   | 'address-complement'
   | 'doc-confirmation'
   | 'doc-type'
-  | 'send-doc'
   | 'summary'
   | 'payment-cards'
   | 'payment-card-new'
@@ -51,14 +49,21 @@ export default function ConsultProperty() {
     resolver: zodResolver(validations),
     defaultValues: {
       paymentMethod: 'pix',
-      addressComplement: '',
+      allotment: '',
+      noAllotment: undefined,
+      block: '',
+      noBlock: undefined,
+      lot: '',
+      noLot: undefined,
       registrationNumber: '',
-      unknownRegistration: false,
-      noComplement: false
+      unknownRegistration: undefined,
+      hasDocument: undefined,
     },
     shouldUnregister: false,
     mode: 'onChange',
   })
+
+  const addressComplementRef = useRef<{ handleBack: () => void }>(null)
 
   function go(next: FlowState) {
     stack.current.push(flow)
@@ -70,6 +75,11 @@ export default function ConsultProperty() {
   function back() {
     if (flow === 'finished') {
       window.location.href = '/consultar-imovel'
+      return
+    }
+
+    if (flow === 'address-complement' && addressComplementRef.current) {
+      addressComplementRef.current.handleBack()
       return
     }
 
@@ -91,15 +101,14 @@ export default function ConsultProperty() {
     'address-complement': 1,
     'doc-confirmation': 2,
     'doc-type': 3,
-    'send-doc': 4,
-    summary: 5,
-    'payment-confirm': 6,
-    'payment-cards': 6,
-    'payment-card-new': 6,
-    finished: 6,
+    summary: 4,
+    'payment-confirm': 5,
+    'payment-cards': 5,
+    'payment-card-new': 5,
+    finished: 5,
   }
 
-  const currentProgress = (progressSteps[flow] / 6) * 100
+  const currentProgress = (progressSteps[flow] / 5) * 100
 
   const isFinished = flow === 'finished'
 
@@ -119,7 +128,7 @@ export default function ConsultProperty() {
         <div className="flex items-center justify-between py-4.5 mb-6">
           <ChevronLeft
             onClick={back}
-            className={`size-7 text-white transition-opacity ${flow === 'address' ? 'opacity-0 pointer-events-none' : 'cursor-pointer'
+            className={`size-7 transition-opacity text-white ${flow === 'address' ? 'opacity-0 pointer-events-none' : 'cursor-pointer'
               }`}
             role="button"
           />
@@ -148,7 +157,17 @@ export default function ConsultProperty() {
           </Activity>
 
           <Activity isActive={flow === 'address-complement'}>
-            <AddressComplementStep onNext={() => go('doc-confirmation')} />
+            <AddressComplementStep 
+              ref={addressComplementRef}
+              onNext={() => go('doc-confirmation')} 
+              onBack={() => {
+                const previous = stack.current.pop()
+                if (previous) {
+                  setFlow(previous)
+                  window.scrollTo({ top: 0, behavior: 'auto' })
+                }
+              }} 
+            />
           </Activity>
 
           <Activity isActive={flow === 'doc-confirmation'}>
@@ -156,11 +175,7 @@ export default function ConsultProperty() {
           </Activity>
 
           <Activity isActive={flow === 'doc-type'}>
-            <DocumentTypeStep onNext={() => go('send-doc')} />
-          </Activity>
-
-          <Activity isActive={flow === 'send-doc'}>
-            <SendDocumentStep onNext={() => go('summary')} />
+            <DocumentTypeStep onNext={() => go('summary')} />
           </Activity>
 
           <Activity isActive={flow === 'summary'}>

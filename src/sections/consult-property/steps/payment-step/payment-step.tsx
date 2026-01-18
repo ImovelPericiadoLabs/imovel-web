@@ -1,10 +1,10 @@
 'use client'
 
 import { useFormContext } from 'react-hook-form'
-import { QrCode, CreditCard, Barcode, DollarSign, LucideIcon } from 'lucide-react'
+import { QrCode, CreditCard, Barcode, DollarSign, LucideIcon, Check } from 'lucide-react'
 import TextTitle from '@/components/text-title'
-import OptionCard from '@/components/option-card/option-card.tsx'
 import { Switch } from '@/components/switch'
+import SelectedAddressCard from '@/components/selected-address-card'
 
 type PaymentMethodType = 'pix' | 'credit_card' | 'debit_card' | 'boleto'
 
@@ -37,6 +37,7 @@ export function PaymentStep({
 }) {
   const { setValue, watch } = useFormContext()
   const useBalance = watch('useBalance')
+  const paymentMethod = watch('paymentMethod')
 
   const formattedBalance = new Intl.NumberFormat('pt-BR', {
     style: 'currency',
@@ -46,10 +47,12 @@ export function PaymentStep({
   function handleSelectMethod(value: PaymentMethodType) {
     setValue('paymentMethod', value, { shouldValidate: true })
 
-    if (value === 'pix') return onPix()
-    if (value === 'credit_card') return onCredit()
-    if (value === 'debit_card') return onDebit()
-    if (value === 'boleto') return onBoleto()
+    setTimeout(() => {
+      if (value === 'pix') return onPix()
+      if (value === 'credit_card') return onCredit()
+      if (value === 'debit_card') return onDebit()
+      if (value === 'boleto') return onBoleto()
+    }, 300)
   }
 
   function toggleBalance(checked: boolean) {
@@ -59,12 +62,13 @@ export function PaymentStep({
   return (
     <div className="relative flex-1 px-4">
       <div className="flex flex-col gap-5 pb-24 md:pb-0">
+        <SelectedAddressCard address={watch('address')} />
         <div className="px-1">
-          <TextTitle>Escolha como pagar</TextTitle>
+          <TextTitle className="text-dark">Escolha como pagar</TextTitle>
         </div>
 
-        <div className="grid auto-rows-fr gap-4">
-          <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between">
+        <div className="flex flex-col gap-3">
+          <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between mb-2">
             <div className="flex items-center gap-4">
               <div className="p-2 bg-gray-50 rounded-lg text-gray-600">
                 <DollarSign className="w-6 h-6" />
@@ -77,15 +81,36 @@ export function PaymentStep({
             <Switch checked={useBalance} onCheckedChange={toggleBalance} />
           </div>
 
-          {PAYMENT_OPTIONS.map((option) => (
-            <OptionCard
-              key={option.id}
-              icon={option.icon}
-              title={option.title}
-              subtitle={option.subtitle}
-              onClick={() => handleSelectMethod(option.id)}
-            />
-          ))}
+          {PAYMENT_OPTIONS.map((option) => {
+            const isSelected = paymentMethod === option.id
+            return (
+              <button
+                key={option.id}
+                type="button"
+                onClick={() => handleSelectMethod(option.id)}
+                className={`
+                  w-full flex items-center gap-4 p-4 rounded-xl border transition-all duration-200 text-left
+                  ${isSelected
+                    ? 'bg-primary/5 border-primary shadow-sm shadow-primary/10'
+                    : 'bg-white border-gray-200 hover:border-gray-300'
+                  }
+                `}
+              >
+                <div className={`size-10 rounded-full flex items-center justify-center shrink-0 transition-colors ${isSelected ? 'bg-primary' : 'bg-gray-100'}`}>
+                  <Check className={`size-6 ${isSelected ? 'text-white' : 'text-gray-400'} stroke-[3px]`} />
+                </div>
+                <div className="flex flex-col flex-1">
+                  <span className={`text-base font-semibold ${isSelected ? 'text-primary' : 'text-dark'}`}>{option.title}</span>
+                  <span className="text-xs text-gray-500">{option.subtitle}</span>
+                </div>
+                {isSelected && (
+                  <div className="size-6 bg-primary rounded-full flex items-center justify-center animate-in zoom-in duration-300">
+                    <Check className="size-4 text-white stroke-[3px]" />
+                  </div>
+                )}
+              </button>
+            )
+          })}
         </div>
       </div>
     </div>

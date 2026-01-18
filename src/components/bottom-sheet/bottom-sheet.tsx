@@ -5,8 +5,9 @@ type Props = {
   isOpen: boolean
   onClose?: () => void
   variant?: 'default' | 'alert'
+  className?: string
 } & PropsWithChildren
-export default function BottomSheet({ isOpen, onClose, children, variant = 'default' }: Props) {
+export default function BottomSheet({ isOpen, onClose, children, variant = 'default', className }: Props) {
   return (
     <>
       {isOpen && (
@@ -22,6 +23,7 @@ export default function BottomSheet({ isOpen, onClose, children, variant = 'defa
           'fixed bottom-0 left-0 right-0 bg-white shadow-[0px_4px_8px_3px_rgba(0,0,0,0.15),0px_1px_3px_rgba(0,0,0,0.3)] rounded-t-[1.75rem] z-50 transition-all duration-500 ease-out',
           variant === 'alert' && 'border-t-4 border-yellow-400',
           isOpen ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0',
+          className
         )}
       >
         <div className="flex justify-center pt-4 pb-2">

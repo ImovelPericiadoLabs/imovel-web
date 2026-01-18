@@ -96,27 +96,27 @@ export function AuthCodePage({ onBack, onSuccess }: AuthCodePageProps) {
     if (!email) return null;
 
     return (
-        <div className="min-h-screen w-full bg-white fixed inset-0 z-50 flex flex-col items-center justify-start pt-8 px-4">
-            <button onClick={onBack} className="absolute top-6 left-4 p-2 rounded-full hover:bg-gray-100">
-                <ArrowLeft className="size-6 text-gray-600" />
+        <div className="min-h-screen w-full bg-primary fixed inset-0 z-50 flex flex-col items-center justify-start pt-8 px-4">
+            <button onClick={onBack} className="absolute top-6 left-4 p-2 rounded-full hover:bg-white/10">
+                <ArrowLeft className="size-6 text-white" />
             </button>
 
             <div className="flex flex-col items-center max-w-sm w-full pt-16">
-                <div className="mb-6 flex items-center justify-center size-16 rounded-full bg-[#F3E8FF]">
-                    <Mail className="size-8 text-primary" />
+                <div className="mb-6 flex items-center justify-center size-16 rounded-full bg-white/10">
+                    <Mail className="size-8 text-white" />
                 </div>
 
-                <h1 className="text-[1.375rem] font-bold text-[#1A1A1A] mb-2">Confira seu e-mail</h1>
+                <h1 className="text-[1.375rem] font-bold text-white mb-2">Confira seu e-mail</h1>
 
                 {/* --- ALTERAÇÃO AQUI: Agrupei o texto e o botão de alterar --- */}
                 <div className="flex flex-col items-center gap-1 mb-8 text-center">
-                    <p className="text-sm text-[#4B4B4B] max-w-xs">
+                    <p className="text-sm text-gray-200 max-w-xs">
                         Enviamos um código de 6 dígitos para <span className="font-medium">{email}</span>.
                     </p>
                     <button
                         type="button"
                         onClick={onBack}
-                        className="text-xs font-medium text-primary hover:underline cursor-pointer"
+                        className="text-xs font-medium text-white hover:underline cursor-pointer"
                     >
                         Alterar e-mail
                     </button>
@@ -148,25 +148,25 @@ export function AuthCodePage({ onBack, onSuccess }: AuthCodePageProps) {
                         <Alert variant="error" message={errorMsg} className="mt-4" />
                     )}
 
-                    <div className="text-xs text-[#4B4B4B] mt-6 mb-8 flex gap-1">
+                    <div className="text-xs text-gray-200 mt-6 mb-8 flex gap-1">
                         {timer === 0 ? (
                             <button
                                 type="button"
                                 onClick={handleResendCode}
                                 disabled={isResending || isSubmitting}
-                                className="text-primary font-medium hover:text-primary/80 transition-colors disabled:opacity-50"
+                                className="text-white font-medium hover:text-gray-100 transition-colors disabled:opacity-50"
                             >
                                 {isResending ? 'Enviando...' : 'Reenviar agora'}
                             </button>
                         ) : (
-                            <span className="text-primary font-medium">Reenviar em {timer}s</span>
+                            <span className="text-white font-medium">Reenviar em {timer}s</span>
                         )}
                     </div>
 
                     <Button
                         type="submit"
                         disabled={isSubmitting || isResending}
-                        className="w-full"
+                        className="w-full bg-white text-primary hover:bg-gray-100"
                     >
                         {isSubmitting ? 'Verificando...' : 'Confirmar e Gerar Pix'}
                     </Button>
