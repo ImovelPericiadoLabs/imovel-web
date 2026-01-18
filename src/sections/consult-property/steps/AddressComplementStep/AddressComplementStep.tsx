@@ -226,7 +226,6 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
 
             {unknownRegistration === undefined ? (
               <ChoiceCards
-                label="Você possui o número da matrícula?"
                 value={undefined}
                 onChange={(hasInfo) => {
                   const isUnknown = !hasInfo
@@ -321,7 +320,6 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
 
             {noAllotment === undefined ? (
               <ChoiceCards
-                label="Você possui o loteamento?"
                 value={undefined}
                 onChange={(hasInfo) => {
                   const isNoInfo = !hasInfo
@@ -405,7 +403,6 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
 
             {noBlock === undefined ? (
               <ChoiceCards
-                label="Possui quadra?"
                 value={undefined}
                 onChange={(hasInfo) => {
                   const isNoInfo = !hasInfo
@@ -490,7 +487,6 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
 
             {noLot === undefined ? (
               <ChoiceCards
-                label="Possui lote?"
                 value={undefined}
                 onChange={(hasInfo) => {
                   const isNoInfo = !hasInfo

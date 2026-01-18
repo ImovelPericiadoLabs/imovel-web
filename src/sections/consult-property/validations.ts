@@ -6,12 +6,12 @@ export const validations = z
   .object({
     address: z.string().min(3, 'Digite um endereço válido').nonempty('O endereço é obrigatório'),
     allotment: z.string().optional(),
-    noAllotment: z.boolean({ required_error: 'Selecione se possui o loteamento' }),
+    noAllotment: z.boolean().nullable().optional(),
     block: z.string().optional(),
-    noBlock: z.boolean({ required_error: 'Selecione se possui a quadra' }),
+    noBlock: z.boolean().nullable().optional(),
     lot: z.string().optional(),
-    noLot: z.boolean({ required_error: 'Selecione se possui o lote' }),
-    unknownRegistration: z.boolean({ required_error: 'Selecione se possui a matrícula' }),
+    noLot: z.boolean().nullable().optional(),
+    unknownRegistration: z.boolean().nullable().optional(),
     registrationNumber: z.string().optional().nullable(),
     placeId: z.string(),
     registry: z.object({
