@@ -103,6 +103,8 @@ const AutoCompleteInput = forwardRef<HTMLInputElement, Props>(({
   }
 
   async function handleSelectAddress({ placeId }: Option) {
+    internalInputRef?.current?.blur()
+
     handleOpenAddressSheet()
 
     const result = await onSelectAddress(placeId as string)
@@ -110,7 +112,6 @@ const AutoCompleteInput = forwardRef<HTMLInputElement, Props>(({
     if (!result.addressNumber) {
       setIsOpenConsentSheet(true)
       handleCloseAddressSheet()
-      internalInputRef?.current?.blur()
       setValue(result.address)
       return
     }
@@ -119,6 +120,7 @@ const AutoCompleteInput = forwardRef<HTMLInputElement, Props>(({
   }
 
   function handleContinueWithoutNumber() {
+    internalInputRef?.current?.blur()
     setIsOpenConsentSheet(false)
     onConfirm(value)
   }
@@ -308,7 +310,14 @@ const AutoCompleteInput = forwardRef<HTMLInputElement, Props>(({
           </div>
 
           {!isLoadingAddress ? (
-            <Button onClick={() => onConfirm(value)} className="h-12 rounded-xl" icon={<Check className="size-5" />}>
+            <Button 
+              onClick={() => {
+                internalInputRef?.current?.blur()
+                onConfirm(value)
+              }} 
+              className="h-12 rounded-xl" 
+              icon={<Check className="size-5" />}
+            >
               Confirmar
             </Button>
           ) : (
