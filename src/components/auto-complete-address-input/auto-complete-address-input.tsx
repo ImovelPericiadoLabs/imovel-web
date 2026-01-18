@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react'
 import { Search, X, MapPin, CircleAlert, MapPinX, Check, ChevronRight } from 'lucide-react'
 import { cn } from '@/utils/tailwind'
 import Button from '@/components/button'
@@ -29,13 +29,14 @@ interface Props extends React.InputHTMLAttributes<HTMLInputElement> {
   } | null
   isDirty?: boolean
   onClear?: () => void
+  onFocus?: () => void
 }
 
 const loadingOptions = Array.from({ length: 5 }, (_, i) => ({
   value: i,
 }))
 
-export default function AutoCompleteInput({
+const AutoCompleteInput = forwardRef<HTMLInputElement, Props>(({
   options,
   isLoading,
   isLoadingAddress,
@@ -44,8 +45,9 @@ export default function AutoCompleteInput({
   error,
   isDirty,
   onClear,
+  onFocus,
   ...props
-}: Props) {
+}, ref) => {
   const [value, setValue] = useState('')
   const [isOpenAddressSheet, setIsOpenAddressSheet] = useState(false)
   const [isOpenErrorSheet, setIsOpenErrorSheet] = useState(false)
@@ -53,10 +55,12 @@ export default function AutoCompleteInput({
   const [isOpenConsentSheet, setIsOpenConsentSheet] = useState(false)
   const [addressError, setAddressError] = useState<{ title: string; subtitle: string } | null>(null)
 
-  const inputRef = useRef<HTMLInputElement>(null)
+  const internalInputRef = useRef<HTMLInputElement>(null)
+
+  useImperativeHandle(ref, () => internalInputRef.current as HTMLInputElement)
 
   function handleFocusInput() {
-    const el = inputRef?.current
+    const el = internalInputRef?.current
 
     el?.focus()
     el?.setSelectionRange(el.value.length, el.value.length)
@@ -86,7 +90,7 @@ export default function AutoCompleteInput({
       onClear()
     }
     setValue('')
-    inputRef.current?.focus()
+    internalInputRef.current?.focus()
   }
 
   function hasHouseNumber(address: string): boolean {
@@ -106,7 +110,7 @@ export default function AutoCompleteInput({
     if (!result.addressNumber) {
       setIsOpenConsentSheet(true)
       handleCloseAddressSheet()
-      inputRef?.current?.blur()
+      internalInputRef?.current?.blur()
       setValue(result.address)
       return
     }
@@ -147,14 +151,14 @@ export default function AutoCompleteInput({
 
   useEffect(() => {
     if (error) {
-      inputRef.current?.blur()
+      internalInputRef.current?.blur()
     }
   }, [error])
 
   useEffect(() => {
     if (!isLoading && isDirty && value?.length && !options?.length) {
       setIsOpenNotFoundAddressSheet(true)
-      inputRef.current?.blur()
+      internalInputRef.current?.blur()
     }
   }, [options, isLoading, isDirty, value])
 
@@ -175,12 +179,13 @@ export default function AutoCompleteInput({
         )}
 
         <Input
-          ref={inputRef}
+          ref={internalInputRef}
           autoFocus
           type="text"
           {...props}
           value={value}
           onChange={handleChange}
+          onFocus={onFocus}
         />
       </div>
 
@@ -348,4 +353,6 @@ export default function AutoCompleteInput({
       </BottomSheet>
     </div>
   )
-}
+})
+
+export default AutoCompleteInput

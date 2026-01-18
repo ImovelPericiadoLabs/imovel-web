@@ -2,9 +2,10 @@
 
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { useState, useRef, ReactNode } from 'react'
+import { useState, useRef, ReactNode, useEffect } from 'react'
 import { FormProvider, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { flushSync } from 'react-dom'
 import { ChevronLeft, CircleQuestionMark } from 'lucide-react'
 import ProgressBar from '@/components/progress-bar'
 import {
@@ -63,7 +64,22 @@ export default function ConsultProperty() {
     mode: 'onChange',
   })
 
+  const addressStepRef = useRef<{ focus: () => void }>(null)
   const addressComplementRef = useRef<{ handleBack: () => void }>(null)
+
+  useEffect(() => {
+    if (flow === 'address') {
+      const handleFocus = () => {
+        addressStepRef.current?.focus()
+      }
+
+      // Se viemos da home com o parâmetro autoFocus
+      const params = new URLSearchParams(window.location.search)
+      if (params.get('autoFocus') === 'true') {
+        setTimeout(handleFocus, 500) // Delay para garantir carregamento e evitar glitch visual
+      }
+    }
+  }, [flow])
 
   function go(next: FlowState) {
     stack.current.push(flow)
@@ -153,7 +169,7 @@ export default function ConsultProperty() {
       <FormProvider {...methods}>
         <main className="w-full mx-auto lg:max-w-lg pt-5 px-0 -mt-24">
           <Activity isActive={flow === 'address'}>
-            <AddressStep onNext={() => go('address-complement')} />
+            <AddressStep ref={addressStepRef} onNext={() => go('address-complement')} />
           </Activity>
 
           <Activity isActive={flow === 'address-complement'}>

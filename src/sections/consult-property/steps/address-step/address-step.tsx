@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useImperativeHandle, forwardRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Home, MouseOff, FileText, BellDot, Package, ArrowUp } from 'lucide-react'
 import { useFormContext } from 'react-hook-form'
@@ -22,10 +22,17 @@ const initialHomeItems = [
   { Icon: BellDot, text: 'Decisão segura com alertas inteligentes.' },
 ]
 
-export function AddressStep({ onNext }: { onNext: () => void }) {
+export const AddressStep = forwardRef(({ onNext }: { onNext: () => void }, ref) => {
   const router = useRouter()
   const { setValue } = useFormContext()
   const [address, setAddress] = useState('')
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useImperativeHandle(ref, () => ({
+    focus: () => {
+      inputRef.current?.focus()
+    }
+  }))
 
   const debouncedAddress = useDebounce(address, 1000)
 
@@ -121,6 +128,7 @@ export function AddressStep({ onNext }: { onNext: () => void }) {
 
         <div className="relative">
           <AutoCompleteAddressInput
+            ref={inputRef}
             placeholder="Buscar endereço"
             options={data}
             onChange={handleChangeAddress}
@@ -187,4 +195,4 @@ export function AddressStep({ onNext }: { onNext: () => void }) {
       />
     </div>
   )
-}
+})

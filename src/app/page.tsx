@@ -88,7 +88,7 @@ export default function ConsultarImovelPage() {
   const handleStart = () => {
     if (isUnlocked) {
       localStorage.setItem('vsl-unlocked', 'true')
-      router.push('/consultar-imovel')
+      router.push('/consultar-imovel?autoFocus=true')
     }
   }
 
