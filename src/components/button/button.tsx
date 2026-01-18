@@ -34,8 +34,8 @@ export default function Button({ children, className, href, variant = 'primary',
         className={baseClasses}
         {...(rest as Omit<LinkProps, 'href'>)} 
       >
+        {icon && <span className="mr-2 flex items-center">{icon}</span>}
         {children}
-        {icon && <span className="ml-2 flex items-center">{icon}</span>}
       </Link>
     )
   }
@@ -45,8 +45,8 @@ export default function Button({ children, className, href, variant = 'primary',
       className={baseClasses}
       {...(rest as React.ButtonHTMLAttributes<HTMLButtonElement>)}
     >
+      {icon && <span className="mr-2 flex items-center">{icon}</span>}
       {children}
-      {icon && <span className="ml-2 flex items-center">{icon}</span>}
     </button>
   )
 }

@@ -33,6 +33,7 @@ export const validations = z
       })
       .optional()
       .nullable(),
+    documentPreview: z.any().optional(),
     paymentMethod: z.enum(['pix', 'credit_card', 'debit_card', 'boleto']),
   })
   .refine(

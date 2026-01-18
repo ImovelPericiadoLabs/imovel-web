@@ -1,15 +1,13 @@
 'use client'
 
 import Image from 'next/image'
-import { useRouter } from 'next/navigation'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useForm, FormProvider, useFormContext } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Check, Clock, ChevronRight } from 'lucide-react'
+import { Check, Clock, ChevronRight, Copy } from 'lucide-react'
 import { useSession, signOut } from 'next-auth/react'
 
-import SelectedAddressCard from '@/components/selected-address-card'
 import TextTitle from '@/components/text-title'
 import TextSubtitle from '@/components/text-subtitle'
 import Button from '@/components/button'
@@ -19,6 +17,7 @@ import Input from '@/components/input'
 import LoadingOverlay from '@/components/loading-overlay'
 import PixIcon from '@/components/icons/pix-icon'
 import Alert from '@/components/alert'
+import AddressSummaryCard from '@/components/address-summary-card'
 
 import { processPayment, getPaymentStatus } from '@/services/payments'
 import { startAuth } from '@/services/account'
@@ -40,33 +39,33 @@ const FIXED_PLAN_ID = '019aea72-ccab-76ee-883c-72cce61cedbb'
 const STORAGE_KEY = '@pix-payment:form-data'
 
 export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPageProps) {
-  const router = useRouter()
   const { data: session, status } = useSession()
-
   const parentForm = useFormContext()
-  const rawComplement = parentForm?.getValues('addressComplement')
-  const rawRegistrationNumber = parentForm?.getValues('registrationNumber')
 
-  const uploadedDoc = parentForm?.getValues('document')
-  const documentId = uploadedDoc?.id
+  const {
+    addressComplement,
+    registrationNumber,
+    notary,
+    documentId
+  } = useMemo(() => {
+    const rawComplement = parentForm?.getValues('addressComplement')
+    const rawRegistrationNumber = parentForm?.getValues('registrationNumber')
+    const uploadedDoc = parentForm?.getValues('document')
+    const notaryName = parentForm?.getValues('registry')?.name
 
-  const notary = parentForm?.getValues('registry')?.name
-
-  const addressComplement = rawComplement && rawComplement.trim().length > 0
-    ? rawComplement
-    : undefined
-
-  const registrationNumber = rawRegistrationNumber && rawRegistrationNumber.trim().length > 0
-    ? rawRegistrationNumber
-    : undefined
-
+    return {
+      addressComplement: rawComplement?.trim() || undefined,
+      registrationNumber: rawRegistrationNumber?.trim() || undefined,
+      notary: notaryName,
+      documentId: uploadedDoc?.id
+    }
+  }, [parentForm])
 
   const [step, setStep] = useState<Step>('details')
   const [copied, setCopied] = useState(false)
   const [expirationTime, setExpirationTime] = useState('')
   const [serverError, setServerError] = useState('')
   const [paymentId, setPaymentId] = useState<string | null>(null)
-  const [isOpenConfirmPaymentBottomSheet, setIsOpenConfirmPaymentBottomSheet] = useState(false)
   const [isAuthLoading, setIsAuthLoading] = useState(false)
 
   const methods = useForm<FormTypes>({
@@ -83,11 +82,20 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
 
   const {
     register,
-    getValues,
+    getValues: getLocalValues,
     setValue,
     trigger,
     formState: { errors },
   } = methods
+
+  // Unificamos os métodos de pegar valores para usar o formulário pai nos campos de endereço
+  const getValues = useCallback((field?: string) => {
+    const parentFields = ['address', 'registrationNumber', 'allotment', 'block', 'lot']
+    if (field && parentFields.includes(field)) {
+      return parentForm?.getValues(field)
+    }
+    return getLocalValues(field as keyof FormTypes)
+  }, [parentForm, getLocalValues])
 
   useEffect(() => {
     const savedData = localStorage.getItem(STORAGE_KEY)
@@ -119,29 +127,31 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
     }
   }, [paymentId])
 
-  function clearServerError() {
+  const clearServerError = useCallback(() => {
     setServerError('')
-  }
+  }, [])
 
-  function handleCloseBottomSheet() {
+  const handleCloseBottomSheet = useCallback(() => {
     if (step === 'details') {
       if (!paymentId && onCancel) {
         onCancel()
       }
     }
-  }
+  }, [step, paymentId, onCancel])
 
   const { mutateAsync: generatePix, data: pixData, isPending: isPixPending } = useMutation({
     mutationFn: processPayment,
     onSuccess(payment) {
-      setPaymentId(payment?.id)
+      if (payment?.id) {
+        setPaymentId(payment.id)
+      }
       const expiresAt = new Date(Date.now() + 30 * 60 * 1000)
       const formatted = `${String(expiresAt.getHours()).padStart(2, '0')}:${String(expiresAt.getMinutes()).padStart(2, '0')}`
       setExpirationTime(formatted)
     },
   })
 
-  const { data: paymentStatusData } = useQuery({
+  useQuery({
     queryKey: [queryKey.paymentStatus, paymentId],
     queryFn: () => getPaymentStatus(paymentId as string),
     enabled: !!paymentId,
@@ -155,7 +165,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
     refetchIntervalInBackground: false,
   })
 
-  const handleDetailsSubmit = async () => {
+  const handleDetailsSubmit = useCallback(async () => {
     const isValid = await trigger(['name', 'document', 'email', 'whatsapp'])
 
     if (!isValid) return
@@ -195,14 +205,21 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
           notary
         })
         setStep('pix')
-      } catch (error: any) {
-        console.log('❌ Erro capturado:', error);
+      } catch (error) {
+        const err = error as { 
+          code?: string; 
+          detail?: string; 
+          response?: { status: number }; 
+          status?: number 
+        };
+      
+        console.log('❌ Erro capturado:', err);
 
         const isUnauthorized =
-          error?.code === 'token_not_valid' ||
-          error?.detail === 'Given token not valid for any token type' ||
-          error?.response?.status === 401 ||
-          error?.status === 401;
+          err?.code === 'token_not_valid' ||
+          err?.detail === 'Given token not valid for any token type' ||
+          err?.response?.status === 401 ||
+          err?.status === 401;
 
         if (isUnauthorized) {
           console.log('🔄 Token inválido detectado. Renovando autenticação...');
@@ -234,9 +251,9 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
         setIsAuthLoading(false)
       }
     }
-  }
+  }, [trigger, getValues, placeId, clearServerError, status, generatePix, documentId, addressComplement, registrationNumber, notary])
 
-  const handleAuthSuccess = async (code: string) => {
+  const handleAuthSuccess = useCallback(async (code: string) => {
     setServerError('')
     setValue('code', code)
 
@@ -266,12 +283,13 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
       })
 
       setStep('pix')
-    } catch (error) {
+    } catch {
     } finally {
       setIsAuthLoading(false)
     }
-  }
-  const handleCopy = async () => {
+  }, [setValue, getValues, placeId, generatePix, documentId, addressComplement, registrationNumber, notary])
+
+  const handleCopy = useCallback(async () => {
     try {
       await navigator.clipboard.writeText(pixData?.payload || '')
       setCopied(true)
@@ -290,7 +308,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
     } catch (error) {
       console.error(error)
     }
-  }
+  }, [pixData, onFinish])
 
   const isLoading = isAuthLoading || isPixPending
 
@@ -301,10 +319,6 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
   return (
     <FormProvider {...methods}>
       <div className="flex flex-col relative px-4 mt-6">
-        <SelectedAddressCard 
-          address={parentForm?.getValues('address')} 
-          className="mb-6"
-        />
         {step === 'details' && (
           <BottomSheet isOpen={true} onClose={handleCloseBottomSheet} className="bg-white">
             <div className="p-6 pb-12 max-h-[85vh] overflow-y-auto flex flex-col gap-6">
@@ -364,14 +378,21 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
 
         {step === 'pix' && !!pixData && (
           <div className="flex flex-col items-center pt-10 -mt-27">
-            <div className="mb-6 text-white px-1 text-left relative z-10 w-full text-center">
-              <p className="text- leading-snug font-normal">
-                Pague <span className="font-bold">{formatMoney(pixData.value)}</span> via Pix para garantir <br />
-                sua compra
+            <div className="mb-8 text-white px-1 text-left relative z-10 w-full text-center flex flex-col gap-5">
+              <p className="text-center leading-snug font-normal">
+                Realize o pagamento do valor <span className="font-bold">{formatMoney(pixData.value)}</span> para começar a consulta dos dados do endereço
               </p>
+
+              <AddressSummaryCard
+                address={getValues('address')}
+                registrationNumber={getValues('registrationNumber')}
+                allotment={getValues('allotment')}
+                block={getValues('block')}
+                lot={getValues('lot')}
+              />
             </div>
 
-            <div className="mx-auto mb-8 relative z-10 shadow-xl rounded-xl w-fit -mt-5">
+            <div className="mx-auto mb-10 relative z-10 shadow-xl rounded-xl w-fit">
               <div className="bg-primary p-1.5 rounded-xl">
                 <div className="bg-white p-1.5 rounded-xl">
                   <div className="w-32 h-32 bg-white rounded-lg overflow-hidden flex items-center justify-center">
@@ -392,15 +413,15 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
 
             <div className="flex flex-col items-center w-full px-1 mt-2 animate-in fade-in">
               <div className="text-center mb-5 w-full">
-                <p className="text-white text-[15px] font-medium">Este código expira em 30 min, pague até {expirationTime}</p>
+                <p className="text-dark text-[15px] font-medium">Este código expira em 30 min, pague até {expirationTime}</p>
               </div>
               <div className="w-full bg-white border border-gray-200 rounded-xl p-4 mb-6">
                 <p className="text-[11px] text-gray-600 break-all font-mono text-center uppercase">{pixData.payload}</p>
               </div>
               <Button onClick={handleCopy} type="button" className="rounded-xl h-12">
-                <div className="flex items-center justify-center gap-1">
-                  {copied ? <Check size={20} /> : null}
-                  <span>{copied ? 'Copiado!' : 'Copiar código pix'}</span>
+                <div className="flex items-center justify-center gap-2">
+                  {copied ? <Check size={20} /> : <Copy size={20} />}
+                  <span>{copied ? 'Copiado!' : 'Copiar PIX'}</span>
                 </div>
               </Button>
 

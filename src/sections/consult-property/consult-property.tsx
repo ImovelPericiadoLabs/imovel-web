@@ -2,10 +2,9 @@
 
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { useState, useRef, ReactNode, useEffect } from 'react'
+import { memo, useState, useRef, ReactNode, useEffect, useCallback, useMemo } from 'react'
 import { FormProvider, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { flushSync } from 'react-dom'
 import { ChevronLeft, CircleQuestionMark } from 'lucide-react'
 import ProgressBar from '@/components/progress-bar'
 import {
@@ -33,13 +32,13 @@ type FlowState =
   | 'payment-confirm'
   | 'finished'
 
-function Activity({ isActive, children }: { isActive: boolean; children: ReactNode }) {
+const Activity = memo(function Activity({ isActive, children }: { isActive: boolean; children: ReactNode }) {
   return (
     <div aria-hidden={!isActive} style={{ display: isActive ? 'block' : 'none' }}>
       {children}
     </div>
   )
-}
+})
 
 export default function ConsultProperty() {
   const router = useRouter()
@@ -76,19 +75,22 @@ export default function ConsultProperty() {
       // Se viemos da home com o parâmetro autoFocus
       const params = new URLSearchParams(window.location.search)
       if (params.get('autoFocus') === 'true') {
-        setTimeout(handleFocus, 500) // Delay para garantir carregamento e evitar glitch visual
+        // No iOS, o focus() só funciona se for disparado por uma ação do usuário.
+        // Como o autoFocus vem de um redirecionamento (URL), o iOS pode bloquear o teclado.
+        // Removendo o delay para ser instantâneo em sistemas que permitem.
+        handleFocus()
       }
     }
   }, [flow])
 
-  function go(next: FlowState) {
+  const go = useCallback((next: FlowState) => {
     stack.current.push(flow)
     setFlow(next)
     // Usar scroll imediato em vez de smooth para evitar atrasos na percepção de troca de página
     window.scrollTo({ top: 0, behavior: 'auto' })
-  }
+  }, [flow])
 
-  function back() {
+  const back = useCallback(() => {
     if (flow === 'finished') {
       window.location.href = '/consultar-imovel'
       return
@@ -107,12 +109,29 @@ export default function ConsultProperty() {
     }
 
     if (previous) {
+      // Resetar estados ao voltar para passos anteriores que possuem Sim/Não
+      if (previous === 'doc-confirmation') {
+        methods.setValue('hasDocument', undefined)
+      }
+      
+      if (previous === 'doc-type') {
+        methods.setValue('documentType', undefined)
+        methods.setValue('document', undefined)
+        methods.setValue('documentPreview', undefined)
+      }
+      
+      if (previous === 'address-complement') {
+        // Se voltarmos do documento para o complemento, resetamos o último sub-passo (lote)
+        methods.setValue('noLot', undefined)
+        methods.setValue('lot', '')
+      }
+
       setFlow(previous)
       window.scrollTo({ top: 0, behavior: 'auto' })
     }
-  }
+  }, [flow, router, methods])
 
-  const progressSteps: Record<FlowState, number> = {
+  const progressSteps: Record<FlowState, number> = useMemo(() => ({
     address: 1,
     'address-complement': 1,
     'doc-confirmation': 2,
@@ -122,18 +141,18 @@ export default function ConsultProperty() {
     'payment-cards': 5,
     'payment-card-new': 5,
     finished: 5,
-  }
+  }), [])
 
-  const currentProgress = (progressSteps[flow] / 5) * 100
+  const currentProgress = useMemo(() => (progressSteps[flow] / 5) * 100, [flow, progressSteps])
 
   const isFinished = flow === 'finished'
 
-  const showProgressBar = ![
+  const showProgressBar = useMemo(() => ![
     'payment-cards',
     'payment-card-new',
     'payment-confirm',
     'finished',
-  ].includes(flow)
+  ].includes(flow), [flow])
 
   return (
     <section className="min-h-screen bg-background">

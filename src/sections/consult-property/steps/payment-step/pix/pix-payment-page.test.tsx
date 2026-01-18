@@ -67,7 +67,8 @@ vi.mock('@/components/alert', () => ({
 }))
 
 vi.mock('lucide-react', () => ({ 
-  Check: () => <svg />, Clock: () => <svg />, CheckCircle: () => <svg />,
+  Check: () => <svg />, Clock: () => <svg />, CheckCircle: () => <svg />, Copy: () => <svg />,
+  ChevronRight: () => <svg />,
   MapPin: () => <svg />, Building: () => <svg />, Grid2X2: () => <svg />, RulerDimensionLineIcon: () => <svg />
 }))
 
@@ -115,7 +116,7 @@ describe('PixPaymentPage', () => {
     render(<PixPaymentPage onCancel={mockOnCancel} onFinish={mockOnFinish} placeId="p1" />)
     
     fireEvent.change(screen.getByTestId('input-name'), { target: { value: 'João' } })
-    fireEvent.click(screen.getByText('Continuar'))
+    fireEvent.click(screen.getByText(/Gerar código PIX/i))
 
     await waitFor(() => {
       expect(signOut).toHaveBeenCalled()
@@ -141,9 +142,9 @@ describe('PixPaymentPage', () => {
     render(<PixPaymentPage onCancel={mockOnCancel} onFinish={mockOnFinish} placeId="p1" />)
     
     fireEvent.change(screen.getByTestId('input-name'), { target: { value: 'João' } })
-    fireEvent.click(screen.getByText('Continuar'))
+    fireEvent.click(screen.getByText(/Gerar código PIX/i))
 
-    const copyBtn = await screen.findByText(/Copiar código pix/i)
+    const copyBtn = await screen.findByText(/Copiar PIX/i)
     fireEvent.click(copyBtn)
 
     expect(mockWriteText).toHaveBeenCalledWith('000201-PAYLOAD-TEST')

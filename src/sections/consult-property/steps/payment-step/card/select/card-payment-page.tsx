@@ -1,11 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { Check } from 'lucide-react'
+import Image from 'next/image'
 import { useFormContext } from 'react-hook-form'
-import SelectedAddressCard from '@/components/selected-address-card'
 import TextTitle from '@/components/text-title'
 import TextSubtitle from '@/components/text-subtitle'
+import AddressSummaryCard from '@/components/address-summary-card'
 
 interface Card {
   id: string
@@ -27,29 +28,51 @@ export function SavedCardsPage({
     { id: '2', number: '7536', expiry: '11/28', brand: 'Visa', isSelected: false },
   ])
 
-  function handleSelectCard(id: string) {
+  const handleSelectCard = useCallback((id: string) => {
     setCards((prev) =>
       prev.map((c) => ({
         ...c,
         isSelected: c.id === id,
       }))
     )
-  }
+  }, [])
 
-  function handleConfirm() {
+  const handleConfirm = useCallback(() => {
     const selected = cards.find((c) => c.isSelected)
     if (selected) onConfirmCard()
-  }
+  }, [cards, onConfirmCard])
 
   const { getValues } = useFormContext()
 
+  const cardValues = useCallback((field: string) => {
+    return getValues(field)
+  }, [getValues])
+
+  const addressSummaryData = useMemo(() => ({
+    address: cardValues('address'),
+    registrationNumber: cardValues('registrationNumber'),
+    allotment: cardValues('allotment'),
+    block: cardValues('block'),
+    lot: cardValues('lot'),
+  }), [cardValues])
+
   return (
     <div className="flex flex-col relative px-6 py-4">
-      <SelectedAddressCard address={getValues('address')} className="mb-6 -mt-2" />
       <div className="flex flex-col gap-2 relative z-50 -mt-2 mb-6 px-1">
         <TextTitle className="text-dark">Seus cartões</TextTitle>
         <TextSubtitle>Escolha um cartão salvo para realizar o pagamento</TextSubtitle>
       </div>
+
+      <div className="mb-8 relative z-50 w-full flex flex-col gap-5">
+        <p className="text-center text-dark leading-snug font-normal px-4">
+          Realize o pagamento do valor <span className="font-bold">R$ 59,00</span> para começar a consulta dos dados do endereço
+        </p>
+
+        <AddressSummaryCard
+          {...addressSummaryData}
+        />
+      </div>
+
       <div className="flex flex-col gap-4 relative z-50">
         {cards.map((card) => {
           const cardClasses = `flex flex-col p-4 rounded-xl border bg-white cursor-pointer transition-all duration-200
@@ -79,10 +102,12 @@ export function SavedCardsPage({
                           <div className="w-5 h-5 rounded-full bg-[#F79E1B]" />
                         </div>
                       ) : (
-                        <img
+                        <Image
                           src="/images/visa.webp"
                           alt="Visa"
                           className="w-8 h-auto"
+                          width={32}
+                          height={20}
                         />
                       )}
                     </div>

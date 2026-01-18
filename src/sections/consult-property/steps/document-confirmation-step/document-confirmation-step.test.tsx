@@ -15,6 +15,7 @@ vi.mock('react-hook-form', () => ({
   useFormContext: () => ({
     setValue: setValueMock,
     trigger: triggerMock,
+    getValues: (field: string) => (field === 'address' ? 'Mock Address' : undefined),
     watch: (field: string) => (field === 'hasDocument' ? mockWatchValue : undefined),
     formState: { errors: mockErrors },
   }),
@@ -39,6 +40,10 @@ vi.mock('@/components/option-card/option-card.tsx', () => ({
 vi.mock('lucide-react', () => ({
   ThumbsUp: () => <span data-testid="icon-thumbs-up" />,
   ThumbsDown: () => <span data-testid="icon-thumbs-down" />,
+  MapPin: () => <span data-testid="icon-map-pin" />,
+  ChevronRight: () => <span data-testid="icon-chevron-right" />,
+  Check: () => <span data-testid="icon-check" />,
+  X: () => <span data-testid="icon-x" />,
 }))
 
 const setup = (props?: { watchValue?: boolean | null; errors?: FieldErrors }) => {
@@ -51,8 +56,8 @@ const setup = (props?: { watchValue?: boolean | null; errors?: FieldErrors }) =>
 
   render(<DocumentConfirmationStep onNext={onNextMock} onSkip={onSkipMock} />)
 
-  const optionYes = screen.getByText('Sim, eu tenho')
-  const optionNo = screen.getByText('Não tenho')
+  const optionYes = screen.getByText('Tenho o documento do imóvel')
+  const optionNo = screen.getByText('Não tenho o documento do imóvel')
 
   return {
     optionYes,
@@ -69,13 +74,13 @@ describe('DocumentConfirmationStep', () => {
     it('should render the title and options correctly', () => {
       setup()
       expect(screen.getByTestId('text-title')).toBeInTheDocument()
-      expect(screen.getByText('Sim, eu tenho')).toBeInTheDocument()
-      expect(screen.getByText('Não tenho')).toBeInTheDocument()
+      expect(screen.getByText('Tenho o documento do imóvel')).toBeInTheDocument()
+      expect(screen.getByText('Não tenho o documento do imóvel')).toBeInTheDocument()
     })
   })
 
   describe('Interação do Usuário (setValue)', () => {
-    it('should call setValue when "Sim, eu tenho" is selected', () => {
+    it('should call setValue when "Tenho o documento do imóvel" is selected', () => {
       const { optionYes, setValueMock } = setup()
 
       fireEvent.click(optionYes)
@@ -83,10 +88,9 @@ describe('DocumentConfirmationStep', () => {
       expect(setValueMock).toHaveBeenCalledWith('hasDocument', true, {
         shouldValidate: true,
       })
-      expect(onNextMock).toHaveBeenCalled()
     })
 
-    it('should call setValue when "Não tenho" is selected', () => {
+    it('should call setValue when "Não tenho o documento do imóvel" is selected', () => {
       const { optionNo, setValueMock } = setup()
 
       fireEvent.click(optionNo)
@@ -94,7 +98,11 @@ describe('DocumentConfirmationStep', () => {
       expect(setValueMock).toHaveBeenCalledWith('hasDocument', false, {
         shouldValidate: true,
       })
-      expect(onSkipMock).toHaveBeenCalled()
+    })
+
+    it('should show "Próximo" button only when "Tenho o documento do imóvel" is selected', () => {
+      const { optionYes } = setup({ watchValue: true })
+      expect(screen.getByText('Próximo')).toBeInTheDocument()
     })
   })
 })

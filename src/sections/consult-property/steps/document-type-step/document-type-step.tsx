@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { useFormContext } from 'react-hook-form'
-import { Check, FileText, Building, Scroll, LucideIcon } from 'lucide-react'
+import { Check, FileText, Building, Scroll, LucideIcon, ChevronRight } from 'lucide-react'
 import { useMutation } from '@tanstack/react-query'
 import TextTitle from '@/components/text-title'
 import TextSubtitle from '@/components/text-subtitle'
@@ -11,6 +11,7 @@ import Alert from '@/components/alert'
 import LoadingOverlay from '@/components/loading-overlay'
 import { uploadDocument } from '@/services/documents'
 import SelectedAddressCard from '@/components/selected-address-card'
+import Button from '@/components/button'
 
 type DocumentType = 'agreement' | 'registration' | 'deed'
 
@@ -133,10 +134,14 @@ export function DocumentTypeStep({ onNext }: { onNext: () => void }) {
 
   async function handleContinue() {
     const isValid = await trigger(['documentType', 'document'])
-    if (isValid) onNext()
+    if (isValid) {
+      // Se estamos avançando, garantimos que o estado está correto
+      onNext()
+    }
   }
 
   useEffect(() => {
+    // Se entrar no passo e não tiver tipo, garante que está undefined
     if (!documentType) {
       setValue('documentType', undefined)
     }
@@ -223,13 +228,14 @@ export function DocumentTypeStep({ onNext }: { onNext: () => void }) {
 
       {documentType && !!watch('document') && (
         <div className="fixed bottom-0 left-0 right-0 px-4 pt-5 pb-7 bg-white mt-auto border-t border-gray-100 z-10">
-          <button
+          <Button
             type="button"
             onClick={handleContinue}
-            className="w-full bg-primary hover:opacity-90 active:opacity-100 text-white font-semibold text-base h-12 rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm"
+            className="w-full h-12 text-base rounded-xl"
+            icon={<ChevronRight className="size-5" />}
           >
             Continuar para o resumo
-          </button>
+          </Button>
         </div>
       )}
 

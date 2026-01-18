@@ -1,10 +1,9 @@
 'use client'
 
 import { ChoiceCards } from '@/components/choice-cards'
-import { MapPin, Building, Clock, Box, Layout, Hash, Info, ChevronRight, Check } from 'lucide-react'
+import { Check, Building, Clock, Box, Layout, Hash, Info, ChevronRight, ChevronLeft } from 'lucide-react'
 import { useFormContext } from 'react-hook-form'
-import { useState, useRef, useImperativeHandle, forwardRef } from 'react'
-import { flushSync } from 'react-dom'
+import { useState, useRef, useImperativeHandle, forwardRef, useCallback, useMemo } from 'react'
 import TextTitle from '@/components/text-title'
 import TextSubtitle from '@/components/text-subtitle'
 import Button from '@/components/button'
@@ -13,95 +12,18 @@ import SelectedAddressCard from '@/components/selected-address-card'
 
 export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: () => void, onBack?: () => void }, ref) => {
   const [currentSubStep, setCurrentSubStep] = useState(0)
-  const subSteps = ['registration', 'allotment', 'block', 'lot']
+  const subSteps = useMemo(() => ['registration', 'allotment', 'block', 'lot'], [])
 
   const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false)
   const [isValidationBottomSheetOpen, setIsValidationBottomSheetOpen] = useState(false)
   const [missingFieldLabel, setMissingFieldLabel] = useState('')
   const { register, getValues, trigger, watch, setValue, formState: { errors } } = useFormContext()
   
-  useImperativeHandle(ref, () => ({
-    handleBack: () => {
-      handleBack()
-    }
-  }))
-
-  const currentAddress = getValues('address')
-  
-  const unknownRegistration = watch('unknownRegistration')
-  const noAllotment = watch('noAllotment')
-  const noBlock = watch('noBlock')
-  const noLot = watch('noLot')
-
-  const registrationRef = useRef<HTMLInputElement>(null)
-  const allotmentRef = useRef<HTMLInputElement>(null)
-  const blockRef = useRef<HTMLInputElement>(null)
-  const lotRef = useRef<HTMLInputElement>(null)
-
-  const handleContinue = async (forceAdvance?: boolean) => {
-    let fieldsToValidate: any[] = []
-    let fieldLabel = ''
-    
-    if (subSteps[currentSubStep] === 'registration') {
-      fieldsToValidate = ['unknownRegistration', 'registrationNumber']
-      fieldLabel = 'o número da matrícula'
-    }
-    if (subSteps[currentSubStep] === 'allotment') {
-      fieldsToValidate = ['noAllotment', 'allotment']
-      fieldLabel = 'o loteamento'
-    }
-    if (subSteps[currentSubStep] === 'block') {
-      fieldsToValidate = ['noBlock', 'block']
-      fieldLabel = 'a quadra'
-    }
-    if (subSteps[currentSubStep] === 'lot') {
-      fieldsToValidate = ['noLot', 'lot']
-      fieldLabel = 'o lote'
-    }
-
-    // Forçar trigger de validação nos campos atuais
-    const isValid = forceAdvance || await trigger(fieldsToValidate)
-    
-    // Obter os valores atuais para validação manual redundante
-    const choiceValue = getValues(fieldsToValidate[0])
-    const fieldValue = getValues(fieldsToValidate[1])
-
-    if (!forceAdvance) {
-      // Caso 1: Usuário ainda não fez a escolha Sim/Não
-      if (choiceValue === undefined) {
-        setMissingFieldLabel('se possui ' + fieldLabel)
-        setIsValidationBottomSheetOpen(true)
-        return
-      }
-
-      // Caso 2: Usuário escolheu "Sim" (false nos campos 'unknown'/'no') mas deixou o campo de texto vazio
-      if (choiceValue === false && (!fieldValue || String(fieldValue).trim() === '')) {
-        setMissingFieldLabel(fieldLabel)
-        setIsValidationBottomSheetOpen(true)
-        return
-      }
-
-      // Caso 3: Zod retornou erro (ex: padrão de caracteres inválido), mas passou nas checações acima
-      if (!isValid) {
-        return
-      }
-    }
-    
-    if (isValid || forceAdvance) {
-      if (currentSubStep < subSteps.length - 1) {
-        setCurrentSubStep(prev => prev + 1)
-        window.scrollTo({ top: 0, behavior: 'auto' })
-      } else {
-        setIsBottomSheetOpen(true)
-      }
-    }
-  }
-
-  const handleBack = () => {
+  const handleBack = useCallback(() => {
     if (currentSubStep > 0) {
       const prevStep = subSteps[currentSubStep - 1]
       
-      // Limpa a seleção e o campo do passo anterior ao voltar
+      // Limpa a seleção e o campo do passo anterior ao voltar para ele
       if (prevStep === 'registration') {
         setValue('unknownRegistration', undefined)
         setValue('registrationNumber', '')
@@ -122,26 +44,117 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
       setCurrentSubStep(prev => prev - 1)
       window.scrollTo({ top: 0, behavior: 'auto' })
     } else if (onBack) {
+      // Se estamos voltando do primeiro sub-passo (matrícula) para o endereço, 
+      // também resetamos a matrícula para que ao entrar novamente esteja limpo
+      setValue('unknownRegistration', undefined)
+      setValue('registrationNumber', '')
       onBack()
     }
-  }
+  }, [currentSubStep, subSteps, setValue, onBack])
 
-  const handleConfirm = () => {
+  const handleContinue = useCallback(async (forceAdvance?: boolean) => {
+    let fieldsToValidate: string[] = []
+    let fieldLabel = ''
+    
+    const subStep = subSteps[currentSubStep]
+    if (subStep === 'registration') {
+      fieldsToValidate = ['unknownRegistration', 'registrationNumber']
+      fieldLabel = 'o número da matrícula'
+    }
+    if (subStep === 'allotment') {
+      fieldsToValidate = ['noAllotment', 'allotment']
+      fieldLabel = 'o loteamento'
+    }
+    if (subStep === 'block') {
+      fieldsToValidate = ['noBlock', 'block']
+      fieldLabel = 'a quadra'
+    }
+    if (subStep === 'lot') {
+      fieldsToValidate = ['noLot', 'lot']
+      fieldLabel = 'o lote'
+    }
+
+    // Obter os valores atuais
+    const choiceValue = getValues(fieldsToValidate[0])
+    const fieldValue = getValues(fieldsToValidate[1])
+
+    // Se for um avanço forçado (clique no "Não Tenho"), pula validações e abre o resumo/próximo
+    if (forceAdvance) {
+      if (currentSubStep < subSteps.length - 1) {
+        setCurrentSubStep(prev => prev + 1)
+        window.scrollTo({ top: 0, behavior: 'auto' })
+      } else {
+        setIsBottomSheetOpen(true)
+      }
+      return
+    }
+
+    // Caso 1: Usuário ainda não fez a escolha Sim/Não
+    if (choiceValue === undefined) {
+      setMissingFieldLabel('se possui ' + fieldLabel)
+      setIsValidationBottomSheetOpen(true)
+      return
+    }
+
+    // Caso 2: Usuário escolheu "Sim" (false nos campos 'unknown'/'no') mas deixou o campo de texto vazio
+    if (choiceValue === false && (!fieldValue || String(fieldValue).trim() === '')) {
+      setMissingFieldLabel(fieldLabel)
+      setIsValidationBottomSheetOpen(true)
+      return
+    }
+
+    // Forçar trigger de validação nos campos atuais (Zod)
+    const isValid = await trigger(fieldsToValidate)
+    
+    if (isValid) {
+      if (currentSubStep < subSteps.length - 1) {
+        setCurrentSubStep(prev => prev + 1)
+        window.scrollTo({ top: 0, behavior: 'auto' })
+      } else {
+        setIsBottomSheetOpen(true)
+      }
+    }
+  }, [currentSubStep, subSteps, getValues, trigger])
+
+  useImperativeHandle(ref, () => ({
+    handleBack: () => {
+      handleBack()
+    }
+  }), [handleBack])
+
+  const currentAddress = getValues('address')
+  
+  const unknownRegistration = watch('unknownRegistration')
+  const noAllotment = watch('noAllotment')
+  const noBlock = watch('noBlock')
+  const noLot = watch('noLot')
+
+  const registrationRef = useRef<HTMLInputElement>(null)
+  const allotmentRef = useRef<HTMLInputElement>(null)
+  const blockRef = useRef<HTMLInputElement>(null)
+  const lotRef = useRef<HTMLInputElement>(null)
+
+  const handleConfirm = useCallback(() => {
     setIsBottomSheetOpen(false)
     onNext()
-  }
+  }, [onNext])
 
-  const handleInputScroll = (e: React.SyntheticEvent<HTMLTextAreaElement>) => {
-    const target = e.currentTarget
-
-    setTimeout(() => {
-      target.scrollIntoView({
-        behavior: 'smooth',
-        block: 'center',
-        inline: 'nearest'
-      })
-    }, 300)
-  }
+  const showNextButton = useMemo(() => {
+    const currentStepName = subSteps[currentSubStep]
+    if (currentStepName === 'registration') {
+      return unknownRegistration === false
+    }
+    if (currentStepName === 'allotment') {
+      return noAllotment === false
+    }
+    if (currentStepName === 'block') {
+      return noBlock === false
+    }
+    if (currentStepName === 'lot') {
+      return noLot === false
+    }
+    return true
+  }, [currentSubStep, subSteps, unknownRegistration, noAllotment, noBlock, noLot])
 
   return (
     <div className="flex flex-col gap-6 min-h-[calc(100vh-7.5rem)] relative px-4 pb-32">
@@ -150,10 +163,10 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
 
         <div className="flex flex-col gap-2">
           <TextTitle className="text-dark">
-            {subSteps[currentSubStep] === 'registration' && 'Qual o número da matrícula?'}
-            {subSteps[currentSubStep] === 'allotment' && 'Qual o loteamento?'}
-            {subSteps[currentSubStep] === 'block' && 'Qual a quadra?'}
-            {subSteps[currentSubStep] === 'lot' && 'Qual o lote?'}
+            {subSteps[currentSubStep] === 'registration' && 'Você tem o número da matrícula?'}
+            {subSteps[currentSubStep] === 'allotment' && 'Você tem o nome do loteamento?'}
+            {subSteps[currentSubStep] === 'block' && 'Você tem o número da quadra?'}
+            {subSteps[currentSubStep] === 'lot' && 'Você tem o número do lote?'}
           </TextTitle>
           <TextSubtitle>Precisamos dessa informação para localizar seu imóvel</TextSubtitle>
         </div>
@@ -163,15 +176,16 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
             {unknownRegistration === undefined ? (
               <ChoiceCards
                 value={undefined}
+                yesLabel="Tenho o número da matrícula"
+                noLabel="Não tenho o número da matrícula"
                 onChange={(hasInfo) => {
                   const isUnknown = !hasInfo
-                  flushSync(() => {
-                    setValue('unknownRegistration', isUnknown)
-                  })
                   if (isUnknown) {
+                    setValue('unknownRegistration', isUnknown)
                     setValue('registrationNumber', '')
-                    setTimeout(() => handleContinue(true), 300)
+                    handleContinue(true)
                   } else {
+                    setValue('unknownRegistration', isUnknown)
                     registrationRef.current?.focus()
                   }
                 }}
@@ -216,7 +230,6 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
                       })}
                       ref={(e) => {
                         register('registrationNumber').ref(e)
-                        // @ts-ignore
                         registrationRef.current = e
                       }}
                       className={`
@@ -251,15 +264,16 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
             {noAllotment === undefined ? (
               <ChoiceCards
                 value={undefined}
+                yesLabel="Tenho o nome do loteamento"
+                noLabel="Não tenho o nome do loteamento"
                 onChange={(hasInfo) => {
                   const isNoInfo = !hasInfo
-                  flushSync(() => {
-                    setValue('noAllotment', isNoInfo)
-                  })
                   if (isNoInfo) {
+                    setValue('noAllotment', isNoInfo)
                     setValue('allotment', '')
-                    setTimeout(() => handleContinue(true), 300)
+                    handleContinue(true)
                   } else {
+                    setValue('noAllotment', isNoInfo)
                     allotmentRef.current?.focus()
                   }
                 }}
@@ -297,7 +311,6 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
                       {...register('allotment')}
                       ref={(e) => {
                         register('allotment').ref(e)
-                        // @ts-ignore
                         allotmentRef.current = e
                       }}
                       className={`
@@ -332,15 +345,16 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
             {noBlock === undefined ? (
               <ChoiceCards
                 value={undefined}
+                yesLabel="Tenho o número da quadra"
+                noLabel="Não tenho o número da quadra"
                 onChange={(hasInfo) => {
                   const isNoInfo = !hasInfo
-                  flushSync(() => {
-                    setValue('noBlock', isNoInfo)
-                  })
                   if (isNoInfo) {
+                    setValue('noBlock', isNoInfo)
                     setValue('block', '')
-                    setTimeout(() => handleContinue(true), 300)
+                    handleContinue(true)
                   } else {
+                    setValue('noBlock', isNoInfo)
                     blockRef.current?.focus()
                   }
                 }}
@@ -379,7 +393,6 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
                       {...register('block')}
                       ref={(e) => {
                         register('block').ref(e)
-                        // @ts-ignore
                         blockRef.current = e
                       }}
                       className={`
@@ -414,14 +427,14 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
             {noLot === undefined ? (
               <ChoiceCards
                 value={undefined}
+                yesLabel="Tenho o número do lote"
+                noLabel="Não tenho o número do lote"
                 onChange={(hasInfo) => {
                   const isNoInfo = !hasInfo
-                  flushSync(() => {
-                    setValue('noLot', isNoInfo)
-                  })
+                  setValue('noLot', isNoInfo)
                   if (isNoInfo) {
                     setValue('lot', '')
-                    setTimeout(() => handleContinue(true), 300)
+                    handleContinue(true)
                   } else {
                     lotRef.current?.focus()
                   }
@@ -461,7 +474,6 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
                       {...register('lot')}
                       ref={(e) => {
                         register('lot').ref(e)
-                        // @ts-ignore
                         lotRef.current = e
                       }}
                       className={`
@@ -491,22 +503,24 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
           </div>
         )}
       </div>
-      <div className="
-        fixed bottom-0 left-0 right-0 
-        px-4 pt-5 pb-7 
-        bg-white mt-auto 
-        border-t border-gray-100 
-        z-10
-        supports-[-webkit-touch-callout:none]:pb-10
-      ">
-        <Button 
-          className="w-full h-12 text-base rounded-xl" 
-          onClick={() => handleContinue()}
-          icon={<ChevronRight className="size-5" />}
-        >
-          {currentSubStep < subSteps.length - 1 ? 'Próximo' : 'Continuar'}
-        </Button>
-      </div>
+      {showNextButton && (
+        <div className="
+          fixed bottom-0 left-0 right-0 
+          px-4 pt-5 pb-7 
+          bg-white mt-auto 
+          border-t border-gray-100 
+          z-10
+          supports-[-webkit-touch-callout:none]:pb-10
+        ">
+          <Button 
+            className="w-full h-12 text-base rounded-xl" 
+            onClick={() => handleContinue()}
+            icon={<ChevronRight className="size-5" />}
+          >
+            {currentSubStep < subSteps.length - 1 ? 'Próximo' : 'Continuar'}
+          </Button>
+        </div>
+      )}
 
       <BottomSheet 
         isOpen={isBottomSheetOpen} 
@@ -546,7 +560,7 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
             <Button 
               onClick={() => setIsBottomSheetOpen(false)}
               className="bg-gray-100 hover:bg-gray-200 text-gray-600 shadow-none border border-gray-200 h-12 rounded-xl"
-              icon={<ChevronRight className="size-5 rotate-180" />}
+              icon={<ChevronLeft className="size-5" />}
             >
               Voltar
             </Button>
@@ -573,7 +587,7 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
             </p>
 
             <p className="text-sm text-gray-500 leading-relaxed">
-              Esta informação é necessária para localizarmos o seu imóvel com precisão. Caso não possua a informação, você pode marcar a opção "Não Tenho" acima.
+              Esta informação é necessária para localizarmos o seu imóvel com precisão. Caso não possua a informação, você pode marcar a opção &quot;Não Tenho&quot; acima.
             </p>
           </div>
 
@@ -591,3 +605,4 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
     </div >
   )
 })
+AddressComplementStep.displayName = 'AddressComplementStep'

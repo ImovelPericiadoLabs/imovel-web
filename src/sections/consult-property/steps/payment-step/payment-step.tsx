@@ -5,7 +5,6 @@ import { QrCode, CreditCard, Barcode, DollarSign, LucideIcon, Check } from 'luci
 import TextTitle from '@/components/text-title'
 import TextSubtitle from '@/components/text-subtitle'
 import { Switch } from '@/components/switch'
-import SelectedAddressCard from '@/components/selected-address-card'
 
 type PaymentMethodType = 'pix' | 'credit_card' | 'debit_card' | 'boleto'
 
@@ -63,7 +62,6 @@ export function PaymentStep({
   return (
     <div className="relative flex-1 px-4">
       <div className="flex flex-col gap-5 pb-24 md:pb-0">
-        <SelectedAddressCard address={watch('address')} />
         <div className="flex flex-col gap-2 px-1">
           <TextTitle className="text-dark">Escolha como pagar</TextTitle>
           <TextSubtitle>Selecione o método de pagamento de sua preferência</TextSubtitle>

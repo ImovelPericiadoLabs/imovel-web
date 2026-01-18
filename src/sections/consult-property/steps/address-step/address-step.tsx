@@ -1,7 +1,6 @@
 'use client'
 
-import { useState, useRef, useImperativeHandle, forwardRef } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useRef, useImperativeHandle, forwardRef, useCallback, useMemo } from 'react'
 import { Home, MouseOff, FileText, BellDot, Package, ArrowUp } from 'lucide-react'
 import { useFormContext } from 'react-hook-form'
 import { useQuery, useMutation } from '@tanstack/react-query'
@@ -23,7 +22,6 @@ const initialHomeItems = [
 ]
 
 export const AddressStep = forwardRef(({ onNext }: { onNext: () => void }, ref) => {
-  const router = useRouter()
   const { setValue } = useFormContext()
   const [address, setAddress] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
@@ -36,7 +34,7 @@ export const AddressStep = forwardRef(({ onNext }: { onNext: () => void }, ref) 
 
   const debouncedAddress = useDebounce(address, 1000)
 
-  const getValidationError = () => {
+  const getValidationError = useCallback(() => {
     if (debouncedAddress?.length > 0) {
       if (debouncedAddress?.length !== address?.length) return null
       if (debouncedAddress.length < 3) {
@@ -47,7 +45,7 @@ export const AddressStep = forwardRef(({ onNext }: { onNext: () => void }, ref) 
       }
     }
     return null
-  }
+  }, [debouncedAddress, address])
 
   const { data, isLoading, isEnabled, isError, error: queryError } = useQuery({
     queryKey: [queryKey.getAddresses, debouncedAddress],
@@ -57,14 +55,20 @@ export const AddressStep = forwardRef(({ onNext }: { onNext: () => void }, ref) 
     retry: 1,
   })
 
-  const getDisplayError = () => {
+  const getDisplayError = useCallback(() => {
     const validation = getValidationError()
     if (validation) return validation
 
     if (!isError || !queryError) return null
 
     if (IS_DEBUG_MODE) {
-      const err = queryError as any
+      const err = queryError as { 
+        message?: string; 
+        code?: string; 
+        response?: { status: number; data: unknown }; 
+        config?: { url: string };
+        name?: string;
+      }
       const debugInfo = {
         TYPE: 'DEBUG_MODE_ON',
         MESSAGE: err.message,
@@ -79,15 +83,15 @@ export const AddressStep = forwardRef(({ onNext }: { onNext: () => void }, ref) 
       }
     }
 
-    const friendlyMessage = (queryError as any).message || 'Não foi possível buscar o endereço.'
+    const friendlyMessage = (queryError as { message?: string }).message || 'Não foi possível buscar o endereço.'
 
     return {
       title: 'Não encontramos endereços',
       subtitle: friendlyMessage
     }
-  }
+  }, [getValidationError, isError, queryError])
 
-  const displayError = getDisplayError()
+  const displayError = useMemo(() => getDisplayError(), [getDisplayError])
 
   const { mutateAsync: listRegistryMutate, isPending: isLoadingListRegistry } = useMutation({
     mutationFn: listRegistry,
@@ -100,26 +104,32 @@ export const AddressStep = forwardRef(({ onNext }: { onNext: () => void }, ref) 
     mutationFn: listAddress,
   })
 
-  async function handleSelectAddress(placeId: string) {
+  const handleSelectAddress = useCallback(async (placeId: string) => {
     setValue('placeId', placeId)
 
     const response = await listAddressMutate({ address, placeId })
 
     return response as { address: string; addressNumber: string | null }
-  }
-  function handleChangeAddress(e: React.ChangeEvent<HTMLInputElement>) {
-    setAddress(e.target.value)
-  }
+  }, [setValue, listAddressMutate, address])
 
-  async function handleSubmit(value: string) {
+  const handleChangeAddress = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setAddress(e.target.value)
+  }, [])
+
+  const handleSubmit = useCallback(async (value: string) => {
     setValue('address', value)
     await listRegistryMutate(value)
     onNext()
-  }
+  }, [setValue, listRegistryMutate, onNext])
 
-  function handleClearAddress() {
+  const handleClearAddress = useCallback(() => {
     setAddress('')
-  }
+  }, [])
+
+  const handleFocusClick = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault()
+    inputRef.current?.focus()
+  }, [])
 
   return (
     <div className="flex flex-col h-full w-full px-4 relative">
@@ -127,27 +137,37 @@ export const AddressStep = forwardRef(({ onNext }: { onNext: () => void }, ref) 
         <TextTitle className="text-white">Para começar, onde fica seu imóvel?</TextTitle>
 
         <div className="relative">
-          <AutoCompleteAddressInput
-            ref={inputRef}
-            placeholder="Buscar endereço"
-            options={data}
-            onChange={handleChangeAddress}
-            onConfirm={handleSubmit}
-            isLoading={isLoading}
-            onSelectAddress={handleSelectAddress}
-            isLoadingAddress={isLoadingListAddress}
-            error={displayError}
-            isDirty={isEnabled}
-            onClear={handleClearAddress}
-          />
+          <button 
+            onClick={handleFocusClick}
+            onTouchStart={handleFocusClick}
+            className="w-full text-left outline-none"
+          >
+            <AutoCompleteAddressInput
+              ref={inputRef}
+              placeholder="Buscar endereço"
+              options={data}
+              onChange={handleChangeAddress}
+              onConfirm={handleSubmit}
+              isLoading={isLoading}
+              onSelectAddress={handleSelectAddress}
+              isLoadingAddress={isLoadingListAddress}
+              error={displayError}
+              isDirty={isEnabled}
+              onClear={handleClearAddress}
+            />
+          </button>
 
           {!address?.length && (
-            <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 flex flex-col items-center animate-bounce pointer-events-none">
-              <ArrowUp className="size-6 text-primary mb-1" />
-              <span className="text-primary font-bold text-sm bg-primary/10 px-3 py-1 rounded-full whitespace-nowrap">
+            <button 
+              onClick={handleFocusClick}
+              onTouchStart={handleFocusClick}
+              className="absolute -bottom-12 left-1/2 -translate-x-1/2 flex flex-col items-center animate-bounce cursor-pointer group outline-none"
+            >
+              <ArrowUp className="size-6 text-primary mb-1 group-active:scale-90 transition-transform" />
+              <span className="text-primary font-bold text-sm bg-primary/10 px-3 py-1 rounded-full whitespace-nowrap group-active:scale-95 transition-transform">
                 Toque aqui para digitar o endereço
               </span>
-            </div>
+            </button>
           )}
         </div>
 
@@ -182,8 +202,8 @@ export const AddressStep = forwardRef(({ onNext }: { onNext: () => void }, ref) 
           <Button
             href="/consultas" 
             className="flex items-center justify-center gap-2 w-full shadow-lg"
+            icon={<Package className="size-5" />}
           >
-            <Package className="size-5" />
             Minhas Consultas
           </Button>
         </div>
@@ -196,3 +216,4 @@ export const AddressStep = forwardRef(({ onNext }: { onNext: () => void }, ref) 
     </div>
   )
 })
+AddressStep.displayName = 'AddressStep'

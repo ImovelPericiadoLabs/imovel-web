@@ -1,6 +1,7 @@
 'use client'
 
-import { MapPin, Building, Users, Check, ChevronRight, Info } from 'lucide-react'
+import { useMemo } from 'react'
+import { MapPin, Building, Users, ChevronRight } from 'lucide-react'
 import { useFormContext } from 'react-hook-form'
 import TextTitle from '@/components/text-title'
 import TextSubtitle from '@/components/text-subtitle'
@@ -10,13 +11,13 @@ import SelectedAddressCard from '@/components/selected-address-card'
 export function SummaryStep({ onNext }: { onNext: () => void }) {
   const { getValues } = useFormContext()
 
-  const mapDocumentType: Record<string, string> = {
+  const mapDocumentType: Record<string, string> = useMemo(() => ({
     agreement: 'Contrato de compra e venda',
     registration: 'Matrícula',
     deed: 'Escritura',
-  }
+  }), [])
 
-  const summary = {
+  const summary = useMemo(() => ({
     address: {
       icon: MapPin,
       title: 'Endereço',
@@ -52,7 +53,7 @@ export function SummaryStep({ onNext }: { onNext: () => void }) {
       title: 'Lote',
       value: getValues('lot'),
     },
-  }
+  }), [getValues, mapDocumentType])
 
   return (
     <div className="flex flex-col gap-5 min-h-[calc(100vh-7.5rem)] relative">
