@@ -4,6 +4,7 @@ import { ChoiceCards } from '@/components/choice-cards'
 import { MapPin, Building, Clock, Box, Layout, Hash, Info } from 'lucide-react'
 import { useFormContext } from 'react-hook-form'
 import { useState, useRef, useImperativeHandle, forwardRef } from 'react'
+import { flushSync } from 'react-dom'
 import TextTitle from '@/components/text-title'
 import Button from '@/components/button'
 import BottomSheet from '@/components/bottom-sheet'
@@ -40,13 +41,13 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
     registrationNumber: {
       content: (
         <div className="mt-2 flex flex-col gap-3">
-          <p className="text-xs text-gray-600 leading-relaxed">
-            A <strong>matrícula</strong> é o "RG" do imóvel. É um documento único que contém todo o histórico de um imóvel, como quem são os proprietários atuais, se existem dívidas ou impedimentos para venda.
+          <p className="text-sm text-gray-600 leading-relaxed">
+            A <strong>matrícula</strong> é o documento único que contém todo o histórico do imóvel, como proprietários e possíveis dívidas.
           </p>
-          <div className="bg-blue-50 p-3 rounded-lg border border-blue-100">
-            <h4 className="font-semibold text-blue-900 text-[10px] mb-1">Onde encontrar?</h4>
-            <p className="text-[10px] text-blue-800 leading-relaxed">
-              Você pode encontrar esse número na <strong>escritura</strong> do imóvel ou em um <strong>contrato de compra e venda</strong>. Geralmente aparece como "Matrícula nº" seguido de alguns dígitos.
+          <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
+            <h4 className="font-bold text-blue-900 text-xs mb-1">Onde encontrar?</h4>
+            <p className="text-xs text-blue-800 leading-relaxed">
+              Consulte a <strong>escritura</strong> ou o <strong>contrato de compra e venda</strong>. Procure por "Matrícula nº".
             </p>
           </div>
         </div>
@@ -55,13 +56,13 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
     allotment: {
       content: (
         <div className="mt-2 flex flex-col gap-3">
-          <p className="text-xs text-gray-600 leading-relaxed">
-            O <strong>loteamento</strong> é a subdivisão de uma gleba de terra em lotes destinados a edificação, com abertura de novas vias de circulação.
+          <p className="text-sm text-gray-600 leading-relaxed">
+            O <strong>loteamento</strong> é a divisão de uma área em lotes com abertura de novas ruas.
           </p>
-          <div className="bg-blue-50 p-3 rounded-lg border border-blue-100">
-            <h4 className="font-semibold text-blue-900 text-[10px] mb-1">Onde encontrar?</h4>
-            <p className="text-[10px] text-blue-800 leading-relaxed">
-              Esta informação costuma estar no <strong>endereço completo</strong> ou no <strong>contrato do imóvel</strong>. Ex: "Loteamento Jardim das Flores".
+          <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
+            <h4 className="font-bold text-blue-900 text-xs mb-1">Onde encontrar?</h4>
+            <p className="text-xs text-blue-800 leading-relaxed">
+              Esta informação costuma estar no <strong>endereço completo</strong> ou no <strong>contrato do imóvel</strong>.
             </p>
           </div>
         </div>
@@ -70,13 +71,13 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
     block: {
       content: (
         <div className="mt-2 flex flex-col gap-3">
-          <p className="text-xs text-gray-600 leading-relaxed">
-            A <strong>quadra</strong> é a área delimitada por ruas ou avenidas onde o lote está localizado dentro de um loteamento ou bairro.
+          <p className="text-sm text-gray-600 leading-relaxed">
+            A <strong>quadra</strong> é a área delimitada por ruas onde o lote está localizado.
           </p>
-          <div className="bg-blue-50 p-3 rounded-lg border border-blue-100">
-            <h4 className="font-semibold text-blue-900 text-[10px] mb-1">Onde encontrar?</h4>
-            <p className="text-[10px] text-blue-800 leading-relaxed">
-              Verifique no seu <strong>carnê de IPTU</strong> ou no <strong>contrato de compra e venda</strong>. Costuma ser identificada por letras ou números (Ex: Quadra A, Quadra 12).
+          <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
+            <h4 className="font-bold text-blue-900 text-xs mb-1">Onde encontrar?</h4>
+            <p className="text-xs text-blue-800 leading-relaxed">
+              Verifique no seu <strong>carnê de IPTU</strong> ou no <strong>contrato de compra e venda</strong>.
             </p>
           </div>
         </div>
@@ -85,13 +86,13 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
     lot: {
       content: (
         <div className="mt-2 flex flex-col gap-3">
-          <p className="text-xs text-gray-600 leading-relaxed">
-            O <strong>lote</strong> é a parcela de terra resultante de um loteamento, com identificação específica dentro de uma quadra.
+          <p className="text-sm text-gray-600 leading-relaxed">
+            O <strong>lote</strong> é a parcela específica de terra identificada dentro de uma quadra.
           </p>
-          <div className="bg-blue-50 p-3 rounded-lg border border-blue-100">
-            <h4 className="font-semibold text-blue-900 text-[10px] mb-1">Onde encontrar?</h4>
-            <p className="text-[10px] text-blue-800 leading-relaxed">
-              Assim como a quadra, o lote está presente no <strong>IPTU</strong> ou na <strong>escritura</strong>. É o número que identifica sua propriedade dentro daquela quadra específica.
+          <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
+            <h4 className="font-bold text-blue-900 text-xs mb-1">Onde encontrar?</h4>
+            <p className="text-xs text-blue-800 leading-relaxed">
+              Consulte o seu <strong>carnê de IPTU</strong> ou a <strong>escritura</strong> do imóvel.
             </p>
           </div>
         </div>
@@ -220,7 +221,7 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
 
         {subSteps[currentSubStep] === 'registration' && (
           <div className="flex flex-col gap-3">
-            <div className="bg-white border border-gray-100 rounded-lg p-4 shadow-sm">
+            <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm">
               {helpInfo.registrationNumber.content}
             </div>
 
@@ -229,12 +230,14 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
                 value={undefined}
                 onChange={(hasInfo) => {
                   const isUnknown = !hasInfo
-                  setValue('unknownRegistration', isUnknown)
+                  flushSync(() => {
+                    setValue('unknownRegistration', isUnknown)
+                  })
                   if (isUnknown) {
                     setValue('registrationNumber', '')
                     setTimeout(() => handleContinue(true), 300)
                   } else {
-                    setTimeout(() => registrationRef.current?.focus(), 100)
+                    registrationRef.current?.focus()
                   }
                 }}
               />
@@ -306,7 +309,7 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
               </div>
             )}
 
-            <p className="text-xs text-gray-500 ml-1 leading-relaxed">
+            <p className="text-sm text-gray-500 ml-1 leading-relaxed">
               O número da matrícula é o registro único do imóvel no cartório.
             </p>
           </div>
@@ -314,7 +317,7 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
 
         {subSteps[currentSubStep] === 'allotment' && (
           <div className="flex flex-col gap-3">
-            <div className="bg-white border border-gray-100 rounded-lg p-4 shadow-sm mb-2">
+            <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm mb-2">
               {helpInfo.allotment.content}
             </div>
 
@@ -323,12 +326,14 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
                 value={undefined}
                 onChange={(hasInfo) => {
                   const isNoInfo = !hasInfo
-                  setValue('noAllotment', isNoInfo)
+                  flushSync(() => {
+                    setValue('noAllotment', isNoInfo)
+                  })
                   if (isNoInfo) {
                     setValue('allotment', '')
                     setTimeout(() => handleContinue(true), 300)
                   } else {
-                    setTimeout(() => allotmentRef.current?.focus(), 100)
+                    allotmentRef.current?.focus()
                   }
                 }}
               />
@@ -397,7 +402,7 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
 
         {subSteps[currentSubStep] === 'block' && (
           <div className="flex flex-col gap-3">
-            <div className="bg-white border border-gray-100 rounded-lg p-4 shadow-sm mb-2">
+            <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm mb-2">
               {helpInfo.block.content}
             </div>
 
@@ -406,12 +411,14 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
                 value={undefined}
                 onChange={(hasInfo) => {
                   const isNoInfo = !hasInfo
-                  setValue('noBlock', isNoInfo)
+                  flushSync(() => {
+                    setValue('noBlock', isNoInfo)
+                  })
                   if (isNoInfo) {
                     setValue('block', '')
                     setTimeout(() => handleContinue(true), 300)
                   } else {
-                    setTimeout(() => blockRef.current?.focus(), 100)
+                    blockRef.current?.focus()
                   }
                 }}
               />
@@ -481,7 +488,7 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
 
         {subSteps[currentSubStep] === 'lot' && (
           <div className="flex-1 flex flex-col gap-3">
-            <div className="bg-white border border-gray-100 rounded-lg p-4 shadow-sm mb-2">
+            <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm mb-2">
               {helpInfo.lot.content}
             </div>
 
@@ -490,12 +497,14 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
                 value={undefined}
                 onChange={(hasInfo) => {
                   const isNoInfo = !hasInfo
-                  setValue('noLot', isNoInfo)
+                  flushSync(() => {
+                    setValue('noLot', isNoInfo)
+                  })
                   if (isNoInfo) {
                     setValue('lot', '')
                     setTimeout(() => handleContinue(true), 300)
                   } else {
-                    setTimeout(() => lotRef.current?.focus(), 100)
+                    lotRef.current?.focus()
                   }
                 }}
               />
