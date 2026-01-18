@@ -4,7 +4,7 @@ import { Check, X as XIcon } from 'lucide-react'
 
 export interface ChoiceCardsProps {
   value: boolean | undefined
-  onChange: (hasInfo: boolean) => void
+  onChange: (hasInfo: boolean, event?: React.MouseEvent | React.TouchEvent) => void
   yesLabel?: string
   noLabel?: string
   yesSubtitle?: string
@@ -27,7 +27,8 @@ export function ChoiceCards({
       <div className="flex flex-col gap-3">
         <button
           type="button"
-          onClick={() => onChange(true)}
+          onClick={(e) => onChange(true, e)}
+          onTouchStart={(e) => onChange(true, e)}
           className={`
             w-full flex items-center gap-4 p-4 rounded-xl border transition-all duration-200 text-left
             ${isSim 
@@ -52,7 +53,8 @@ export function ChoiceCards({
 
         <button
           type="button"
-          onClick={() => onChange(false)}
+          onClick={(e) => onChange(false, e)}
+          onTouchStart={(e) => onChange(false, e)}
           className={`
             w-full flex items-center gap-4 p-4 rounded-xl border transition-all duration-200 text-left
             ${isNao

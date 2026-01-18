@@ -32,6 +32,8 @@ export const AddressStep = forwardRef(({ onNext }: { onNext: () => void }, ref) 
         inputRef.current.focus()
         // Garantir que o teclado abra no iOS
         inputRef.current.click()
+        // Forçar scroll para o input
+        inputRef.current.scrollIntoView({ behavior: 'auto', block: 'center' })
       }
     }
   }))
@@ -131,8 +133,9 @@ export const AddressStep = forwardRef(({ onNext }: { onNext: () => void }, ref) 
   }, [])
 
   const handleFocusClick = useCallback((e: React.MouseEvent | React.TouchEvent) => {
-    e.preventDefault()
+    // Não usar preventDefault aqui para permitir que o sistema entenda como uma interação direta se necessário
     inputRef.current?.focus()
+    inputRef.current?.click()
   }, [])
 
   return (

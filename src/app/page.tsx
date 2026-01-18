@@ -92,10 +92,18 @@ export default function ConsultarImovelPage() {
     }
   }
 
-  const handleTouchStart = () => {
+  const handleTouchStart = (e: React.TouchEvent) => {
     if (isUnlocked) {
+      // Tentar pré-focar silenciosamente ou disparar a navegação o mais rápido possível
       localStorage.setItem('vsl-unlocked', 'true')
       router.push('/consultar-imovel?autoFocus=true')
+      
+      // No iOS, disparar um clique fantasma pode ajudar a manter a cadeia de interação do usuário ativa
+      e.currentTarget.dispatchEvent(new MouseEvent('click', {
+        view: window,
+        bubbles: true,
+        cancelable: true
+      }))
     }
   }
 

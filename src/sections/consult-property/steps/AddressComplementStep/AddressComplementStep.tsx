@@ -186,7 +186,9 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
                     handleContinue(true)
                   } else {
                     setValue('unknownRegistration', isUnknown)
+                    // No iOS, o focus() precisa ser imediato na cadeia de evento de touch/click
                     registrationRef.current?.focus()
+                    registrationRef.current?.click()
                   }
                 }}
               />
@@ -275,6 +277,7 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
                   } else {
                     setValue('noAllotment', isNoInfo)
                     allotmentRef.current?.focus()
+                    allotmentRef.current?.click()
                   }
                 }}
               />
@@ -356,6 +359,7 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
                   } else {
                     setValue('noBlock', isNoInfo)
                     blockRef.current?.focus()
+                    blockRef.current?.click()
                   }
                 }}
               />
@@ -437,6 +441,7 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
                     handleContinue(true)
                   } else {
                     lotRef.current?.focus()
+                    lotRef.current?.click()
                   }
                 }}
               />

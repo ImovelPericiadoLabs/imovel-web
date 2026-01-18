@@ -69,7 +69,10 @@ export default function ConsultProperty() {
   useEffect(() => {
     if (flow === 'address') {
       const handleFocus = () => {
-        addressStepRef.current?.focus()
+        // Pequeno timeout para garantir que o componente montou e o input está disponível
+        setTimeout(() => {
+          addressStepRef.current?.focus()
+        }, 50)
       }
 
       // Se viemos da home com o parâmetro autoFocus
