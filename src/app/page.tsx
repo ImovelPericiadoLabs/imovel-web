@@ -92,6 +92,13 @@ export default function ConsultarImovelPage() {
     }
   }
 
+  const handleTouchStart = () => {
+    if (isUnlocked) {
+      localStorage.setItem('vsl-unlocked', 'true')
+      router.push('/consultar-imovel?autoFocus=true')
+    }
+  }
+
   return (
     <main className="relative w-full h-dvh overflow-hidden bg-black font-sans text-white flex justify-center items-center">
       <div className="relative w-full h-full lg:h-auto lg:max-w-[calc(100dvh*(16/9))] lg:aspect-video mx-auto flex flex-col items-center justify-center overflow-hidden shadow-2xl">
@@ -176,6 +183,7 @@ export default function ConsultarImovelPage() {
               <div className="pointer-events-auto">
                 <Button
                   onClick={handleStart}
+                  onTouchStart={handleTouchStart}
                   disabled={!isUnlocked}
                   className={`
                     w-full h-10 rounded-full text-xs font-semibold transition-all duration-300

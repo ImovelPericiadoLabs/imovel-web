@@ -77,8 +77,12 @@ export default function ConsultProperty() {
       if (params.get('autoFocus') === 'true') {
         // No iOS, o focus() só funciona se for disparado por uma ação do usuário.
         // Como o autoFocus vem de um redirecionamento (URL), o iOS pode bloquear o teclado.
-        // Removendo o delay para ser instantâneo em sistemas que permitem.
+        // Tentamos focar o mais rápido possível.
         handleFocus()
+
+        // Removemos o parâmetro da URL para não focar novamente ao atualizar
+        const newUrl = window.location.pathname
+        window.history.replaceState({}, '', newUrl)
       }
     }
   }, [flow])

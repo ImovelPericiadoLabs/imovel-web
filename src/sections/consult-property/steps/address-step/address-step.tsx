@@ -28,7 +28,11 @@ export const AddressStep = forwardRef(({ onNext }: { onNext: () => void }, ref) 
 
   useImperativeHandle(ref, () => ({
     focus: () => {
-      inputRef.current?.focus()
+      if (inputRef.current) {
+        inputRef.current.focus()
+        // Garantir que o teclado abra no iOS
+        inputRef.current.click()
+      }
     }
   }))
 
