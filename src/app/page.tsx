@@ -88,7 +88,8 @@ export default function ConsultarImovelPage() {
   const handleStart = () => {
     if (isUnlocked) {
       localStorage.setItem('vsl-unlocked', 'true')
-      router.push('/consultar-imovel?autoFocus=true')
+      sessionStorage.setItem('autoFocusAddress', String(Date.now()))
+      router.push('/consultar-imovel')
     }
   }
 
@@ -96,7 +97,8 @@ export default function ConsultarImovelPage() {
     if (isUnlocked) {
       // Tentar pré-focar silenciosamente ou disparar a navegação o mais rápido possível
       localStorage.setItem('vsl-unlocked', 'true')
-      router.push('/consultar-imovel?autoFocus=true')
+      sessionStorage.setItem('autoFocusAddress', String(Date.now()))
+      router.push('/consultar-imovel')
       
       // No iOS, disparar um clique fantasma pode ajudar a manter a cadeia de interação do usuário ativa
       e.currentTarget.dispatchEvent(new MouseEvent('click', {

@@ -70,23 +70,30 @@ export default function ConsultProperty() {
   useEffect(() => {
     if (flow === 'address') {
       const handleFocus = () => {
-        // Pequeno timeout para garantir que o componente montou e o input está disponível
+        // Garantir que o input já está renderizado antes do foco (iOS)
+        requestAnimationFrame(() => {
+          addressStepRef.current?.focus()
+        })
         setTimeout(() => {
           addressStepRef.current?.focus()
-        }, 50)
+        }, 120)
       }
 
-      // Se viemos da home com o parâmetro autoFocus
       const params = new URLSearchParams(window.location.search)
-      if (params.get('autoFocus') === 'true') {
-        // No iOS, o focus() só funciona se for disparado por uma ação do usuário.
-        // Como o autoFocus vem de um redirecionamento (URL), o iOS pode bloquear o teclado.
-        // Tentamos focar o mais rápido possível.
+      const hasAutoFocusParam = params.get('autoFocus') === 'true'
+      const hasAutoFocusFlag = !!sessionStorage.getItem('autoFocusAddress')
+
+      if (hasAutoFocusParam || hasAutoFocusFlag) {
         handleFocus()
 
-        // Removemos o parâmetro da URL para não focar novamente ao atualizar
-        const newUrl = window.location.pathname
-        window.history.replaceState({}, '', newUrl)
+        // Limpar marcações para não focar novamente
+        sessionStorage.removeItem('autoFocusAddress')
+
+        // Atualiza a URL sem recarregar a página
+        if (hasAutoFocusParam) {
+          const newUrl = window.location.pathname
+          window.history.replaceState({}, '', newUrl)
+        }
       }
     }
   }, [flow])
