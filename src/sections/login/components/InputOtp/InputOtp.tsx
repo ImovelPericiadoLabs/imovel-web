@@ -46,8 +46,33 @@ export function InputOtp({
   const inputsRef = useRef<(HTMLInputElement | null)[]>([])
 
   useEffect(() => {
-    if (autoFocus && !disabled) {
-      inputsRef.current[0]?.focus()
+    if (!autoFocus || disabled) return
+
+    let timeoutId: number | null = null
+
+    const handleUserInteraction = () => {
+      if (timeoutId) return
+      timeoutId = window.setTimeout(() => {
+        inputsRef.current[0]?.focus()
+      }, 150)
+
+      window.removeEventListener('touchstart', handleUserInteraction)
+      window.removeEventListener('pointerdown', handleUserInteraction)
+      window.removeEventListener('mousedown', handleUserInteraction)
+      window.removeEventListener('keydown', handleUserInteraction)
+    }
+
+    window.addEventListener('touchstart', handleUserInteraction, { passive: true })
+    window.addEventListener('pointerdown', handleUserInteraction, { passive: true })
+    window.addEventListener('mousedown', handleUserInteraction, { passive: true })
+    window.addEventListener('keydown', handleUserInteraction)
+
+    return () => {
+      if (timeoutId) window.clearTimeout(timeoutId)
+      window.removeEventListener('touchstart', handleUserInteraction)
+      window.removeEventListener('pointerdown', handleUserInteraction)
+      window.removeEventListener('mousedown', handleUserInteraction)
+      window.removeEventListener('keydown', handleUserInteraction)
     }
   }, [autoFocus, disabled])
 

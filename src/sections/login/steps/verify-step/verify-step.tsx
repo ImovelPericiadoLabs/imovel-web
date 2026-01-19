@@ -115,6 +115,7 @@ export function VerifyCodeStep({
             value={field.value ?? ''}
             length={6}
             isError={!!fieldState.error || !!errorMsg}
+            autoFocus={true}
           />
         )}
       />
