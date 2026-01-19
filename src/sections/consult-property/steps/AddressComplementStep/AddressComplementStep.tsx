@@ -209,6 +209,29 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
   const blockRef = useRef<HTMLInputElement>(null)
   const lotRef = useRef<HTMLInputElement>(null)
 
+  const focusCurrentField = useCallback(() => {
+    const step = subSteps[currentSubStep]
+    if (step === 'registration') {
+      registrationRef.current?.focus()
+      registrationRef.current?.click()
+      return
+    }
+    if (step === 'allotment') {
+      allotmentRef.current?.focus()
+      allotmentRef.current?.click()
+      return
+    }
+    if (step === 'block') {
+      blockRef.current?.focus()
+      blockRef.current?.click()
+      return
+    }
+    if (step === 'lot') {
+      lotRef.current?.focus()
+      lotRef.current?.click()
+    }
+  }, [currentSubStep, subSteps])
+
   const showNextButton = useMemo(() => {
     const currentStepName = subSteps[currentSubStep]
     if (currentStepName === 'registration') {
@@ -691,7 +714,12 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
 
           <div className="flex flex-col gap-3">
             <Button 
-              onClick={() => setIsValidationBottomSheetOpen(false)} 
+              onClick={() => {
+                flushSync(() => {
+                  setIsValidationBottomSheetOpen(false)
+                })
+                focusCurrentField()
+              }} 
               className={`w-full h-12 rounded-xl ${validationStyle.button}`}
               icon={<Check className="size-5" />}
             >

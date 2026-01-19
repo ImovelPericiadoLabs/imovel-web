@@ -6,7 +6,8 @@ import { VolumeX } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Button from '@/components/button'
-import ConsultProperty, { type ConsultPropertyHandle } from '@/sections/consult-property'
+import ConsultProperty from '@/sections/consult-property'
+import type { ConsultPropertyHandle } from '@/sections/consult-property/consult-property'
 
 export default function ConsultarImovelPage() {
   const router = useRouter()
