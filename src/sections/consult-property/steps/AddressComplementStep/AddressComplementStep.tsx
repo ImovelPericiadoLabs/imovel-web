@@ -5,6 +5,7 @@ import { Check, Building, Box, Layout, Hash, Info, ChevronRight, ChevronLeft, Pe
 import type { LucideIcon } from 'lucide-react'
 import { useFormContext } from 'react-hook-form'
 import { useState, useRef, useImperativeHandle, forwardRef, useCallback, useMemo } from 'react'
+import { flushSync } from 'react-dom'
 import TextTitle from '@/components/text-title'
 import TextSubtitle from '@/components/text-subtitle'
 import Button from '@/components/button'
@@ -266,7 +267,9 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
                     setValue('registrationNumber', '')
                     handleContinue(true)
                   } else {
-                    setValue('unknownRegistration', isUnknown)
+                    flushSync(() => {
+                      setValue('unknownRegistration', isUnknown)
+                    })
                     // No iOS, o focus() precisa ser imediato na cadeia de evento de touch/click
                     registrationRef.current?.focus()
                     registrationRef.current?.click()
@@ -365,7 +368,9 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
                     setValue('allotment', '')
                     handleContinue(true)
                   } else {
-                    setValue('noAllotment', isNoInfo)
+                    flushSync(() => {
+                      setValue('noAllotment', isNoInfo)
+                    })
                     allotmentRef.current?.focus()
                     allotmentRef.current?.click()
                   }
@@ -456,7 +461,9 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
                     setValue('block', '')
                     handleContinue(true)
                   } else {
-                    setValue('noBlock', isNoInfo)
+                    flushSync(() => {
+                      setValue('noBlock', isNoInfo)
+                    })
                     blockRef.current?.focus()
                     blockRef.current?.click()
                   }
@@ -548,6 +555,9 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
                     setValue('lot', '')
                     handleContinue(true)
                   } else {
+                    flushSync(() => {
+                      setValue('noLot', isNoInfo)
+                    })
                     lotRef.current?.focus()
                     lotRef.current?.click()
                   }
