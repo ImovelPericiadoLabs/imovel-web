@@ -7,6 +7,7 @@ export type SummaryItem = {
   value: React.ReactNode
   icon: LucideIcon
   badge?: string
+  isGroup?: false
 }
 
 export type SummaryGroup = {
@@ -26,7 +27,7 @@ export function SummaryItemsList({ items, className }: Props) {
   return (
     <div className={className}>
       {items.map((item) => {
-        if ('isGroup' in item && item.isGroup) {
+        if (item.isGroup) {
           return (
             <div key={item.key} className="w-full flex border-b border-gray-200 last:border-b-0">
               {item.items.map((subItem, index) => {
