@@ -10,8 +10,11 @@ type PaymentRequest = {
   document: string
   whatsapp: string
   complement?: string
-  registration_number?:number
+  registration_number?: string
   notary?: string
+  lot_number?: string
+  lot_name?: string
+  block_number?: string
 }
 
 export async function processPayment(data: PaymentRequest) {

@@ -43,23 +43,32 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
   const parentForm = useFormContext()
 
   const {
-    addressComplement,
-    registrationNumber,
-    notary,
-    documentId
-  } = useMemo(() => {
-    const rawComplement = parentForm?.getValues('addressComplement')
-    const rawRegistrationNumber = parentForm?.getValues('registrationNumber')
-    const uploadedDoc = parentForm?.getValues('document')
-    const notaryName = parentForm?.getValues('registry')?.name
+      addressComplement,
+      registrationNumber,
+      notary,
+      documentId,
+      allotment,
+      block,
+      lot
+    } = useMemo(() => {
+      const rawComplement = parentForm?.getValues('addressComplement')
+      const rawRegistrationNumber = parentForm?.getValues('registrationNumber')
+      const uploadedDoc = parentForm?.getValues('document')
+      const notaryName = parentForm?.getValues('registry')?.name
+      const rawAllotment = parentForm?.getValues('allotment')
+      const rawBlock = parentForm?.getValues('block')
+      const rawLot = parentForm?.getValues('lot')
 
-    return {
-      addressComplement: rawComplement?.trim() || undefined,
-      registrationNumber: rawRegistrationNumber?.trim() || undefined,
-      notary: notaryName,
-      documentId: uploadedDoc?.id
-    }
-  }, [parentForm])
+      return {
+        addressComplement: rawComplement?.trim() || undefined,
+        registrationNumber: rawRegistrationNumber?.trim() || undefined,
+        notary: notaryName,
+        documentId: uploadedDoc?.id,
+        allotment: rawAllotment?.trim() || undefined,
+        block: rawBlock?.trim() || undefined,
+        lot: rawLot?.trim() || undefined
+      }
+    }, [parentForm])
 
   const [step, setStep] = useState<Step>('details')
   const [copied, setCopied] = useState(false)
@@ -202,10 +211,15 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
           whatsapp: whatsappClean,
           complement: addressComplement,
           registration_number: registrationNumber,
-          notary
+          notary,
+          lot_name: allotment,
+          block_number: block,
+          lot_number: lot
         })
         setStep('pix')
       } catch (error) {
+        console.error('❌ Erro ao processar pagamento:', error);
+
         const err = error as { 
           code?: string; 
           detail?: string; 
@@ -213,8 +227,6 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
           status?: number 
         };
       
-        console.log('❌ Erro capturado:', err);
-
         const isUnauthorized =
           err?.code === 'token_not_valid' ||
           err?.detail === 'Given token not valid for any token type' ||
@@ -222,8 +234,6 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
           err?.status === 401;
 
         if (isUnauthorized) {
-          console.log('🔄 Token inválido detectado. Renovando autenticação...');
-
           await signOut({ redirect: false })
 
           try {
@@ -251,7 +261,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
         setIsAuthLoading(false)
       }
     }
-  }, [trigger, getValues, placeId, clearServerError, status, generatePix, documentId, addressComplement, registrationNumber, notary])
+  }, [trigger, getValues, placeId, clearServerError, status, generatePix, documentId, addressComplement, registrationNumber, notary, allotment, block, lot])
 
   const handleAuthSuccess = useCallback(async (code: string) => {
     setServerError('')
@@ -279,7 +289,10 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
         whatsapp: whatsappClean,
         complement: addressComplement,
         registration_number: registrationNumber,
-        notary
+        notary,
+        lot_name: allotment,
+        block_number: block,
+        lot_number: lot
       })
 
       setStep('pix')
@@ -287,7 +300,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
     } finally {
       setIsAuthLoading(false)
     }
-  }, [setValue, getValues, placeId, generatePix, documentId, addressComplement, registrationNumber, notary])
+  }, [setValue, getValues, placeId, generatePix, documentId, addressComplement, registrationNumber, notary, allotment, block, lot])
 
   const handleCopy = useCallback(async () => {
     try {
@@ -298,8 +311,6 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
       const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true'
 
       if (isDevMode) {
-        console.log('🔧 DEV MODE: Simulando pagamento confirmado...')
-
         setTimeout(() => {
           onFinish()
         }, 1500)
