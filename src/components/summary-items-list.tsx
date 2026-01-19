@@ -45,9 +45,9 @@ export function SummaryItemsList({ items, className }: Props) {
                       <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
                         {subItem.title}
                       </h3>
-                      <p className="text-sm font-semibold text-dark leading-tight">
+                      <div className="text-sm font-semibold text-dark leading-tight">
                         {subItem.value}
-                      </p>
+                      </div>
                     </div>
                   </div>
                 )
@@ -71,9 +71,9 @@ export function SummaryItemsList({ items, className }: Props) {
                 {item.title}
               </h3>
 
-              <p className="text-sm font-semibold text-dark leading-tight">
+              <div className="text-sm font-semibold text-dark leading-tight">
                 {item.value}
-              </p>
+              </div>
 
               {item.badge && (
                 <span className="w-fit uppercase text-[9px] font-bold px-2 py-0.5 mt-1 text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-xl">

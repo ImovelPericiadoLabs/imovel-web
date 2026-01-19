@@ -65,10 +65,26 @@ export default function OrderHeader({ Badge: ExtraBadge }: Props) {
     ? `#${String(order.code).padStart(6, '0')}`
     : '...'
 
-  const detailItems: SummaryItems = []
+  const summaryItems: SummaryItems = [
+    {
+      key: 'address',
+      title: 'Endereço selecionado',
+      icon: MapPin,
+      value: (
+        <div className="flex flex-col gap-1">
+          <span>{order.formatted_address || 'Endereço não informado'}</span>
+          {order.complement && (
+            <span className="text-[10px] text-gray-400 italic">
+              {order.complement}
+            </span>
+          )}
+        </div>
+      )
+    }
+  ]
 
   if (order.registration_number) {
-    detailItems.push({
+    summaryItems.push({
       key: 'registration_number',
       title: 'Matrícula',
       value: order.registration_number,
@@ -77,7 +93,7 @@ export default function OrderHeader({ Badge: ExtraBadge }: Props) {
   }
 
   if (order.lot_name) {
-    detailItems.push({
+    summaryItems.push({
       key: 'lot_name',
       title: 'Loteamento',
       value: order.lot_name,
@@ -86,7 +102,7 @@ export default function OrderHeader({ Badge: ExtraBadge }: Props) {
   }
 
   if (order.block_number && order.lot_number) {
-    detailItems.push({
+    summaryItems.push({
       key: 'block-lot',
       isGroup: true,
       items: [
@@ -106,7 +122,7 @@ export default function OrderHeader({ Badge: ExtraBadge }: Props) {
     })
   } else {
     if (order.block_number) {
-      detailItems.push({
+      summaryItems.push({
         key: 'block_number',
         title: 'Quadra',
         value: order.block_number,
@@ -115,7 +131,7 @@ export default function OrderHeader({ Badge: ExtraBadge }: Props) {
     }
 
     if (order.lot_number) {
-      detailItems.push({
+      summaryItems.push({
         key: 'lot_number',
         title: 'Lote',
         value: order.lot_number,
@@ -142,29 +158,9 @@ export default function OrderHeader({ Badge: ExtraBadge }: Props) {
         </div>
       </div>
 
-      {/* Endereço */}
-      <div className="bg-box rounded-sm px-4 py-5 w-full mx-auto lg:max-w-lg">
-        <div className="flex gap-4">
-          <MapPin className={cn('size-6 shrink-0', theme.text)} />
-
-          <div className="flex flex-col gap-1">
-            <p className="text-xs font-normal leading-[130%] break-words text-gray-900">
-              {order.formatted_address || 'Endereço não informado'}
-            </p>
-
-            {order.complement && (
-              <p className="text-[10px] text-gray-400 italic">
-                {order.complement}
-              </p>
-            )}
-          </div>
-        </div>
-
-        {detailItems.length > 0 && (
-          <div className="mt-4 pt-4 border-t border-gray-200">
-            <SummaryItemsList items={detailItems} />
-          </div>
-        )}
+      {/* Resumo do imóvel */}
+      <div className="w-full mx-auto lg:max-w-lg bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <SummaryItemsList items={summaryItems} />
       </div>
 
       {/* Status / Semáforo */}
