@@ -46,7 +46,7 @@ export type Order = {
 export type OwnersDetails = {
     id: string
     name: string,
-    textId: string,
+    tax_id: string | null,
     undivided_interest: number
 }
 

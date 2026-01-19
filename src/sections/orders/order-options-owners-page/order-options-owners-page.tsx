@@ -75,7 +75,7 @@ export default function OrderOptionsOwnersPage() {
                 </p>
 
                 <p className="text-dark text-xs font-normal leading-4 group-hover:text-primary">
-                  {owner.textId ?? 'Não Disponível'}
+                  {owner.tax_id ?? 'Não Disponível'}
                 </p>
 
                 <BadgeComponent>
