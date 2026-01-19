@@ -59,6 +59,36 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
       badgeClassName: 'text-violet-700 bg-violet-100/80 border-violet-200',
     },
   }), [])
+  const validationStyles = useMemo(() => ({
+    registration: {
+      sheet: 'border-t-4 border-primary/60',
+      iconWrap: 'bg-primary/10',
+      icon: 'text-primary',
+      title: 'text-primary',
+      button: 'bg-primary hover:bg-primary-hover text-white',
+    },
+    allotment: {
+      sheet: 'border-t-4 border-emerald-400',
+      iconWrap: 'bg-emerald-100',
+      icon: 'text-emerald-700',
+      title: 'text-emerald-700',
+      button: 'bg-emerald-600 hover:bg-emerald-700 text-white',
+    },
+    block: {
+      sheet: 'border-t-4 border-amber-400',
+      iconWrap: 'bg-amber-100',
+      icon: 'text-amber-700',
+      title: 'text-amber-700',
+      button: 'bg-amber-500 hover:bg-amber-600 text-white',
+    },
+    lot: {
+      sheet: 'border-t-4 border-violet-400',
+      iconWrap: 'bg-violet-100',
+      icon: 'text-violet-700',
+      title: 'text-violet-700',
+      button: 'bg-violet-600 hover:bg-violet-700 text-white',
+    },
+  }), [])
 
   const { register, getValues, trigger, watch, setValue, formState: { errors } } = useFormContext()
   const [isValidationBottomSheetOpen, setIsValidationBottomSheetOpen] = useState(false)
@@ -199,6 +229,7 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
   const currentStepKey = subSteps[currentSubStep]
   const currentStepMeta = stepMeta[currentStepKey]
   const StepIcon = currentStepMeta?.icon ?? Building
+  const validationStyle = validationStyles[currentStepKey]
   const nextButtonLabel = currentSubStep < subSteps.length - 1 ? 'Próximo' : 'Continuar'
 
   const renderInlineNextButton = () => (
@@ -638,14 +669,15 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
         isOpen={isValidationBottomSheetOpen} 
         onClose={() => setIsValidationBottomSheetOpen(false)}
         variant="alert"
+        className={validationStyle.sheet}
       >
         <div className="p-6 flex flex-col gap-6">
           <div className="flex flex-col gap-4">
-            <div className="flex items-center gap-3 text-primary">
-              <div className="p-2 bg-primary/5 rounded-xl">
-                <Info className="size-6" />
+            <div className="flex items-center gap-3">
+              <div className={`p-2 rounded-xl ${validationStyle.iconWrap}`}>
+                <Info className={`size-6 ${validationStyle.icon}`} />
               </div>
-              <h3 className="text-xl font-bold">Campo obrigatório</h3>
+              <h3 className={`text-xl font-bold ${validationStyle.title}`}>Campo obrigatório</h3>
             </div>
             
             <p className="text-lg font-semibold leading-tight text-gray-700">
@@ -660,7 +692,7 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
           <div className="flex flex-col gap-3">
             <Button 
               onClick={() => setIsValidationBottomSheetOpen(false)} 
-              className="w-full h-12 rounded-xl"
+              className={`w-full h-12 rounded-xl ${validationStyle.button}`}
               icon={<Check className="size-5" />}
             >
               Entendido
