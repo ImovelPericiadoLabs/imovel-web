@@ -431,8 +431,8 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
                   🚧 <strong>Modo Dev Ativo:</strong> Ao copiar o código, o pagamento será aprovado automaticamente.
                 </div>
               )}
-              <div className="flex items-center gap-2 text-dark font-medium text-sm py-4">
-                <Clock size={18} className="animate-spin" />
+            <div className="flex items-center gap-2 text-dark font-semibold text-sm py-4">
+                <Clock size={18} className="animate-spin text-primary" />
                 <span>Aguardando pagamento</span>
               </div>
             </div>
