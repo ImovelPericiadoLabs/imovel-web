@@ -35,6 +35,10 @@ export type Order = {
   place_id: string
   formatted_address: string | null
   complement: string | null
+  registration_number?: string | null
+  lot_name?: string | null
+  block_number?: string | null
+  lot_number?: string | null
   created: string
   modified: string
   

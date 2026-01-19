@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { MapPin } from 'lucide-react'
+import { MapPin, Hash, Box, Layout, Package } from 'lucide-react'
 
 import TrafficLight from '@/components/traffic-light'
 import Badge from '@/components/badge'
@@ -64,6 +64,33 @@ export default function OrderHeader({ Badge: ExtraBadge }: Props) {
     ? `#${String(order.code).padStart(6, '0')}`
     : '...'
 
+  const detailItems = [
+    {
+      key: 'registration_number',
+      title: 'Matrícula',
+      value: order.registration_number,
+      icon: Hash
+    },
+    {
+      key: 'lot_name',
+      title: 'Loteamento',
+      value: order.lot_name,
+      icon: Box
+    },
+    {
+      key: 'block_number',
+      title: 'Quadra',
+      value: order.block_number,
+      icon: Layout
+    },
+    {
+      key: 'lot_number',
+      title: 'Lote',
+      value: order.lot_number,
+      icon: Package
+    }
+  ].filter((item) => !!item.value)
+
   return (
     <div className="flex flex-col gap-6 px-3 py-4 mb-3 bg-background">
       {/* ID e Data */}
@@ -99,6 +126,30 @@ export default function OrderHeader({ Badge: ExtraBadge }: Props) {
             )}
           </div>
         </div>
+
+        {detailItems.length > 0 && (
+          <div className="mt-4 pt-4 border-t border-gray-200 grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {detailItems.map((item) => {
+              const ItemIcon = item.icon
+              return (
+                <div key={item.key} className="flex items-start gap-3">
+                  <div className="shrink-0 p-2 bg-primary/5 rounded-xl text-primary">
+                    <ItemIcon className="size-4" />
+                  </div>
+
+                  <div className="flex flex-col gap-0.5 text-start min-w-0">
+                    <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                      {item.title}
+                    </h3>
+                    <p className="text-sm font-semibold text-dark leading-tight break-words">
+                      {item.value}
+                    </p>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
       </div>
 
       {/* Status / Semáforo */}
