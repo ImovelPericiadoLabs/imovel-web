@@ -22,20 +22,21 @@ const initialHomeItems = [
   { Icon: BellDot, text: 'Decisão segura com alertas inteligentes.' },
 ]
 
-export const AddressStep = forwardRef(({ onNext }: { onNext: () => void }, ref) => {
+export const AddressStep = forwardRef<{ focus: () => boolean }, { onNext: () => void }>(({ onNext }, ref) => {
   const { setValue } = useFormContext()
   const [address, setAddress] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
 
   useImperativeHandle(ref, () => ({
     focus: () => {
-      if (inputRef.current) {
-        inputRef.current.focus()
-        // Garantir que o teclado abra no iOS
-        inputRef.current.click()
-        // Forçar scroll para o input
-        inputRef.current.scrollIntoView({ behavior: 'auto', block: 'center' })
-      }
+      const el = inputRef.current
+      if (!el) return false
+      el.focus()
+      // Garantir que o teclado abra no iOS
+      el.click()
+      // Forçar scroll para o input
+      el.scrollIntoView({ behavior: 'auto', block: 'center' })
+      return document.activeElement === el
     }
   }))
 

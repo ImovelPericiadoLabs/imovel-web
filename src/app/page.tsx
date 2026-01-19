@@ -1,10 +1,12 @@
 'use client'
 
 import { useState, useRef, useCallback, useEffect } from 'react'
+import { flushSync } from 'react-dom'
 import { VolumeX } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Button from '@/components/button'
+import ConsultProperty, { type ConsultPropertyHandle } from '@/sections/consult-property'
 
 export default function ConsultarImovelPage() {
   const router = useRouter()
@@ -16,6 +18,9 @@ export default function ConsultarImovelPage() {
   const [isUnlocked, setIsUnlocked] = useState(false)
   const [hasStartedAudio, setHasStartedAudio] = useState(false)
   const [isPlaying, setIsPlaying] = useState(false)
+  const [isConsultActive, setIsConsultActive] = useState(false)
+  const consultRef = useRef<ConsultPropertyHandle>(null)
+  const touchHandledRef = useRef(false)
 
   useEffect(() => {
     const unlocked = localStorage.getItem('vsl-unlocked') === 'true'
@@ -85,28 +90,36 @@ export default function ConsultarImovelPage() {
     }
   }, [hasStartedAudio, handleUnmuteAndRestart])
 
-  const handleStart = () => {
-    if (isUnlocked) {
-      localStorage.setItem('vsl-unlocked', 'true')
-      sessionStorage.setItem('autoFocusAddress', String(Date.now()))
-      router.push('/consultar-imovel')
-    }
-  }
+  const handleStart = useCallback(() => {
+    if (!isUnlocked) return
+    localStorage.setItem('vsl-unlocked', 'true')
 
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if (isUnlocked) {
-      // Tentar pré-focar silenciosamente ou disparar a navegação o mais rápido possível
-      localStorage.setItem('vsl-unlocked', 'true')
-      sessionStorage.setItem('autoFocusAddress', String(Date.now()))
-      router.push('/consultar-imovel')
-      
-      // No iOS, disparar um clique fantasma pode ajudar a manter a cadeia de interação do usuário ativa
-      e.currentTarget.dispatchEvent(new MouseEvent('click', {
-        view: window,
-        bubbles: true,
-        cancelable: true
-      }))
+    flushSync(() => {
+      setIsConsultActive(true)
+    })
+
+    const didFocus = consultRef.current?.focusAddress() ?? false
+    if (didFocus) {
+      window.history.pushState({}, '', '/consultar-imovel')
     }
+  }, [isUnlocked])
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (touchHandledRef.current) return
+    touchHandledRef.current = true
+    handleStart()
+  }, [handleStart])
+
+  const handleClick = useCallback(() => {
+    if (touchHandledRef.current) {
+      touchHandledRef.current = false
+      return
+    }
+    handleStart()
+  }, [handleStart])
+
+  if (isConsultActive) {
+    return <ConsultProperty ref={consultRef} />
   }
 
   return (
@@ -192,7 +205,7 @@ export default function ConsultarImovelPage() {
             <div className="flex flex-col gap-2">
               <div className="pointer-events-auto">
                 <Button
-                  onClick={handleStart}
+                  onClick={handleClick}
                   onTouchStart={handleTouchStart}
                   disabled={!isUnlocked}
                   className={`

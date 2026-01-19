@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { memo, useState, useRef, ReactNode, useEffect, useCallback, useMemo } from 'react'
+import { memo, useState, useRef, ReactNode, useEffect, useCallback, useMemo, forwardRef, useImperativeHandle } from 'react'
 import { FormProvider, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { ChevronLeft, CircleQuestionMark } from 'lucide-react'
@@ -40,7 +40,11 @@ const Activity = memo(function Activity({ isActive, children }: { isActive: bool
   )
 })
 
-export default function ConsultProperty() {
+export type ConsultPropertyHandle = {
+  focusAddress: () => boolean
+}
+
+const ConsultProperty = forwardRef<ConsultPropertyHandle>(function ConsultProperty(_props, ref) {
   const router = useRouter()
   const [flow, setFlow] = useState<FlowState>('address')
   const stack = useRef<FlowState[]>([])
@@ -64,8 +68,14 @@ export default function ConsultProperty() {
     mode: 'onChange',
   })
 
-  const addressStepRef = useRef<{ focus: () => void }>(null)
+  const addressStepRef = useRef<{ focus: () => boolean }>(null)
   const addressComplementRef = useRef<{ handleBack: () => void }>(null)
+
+  useImperativeHandle(ref, () => ({
+    focusAddress: () => {
+      return addressStepRef.current?.focus() ?? false
+    },
+  }))
 
   useEffect(() => {
     if (flow === 'address') {
@@ -259,4 +269,6 @@ export default function ConsultProperty() {
       </FormProvider>
     </section>
   )
-}
+})
+ConsultProperty.displayName = 'ConsultProperty'
+export default ConsultProperty
