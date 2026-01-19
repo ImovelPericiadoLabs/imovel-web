@@ -2,6 +2,7 @@
 
 import { ChoiceCards } from '@/components/choice-cards'
 import { Check, Building, Box, Layout, Hash, Info, ChevronRight, ChevronLeft, Pencil } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { useFormContext } from 'react-hook-form'
 import { useState, useRef, useImperativeHandle, forwardRef, useCallback, useMemo } from 'react'
 import TextTitle from '@/components/text-title'
@@ -13,8 +14,17 @@ import InfoCard from '@/components/info-card'
 
 export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: () => void, onBack?: () => void }, ref) => {
   const [currentSubStep, setCurrentSubStep] = useState(0)
-  const subSteps = useMemo(() => ['registration', 'allotment', 'block', 'lot'], [])
-  const stepMeta = useMemo(() => ({
+  const subSteps = useMemo(() => ['registration', 'allotment', 'block', 'lot'] as const, [])
+  type StepKey = (typeof subSteps)[number]
+  type StepMeta = {
+    label: string
+    icon: LucideIcon
+    tone: StepKey
+    cardClassName: string
+    iconClassName: string
+    badgeClassName: string
+  }
+  const stepMeta = useMemo<Record<StepKey, StepMeta>>(() => ({
     registration: {
       label: 'Matrícula',
       icon: Building,
