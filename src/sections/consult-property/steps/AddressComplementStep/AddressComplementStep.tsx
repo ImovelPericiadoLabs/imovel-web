@@ -198,9 +198,22 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
   const currentStepKey = subSteps[currentSubStep]
   const currentStepMeta = stepMeta[currentStepKey]
   const StepIcon = currentStepMeta?.icon ?? Building
+  const nextButtonLabel = currentSubStep < subSteps.length - 1 ? 'Próximo' : 'Continuar'
+
+  const renderInlineNextButton = () => (
+    <div className="pt-2">
+      <Button
+        className="w-full h-12 text-base rounded-xl"
+        onClick={() => handleContinue()}
+        icon={<ChevronRight className="size-5" />}
+      >
+        {nextButtonLabel}
+      </Button>
+    </div>
+  )
 
   return (
-    <div className="flex flex-col gap-4 min-h-[calc(100vh-7.5rem)] relative px-4 pb-32">
+    <div className="flex flex-col gap-4 min-h-[calc(100vh-7.5rem)] relative px-4 pb-8">
       <div className="flex-1 flex flex-col gap-4">
         <SelectedAddressCard address={currentAddress} />
 
@@ -322,6 +335,7 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
                     <InfoCard className="mt-2">
                       O número da matrícula identifica o imóvel no Cartório de Registro de Imóveis. Você pode encontrá-lo na primeira página da escritura ou contrato de compra e venda.
                     </InfoCard>
+                    {showNextButton && renderInlineNextButton()}
                   </>
                 )}
 
@@ -412,6 +426,7 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
                     <InfoCard className="mt-2">
                       O nome do loteamento é a denominação dada à área dividida em lotes. Geralmente consta no endereço oficial ou no contrato do imóvel.
                     </InfoCard>
+                    {showNextButton && renderInlineNextButton()}
                   </>
                 )}
 
@@ -503,6 +518,7 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
                     <InfoCard className="mt-2">
                       A quadra é o conjunto de lotes delimitado por ruas. Verifique no seu carnê de IPTU ou contrato.
                     </InfoCard>
+                    {showNextButton && renderInlineNextButton()}
                   </>
                 )}
 
@@ -593,6 +609,7 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
                     <InfoCard className="mt-2">
                       O lote é a unidade mínima de terra dentro da quadra. Encontre essa informação no IPTU ou na matrícula.
                     </InfoCard>
+                    {showNextButton && renderInlineNextButton()}
                   </>
                 )}
 
@@ -607,25 +624,6 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
           )}
         </div>
       </div>
-      {showNextButton && (
-        <div className="
-          fixed bottom-0 left-0 right-0 
-          px-4 pt-5 pb-7 
-          bg-white mt-auto 
-          border-t border-gray-200 
-          z-10
-          supports-[-webkit-touch-callout:none]:pb-10
-        ">
-          <Button 
-            className="w-full h-12 text-base rounded-xl" 
-            onClick={() => handleContinue()}
-            icon={<ChevronRight className="size-5" />}
-          >
-            {currentSubStep < subSteps.length - 1 ? 'Próximo' : 'Continuar'}
-          </Button>
-        </div>
-      )}
-
       <BottomSheet 
         isOpen={isValidationBottomSheetOpen} 
         onClose={() => setIsValidationBottomSheetOpen(false)}
