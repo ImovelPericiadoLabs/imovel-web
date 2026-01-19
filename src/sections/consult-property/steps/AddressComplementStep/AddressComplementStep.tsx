@@ -14,6 +14,40 @@ import InfoCard from '@/components/info-card'
 export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: () => void, onBack?: () => void }, ref) => {
   const [currentSubStep, setCurrentSubStep] = useState(0)
   const subSteps = useMemo(() => ['registration', 'allotment', 'block', 'lot'], [])
+  const stepMeta = useMemo(() => ({
+    registration: {
+      label: 'Matrícula',
+      icon: Building,
+      tone: 'registration' as const,
+      cardClassName: 'bg-primary/5 border-primary/10',
+      iconClassName: 'bg-primary/15 text-primary',
+      badgeClassName: 'text-primary bg-primary/10 border-primary/20',
+    },
+    allotment: {
+      label: 'Loteamento',
+      icon: Box,
+      tone: 'allotment' as const,
+      cardClassName: 'bg-emerald-50/70 border-emerald-100',
+      iconClassName: 'bg-emerald-100 text-emerald-700',
+      badgeClassName: 'text-emerald-700 bg-emerald-100/80 border-emerald-200',
+    },
+    block: {
+      label: 'Quadra',
+      icon: Layout,
+      tone: 'block' as const,
+      cardClassName: 'bg-amber-50/70 border-amber-100',
+      iconClassName: 'bg-amber-100 text-amber-700',
+      badgeClassName: 'text-amber-700 bg-amber-100/80 border-amber-200',
+    },
+    lot: {
+      label: 'Lote',
+      icon: Hash,
+      tone: 'lot' as const,
+      cardClassName: 'bg-violet-50/70 border-violet-100',
+      iconClassName: 'bg-violet-100 text-violet-700',
+      badgeClassName: 'text-violet-700 bg-violet-100/80 border-violet-200',
+    },
+  }), [])
 
   const { register, getValues, trigger, watch, setValue, formState: { errors } } = useFormContext()
   const [isValidationBottomSheetOpen, setIsValidationBottomSheetOpen] = useState(false)
@@ -151,29 +185,55 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
     return true
   }, [currentSubStep, subSteps, unknownRegistration, noAllotment, noBlock, noLot])
 
+  const currentStepKey = subSteps[currentSubStep]
+  const currentStepMeta = stepMeta[currentStepKey]
+  const StepIcon = currentStepMeta?.icon ?? Building
+
   return (
     <div className="flex flex-col gap-4 min-h-[calc(100vh-7.5rem)] relative px-4 pb-32">
       <div className="flex-1 flex flex-col gap-4">
         <SelectedAddressCard address={currentAddress} />
 
-        <div className="flex flex-col gap-2 mb-2">
-          <TextTitle className="text-dark">
-            {subSteps[currentSubStep] === 'registration' && 'Você tem o número da matrícula?'}
-            {subSteps[currentSubStep] === 'allotment' && 'Você tem o nome do loteamento?'}
-            {subSteps[currentSubStep] === 'block' && 'Você tem o número da quadra?'}
-            {subSteps[currentSubStep] === 'lot' && 'Você tem o número do lote?'}
-          </TextTitle>
-          <TextSubtitle className="text-gray-500">
-            Isso melhora a precisão da busca por seu imóvel.
-          </TextSubtitle>
-        </div>
+        <div
+          key={currentStepKey}
+          className={`rounded-2xl border shadow-sm p-4 flex flex-col gap-4 animate-in fade-in slide-in-from-top-2 duration-300 ${currentStepMeta?.cardClassName ?? 'bg-white border-gray-100'}`}
+        >
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className={`p-2 rounded-xl ${currentStepMeta?.iconClassName ?? 'bg-primary/10 text-primary'}`}>
+                <StepIcon className="size-5" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                  Etapa {currentSubStep + 1} de {subSteps.length}
+                </span>
+                <span className="text-sm font-semibold text-dark">{currentStepMeta?.label}</span>
+              </div>
+            </div>
+            <span className={`text-[10px] font-bold border rounded-full px-2.5 py-1 ${currentStepMeta?.badgeClassName ?? 'text-primary bg-primary/5 border-primary/10'}`}>
+              Responda para continuar
+            </span>
+          </div>
 
-        {subSteps[currentSubStep] === 'registration' && (
-          <div className="flex flex-col gap-3 mt-0">
+          <div className="flex flex-col gap-2">
+            <TextTitle className="text-dark">
+              {subSteps[currentSubStep] === 'registration' && 'Você tem o número da matrícula?'}
+              {subSteps[currentSubStep] === 'allotment' && 'Você tem o nome do loteamento?'}
+              {subSteps[currentSubStep] === 'block' && 'Você tem o número da quadra?'}
+              {subSteps[currentSubStep] === 'lot' && 'Você tem o número do lote?'}
+            </TextTitle>
+            <TextSubtitle className="text-gray-500">
+              Isso melhora a precisão da busca por seu imóvel.
+            </TextSubtitle>
+          </div>
+
+          {subSteps[currentSubStep] === 'registration' && (
+            <div className="flex flex-col gap-3 mt-0">
             {unknownRegistration === undefined ? (
               <ChoiceCards
                 className="mt-0"
                 value={undefined}
+                tone="registration"
                 yesLabel="Tenho o número da matrícula"
                 noLabel="Não tenho o número da matrícula"
                 onChange={(hasInfo) => {
@@ -263,14 +323,15 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
               </div>
             )}
           </div>
-        )}
+          )}
 
-        {subSteps[currentSubStep] === 'allotment' && (
-          <div className="flex flex-col gap-3 mt-0">
+          {subSteps[currentSubStep] === 'allotment' && (
+            <div className="flex flex-col gap-3 mt-0">
             {noAllotment === undefined ? (
               <ChoiceCards
                 className="mt-0"
                 value={undefined}
+                tone="allotment"
                 yesLabel="Tenho o nome do loteamento"
                 noLabel="Não tenho o nome do loteamento"
                 onChange={(hasInfo) => {
@@ -352,14 +413,15 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
               </div>
             )}
           </div>
-        )}
+          )}
 
-        {subSteps[currentSubStep] === 'block' && (
-          <div className="flex flex-col gap-3 mt-0">
+          {subSteps[currentSubStep] === 'block' && (
+            <div className="flex flex-col gap-3 mt-0">
             {noBlock === undefined ? (
               <ChoiceCards
                 className="mt-0"
                 value={undefined}
+                tone="block"
                 yesLabel="Tenho o número da quadra"
                 noLabel="Não tenho o número da quadra"
                 onChange={(hasInfo) => {
@@ -442,14 +504,15 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
               </div>
             )}
           </div>
-        )}
+          )}
 
-        {subSteps[currentSubStep] === 'lot' && (
-          <div className="flex flex-col gap-3 mt-0">
+          {subSteps[currentSubStep] === 'lot' && (
+            <div className="flex flex-col gap-3 mt-0">
             {noLot === undefined ? (
               <ChoiceCards
                 className="mt-0"
                 value={undefined}
+                tone="lot"
                 yesLabel="Tenho o número do lote"
                 noLabel="Não tenho o número do lote"
                 onChange={(hasInfo) => {
@@ -531,7 +594,8 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
               </div>
             )}
           </div>
-        )}
+          )}
+        </div>
       </div>
       {showNextButton && (
         <div className="
