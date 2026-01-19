@@ -20,7 +20,7 @@ export const validations = z
       number: z.number(),
       slug: z.string(),
       coverage: z.array(z.string()),
-    }),
+    }).optional().nullable(),
     hasDocument: z.any(),
     documentType: DocumentTypeEnum.optional(),
     document: z

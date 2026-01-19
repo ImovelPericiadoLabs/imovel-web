@@ -27,19 +27,22 @@ export function DocumentConfirmationStep({
       setValue('document', undefined)
       setValue('documentPreview', undefined)
       onSkip()
+    } else {
+      onNext()
     }
   }
 
   return (
     <div className="relative flex-1 px-4">
-      <div className="flex flex-col gap-5 pb-24 md:pb-0">
+      <div className="flex flex-col gap-4 pb-24 md:pb-0">
         <SelectedAddressCard address={currentAddress} />
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 mb-2">
           <TextTitle className="text-dark">Você tem o documento do imóvel?</TextTitle>
-          <TextSubtitle>Isso agiliza a análise do seu pedido</TextSubtitle>
+          <TextSubtitle className="text-gray-500">Isso agiliza a análise do seu pedido</TextSubtitle>
         </div>
 
         <ChoiceCards
+          className="mt-0"
           value={hasDocument}
           onChange={handleSelect}
           yesLabel="Tenho o documento do imóvel"
@@ -49,24 +52,6 @@ export function DocumentConfirmationStep({
         />
       </div>
 
-      {hasDocument === true && (
-        <div className="
-          fixed bottom-0 left-0 right-0 
-          px-4 pt-5 pb-7 
-          bg-white mt-auto 
-          border-t border-gray-100 
-          z-10
-          supports-[-webkit-touch-callout:none]:pb-10
-        ">
-          <Button 
-            className="w-full h-12 text-base rounded-xl" 
-            onClick={() => onNext()}
-            icon={<ChevronRight className="size-5" />}
-          >
-            Próximo
-          </Button>
-        </div>
-      )}
     </div>
   )
 }

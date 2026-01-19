@@ -57,15 +57,15 @@ export function SavedCardsPage({
   }), [cardValues])
 
   return (
-    <div className="flex flex-col relative px-6 py-4">
-      <div className="flex flex-col gap-2 relative z-50 -mt-2 mb-6 px-1">
+    <div className="flex flex-col relative px-6 py-4 -mt-20">
+      <div className="flex flex-col gap-2 relative z-50 mb-6 px-1">
         <TextTitle className="text-dark">Seus cartões</TextTitle>
         <TextSubtitle>Escolha um cartão salvo para realizar o pagamento</TextSubtitle>
       </div>
 
       <div className="mb-8 relative z-50 w-full flex flex-col gap-5">
-        <p className="text-center text-dark leading-snug font-normal px-4">
-          Realize o pagamento do valor <span className="font-bold">R$ 59,00</span> para começar a consulta dos dados do endereço
+        <p className="text-center text-white/90 leading-snug font-normal px-4">
+          Realize o pagamento do valor <span className="font-bold text-white">R$ 59,00</span> para começar a consulta dos dados do endereço
         </p>
 
         <AddressSummaryCard

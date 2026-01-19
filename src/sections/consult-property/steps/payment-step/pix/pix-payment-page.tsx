@@ -377,10 +377,10 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
         )}
 
         {step === 'pix' && !!pixData && (
-          <div className="flex flex-col items-center pt-10 -mt-27">
+          <div className="flex flex-col items-center pt-10 -mt-20">
             <div className="mb-8 text-white px-1 text-left relative z-10 w-full text-center flex flex-col gap-5">
-              <p className="text-center leading-snug font-normal">
-                Realize o pagamento do valor <span className="font-bold">{formatMoney(pixData.value)}</span> para começar a consulta dos dados do endereço
+              <p className="text-center leading-snug font-normal text-white/90">
+                Realize o pagamento do valor <span className="font-bold text-white">R$ 59,00</span> para começar a consulta dos dados do endereço
               </p>
 
               <AddressSummaryCard
@@ -431,7 +431,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
                   🚧 <strong>Modo Dev Ativo:</strong> Ao copiar o código, o pagamento será aprovado automaticamente.
                 </div>
               )}
-              <div className="flex items-center gap-2 text-primary font-medium text-sm py-4">
+              <div className="flex items-center gap-2 text-dark font-medium text-sm py-4">
                 <Clock size={18} className="animate-spin" />
                 <span>Aguardando pagamento</span>
               </div>

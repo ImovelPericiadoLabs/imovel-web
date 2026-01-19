@@ -11,11 +11,13 @@ export default function SelectedAddressCard({ address, className = '' }: Selecte
   if (!address) return null
 
   return (
-    <div className={`bg-gray-50 p-4 rounded-xl border border-gray-100 flex gap-3 items-start ${className}`}>
-      <MapPin className="size-5 text-primary shrink-0 mt-0.5" />
-      <div>
-        <p className="text-xs font-bold text-gray-700 mb-1">Endereço selecionado:</p>
-        <p className="text-sm text-gray-600 leading-tight">{address}</p>
+    <div className={`bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex gap-4 items-start ${className}`}>
+      <div className="p-2 bg-primary/5 rounded-xl">
+        <MapPin className="size-5 text-primary shrink-0" />
+      </div>
+      <div className="flex flex-col gap-0.5">
+        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Endereço selecionado</p>
+        <p className="text-sm font-semibold text-dark leading-snug">{address}</p>
       </div>
     </div>
   )

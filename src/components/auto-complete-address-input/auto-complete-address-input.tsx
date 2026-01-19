@@ -192,7 +192,7 @@ const AutoCompleteInput = forwardRef<HTMLInputElement, Props>(({
           {loadingOptions?.map((address) => (
             <div
               key={address.value}
-              className="flex items-start gap-4 px-7 pb-4 border-b border-hr last:border-b-0 cursor-pointer"
+              className="flex items-start gap-4 px-7 pb-4 border-b border-gray-200 last:border-b-0 cursor-pointer"
             >
               <div className="shrink-0 mt-1">
                 <MapPin className="size-6" />
@@ -212,7 +212,7 @@ const AutoCompleteInput = forwardRef<HTMLInputElement, Props>(({
           {options?.map((address) => (
             <button
               key={address.value}
-              className="w-full flex items-start gap-4 px-7 pb-4 border-b border-hr last:border-b-0 cursor-pointer"
+              className="w-full flex items-start gap-4 px-7 pb-4 border-b border-gray-200 last:border-b-0 cursor-pointer"
               onClick={() => {
                 handleSelectAddress(address)
               }}

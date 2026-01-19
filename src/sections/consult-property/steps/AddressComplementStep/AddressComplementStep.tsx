@@ -1,7 +1,7 @@
 'use client'
 
 import { ChoiceCards } from '@/components/choice-cards'
-import { Check, Building, Clock, Box, Layout, Hash, Info, ChevronRight, ChevronLeft } from 'lucide-react'
+import { Check, Building, Box, Layout, Hash, Info, ChevronRight, ChevronLeft, Pencil } from 'lucide-react'
 import { useFormContext } from 'react-hook-form'
 import { useState, useRef, useImperativeHandle, forwardRef, useCallback, useMemo } from 'react'
 import TextTitle from '@/components/text-title'
@@ -9,15 +9,15 @@ import TextSubtitle from '@/components/text-subtitle'
 import Button from '@/components/button'
 import BottomSheet from '@/components/bottom-sheet'
 import SelectedAddressCard from '@/components/selected-address-card'
+import InfoCard from '@/components/info-card'
 
 export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: () => void, onBack?: () => void }, ref) => {
   const [currentSubStep, setCurrentSubStep] = useState(0)
   const subSteps = useMemo(() => ['registration', 'allotment', 'block', 'lot'], [])
 
-  const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false)
+  const { register, getValues, trigger, watch, setValue, formState: { errors } } = useFormContext()
   const [isValidationBottomSheetOpen, setIsValidationBottomSheetOpen] = useState(false)
   const [missingFieldLabel, setMissingFieldLabel] = useState('')
-  const { register, getValues, trigger, watch, setValue, formState: { errors } } = useFormContext()
   
   const handleBack = useCallback(() => {
     if (currentSubStep > 0) {
@@ -78,13 +78,13 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
     const choiceValue = getValues(fieldsToValidate[0])
     const fieldValue = getValues(fieldsToValidate[1])
 
-    // Se for um avanço forçado (clique no "Não Tenho"), pula validações e abre o resumo/próximo
+    // Se for um avanço forçado (clique no "Não Tenho"), pula validações e avança para o próximo
     if (forceAdvance) {
       if (currentSubStep < subSteps.length - 1) {
         setCurrentSubStep(prev => prev + 1)
         window.scrollTo({ top: 0, behavior: 'auto' })
       } else {
-        setIsBottomSheetOpen(true)
+        onNext()
       }
       return
     }
@@ -111,7 +111,7 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
         setCurrentSubStep(prev => prev + 1)
         window.scrollTo({ top: 0, behavior: 'auto' })
       } else {
-        setIsBottomSheetOpen(true)
+        onNext()
       }
     }
   }, [currentSubStep, subSteps, getValues, trigger])
@@ -134,11 +134,6 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
   const blockRef = useRef<HTMLInputElement>(null)
   const lotRef = useRef<HTMLInputElement>(null)
 
-  const handleConfirm = useCallback(() => {
-    setIsBottomSheetOpen(false)
-    onNext()
-  }, [onNext])
-
   const showNextButton = useMemo(() => {
     const currentStepName = subSteps[currentSubStep]
     if (currentStepName === 'registration') {
@@ -157,24 +152,27 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
   }, [currentSubStep, subSteps, unknownRegistration, noAllotment, noBlock, noLot])
 
   return (
-    <div className="flex flex-col gap-6 min-h-[calc(100vh-7.5rem)] relative px-4 pb-32">
-      <div className="flex-1 flex flex-col gap-6">
+    <div className="flex flex-col gap-4 min-h-[calc(100vh-7.5rem)] relative px-4 pb-32">
+      <div className="flex-1 flex flex-col gap-4">
         <SelectedAddressCard address={currentAddress} />
 
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 mb-2">
           <TextTitle className="text-dark">
             {subSteps[currentSubStep] === 'registration' && 'Você tem o número da matrícula?'}
             {subSteps[currentSubStep] === 'allotment' && 'Você tem o nome do loteamento?'}
             {subSteps[currentSubStep] === 'block' && 'Você tem o número da quadra?'}
             {subSteps[currentSubStep] === 'lot' && 'Você tem o número do lote?'}
           </TextTitle>
-          <TextSubtitle>Precisamos dessa informação para localizar seu imóvel</TextSubtitle>
+          <TextSubtitle className="text-gray-500">
+            Isso melhora a precisão da busca por seu imóvel.
+          </TextSubtitle>
         </div>
 
         {subSteps[currentSubStep] === 'registration' && (
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-3 mt-0">
             {unknownRegistration === undefined ? (
               <ChoiceCards
+                className="mt-0"
                 value={undefined}
                 yesLabel="Tenho o número da matrícula"
                 noLabel="Não tenho o número da matrícula"
@@ -194,7 +192,7 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
               />
             ) : (
               <div className="flex flex-col gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
-                <div className="flex justify-between items-end pr-1">
+                <div className="flex justify-between items-center pr-1">
                   <label
                     htmlFor="registrationNumber"
                     className="text-sm font-semibold text-gray-700 ml-1"
@@ -206,49 +204,55 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
                       setValue('unknownRegistration', undefined)
                       setValue('registrationNumber', '')
                     }}
-                    className="text-xs text-primary font-semibold hover:underline mb-0.5"
+                    className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] text-primary font-bold bg-primary/5 rounded-lg hover:bg-primary/10 transition-colors border border-primary/10"
                   >
+                    <Pencil className="size-3" />
                     Alterar
                   </button>
                 </div>
 
                 {!unknownRegistration && (
-                  <div className="relative group">
-                    <div className="absolute left-4 top-4 text-gray-400 group-focus-within:text-primary transition-colors pointer-events-none">
-                      <Building className="size-5" />
-                    </div>
+                  <>
+                    <div className="relative group">
+                      <div className="absolute left-4 top-4 text-gray-400 group-focus-within:text-primary transition-colors pointer-events-none">
+                        <Building className="size-5" />
+                      </div>
 
-                    <input
-                      id="registrationNumber"
-                      type="text"
-                      inputMode="numeric"
-                      placeholder="Ex: 123456 ou 123.456"
-                      maxLength={7}
-                      {...register('registrationNumber', {
-                        pattern: {
-                          value: /^[0-9.\-/]+$/,
-                          message: 'Informe apenas números ou separadores válidos'
-                        }
-                      })}
-                      ref={(e) => {
-                        register('registrationNumber').ref(e)
-                        registrationRef.current = e
-                      }}
-                      className={`
-                        w-full 
-                        pl-12 pr-4 py-4
-                        bg-white 
-                        border ${errors.registrationNumber ? 'border-red-500' : 'border-gray-200'}
-                        rounded-xl
-                        text-sm text-gray-900 
-                        placeholder:text-gray-400 
-                        outline-none 
-                        transition-all duration-200
-                        focus:border-primary 
-                        focus:ring-4 focus:ring-primary/10
-                      `}
-                    />
-                  </div>
+                      <input
+                        id="registrationNumber"
+                        type="text"
+                        inputMode="numeric"
+                        placeholder="Ex: 123456 ou 123.456"
+                        maxLength={7}
+                        {...register('registrationNumber', {
+                          pattern: {
+                            value: /^[0-9.\-/]+$/,
+                            message: 'Informe apenas números ou separadores válidos'
+                          }
+                        })}
+                        ref={(e) => {
+                          register('registrationNumber').ref(e)
+                          registrationRef.current = e
+                        }}
+                        className={`
+                          w-full 
+                          pl-12 pr-4 py-4
+                          bg-white 
+                          border ${errors.registrationNumber ? 'border-red-500' : 'border-gray-200'}
+                          rounded-xl
+                          text-sm text-gray-900 
+                          placeholder:text-gray-400 
+                          outline-none 
+                          transition-all duration-200
+                          focus:border-primary 
+                          focus:ring-4 focus:ring-primary/10
+                        `}
+                      />
+                    </div>
+                    <InfoCard className="mt-2">
+                      O número da matrícula identifica o imóvel no Cartório de Registro de Imóveis. Você pode encontrá-lo na primeira página da escritura ou contrato de compra e venda.
+                    </InfoCard>
+                  </>
                 )}
 
                 {errors.registrationNumber && !unknownRegistration && (
@@ -262,9 +266,10 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
         )}
 
         {subSteps[currentSubStep] === 'allotment' && (
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-3 mt-0">
             {noAllotment === undefined ? (
               <ChoiceCards
+                className="mt-0"
                 value={undefined}
                 yesLabel="Tenho o nome do loteamento"
                 noLabel="Não tenho o nome do loteamento"
@@ -283,7 +288,7 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
               />
             ) : (
               <div className="flex flex-col gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
-                <div className="flex justify-between items-end pr-1">
+                <div className="flex justify-between items-center pr-1">
                   <label
                     htmlFor="allotment"
                     className="text-sm font-semibold text-gray-700 ml-1"
@@ -295,42 +300,48 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
                       setValue('noAllotment', undefined)
                       setValue('allotment', '')
                     }}
-                    className="text-xs text-primary font-semibold hover:underline mb-0.5"
+                    className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] text-primary font-bold bg-primary/5 rounded-lg hover:bg-primary/10 transition-colors border border-primary/10"
                   >
+                    <Pencil className="size-3" />
                     Alterar
                   </button>
                 </div>
 
                 {!noAllotment && (
-                  <div className="relative group">
-                    <div className="absolute left-4 top-4 text-gray-400 group-focus-within:text-primary transition-colors pointer-events-none">
-                      <Box className="size-5" />
-                    </div>
+                  <>
+                    <div className="relative group">
+                      <div className="absolute left-4 top-4 text-gray-400 group-focus-within:text-primary transition-colors pointer-events-none">
+                        <Box className="size-5" />
+                      </div>
 
-                    <input
-                      id="allotment"
-                      type="text"
-                      placeholder="Ex: Loteamento Jardim das Flores"
-                      {...register('allotment')}
-                      ref={(e) => {
-                        register('allotment').ref(e)
-                        allotmentRef.current = e
-                      }}
-                      className={`
-                        w-full 
-                        pl-12 pr-4 py-4
-                        bg-white 
-                        border ${errors.allotment ? 'border-red-500' : 'border-gray-200'}
-                        rounded-xl
-                        text-sm text-gray-900 
-                        placeholder:text-gray-400 
-                        outline-none 
-                        transition-all duration-200
-                        focus:border-primary 
-                        focus:ring-4 focus:ring-primary/10
-                      `}
-                    />
-                  </div>
+                      <input
+                        id="allotment"
+                        type="text"
+                        placeholder="Ex: Jardim das Oliveiras"
+                        {...register('allotment')}
+                        ref={(e) => {
+                          register('allotment').ref(e)
+                          allotmentRef.current = e
+                        }}
+                        className={`
+                          w-full 
+                          pl-12 pr-4 py-4
+                          bg-white 
+                          border ${errors.allotment ? 'border-red-500' : 'border-gray-200'}
+                          rounded-xl
+                          text-sm text-gray-900 
+                          placeholder:text-gray-400 
+                          outline-none 
+                          transition-all duration-200
+                          focus:border-primary 
+                          focus:ring-4 focus:ring-primary/10
+                        `}
+                      />
+                    </div>
+                    <InfoCard className="mt-2">
+                      O nome do loteamento é a denominação dada à área dividida em lotes. Geralmente consta no endereço oficial ou no contrato do imóvel.
+                    </InfoCard>
+                  </>
                 )}
 
                 {errors.allotment && !noAllotment && (
@@ -344,9 +355,10 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
         )}
 
         {subSteps[currentSubStep] === 'block' && (
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-3 mt-0">
             {noBlock === undefined ? (
               <ChoiceCards
+                className="mt-0"
                 value={undefined}
                 yesLabel="Tenho o número da quadra"
                 noLabel="Não tenho o número da quadra"
@@ -365,7 +377,7 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
               />
             ) : (
               <div className="flex flex-col gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
-                <div className="flex justify-between items-end pr-1">
+                <div className="flex justify-between items-center pr-1">
                   <label
                     htmlFor="block"
                     className="text-sm font-semibold text-gray-700 ml-1"
@@ -377,43 +389,49 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
                       setValue('noBlock', undefined)
                       setValue('block', '')
                     }}
-                    className="text-xs text-primary font-semibold hover:underline mb-0.5"
+                    className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] text-primary font-bold bg-primary/5 rounded-lg hover:bg-primary/10 transition-colors border border-primary/10"
                   >
+                    <Pencil className="size-3" />
                     Alterar
                   </button>
                 </div>
 
                 {!noBlock && (
-                  <div className="relative group">
-                    <div className="absolute left-4 top-4 text-gray-400 group-focus-within:text-primary transition-colors pointer-events-none">
-                      <Layout className="size-5" />
-                    </div>
+                  <>
+                    <div className="relative group">
+                      <div className="absolute left-4 top-4 text-gray-400 group-focus-within:text-primary transition-colors pointer-events-none">
+                        <Layout className="size-5" />
+                      </div>
 
-                    <input
-                      id="block"
-                      type="text"
-                      inputMode="numeric"
-                      placeholder="Ex: Quadra A ou 12"
-                      {...register('block')}
-                      ref={(e) => {
-                        register('block').ref(e)
-                        blockRef.current = e
-                      }}
-                      className={`
-                        w-full 
-                        pl-12 pr-4 py-4
-                        bg-white 
-                        border ${errors.block ? 'border-red-500' : 'border-gray-200'}
-                        rounded-xl
-                        text-sm text-gray-900 
-                        placeholder:text-gray-400 
-                        outline-none 
-                        transition-all duration-200
-                        focus:border-primary 
-                        focus:ring-4 focus:ring-primary/10
-                      `}
-                    />
-                  </div>
+                      <input
+                        id="block"
+                        type="text"
+                        inputMode="numeric"
+                        placeholder="Ex: Quadra A ou 12"
+                        {...register('block')}
+                        ref={(e) => {
+                          register('block').ref(e)
+                          blockRef.current = e
+                        }}
+                        className={`
+                          w-full 
+                          pl-12 pr-4 py-4
+                          bg-white 
+                          border ${errors.block ? 'border-red-500' : 'border-gray-200'}
+                          rounded-xl
+                          text-sm text-gray-900 
+                          placeholder:text-gray-400 
+                          outline-none 
+                          transition-all duration-200
+                          focus:border-primary 
+                          focus:ring-4 focus:ring-primary/10
+                        `}
+                      />
+                    </div>
+                    <InfoCard className="mt-2">
+                      A quadra é o conjunto de lotes delimitado por ruas. Verifique no seu carnê de IPTU ou contrato.
+                    </InfoCard>
+                  </>
                 )}
 
                 {errors.block && !noBlock && (
@@ -427,9 +445,10 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
         )}
 
         {subSteps[currentSubStep] === 'lot' && (
-          <div className="flex-1 flex flex-col gap-3">
+          <div className="flex flex-col gap-3 mt-0">
             {noLot === undefined ? (
               <ChoiceCards
+                className="mt-0"
                 value={undefined}
                 yesLabel="Tenho o número do lote"
                 noLabel="Não tenho o número do lote"
@@ -447,7 +466,7 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
               />
             ) : (
               <div className="flex flex-col gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
-                <div className="flex justify-between items-end pr-1">
+                <div className="flex justify-between items-center pr-1">
                   <label
                     htmlFor="lot"
                     className="text-sm font-semibold text-gray-700 ml-1"
@@ -459,43 +478,49 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
                       setValue('noLot', undefined)
                       setValue('lot', '')
                     }}
-                    className="text-xs text-primary font-semibold hover:underline mb-0.5"
+                    className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] text-primary font-bold bg-primary/5 rounded-lg hover:bg-primary/10 transition-colors border border-primary/10"
                   >
+                    <Pencil className="size-3" />
                     Alterar
                   </button>
                 </div>
 
                 {!noLot && (
-                  <div className="relative group">
-                    <div className="absolute left-4 top-4 text-gray-400 group-focus-within:text-primary transition-colors pointer-events-none">
-                      <Hash className="size-5" />
-                    </div>
+                  <>
+                    <div className="relative group">
+                      <div className="absolute left-4 top-4 text-gray-400 group-focus-within:text-primary transition-colors pointer-events-none">
+                        <Hash className="size-5" />
+                      </div>
 
-                    <input
-                      id="lot"
-                      type="text"
-                      inputMode="numeric"
-                      placeholder="Ex: Lote 05 ou 22"
-                      {...register('lot')}
-                      ref={(e) => {
-                        register('lot').ref(e)
-                        lotRef.current = e
-                      }}
-                      className={`
-                        w-full 
-                        pl-12 pr-4 py-4
-                        bg-white 
-                        border ${errors.lot ? 'border-red-500' : 'border-gray-200'}
-                        rounded-xl
-                        text-sm text-gray-900 
-                        placeholder:text-gray-400 
-                        outline-none 
-                        transition-all duration-200
-                        focus:border-primary 
-                        focus:ring-4 focus:ring-primary/10
-                      `}
-                    />
-                  </div>
+                      <input
+                        id="lot"
+                        type="text"
+                        inputMode="numeric"
+                        placeholder="Ex: Lote 01 ou 10"
+                        {...register('lot')}
+                        ref={(e) => {
+                          register('lot').ref(e)
+                          lotRef.current = e
+                        }}
+                        className={`
+                          w-full 
+                          pl-12 pr-4 py-4
+                          bg-white 
+                          border ${errors.lot ? 'border-red-500' : 'border-gray-200'}
+                          rounded-xl
+                          text-sm text-gray-900 
+                          placeholder:text-gray-400 
+                          outline-none 
+                          transition-all duration-200
+                          focus:border-primary 
+                          focus:ring-4 focus:ring-primary/10
+                        `}
+                      />
+                    </div>
+                    <InfoCard className="mt-2">
+                      O lote é a unidade mínima de terra dentro da quadra. Encontre essa informação no IPTU ou na matrícula.
+                    </InfoCard>
+                  </>
                 )}
 
                 {errors.lot && !noLot && (
@@ -513,7 +538,7 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
           fixed bottom-0 left-0 right-0 
           px-4 pt-5 pb-7 
           bg-white mt-auto 
-          border-t border-gray-100 
+          border-t border-gray-200 
           z-10
           supports-[-webkit-touch-callout:none]:pb-10
         ">
@@ -526,52 +551,6 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
           </Button>
         </div>
       )}
-
-      <BottomSheet 
-        isOpen={isBottomSheetOpen} 
-        onClose={() => setIsBottomSheetOpen(false)}
-        variant="alert"
-      >
-        <div className="p-6 flex flex-col gap-6">
-          <div className="flex flex-col gap-4">
-            <div className={`flex items-center gap-3 ${unknownRegistration ? 'text-yellow-600' : 'text-emerald-600'}`}>
-              <div className={`p-2 rounded-xl ${unknownRegistration ? 'bg-yellow-50' : 'bg-emerald-50'}`}>
-                <Clock className="size-6" />
-              </div>
-              <h3 className="text-xl font-bold">Atenção ao prazo</h3>
-            </div>
-            
-            <p className={`text-lg font-semibold leading-tight ${unknownRegistration ? 'text-gray-700' : 'text-gray-700'}`}>
-              {unknownRegistration
-                ? "Sem o número da matrícula, o prazo para a consulta é de até 2 dias úteis."
-                : "Com o número da matrícula, sua consulta será realizada em apenas 1 hora!"}
-            </p>
-
-            <p className="text-sm text-gray-500 leading-relaxed">
-              {unknownRegistration 
-                ? "Dica: Informar a matrícula agiliza o processo juridicamente."
-                : "Seu pedido terá prioridade total no processamento."}
-            </p>
-          </div>
-
-          <div className="flex flex-col gap-3">
-            <Button 
-              onClick={handleConfirm} 
-              className="w-full h-12 rounded-xl"
-              icon={<Check className="size-5" />}
-            >
-              Confirmar
-            </Button>
-            <Button 
-              onClick={() => setIsBottomSheetOpen(false)}
-              className="bg-gray-100 hover:bg-gray-200 text-gray-600 shadow-none border border-gray-200 h-12 rounded-xl"
-              icon={<ChevronLeft className="size-5" />}
-            >
-              Voltar
-            </Button>
-          </div>
-        </div>
-      </BottomSheet>
 
       <BottomSheet 
         isOpen={isValidationBottomSheetOpen} 

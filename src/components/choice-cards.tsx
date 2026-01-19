@@ -9,6 +9,7 @@ export interface ChoiceCardsProps {
   noLabel?: string
   yesSubtitle?: string
   noSubtitle?: string
+  className?: string
 }
 
 export function ChoiceCards({ 
@@ -16,14 +17,15 @@ export function ChoiceCards({
   onChange, 
   yesLabel = 'Tenho', 
   noLabel = 'Não Tenho',
-  yesSubtitle = 'Eu possuo esta informação',
-  noSubtitle = 'Não possuo ou não sei'
+  yesSubtitle = 'Aperte aqui se souber',
+  noSubtitle = 'Aperte aqui se não souber',
+  className = ''
 }: ChoiceCardsProps) {
   const isSim = value === true
   const isNao = value === false
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className={`flex flex-col gap-4 ${className}`}>
       <div className="flex flex-col gap-3">
         <button
           type="button"

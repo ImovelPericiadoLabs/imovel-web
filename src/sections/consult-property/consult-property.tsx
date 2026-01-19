@@ -58,6 +58,7 @@ export default function ConsultProperty() {
       registrationNumber: '',
       unknownRegistration: undefined,
       hasDocument: undefined,
+      registry: null,
     },
     shouldUnregister: false,
     mode: 'onChange',
@@ -167,7 +168,7 @@ export default function ConsultProperty() {
         className={`flex flex-col pt-4 px-4 relative z-40 transition-colors duration-500 ${isFinished ? 'bg-emerald-600' : 'bg-primary'
           }`}
       >
-        <div className="flex items-center justify-between py-4.5 mb-6">
+        <div className="flex items-center justify-between py-4.5 mb-2">
           <ChevronLeft
             onClick={back}
             className={`size-7 transition-opacity text-white ${flow === 'address' ? 'opacity-0 pointer-events-none' : 'cursor-pointer'
@@ -184,16 +185,16 @@ export default function ConsultProperty() {
           </TrafficLightModal>
         </div>
 
-        {showProgressBar && <ProgressBar value={currentProgress} className="mb-3" />}
+        {showProgressBar && <ProgressBar value={currentProgress} className="mb-4" />}
       </header>
 
       <div
-        className={`relative h-30 -mt-1 transition-colors duration-500 ${isFinished ? 'bg-emerald-600' : 'bg-primary'
+        className={`relative h-24 -mt-1 transition-colors duration-500 ${isFinished ? 'bg-emerald-600' : 'bg-primary'
           }`}
       ></div>
 
       <FormProvider {...methods}>
-        <main className="w-full mx-auto lg:max-w-lg pt-5 px-0 -mt-24">
+        <main className="w-full mx-auto lg:max-w-lg pt-2 px-0 -mt-20">
           <Activity isActive={flow === 'address'}>
             <AddressStep ref={addressStepRef} onNext={() => go('address-complement')} />
           </Activity>

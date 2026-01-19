@@ -5,6 +5,7 @@ import { Home, MouseOff, FileText, BellDot, Package, ArrowUp } from 'lucide-reac
 import { useFormContext } from 'react-hook-form'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import TextTitle from '@/components/text-title'
+import TextSubtitle from '@/components/text-subtitle'
 import AutoCompleteAddressInput from '@/components/auto-complete-address-input'
 import LoadingOverlay from '@/components/loading-overlay'
 import Button from '@/components/button'
@@ -139,9 +140,12 @@ export const AddressStep = forwardRef(({ onNext }: { onNext: () => void }, ref) 
   }, [])
 
   return (
-    <div className="flex flex-col h-full w-full px-4 relative">
-      <div className="flex-1 flex flex-col gap-5 pt-4">
-        <TextTitle className="text-white">Para começar, onde fica seu imóvel?</TextTitle>
+    <div className="flex flex-col h-full w-full px-4 relative pb-32">
+      <div className="flex-1 flex flex-col gap-4">
+        <div className="flex flex-col gap-2 mb-6">
+          <TextTitle className="text-white">Para começar, onde fica seu imóvel?</TextTitle>
+          <TextSubtitle className="text-white/80">Busque pelo endereço completo com número</TextSubtitle>
+        </div>
 
         <div className="relative">
           <button 
@@ -171,7 +175,7 @@ export const AddressStep = forwardRef(({ onNext }: { onNext: () => void }, ref) 
               className="absolute -bottom-12 left-1/2 -translate-x-1/2 flex flex-col items-center animate-bounce cursor-pointer group outline-none"
             >
               <ArrowUp className="size-6 text-primary mb-1 group-active:scale-90 transition-transform" />
-              <span className="text-primary font-bold text-sm bg-primary/10 px-3 py-1 rounded-full whitespace-nowrap group-active:scale-95 transition-transform">
+              <span className="text-primary font-bold text-sm bg-primary/10 px-3 py-1 rounded-lg whitespace-nowrap group-active:scale-95 transition-transform">
                 Toque aqui para digitar o endereço
               </span>
             </button>

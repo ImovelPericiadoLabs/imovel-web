@@ -164,14 +164,14 @@ export function DocumentTypeStep({ onNext }: { onNext: () => void }) {
 
   return (
     <div className="relative flex-1 px-4 -mt-6 pb-32">
-      <div className="flex flex-col gap-5 pt-6">
+      <div className="flex flex-col gap-4 pt-6">
         <SelectedAddressCard address={watch('address')} />
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 mb-2">
           <TextTitle className="text-dark">Qual documento você tem?</TextTitle>
           <TextSubtitle className="text-gray-500">Selecione uma das opções abaixo e envie o arquivo</TextSubtitle>
         </div>
 
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3 mt-2">
           <input
             ref={fileInputRef}
             type="file"
@@ -227,7 +227,7 @@ export function DocumentTypeStep({ onNext }: { onNext: () => void }) {
       </div>
 
       {documentType && !!watch('document') && (
-        <div className="fixed bottom-0 left-0 right-0 px-4 pt-5 pb-7 bg-white mt-auto border-t border-gray-100 z-10">
+        <div className="fixed bottom-0 left-0 right-0 px-4 pt-5 pb-7 bg-white mt-auto border-t border-gray-200 z-10">
           <Button
             type="button"
             onClick={handleContinue}
