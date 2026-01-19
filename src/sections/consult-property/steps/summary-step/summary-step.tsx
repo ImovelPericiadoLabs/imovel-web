@@ -6,6 +6,7 @@ import { useFormContext } from 'react-hook-form'
 import TextTitle from '@/components/text-title'
 import TextSubtitle from '@/components/text-subtitle'
 import Button from '@/components/button'
+import { SummaryItemsList } from '@/components/summary-items-list'
 
 export function SummaryStep({ onNext }: { onNext: () => void }) {
   const { watch } = useFormContext()
@@ -105,60 +106,7 @@ export function SummaryStep({ onNext }: { onNext: () => void }) {
 
         {summary.length > 0 && (
           <div className="w-full bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            {summary.map((item: any) => {
-              if (item.isGroup) {
-                return (
-                  <div key={item.key} className="w-full flex border-b border-gray-200 last:border-b-0">
-                    {item.items.map((subItem: any, index: number) => {
-                      const SubItemIcon = subItem.icon
-                      return (
-                        <div
-                          key={subItem.key}
-                          className={`flex-1 p-5 flex items-start gap-4 ${index === 0 ? 'border-r border-gray-200' : ''}`}
-                        >
-                          <div className="shrink-0 my-auto p-2 bg-primary/5 rounded-xl text-primary">
-                            <SubItemIcon className="size-5" />
-                          </div>
-
-                          <div className="flex flex-col gap-0.5 text-start min-w-0">
-                            <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{subItem.title}</h3>
-                            <p className="text-sm font-semibold text-dark leading-tight">
-                              {subItem.value}
-                            </p>
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                )
-              }
-
-              const ItemIcon = item.icon
-              return (
-                <div
-                  key={item.key}
-                  className="w-full p-5 flex items-start gap-4 px-5 border-b border-gray-200 last:border-b-0"
-                >
-                  <div className="shrink-0 my-auto p-2 bg-primary/5 rounded-xl text-primary">
-                    <ItemIcon className="size-5" />
-                  </div>
-
-                  <div className="flex flex-col gap-0.5 text-start min-w-0">
-                    <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{item.title}</h3>
-
-                    <p className="text-sm font-semibold text-dark leading-tight">
-                      {item.value}
-                    </p>
-
-                    {item.badge && (
-                      <span className="w-fit uppercase text-[9px] font-bold px-2 py-0.5 mt-1 text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-xl">
-                        {item.badge}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              )
-            })}
+            <SummaryItemsList items={summary} />
           </div>
         )}
 

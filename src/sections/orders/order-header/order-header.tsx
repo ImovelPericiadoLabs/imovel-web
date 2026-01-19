@@ -9,6 +9,7 @@ import Badge from '@/components/badge'
 
 import { formatDateWithTime } from '@/utils/date'
 import { cn } from '@/utils/tailwind'
+import { SummaryItemsList, type SummaryItems } from '@/components/summary-items-list'
 
 // service
 import { getOrder, type Order } from '@/services/orders'
@@ -64,32 +65,64 @@ export default function OrderHeader({ Badge: ExtraBadge }: Props) {
     ? `#${String(order.code).padStart(6, '0')}`
     : '...'
 
-  const detailItems = [
-    {
+  const detailItems: SummaryItems = []
+
+  if (order.registration_number) {
+    detailItems.push({
       key: 'registration_number',
       title: 'Matrícula',
       value: order.registration_number,
       icon: Hash
-    },
-    {
+    })
+  }
+
+  if (order.lot_name) {
+    detailItems.push({
       key: 'lot_name',
       title: 'Loteamento',
       value: order.lot_name,
       icon: Box
-    },
-    {
-      key: 'block_number',
-      title: 'Quadra',
-      value: order.block_number,
-      icon: Layout
-    },
-    {
-      key: 'lot_number',
-      title: 'Lote',
-      value: order.lot_number,
-      icon: Package
+    })
+  }
+
+  if (order.block_number && order.lot_number) {
+    detailItems.push({
+      key: 'block-lot',
+      isGroup: true,
+      items: [
+        {
+          key: 'block_number',
+          title: 'Quadra',
+          value: order.block_number,
+          icon: Layout
+        },
+        {
+          key: 'lot_number',
+          title: 'Lote',
+          value: order.lot_number,
+          icon: Package
+        }
+      ]
+    })
+  } else {
+    if (order.block_number) {
+      detailItems.push({
+        key: 'block_number',
+        title: 'Quadra',
+        value: order.block_number,
+        icon: Layout
+      })
     }
-  ].filter((item) => !!item.value)
+
+    if (order.lot_number) {
+      detailItems.push({
+        key: 'lot_number',
+        title: 'Lote',
+        value: order.lot_number,
+        icon: Package
+      })
+    }
+  }
 
   return (
     <div className="flex flex-col gap-6 px-3 py-4 mb-3 bg-background">
@@ -128,26 +161,8 @@ export default function OrderHeader({ Badge: ExtraBadge }: Props) {
         </div>
 
         {detailItems.length > 0 && (
-          <div className="mt-4 pt-4 border-t border-gray-200 grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {detailItems.map((item) => {
-              const ItemIcon = item.icon
-              return (
-                <div key={item.key} className="flex items-start gap-3">
-                  <div className="shrink-0 p-2 bg-primary/5 rounded-xl text-primary">
-                    <ItemIcon className="size-4" />
-                  </div>
-
-                  <div className="flex flex-col gap-0.5 text-start min-w-0">
-                    <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                      {item.title}
-                    </h3>
-                    <p className="text-sm font-semibold text-dark leading-tight break-words">
-                      {item.value}
-                    </p>
-                  </div>
-                </div>
-              )
-            })}
+          <div className="mt-4 pt-4 border-t border-gray-200">
+            <SummaryItemsList items={detailItems} />
           </div>
         )}
       </div>

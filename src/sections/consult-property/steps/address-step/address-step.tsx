@@ -213,7 +213,7 @@ export const AddressStep = forwardRef<{ focus: () => boolean }, { onNext: () => 
         <div className="w-full mt-auto py-6">
           <Button
             href="/consultas" 
-            className="flex items-center justify-center gap-2 w-full shadow-lg"
+            className="flex text-white items-center justify-center gap-2 w-full shadow-lg"
             icon={<Package className="size-5" />}
           >
             Minhas Consultas
