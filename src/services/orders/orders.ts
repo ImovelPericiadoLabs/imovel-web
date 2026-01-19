@@ -2,6 +2,12 @@ import api from '@/utils/api/client'
 import { endpoint } from '@/constants/api'
 import { getSession, signOut } from 'next-auth/react'
 
+async function handleUnauthorized() {
+  if (typeof window === 'undefined') return
+  window.dispatchEvent(new Event('auth:unauthorized'))
+  await signOut({ redirect: false })
+}
+
 export type SemaphoreStatus = 'green' | 'yellow' | 'red' | 'blue' | 'gray'
 export type AnalisisStatus = {
   value: SemaphoreStatus
@@ -94,19 +100,15 @@ async function guard<T>(callback: (token: string) => Promise<T>): Promise<T> {
   const token = session?.accessToken
 
   if (!token) {
-    if (typeof window !== 'undefined') {
-      await signOut({ redirect: false })
-      window.location.reload()
-    }
+    await handleUnauthorized()
     throw new Error('Sessão inválida ou expirada.')
   }
 
   try {
     return await callback(token)
   } catch (error: any) {
-    if (error?.status === 401 && typeof window !== 'undefined') {
-      await signOut({ redirect: false })
-      window.location.reload()
+    if (error?.status === 401) {
+      await handleUnauthorized()
     }
     throw error
   }
