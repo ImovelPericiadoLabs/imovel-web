@@ -19,6 +19,7 @@ import { PaymentConfirmationStep } from '@/sections/consult-property/steps/payme
 import { SavedCardsPage } from '@/sections/consult-property/steps/payment-step/card/select'
 import { CreditCardPage } from '@/sections/consult-property/steps/payment-step/card/register'
 import TrafficLightModal from '@/components/traffic-light-modal'
+import LoadingOverlay from '@/components/loading-overlay'
 import { validations, FormTypes } from '@/sections/consult-property/validations'
 
 type FlowState =
@@ -48,6 +49,10 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle>(function ConsultProper
   const router = useRouter()
   const [flow, setFlow] = useState<FlowState>('address')
   const stack = useRef<FlowState[]>([])
+  const [isInitialLoading, setIsInitialLoading] = useState(() => {
+    if (typeof window === 'undefined') return true
+    return sessionStorage.getItem('consultPropertyAssetsReady') !== 'true'
+  })
 
   const methods = useForm<FormTypes>({
     resolver: zodResolver(validations),
@@ -107,6 +112,36 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle>(function ConsultProper
       }
     }
   }, [flow])
+
+  useEffect(() => {
+    if (!isInitialLoading) return
+
+    let isCancelled = false
+
+    const waitForLoad = new Promise<void>((resolve) => {
+      if (document.readyState === 'complete') {
+        resolve()
+        return
+      }
+      window.addEventListener('load', () => resolve(), { once: true })
+    })
+
+    const waitForFonts = document.fonts?.ready ?? Promise.resolve()
+
+    Promise.all([waitForLoad, waitForFonts]).then(() => {
+      if (isCancelled) return
+      sessionStorage.setItem('consultPropertyAssetsReady', 'true')
+      requestAnimationFrame(() => {
+        if (!isCancelled) {
+          setIsInitialLoading(false)
+        }
+      })
+    })
+
+    return () => {
+      isCancelled = true
+    }
+  }, [isInitialLoading])
 
   const go = useCallback((next: FlowState) => {
     stack.current.push(flow)
@@ -178,6 +213,14 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle>(function ConsultProper
     'payment-confirm',
     'finished',
   ].includes(flow), [flow])
+
+  if (isInitialLoading) {
+    return (
+      <section className="min-h-screen bg-background">
+        <LoadingOverlay isLoading message="Carregando recursos..." />
+      </section>
+    )
+  }
 
   return (
     <section className="min-h-screen bg-background">
