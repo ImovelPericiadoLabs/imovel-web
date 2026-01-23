@@ -28,7 +28,7 @@ export const validations = z
       .object({
         id: z.string(),
         file_path: z.string(),
-        file_hash: z.string(),
+        file_hash: z.string().nullable(),
         original_name: z.string(),
         extension: z.string(),
       })
