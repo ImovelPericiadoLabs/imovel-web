@@ -17,6 +17,7 @@ export default function ConsultarImovelPage() {
   const [progress, setProgress] = useState(0)
   const [remainingTime, setRemainingTime] = useState(0)
   const [isUnlocked, setIsUnlocked] = useState(false)
+  const [requiresLock, setRequiresLock] = useState(false)
   const [hasStartedAudio, setHasStartedAudio] = useState(false)
   const [isPlaying, setIsPlaying] = useState(false)
   const [isConsultActive, setIsConsultActive] = useState(false)
@@ -24,6 +25,16 @@ export default function ConsultarImovelPage() {
   const touchHandledRef = useRef(false)
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const hasLockParam = params.has('lock')
+    setRequiresLock(hasLockParam)
+
+    if (!hasLockParam) {
+      setIsUnlocked(true)
+      setRemainingTime(0)
+      return
+    }
+
     const unlocked = localStorage.getItem('vsl-unlocked') === 'true'
     if (unlocked) {
       setIsUnlocked(true)
@@ -51,7 +62,7 @@ export default function ConsultarImovelPage() {
     const left = Math.ceil(duration - currentTime)
     setRemainingTime(Math.max(0, left))
 
-    if (currentProgress > 98 && !isUnlocked) {
+    if (requiresLock && currentProgress > 98 && !isUnlocked) {
       setIsUnlocked(true)
       setRemainingTime(0)
       localStorage.setItem('vsl-unlocked', 'true')
@@ -59,6 +70,10 @@ export default function ConsultarImovelPage() {
   }
 
   const handleLoadedMetadata = (e: React.SyntheticEvent<HTMLVideoElement>) => {
+    if (!requiresLock) {
+      setRemainingTime(0)
+      return
+    }
     setRemainingTime(Math.ceil(e.currentTarget.duration))
   }
 
@@ -143,6 +158,7 @@ export default function ConsultarImovelPage() {
           onPlay={() => setIsPlaying(true)}
           onPause={() => setIsPlaying(false)}
           onEnded={() => {
+            if (!requiresLock) return
             setIsUnlocked(true)
             localStorage.setItem('vsl-unlocked', 'true')
           }}

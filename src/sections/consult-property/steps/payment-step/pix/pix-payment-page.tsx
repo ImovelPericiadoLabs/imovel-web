@@ -43,7 +43,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
   const parentForm = useFormContext()
 
   const {
-      addressComplement,
+      complement,
       registrationNumber,
       notary,
       documentId,
@@ -51,7 +51,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
       block,
       lot
     } = useMemo(() => {
-      const rawComplement = parentForm?.getValues('addressComplement')
+      const rawComplement = parentForm?.getValues('complement')
       const rawRegistrationNumber = parentForm?.getValues('registrationNumber')
       const uploadedDoc = parentForm?.getValues('document')
       const notaryName = parentForm?.getValues('registry')?.name
@@ -60,7 +60,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
       const rawLot = parentForm?.getValues('lot')
 
       return {
-        addressComplement: rawComplement?.trim() || undefined,
+        complement: rawComplement?.trim() || undefined,
         registrationNumber: rawRegistrationNumber?.trim() || undefined,
         notary: notaryName,
         documentId: uploadedDoc?.id,
@@ -99,7 +99,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
 
   // Unificamos os métodos de pegar valores para usar o formulário pai nos campos de endereço
   const getValues = useCallback((field?: string) => {
-    const parentFields = ['address', 'registrationNumber', 'allotment', 'block', 'lot']
+    const parentFields = ['address', 'registrationNumber', 'allotment', 'block', 'lot', 'complement']
     if (field && parentFields.includes(field)) {
       return parentForm?.getValues(field)
     }
@@ -209,7 +209,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
           name: formData.name,
           document: formData.document,
           whatsapp: whatsappClean,
-          complement: addressComplement,
+          complement,
           registration_number: registrationNumber,
           notary,
           lot_name: allotment,
@@ -261,7 +261,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
         setIsAuthLoading(false)
       }
     }
-  }, [trigger, getValues, placeId, clearServerError, status, generatePix, documentId, addressComplement, registrationNumber, notary, allotment, block, lot])
+  }, [trigger, getValues, placeId, clearServerError, status, generatePix, documentId, complement, registrationNumber, notary, allotment, block, lot])
 
   const handleAuthSuccess = useCallback(async (code: string) => {
     setServerError('')
@@ -287,7 +287,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
         name: formData.name,
         document: formData.document,
         whatsapp: whatsappClean,
-        complement: addressComplement,
+        complement,
         registration_number: registrationNumber,
         notary,
         lot_name: allotment,
@@ -300,7 +300,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
     } finally {
       setIsAuthLoading(false)
     }
-  }, [setValue, getValues, placeId, generatePix, documentId, addressComplement, registrationNumber, notary, allotment, block, lot])
+  }, [setValue, getValues, placeId, generatePix, documentId, complement, registrationNumber, notary, allotment, block, lot])
 
   const handleCopy = useCallback(async () => {
     try {

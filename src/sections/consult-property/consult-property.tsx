@@ -64,6 +64,7 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle>(function ConsultProper
       noBlock: undefined,
       lot: '',
       noLot: undefined,
+      complement: '',
       registrationNumber: '',
       unknownRegistration: undefined,
       hasDocument: undefined,
@@ -181,9 +182,8 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle>(function ConsultProper
       }
       
       if (previous === 'address-complement') {
-        // Se voltarmos do documento para o complemento, resetamos o último sub-passo (lote)
-        methods.setValue('noLot', undefined)
-        methods.setValue('lot', '')
+        // Se voltarmos do documento para o complemento, resetamos o último sub-passo
+        methods.setValue('complement', '')
       }
 
       setFlow(previous)

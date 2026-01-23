@@ -11,6 +11,7 @@ const Wrapper = ({ children }: { children: React.ReactNode }) => {
       noAllotment: undefined,
       noBlock: undefined,
       noLot: undefined,
+      complement: '',
     }
   })
   return <FormProvider {...methods}>{children}</FormProvider>
@@ -73,5 +74,21 @@ describe('AddressComplementStep Titles and Labels', () => {
     expect(screen.getByText('Você tem o número do lote?')).toBeInTheDocument()
     expect(screen.getByText('Tenho o número do lote')).toBeInTheDocument()
     expect(screen.getByText('Não tenho o número do lote')).toBeInTheDocument()
+  })
+
+  it('deve renderizar o campo de complemento após o Lote', () => {
+    render(
+      <Wrapper>
+        <AddressComplementStep onNext={() => {}} />
+      </Wrapper>
+    )
+
+    fireEvent.click(screen.getByText('Não tenho o número da matrícula'))
+    fireEvent.click(screen.getByText('Não tenho o nome do loteamento'))
+    fireEvent.click(screen.getByText('Não tenho o número da quadra'))
+    fireEvent.click(screen.getByText('Não tenho o número do lote'))
+
+    expect(screen.getByText('Complemento do endereço')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('Ex: Edifício Sol, Bloco B, Apto 301')).toBeInTheDocument()
   })
 })

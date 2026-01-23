@@ -1,7 +1,7 @@
 'use client'
 
 import { ChoiceCards } from '@/components/choice-cards'
-import { Check, Building, Box, Layout, Hash, Info, ChevronRight, ChevronLeft, Pencil } from 'lucide-react'
+import { Check, Building, Box, Layout, Hash, Info, ChevronRight, ChevronLeft, Pencil, Building2 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useFormContext } from 'react-hook-form'
 import { useState, useRef, useImperativeHandle, forwardRef, useCallback, useMemo } from 'react'
@@ -15,7 +15,7 @@ import InfoCard from '@/components/info-card'
 
 export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: () => void, onBack?: () => void }, ref) => {
   const [currentSubStep, setCurrentSubStep] = useState(0)
-  const subSteps = useMemo(() => ['registration', 'allotment', 'block', 'lot'] as const, [])
+  const subSteps = useMemo(() => ['registration', 'allotment', 'block', 'lot', 'complement'] as const, [])
   type StepKey = (typeof subSteps)[number]
   type StepMeta = {
     label: string
@@ -58,6 +58,14 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
       iconClassName: 'bg-violet-100 text-violet-700',
       badgeClassName: 'text-violet-700 bg-violet-100/80 border-violet-200',
     },
+    complement: {
+      label: 'Complemento',
+      icon: Building2,
+      tone: 'complement' as const,
+      cardClassName: 'bg-gray-50/80 border-gray-100',
+      iconClassName: 'bg-gray-100 text-gray-700',
+      badgeClassName: 'text-gray-700 bg-gray-100/80 border-gray-200',
+    },
   }), [])
   const validationStyles = useMemo(() => ({
     registration: {
@@ -87,6 +95,13 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
       icon: 'text-violet-700',
       title: 'text-violet-700',
       button: 'bg-violet-600 hover:bg-violet-700 text-white',
+    },
+    complement: {
+      sheet: 'border-t-4 border-gray-300',
+      iconWrap: 'bg-gray-100',
+      icon: 'text-gray-700',
+      title: 'text-gray-700',
+      button: 'bg-gray-700 hover:bg-gray-800 text-white',
     },
   }), [])
 
@@ -148,6 +163,15 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
       fieldsToValidate = ['noLot', 'lot']
       fieldLabel = 'o lote'
     }
+    if (subStep === 'complement') {
+      if (currentSubStep < subSteps.length - 1) {
+        setCurrentSubStep(prev => prev + 1)
+        window.scrollTo({ top: 0, behavior: 'auto' })
+      } else {
+        onNext()
+      }
+      return
+    }
 
     // Obter os valores atuais
     const choiceValue = getValues(fieldsToValidate[0])
@@ -208,6 +232,7 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
   const allotmentRef = useRef<HTMLInputElement>(null)
   const blockRef = useRef<HTMLInputElement>(null)
   const lotRef = useRef<HTMLInputElement>(null)
+  const complementRef = useRef<HTMLInputElement>(null)
 
   const focusCurrentField = useCallback(() => {
     const step = subSteps[currentSubStep]
@@ -229,6 +254,11 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
     if (step === 'lot') {
       lotRef.current?.focus()
       lotRef.current?.click()
+      return
+    }
+    if (step === 'complement') {
+      complementRef.current?.focus()
+      complementRef.current?.click()
     }
   }, [currentSubStep, subSteps])
 
@@ -245,6 +275,9 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
     }
     if (currentStepName === 'lot') {
       return noLot === false
+    }
+    if (currentStepName === 'complement') {
+      return true
     }
     return true
   }, [currentSubStep, subSteps, unknownRegistration, noAllotment, noBlock, noLot])
@@ -299,6 +332,7 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
               {subSteps[currentSubStep] === 'allotment' && 'Você tem o nome do loteamento?'}
               {subSteps[currentSubStep] === 'block' && 'Você tem o número da quadra?'}
               {subSteps[currentSubStep] === 'lot' && 'Você tem o número do lote?'}
+              {subSteps[currentSubStep] === 'complement' && 'Informe o complemento do endereço'}
             </TextTitle>
             <TextSubtitle className="text-gray-500">
               Isso melhora a precisão da busca por seu imóvel.
@@ -685,6 +719,55 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
               </div>
             )}
           </div>
+          )}
+
+          {subSteps[currentSubStep] === 'complement' && (
+            <div className="flex flex-col gap-3 mt-0">
+              <div className="flex flex-col gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                <label
+                  htmlFor="complement"
+                  className="text-sm font-semibold text-gray-700 ml-1"
+                >
+                  Complemento do endereço
+                </label>
+
+                <div className="relative group">
+                  <div className="absolute left-4 top-4 text-gray-400 group-focus-within:text-primary transition-colors pointer-events-none">
+                    <Building2 className="size-5" />
+                  </div>
+
+                  <input
+                    id="complement"
+                    type="text"
+                    placeholder="Ex: Edifício Sol, Bloco B, Apto 301"
+                    {...register('complement')}
+                    ref={(e) => {
+                      register('complement').ref(e)
+                      complementRef.current = e
+                    }}
+                    className={`
+                      w-full 
+                      pl-12 pr-4 py-4
+                      bg-white 
+                      border ${errors.complement ? 'border-red-500' : 'border-gray-200'}
+                      rounded-xl
+                      text-sm text-gray-900 
+                      placeholder:text-gray-400 
+                      outline-none 
+                      transition-all duration-200
+                      focus:border-primary 
+                      focus:ring-4 focus:ring-primary/10
+                    `}
+                  />
+                </div>
+
+                <InfoCard className="mt-2">
+                  Sugestão: informe edifício, número do bloco e número do apartamento.
+                </InfoCard>
+
+                {renderInlineNextButton()}
+              </div>
+            </div>
           )}
         </div>
       </div>

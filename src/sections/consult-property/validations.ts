@@ -11,6 +11,7 @@ export const validations = z
     noBlock: z.boolean().nullable().optional(),
     lot: z.string().optional(),
     noLot: z.boolean().nullable().optional(),
+    complement: z.string().optional(),
     unknownRegistration: z.boolean().nullable().optional(),
     registrationNumber: z.string().optional().nullable(),
     placeId: z.string(),
