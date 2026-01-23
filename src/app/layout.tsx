@@ -1,6 +1,7 @@
 // layout.tsx
 import type { Metadata, Viewport } from 'next'
 import { Noto_Sans } from 'next/font/google'
+import Script from 'next/script'
 import { Providers } from '@/providers'
 import './globals.css'
 
@@ -9,6 +10,8 @@ const notoSans = Noto_Sans({
   subsets: ['latin'],
   weight: ['400', '500', '700'],
 })
+
+const gtmId = process.env.NEXT_PUBLIC_GTM_ID || 'GTM-5XK4CG9T'
 
 // O 'interactiveWidget' ajuda a redimensionar a tela quando o teclado abre
 export const viewport: Viewport = {
@@ -30,7 +33,28 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-br" className="h-full">
+      <head>
+        <Script
+          id="google-tag-manager"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','${gtmId}');`,
+          }}
+        />
+      </head>
       <body className={`${notoSans.variable} antialiased h-full flex flex-col`}>
+        <noscript>
+          <iframe
+            src={`https://www.googletagmanager.com/ns.html?id=${gtmId}`}
+            height="0"
+            width="0"
+            style={{ display: 'none', visibility: 'hidden' }}
+          />
+        </noscript>
         <Providers>
           <main className="flex-1 flex flex-col h-full w-full">
             {children}
