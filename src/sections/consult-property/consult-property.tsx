@@ -6,7 +6,6 @@ import { memo, useState, useRef, ReactNode, useEffect, useCallback, useMemo, for
 import { FormProvider, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { ChevronLeft, CircleQuestionMark } from 'lucide-react'
-import ProgressBar from '@/components/progress-bar'
 import {
   AddressStep,
   DocumentConfirmationStep,
@@ -205,17 +204,9 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle>(function ConsultProper
     finished: 5,
   }), [])
 
-  const currentProgress = useMemo(() => (progressSteps[flow] / 5) * 100, [flow, progressSteps])
   const currentStepIndex = progressSteps[flow]
 
   const isFinished = flow === 'finished'
-
-  const showProgressBar = useMemo(() => ![
-    'payment-cards',
-    'payment-card-new',
-    'payment-confirm',
-    'finished',
-  ].includes(flow), [flow])
 
   useEffect(() => {
     if (isInitialLoading) return
@@ -230,7 +221,6 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle>(function ConsultProper
       event_description: `Visualizou a etapa "${flow}" do fluxo de consulta do imóvel.`,
       flow_step: flow,
       step_index: currentStepIndex,
-      progress_percent: currentProgress,
       is_finished: isFinished,
     })
 
@@ -244,7 +234,7 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle>(function ConsultProper
         step_index: currentStepIndex,
       })
     }
-  }, [flow, isInitialLoading, currentProgress, currentStepIndex, isFinished])
+  }, [flow, isInitialLoading, currentStepIndex, isFinished])
 
   if (isInitialLoading) {
     return (
@@ -269,7 +259,13 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle>(function ConsultProper
           />
 
           <div className="relative">
-            <Image src="/images/logo.png" alt="Logo" width={200} height={50} />
+            <Image
+              src="/images/logo.svg"
+              alt="Logo"
+              width={72}
+              height={70}
+              className="object-contain -my-2.5"
+            />
           </div>
 
           <TrafficLightModal>
@@ -277,13 +273,10 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle>(function ConsultProper
           </TrafficLightModal>
         </div>
 
-        {showProgressBar && <ProgressBar value={currentProgress} className="mb-4" />}
+        
       </header>
 
-      <div
-        className={`relative h-24 -mt-1 transition-colors duration-500 ${isFinished ? 'bg-emerald-600' : 'bg-primary'
-          }`}
-      ></div>
+      <div className="relative h-24 -mt-1 transition-colors duration-500 bg-sky-200"></div>
 
       <FormProvider {...methods}>
         <main className="w-full mx-auto lg:max-w-lg pt-2 px-0 -mt-20">

@@ -5,7 +5,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useForm, FormProvider, useFormContext } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Check, Clock, ChevronRight, Copy } from 'lucide-react'
+import { Check, Clock, Copy, IdCard, Mail, Phone, User } from 'lucide-react'
 import { useSession, signOut } from 'next-auth/react'
 
 import TextTitle from '@/components/text-title'
@@ -13,7 +13,6 @@ import TextSubtitle from '@/components/text-subtitle'
 import Button from '@/components/button'
 import Skeleton from '@/components/skeleton'
 import BottomSheet from '@/components/bottom-sheet'
-import Input from '@/components/input'
 import LoadingOverlay from '@/components/loading-overlay'
 import PixIcon from '@/components/icons/pix-icon'
 import Alert from '@/components/alert'
@@ -37,6 +36,30 @@ type Step = 'details' | 'auth' | 'pix'
 
 const FIXED_PLAN_ID = '019aea72-ccab-76ee-883c-72cce61cedbb'
 const STORAGE_KEY = '@pix-payment:form-data'
+type MaskType = 'cpf' | 'whatsapp' | ((value: string) => string)
+
+function applyMask(value: string, mask?: MaskType): string {
+  const digits = value.replace(/\D/g, '')
+
+  if (!mask) return value
+
+  if (typeof mask === 'function') return mask(value)
+
+  switch (mask) {
+    case 'cpf':
+      return digits
+        .replace(/^(\d{3})(\d)/, '$1.$2')
+        .replace(/^(\d{3})\.(\d{3})(\d)/, '$1.$2.$3')
+        .replace(/^(\d{3})\.(\d{3})\.(\d{3})(\d{1,2})/, '$1.$2.$3-$4')
+        .slice(0, 14)
+
+    case 'whatsapp':
+      return digits
+        .replace(/^(\d{2})(\d)/, '($1) $2')
+        .replace(/(\d{5})(\d)/, '$1-$2')
+        .slice(0, 15)
+  }
+}
 
 export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPageProps) {
   const { data: session, status } = useSession()
@@ -98,6 +121,10 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
     trigger,
     formState: { errors },
   } = methods
+  const nameField = register('name')
+  const documentField = register('document')
+  const emailField = register('email')
+  const whatsappField = register('whatsapp')
 
   // Unificamos os métodos de pegar valores para usar o formulário pai nos campos de endereço
   const getValues = useCallback((field?: string) => {
@@ -436,31 +463,182 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
                 <div className="p-2 bg-primary/5 rounded-xl">
                   <PixIcon className="size-7 text-primary" />
                 </div>
-                <div className="flex flex-col gap-1">
-                  <TextTitle className="text-xl font-bold text-dark">Dados para o PIX</TextTitle>
-                  <TextSubtitle className="text-gray-500">Informe seus dados para gerar o código</TextSubtitle>
+                <div className="flex flex-col gap-0.5">
+                  <TextTitle className="text-lg font-semibold text-dark leading-tight">
+                    Último passo para sua consulta do imóvel
+                  </TextTitle>
+                  <TextSubtitle className="text-sm text-gray-500 leading-snug">
+                    Preencha seus dados para gerar o PIX de 59,00
+                  </TextSubtitle>
                 </div>
               </div>
 
               <form onSubmit={(e) => e.preventDefault()} className="flex flex-col gap-4">
                 {!!serverError && <Alert variant="error" message={serverError} />}
 
-                <Input {...register('name')} errors={errors} label="Nome do titular" placeholder="Ex: Roberto Silva" onKeyDown={clearServerError} />
-                <Input {...register('document')} errors={errors} label="CPF" placeholder="000.000.000-00" mask="cpf" inputMode="numeric" onKeyDown={clearServerError} />
+                <div className="rounded-xl border border-blue-900 bg-blue-950 p-4 flex flex-col gap-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex flex-col gap-1">
+                      <p className="text-base font-semibold text-white leading-tight">Consulta Completa do Imóvel</p>
+                      <p className="text-sm text-gray-200 leading-snug">
+                        Receba um resumo claro do imóvel, com pendências e riscos importantes. Tudo de forma simples e rápida.
+                      </p>
+                    </div>
+                    <span className="text-lg font-bold text-gray-900 bg-white border border-white/80 rounded-full px-3 py-1">
+                      59,00
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <label htmlFor="name" className="text-sm font-semibold text-gray-700 ml-1">
+                    Nome completo
+                  </label>
+                  <div className="relative group">
+                    <div className="absolute left-4 top-4 text-gray-400 group-focus-within:text-primary transition-colors pointer-events-none">
+                      <User className="size-5" />
+                    </div>
+                    <input
+                      id="name"
+                      type="text"
+                      placeholder="Ex: Roberto Silva"
+                      {...nameField}
+                      onKeyDown={clearServerError}
+                      className={`
+                        w-full 
+                        pl-12 pr-4 py-4
+                        bg-white 
+                        border ${errors.name ? 'border-red-500' : 'border-gray-200'}
+                        rounded-xl
+                        text-sm text-gray-900 
+                        placeholder:text-gray-400 
+                        outline-none 
+                        transition-all duration-200
+                        focus:border-primary 
+                        focus:ring-4 focus:ring-primary/10
+                      `}
+                    />
+                  </div>
+                  {errors.name?.message && (
+                    <p className="text-xs text-red-500 ml-1">{errors.name.message as string}</p>
+                  )}
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <label htmlFor="document" className="text-sm font-semibold text-gray-700 ml-1">
+                    CPF (somente números)
+                  </label>
+                  <div className="relative group">
+                    <div className="absolute left-4 top-4 text-gray-400 group-focus-within:text-primary transition-colors pointer-events-none">
+                      <IdCard className="size-5" />
+                    </div>
+                    <input
+                      id="document"
+                      type="text"
+                      placeholder="000.000.000-00"
+                      inputMode="numeric"
+                      {...documentField}
+                      onChange={(event) => {
+                        event.target.value = applyMask(event.target.value, 'cpf')
+                        documentField.onChange(event)
+                      }}
+                      onKeyDown={clearServerError}
+                      className={`
+                        w-full 
+                        pl-12 pr-4 py-4
+                        bg-white 
+                        border ${errors.document ? 'border-red-500' : 'border-gray-200'}
+                        rounded-xl
+                        text-sm text-gray-900 
+                        placeholder:text-gray-400 
+                        outline-none 
+                        transition-all duration-200
+                        focus:border-primary 
+                        focus:ring-4 focus:ring-primary/10
+                      `}
+                    />
+                  </div>
+                  {errors.document?.message && (
+                    <p className="text-xs text-red-500 ml-1">{errors.document.message as string}</p>
+                  )}
+                </div>
 
                 {status === 'authenticated' ? (
-                  <input type="hidden" {...register('email')} />
+                  <input type="hidden" {...emailField} />
                 ) : (
-                  <Input
-                    {...register('email')}
-                    errors={errors}
-                    label="E-mail"
-                    placeholder="email@email.com"
-                    onKeyDown={clearServerError}
-                  />
+                  <div className="flex flex-col gap-2">
+                  <label htmlFor="email" className="text-sm font-semibold text-gray-700 ml-1">
+                    E-mail (para receber atualizações)
+                  </label>
+                    <div className="relative group">
+                      <div className="absolute left-4 top-4 text-gray-400 group-focus-within:text-primary transition-colors pointer-events-none">
+                        <Mail className="size-5" />
+                      </div>
+                      <input
+                        id="email"
+                        type="email"
+                        placeholder="email@email.com"
+                        {...emailField}
+                        onKeyDown={clearServerError}
+                        className={`
+                          w-full 
+                          pl-12 pr-4 py-4
+                          bg-white 
+                          border ${errors.email ? 'border-red-500' : 'border-gray-200'}
+                          rounded-xl
+                          text-sm text-gray-900 
+                          placeholder:text-gray-400 
+                          outline-none 
+                          transition-all duration-200
+                          focus:border-primary 
+                          focus:ring-4 focus:ring-primary/10
+                        `}
+                      />
+                    </div>
+                    {errors.email?.message && (
+                      <p className="text-xs text-red-500 ml-1">{errors.email.message as string}</p>
+                    )}
+                  </div>
                 )}
 
-                <Input {...register('whatsapp')} errors={errors} label="WhatsApp" placeholder="(99) 99999-9999" mask="whatsapp" inputMode="numeric" onKeyDown={clearServerError} />
+                <div className="flex flex-col gap-2">
+                  <label htmlFor="whatsapp" className="text-sm font-semibold text-gray-700 ml-1">
+                    WhatsApp com DDD (para receber atualizações)
+                  </label>
+                  <div className="relative group">
+                    <div className="absolute left-4 top-4 text-gray-400 group-focus-within:text-primary transition-colors pointer-events-none">
+                      <Phone className="size-5" />
+                    </div>
+                    <input
+                      id="whatsapp"
+                      type="text"
+                      placeholder="(99) 99999-9999"
+                      inputMode="numeric"
+                      {...whatsappField}
+                      onChange={(event) => {
+                        event.target.value = applyMask(event.target.value, 'whatsapp')
+                        whatsappField.onChange(event)
+                      }}
+                      onKeyDown={clearServerError}
+                      className={`
+                        w-full 
+                        pl-12 pr-4 py-4
+                        bg-white 
+                        border ${errors.whatsapp ? 'border-red-500' : 'border-gray-200'}
+                        rounded-xl
+                        text-sm text-gray-900 
+                        placeholder:text-gray-400 
+                        outline-none 
+                        transition-all duration-200
+                        focus:border-primary 
+                        focus:ring-4 focus:ring-primary/10
+                      `}
+                    />
+                  </div>
+                  {errors.whatsapp?.message && (
+                    <p className="text-xs text-red-500 ml-1">{errors.whatsapp.message as string}</p>
+                  )}
+                </div>
 
                 <div className="pt-2">
                   <Button 
@@ -468,9 +646,9 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
                     onClick={handleDetailsSubmit} 
                     disabled={isLoading} 
                     className="rounded-xl h-12"
-                    icon={<ChevronRight className="size-5" />}
+                    icon={<PixIcon className="size-5" />}
                   >
-                    {isLoading ? 'Processando...' : 'Gerar código PIX'}
+                    {isLoading ? 'Processando...' : 'Pagar com PIX'}
                   </Button>
                 </div>
               </form>

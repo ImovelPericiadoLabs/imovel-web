@@ -86,12 +86,12 @@ export function VerifyCodeStep({
     >
       <div className="mb-12">
         <Image
-          src="/images/logo.png"
+          src="/images/logo.svg"
           alt="Logo"
-          width={200}
-          height={50}
+          width={72}
+          height={70}
           priority
-          className="object-contain"
+          className="object-contain -my-2.5"
         />
       </div>
 

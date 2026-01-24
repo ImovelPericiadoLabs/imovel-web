@@ -166,11 +166,12 @@ export default function ConsultarImovelPage() {
           {/* Logo */}
           <div className="flex flex-col items-center mt-2 opacity-40 scale-75 lg:scale-100">
             <Image
-              src="/images/logo.png"
+              src="/images/logo.svg"
               alt="Logo"
-              width={200}
-              height={50}
+              width={72}
+              height={70}
               priority
+              className="object-contain -my-2.5"
             />
           </div>
 

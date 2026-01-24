@@ -15,6 +15,10 @@
     --color-violet-50: #F9F5FF;
     --color-violet-100: #F4EBFF;
     --color-violet-600: #7F56D9;
+
+    /* Midnight Blue */
+    --color-midnight-500: #142a5b;
+    --color-midnight-600: #0b1b3a;
   }
 }
 
@@ -50,8 +54,8 @@
   /* ---------------------------------------------------------------------- */
   /* Primary Actions (Main buttons, highlighted links, etc.)                */
   /* ---------------------------------------------------------------------- */
-  --color-primary: var(--color-violet-600);
-  --color-primary-hover:  var(--color-violet-500);
+  --color-primary: var(--color-midnight-600);
+  --color-primary-hover: var(--color-midnight-500);
 
   --color-secondary: #E8DEF8;
   

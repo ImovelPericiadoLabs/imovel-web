@@ -101,8 +101,8 @@ export function SummaryStep({ onNext }: { onNext: () => void }) {
     <div className="flex flex-col gap-4 min-h-[calc(100vh-7.5rem)] relative pb-32">
       <div className="px-4 flex flex-col gap-4">
         <div className="flex flex-col gap-2 mb-6">
-          <TextTitle className="text-white">Resumo da Consulta do Imóvel</TextTitle>
-          <TextSubtitle className="text-white/80">Verifique se os dados abaixo estão corretos</TextSubtitle>
+          <TextTitle className="text-black">Resumo da Consulta do Imóvel</TextTitle>
+          <TextSubtitle className="text-black/70">Verifique se os dados abaixo estão corretos</TextSubtitle>
         </div>
 
         {summary.length > 0 && (
