@@ -63,7 +63,13 @@ export default function AppLayout({ children }: PropsWithChildren) {
 
           {pathname === '/consultas' && (
             <div className="relative">
-              <Image src="/images/logo-mini.svg" alt="Logo" width={30} height={50} />
+              <Image
+                src="/images/logo.svg"
+                alt="Logo"
+                width={72}
+                height={70}
+                className="object-contain -my-2.5"
+              />
             </div>
           )}
 

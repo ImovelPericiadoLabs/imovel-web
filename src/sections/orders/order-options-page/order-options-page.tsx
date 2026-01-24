@@ -69,13 +69,13 @@ export default function OrderOptionsPage() {
 
       <div className="flex flex-col gap-2 px-3 lg:px-0 w-full mx-auto lg:max-w-lg">
         {isNotFinished ? (
-          <div className="flex flex-col items-center justify-center p-8 border border-blue-100 rounded-sm bg-blue-50/50 text-center gap-4">
+          <div className="flex flex-col items-center justify-center p-6 border border-blue-100 rounded-2xl bg-blue-50/60 text-center gap-4 shadow-sm">
             <div className="bg-blue-100 p-3 rounded-full">
               <Info className="size-8 text-blue-600" />
             </div>
             <div className="flex flex-col gap-1">
-              <h3 className="text-sm font-semibold text-blue-900 uppercase tracking-wide">
-                Processo em análise
+              <h3 className="text-sm font-semibold text-blue-900">
+                Consulta em Análise
               </h3>
               <p className="text-xs text-blue-700 leading-relaxed">
                 Esta consulta ainda está sendo processada pela nossa equipe. <br />

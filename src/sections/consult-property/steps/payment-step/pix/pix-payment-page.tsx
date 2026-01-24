@@ -476,19 +476,6 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
               <form onSubmit={(e) => e.preventDefault()} className="flex flex-col gap-4">
                 {!!serverError && <Alert variant="error" message={serverError} />}
 
-                <div className="rounded-xl border border-blue-900 bg-blue-950 p-4 flex flex-col gap-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex flex-col gap-1">
-                      <p className="text-base font-semibold text-white leading-tight">Consulta Completa do Imóvel</p>
-                      <p className="text-sm text-gray-200 leading-snug">
-                        Receba um resumo claro do imóvel, com pendências e riscos importantes. Tudo de forma simples e rápida.
-                      </p>
-                    </div>
-                    <span className="text-lg font-bold text-gray-900 bg-white border border-white/80 rounded-full px-3 py-1">
-                      59,00
-                    </span>
-                  </div>
-                </div>
 
                 <div className="flex flex-col gap-2">
                   <label htmlFor="name" className="text-sm font-semibold text-gray-700 ml-1">
