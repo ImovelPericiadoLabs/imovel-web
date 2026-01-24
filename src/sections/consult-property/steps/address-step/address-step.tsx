@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useImperativeHandle, forwardRef, useCallback, useMemo } from 'react'
+import { useState, useRef, useImperativeHandle, forwardRef, useCallback, useMemo, useEffect } from 'react'
 import { Home, MouseOff, FileText, BellDot, Package, ArrowUp } from 'lucide-react'
 import { useFormContext } from 'react-hook-form'
 import { useQuery, useMutation } from '@tanstack/react-query'
@@ -12,6 +12,7 @@ import Button from '@/components/button'
 import useDebounce from '@/hooks/use-debounce'
 import { queryKey } from '@/constants/queries'
 import { listAddresses, listAddress, listRegistry } from '@/services/addresses'
+import { trackGtmEvent } from '@/utils/analytics/gtm'
 
 const IS_DEBUG_MODE = process.env.NEXT_PUBLIC_ENABLE_DEBUG_MODE === 'true'
 
@@ -26,6 +27,8 @@ export const AddressStep = forwardRef<{ focus: () => boolean }, { onNext: () => 
   const { setValue } = useFormContext()
   const [address, setAddress] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
+  const lastSearchQueryRef = useRef<string | null>(null)
+  const lastSearchErrorRef = useRef<string | null>(null)
 
   useImperativeHandle(ref, () => ({
     focus: () => {
@@ -105,6 +108,13 @@ export const AddressStep = forwardRef<{ focus: () => boolean }, { onNext: () => 
     mutationFn: listRegistry,
     onSuccess(data) {
       setValue('registry', data)
+      trackGtmEvent('address_registry_loaded', {
+        event_category: 'address',
+        event_label: 'registry_loaded',
+        event_description: 'Cartório associado ao endereço foi carregado.',
+        registry_name: data?.name,
+        has_registry: Boolean(data?.name),
+      })
     },
   })
 
@@ -117,6 +127,14 @@ export const AddressStep = forwardRef<{ focus: () => boolean }, { onNext: () => 
 
     const response = await listAddressMutate({ address, placeId })
 
+    trackGtmEvent('address_selected', {
+      event_category: 'address',
+      event_label: 'select',
+      event_description: 'Endereço selecionado na lista de resultados.',
+      place_id: placeId,
+      address_length: address?.length || 0,
+    })
+
     return response as { address: string; addressNumber: string | null }
   }, [setValue, listAddressMutate, address])
 
@@ -127,6 +145,12 @@ export const AddressStep = forwardRef<{ focus: () => boolean }, { onNext: () => 
   const handleSubmit = useCallback(async (value: string) => {
     setValue('address', value)
     await listRegistryMutate(value)
+    trackGtmEvent('address_confirmed', {
+      event_category: 'address',
+      event_label: 'confirm',
+      event_description: 'Endereço confirmado para avançar no fluxo.',
+      address_length: value?.length || 0,
+    })
     onNext()
   }, [setValue, listRegistryMutate, onNext])
 
@@ -139,6 +163,37 @@ export const AddressStep = forwardRef<{ focus: () => boolean }, { onNext: () => 
     inputRef.current?.focus()
     inputRef.current?.click()
   }, [])
+
+  useEffect(() => {
+    const validationError = getValidationError()
+    if (!debouncedAddress || debouncedAddress.length < 3) return
+    if (debouncedAddress !== address) return
+    if (validationError) return
+
+    if (lastSearchQueryRef.current === debouncedAddress) return
+    lastSearchQueryRef.current = debouncedAddress
+
+    trackGtmEvent('address_search', {
+      event_category: 'address',
+      event_label: 'search',
+      event_description: 'Busca de endereço iniciada.',
+      query_length: debouncedAddress.length,
+    })
+  }, [debouncedAddress, address, getValidationError])
+
+  useEffect(() => {
+    if (!isError || !queryError) return
+    const message = (queryError as { message?: string }).message || 'Erro ao buscar endereço.'
+    if (lastSearchErrorRef.current === message) return
+    lastSearchErrorRef.current = message
+
+    trackGtmEvent('address_search_error', {
+      event_category: 'address',
+      event_label: 'search_error',
+      event_description: 'Erro ao buscar endereço.',
+      error_message: message,
+    })
+  }, [isError, queryError])
 
   return (
     <div className="flex flex-col h-full w-full px-4 relative pb-32">

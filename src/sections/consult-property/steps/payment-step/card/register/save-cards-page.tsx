@@ -1,11 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Switch } from '@/components/switch'
 import { useFormContext } from 'react-hook-form'
 import TextTitle from '@/components/text-title'
 import TextSubtitle from '@/components/text-subtitle'
 import AddressSummaryCard from '@/components/address-summary-card'
+import { trackGtmEvent, DEFAULT_CURRENCY, CONSULT_PRODUCT_PRICE, buildConsultItem } from '@/utils/analytics/gtm'
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
     label?: string
@@ -88,6 +89,24 @@ export function CreditCardPage({
     }
 
     function handleSubmit() {
+        trackGtmEvent('add_payment_info', {
+            event_category: 'payment',
+            event_label: 'credit_card',
+            event_description: 'Dados do cartão preenchidos para pagamento.',
+            payment_type: 'credit_card',
+            currency: DEFAULT_CURRENCY,
+            value: CONSULT_PRODUCT_PRICE,
+            items: [buildConsultItem(CONSULT_PRODUCT_PRICE)],
+            save_card: saveCard,
+            has_name: Boolean(form.name),
+            has_cpf: Boolean(form.cpf),
+        })
+        trackGtmEvent('credit_card_submit', {
+            event_category: 'payment',
+            event_label: 'submit',
+            event_description: 'Usuário enviou os dados do cartão.',
+            save_card: saveCard,
+        })
         onSave()
     }
 
@@ -96,6 +115,23 @@ export function CreditCardPage({
     const cardValues = (field: string) => {
         return getValues(field)
     }
+
+    useEffect(() => {
+        trackGtmEvent('credit_card_view', {
+            event_category: 'payment',
+            event_label: 'credit_card_form',
+            event_description: 'Tela de cadastro de cartão visualizada.',
+        })
+    }, [])
+
+    useEffect(() => {
+        trackGtmEvent('save_card_toggle', {
+            event_category: 'payment',
+            event_label: saveCard ? 'on' : 'off',
+            event_description: 'Usuário ativou/desativou salvar cartão.',
+            save_card: saveCard,
+        })
+    }, [saveCard])
 
     return (
         <form className="flex flex-col relative w-full z-50 -mt-15 px-6 pb-20">

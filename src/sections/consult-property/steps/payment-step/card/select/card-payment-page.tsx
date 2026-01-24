@@ -1,12 +1,13 @@
 'use client'
 
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useEffect } from 'react'
 import { Check } from 'lucide-react'
 import Image from 'next/image'
 import { useFormContext } from 'react-hook-form'
 import TextTitle from '@/components/text-title'
 import TextSubtitle from '@/components/text-subtitle'
 import AddressSummaryCard from '@/components/address-summary-card'
+import { trackGtmEvent } from '@/utils/analytics/gtm'
 
 interface Card {
   id: string
@@ -35,11 +36,25 @@ export function SavedCardsPage({
         isSelected: c.id === id,
       }))
     )
+    trackGtmEvent('saved_card_selected', {
+      event_category: 'payment',
+      event_label: id,
+      event_description: 'Cartão salvo selecionado para pagamento.',
+      card_id: id,
+    })
   }, [])
 
   const handleConfirm = useCallback(() => {
     const selected = cards.find((c) => c.isSelected)
-    if (selected) onConfirmCard()
+    if (selected) {
+      trackGtmEvent('saved_card_confirm', {
+        event_category: 'payment',
+        event_label: selected.id,
+        event_description: 'Pagamento confirmado com cartão salvo.',
+        card_id: selected.id,
+      })
+      onConfirmCard()
+    }
   }, [cards, onConfirmCard])
 
   const { getValues } = useFormContext()
@@ -55,6 +70,15 @@ export function SavedCardsPage({
     block: cardValues('block'),
     lot: cardValues('lot'),
   }), [cardValues])
+
+  useEffect(() => {
+    trackGtmEvent('saved_cards_view', {
+      event_category: 'payment',
+      event_label: 'saved_cards',
+      event_description: 'Tela de seleção de cartões salvos visualizada.',
+      cards_count: cards.length,
+    })
+  }, [cards.length])
 
   return (
     <div className="flex flex-col relative px-6 py-4 -mt-20">
@@ -147,7 +171,14 @@ export function SavedCardsPage({
         <div className="mt-4 pb-6 flex flex-col gap-3">
           <button
             type="button"
-            onClick={onAddNewCard}
+            onClick={() => {
+              trackGtmEvent('add_new_card_click', {
+                event_category: 'payment',
+                event_label: 'add_new_card',
+                event_description: 'Usuário escolheu adicionar um novo cartão.',
+              })
+              onAddNewCard()
+            }}
             className="w-full bg-primary text-white py-4 rounded-xl font-semibold text-base shadow-sm hover:opacity-90 active:opacity-100 transition"
           >
             Novo cartão

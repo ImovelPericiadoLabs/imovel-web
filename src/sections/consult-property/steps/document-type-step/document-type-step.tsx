@@ -12,6 +12,7 @@ import LoadingOverlay from '@/components/loading-overlay'
 import { uploadDocument } from '@/services/documents'
 import SelectedAddressCard from '@/components/selected-address-card'
 import Button from '@/components/button'
+import { trackGtmEvent } from '@/utils/analytics/gtm'
 
 type DocumentType = 'agreement' | 'registration' | 'deed'
 
@@ -54,11 +55,24 @@ export function DocumentTypeStep({ onNext }: { onNext: () => void }) {
     mutationFn: async (file: File) => uploadDocument(file, documentType, setUploadProgress),
     onSuccess(data) {
       setValue('document', data)
+      trackGtmEvent('document_upload_success', {
+        event_category: 'document',
+        event_label: 'upload_success',
+        event_description: 'Upload do documento concluído com sucesso.',
+        document_type: documentType,
+        document_id: data?.id,
+      })
     },
     onError() {
       setError('document', {
         message:
           'Não foi possível enviar o documento. Verifique se o mesmo possui no máximo 250 MB e está em um dos formatos permitidos (imagens, PDF ou documentos Word).',
+      })
+      trackGtmEvent('document_upload_error', {
+        event_category: 'document',
+        event_label: 'upload_error',
+        event_description: 'Erro ao enviar o documento do imóvel.',
+        document_type: documentType,
       })
     },
   })
@@ -66,6 +80,14 @@ export function DocumentTypeStep({ onNext }: { onNext: () => void }) {
   function handleSelect(value: DocumentType) {
     const isNewType = documentType !== value
     setValue('documentType', value, { shouldValidate: true })
+
+    trackGtmEvent('document_type_selected', {
+      event_category: 'document',
+      event_label: value,
+      event_description: 'Tipo de documento selecionado.',
+      document_type: value,
+      is_new_type: isNewType,
+    })
 
     if (isNewType && documentPreview) {
       handleRemoveDocument()
@@ -96,12 +118,26 @@ export function DocumentTypeStep({ onNext }: { onNext: () => void }) {
     if (!validTypes.includes(file.type)) {
       setError('document', { message: 'Formato de arquivo não suportado. Use PDF, Word ou Imagem.' })
       e.target.value = ''
+      trackGtmEvent('document_upload_rejected', {
+        event_category: 'document',
+        event_label: 'invalid_type',
+        event_description: 'Upload rejeitado por tipo de arquivo inválido.',
+        document_type: documentType,
+        file_type: file.type,
+      })
       return
     }
 
     if (file.size > maxSize) {
       setError('document', { message: 'O arquivo é muito grande. O limite é 250 MB.' })
       e.target.value = ''
+      trackGtmEvent('document_upload_rejected', {
+        event_category: 'document',
+        event_label: 'file_too_large',
+        event_description: 'Upload rejeitado por tamanho excedido.',
+        document_type: documentType,
+        file_size_mb: Math.round((file.size / (1024 * 1024)) * 10) / 10,
+      })
       return
     }
 
@@ -117,6 +153,14 @@ export function DocumentTypeStep({ onNext }: { onNext: () => void }) {
     }
 
     setValue('documentPreview', newDoc)
+    trackGtmEvent('document_upload_started', {
+      event_category: 'document',
+      event_label: 'upload_started',
+      event_description: 'Upload do documento iniciado.',
+      document_type: documentType,
+      file_type: file.type,
+      file_size_mb: sizeMB,
+    })
     await mutateAsync(file)
 
     // Reset input value to allow selecting the same file again if needed
@@ -130,11 +174,24 @@ export function DocumentTypeStep({ onNext }: { onNext: () => void }) {
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
     }
+    trackGtmEvent('document_removed', {
+      event_category: 'document',
+      event_label: 'remove',
+      event_description: 'Documento enviado foi removido pelo usuário.',
+      document_type: documentType,
+    })
   }
 
   async function handleContinue() {
     const isValid = await trigger(['documentType', 'document'])
     if (isValid) {
+      trackGtmEvent('document_step_continue', {
+        event_category: 'document',
+        event_label: 'continue',
+        event_description: 'Usuário avançou após envio do documento.',
+        document_type: documentType,
+        has_document: Boolean(getValues('document')),
+      })
       // Se estamos avançando, garantimos que o estado está correto
       onNext()
     }

@@ -12,6 +12,7 @@ import Button from '@/components/button'
 import BottomSheet from '@/components/bottom-sheet'
 import SelectedAddressCard from '@/components/selected-address-card'
 import InfoCard from '@/components/info-card'
+import { trackGtmEvent } from '@/utils/analytics/gtm'
 
 export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: () => void, onBack?: () => void }, ref) => {
   const [currentSubStep, setCurrentSubStep] = useState(0)
@@ -108,6 +109,18 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
   const { register, getValues, trigger, watch, setValue, formState: { errors } } = useFormContext()
   const [isValidationBottomSheetOpen, setIsValidationBottomSheetOpen] = useState(false)
   const [missingFieldLabel, setMissingFieldLabel] = useState('')
+
+  const trackComplementStep = useCallback((action: 'complete' | 'skip', payload: Record<string, unknown>) => {
+    trackGtmEvent('address_complement_step', {
+      event_category: 'address_complement',
+      event_label: action,
+      event_description: action === 'skip'
+        ? 'Etapa de complemento avançada sem informação.'
+        : 'Etapa de complemento preenchida e concluída.',
+      action,
+      ...payload,
+    })
+  }, [])
   
   const handleBack = useCallback(() => {
     if (currentSubStep > 0) {
@@ -164,10 +177,21 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
       fieldLabel = 'o lote'
     }
     if (subStep === 'complement') {
+      const complementValue = String(getValues('complement') || '').trim()
       if (currentSubStep < subSteps.length - 1) {
+        trackComplementStep('complete', {
+          step_key: subStep,
+          step_index: currentSubStep + 1,
+          has_info: Boolean(complementValue),
+        })
         setCurrentSubStep(prev => prev + 1)
         window.scrollTo({ top: 0, behavior: 'auto' })
       } else {
+        trackComplementStep('complete', {
+          step_key: subStep,
+          step_index: currentSubStep + 1,
+          has_info: Boolean(complementValue),
+        })
         onNext()
       }
       return
@@ -179,6 +203,11 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
 
     // Se for um avanço forçado (clique no "Não Tenho"), pula validações e avança para o próximo
     if (forceAdvance) {
+      trackComplementStep('skip', {
+        step_key: subStep,
+        step_index: currentSubStep + 1,
+        has_info: false,
+      })
       if (currentSubStep < subSteps.length - 1) {
         setCurrentSubStep(prev => prev + 1)
         window.scrollTo({ top: 0, behavior: 'auto' })
@@ -206,6 +235,12 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
     const isValid = await trigger(fieldsToValidate)
     
     if (isValid) {
+      const hasInfo = choiceValue === false
+      trackComplementStep('complete', {
+        step_key: subStep,
+        step_index: currentSubStep + 1,
+        has_info: hasInfo,
+      })
       if (currentSubStep < subSteps.length - 1) {
         setCurrentSubStep(prev => prev + 1)
         window.scrollTo({ top: 0, behavior: 'auto' })
@@ -213,7 +248,7 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
         onNext()
       }
     }
-  }, [currentSubStep, subSteps, getValues, trigger])
+  }, [currentSubStep, subSteps, getValues, trigger, trackComplementStep])
 
   useImperativeHandle(ref, () => ({
     handleBack: () => {

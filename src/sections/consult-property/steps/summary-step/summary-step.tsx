@@ -7,6 +7,7 @@ import TextTitle from '@/components/text-title'
 import TextSubtitle from '@/components/text-subtitle'
 import Button from '@/components/button'
 import { SummaryItemsList } from '@/components/summary-items-list'
+import { trackGtmEvent, buildConsultItem, DEFAULT_CURRENCY, CONSULT_PRODUCT_PRICE } from '@/utils/analytics/gtm'
 
 export function SummaryStep({ onNext }: { onNext: () => void }) {
   const { watch } = useFormContext()
@@ -132,7 +133,29 @@ export function SummaryStep({ onNext }: { onNext: () => void }) {
       <div className="fixed bottom-0 left-0 right-0 px-4 pt-5 pb-7 bg-white mt-auto border-t border-gray-200 z-10">
         <Button 
           className="w-full h-12 text-base rounded-xl" 
-          onClick={onNext}
+          onClick={() => {
+            trackGtmEvent('begin_checkout', {
+              event_category: 'checkout',
+              event_label: 'summary_continue',
+              event_description: 'Usuário avançou do resumo para o pagamento.',
+              currency: DEFAULT_CURRENCY,
+              value: CONSULT_PRODUCT_PRICE,
+              items: [buildConsultItem(CONSULT_PRODUCT_PRICE)],
+              checkout_step: 'summary',
+            })
+            trackGtmEvent('summary_continue', {
+              event_category: 'summary',
+              event_label: 'continue',
+              event_description: 'Usuário confirmou o resumo da consulta.',
+              address_present: Boolean(values.address),
+              registry_present: Boolean(values.registry?.name),
+              has_registration_number: Boolean(values.registrationNumber),
+              has_allotment: Boolean(values.allotment),
+              has_block: Boolean(values.block),
+              has_lot: Boolean(values.lot),
+            })
+            onNext()
+          }}
           icon={<ChevronRight className="size-5" />}
         >
           Continuar

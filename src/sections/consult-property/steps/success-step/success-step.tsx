@@ -1,5 +1,6 @@
 import { Check, Cpu, MessageCircle, FileSearch } from 'lucide-react'
 import Button from '@/components/button'
+import { trackGtmEvent } from '@/utils/analytics/gtm'
 
 interface SuccessStepProps {
   onNavigateToOrders: () => void
@@ -84,7 +85,14 @@ export function SuccessStep({ onNavigateToOrders }: SuccessStepProps) {
       {/* BOTÃO FORA DA BOX */}
       <div className="w-full mt-6">
         <Button
-          onClick={onNavigateToOrders}
+          onClick={() => {
+            trackGtmEvent('orders_navigation_click', {
+              event_category: 'success',
+              event_label: 'navigate_orders',
+              event_description: 'Usuário clicou para acompanhar suas consultas.',
+            })
+            onNavigateToOrders()
+          }}
           className="w-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-200/50 transition-all active:scale-[0.98] rounded-full"
         >
           Acompanhar minhas consultas

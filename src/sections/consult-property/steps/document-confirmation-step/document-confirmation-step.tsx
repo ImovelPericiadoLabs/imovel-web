@@ -7,6 +7,7 @@ import { ChoiceCards } from '@/components/choice-cards'
 import SelectedAddressCard from '@/components/selected-address-card'
 import Button from '@/components/button'
 import { ChevronRight } from 'lucide-react'
+import { trackGtmEvent } from '@/utils/analytics/gtm'
 
 export function DocumentConfirmationStep({
   onNext,
@@ -21,6 +22,16 @@ export function DocumentConfirmationStep({
 
   function handleSelect(value: boolean) {
     setValue('hasDocument', value, { shouldValidate: true })
+
+    trackGtmEvent('document_availability_selected', {
+      event_category: 'document',
+      event_label: value ? 'has_document' : 'no_document',
+      event_description: value
+        ? 'Usuário informou que possui o documento do imóvel.'
+        : 'Usuário informou que não possui o documento do imóvel.',
+      has_document: value,
+      address_present: Boolean(currentAddress),
+    })
 
     if (!value) {
       setValue('documentType', undefined)

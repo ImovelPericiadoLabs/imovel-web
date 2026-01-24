@@ -21,6 +21,7 @@ import { CreditCardPage } from '@/sections/consult-property/steps/payment-step/c
 import TrafficLightModal from '@/components/traffic-light-modal'
 import LoadingOverlay from '@/components/loading-overlay'
 import { validations, FormTypes } from '@/sections/consult-property/validations'
+import { trackGtmEvent } from '@/utils/analytics/gtm'
 
 type FlowState =
   | 'address'
@@ -49,6 +50,7 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle>(function ConsultProper
   const router = useRouter()
   const [flow, setFlow] = useState<FlowState>('address')
   const stack = useRef<FlowState[]>([])
+  const hasTrackedFlowStart = useRef(false)
   const [isInitialLoading, setIsInitialLoading] = useState(() => {
     if (typeof window === 'undefined') return true
     return sessionStorage.getItem('consultPropertyAssetsReady') !== 'true'
@@ -204,6 +206,7 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle>(function ConsultProper
   }), [])
 
   const currentProgress = useMemo(() => (progressSteps[flow] / 5) * 100, [flow, progressSteps])
+  const currentStepIndex = progressSteps[flow]
 
   const isFinished = flow === 'finished'
 
@@ -213,6 +216,31 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle>(function ConsultProper
     'payment-confirm',
     'finished',
   ].includes(flow), [flow])
+
+  useEffect(() => {
+    if (isInitialLoading) return
+
+    trackGtmEvent('consult_flow_step_view', {
+      event_category: 'consult_flow',
+      event_label: flow,
+      event_description: `Visualizou a etapa "${flow}" do fluxo de consulta do imóvel.`,
+      flow_step: flow,
+      step_index: currentStepIndex,
+      progress_percent: currentProgress,
+      is_finished: isFinished,
+    })
+
+    if (!hasTrackedFlowStart.current) {
+      hasTrackedFlowStart.current = true
+      trackGtmEvent('consult_flow_started', {
+        event_category: 'consult_flow',
+        event_label: 'start',
+        event_description: 'Iniciou o fluxo de consulta do imóvel.',
+        flow_step: flow,
+        step_index: currentStepIndex,
+      })
+    }
+  }, [flow, isInitialLoading, currentProgress, currentStepIndex, isFinished])
 
   if (isInitialLoading) {
     return (

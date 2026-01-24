@@ -5,6 +5,7 @@ import { QrCode, CreditCard, Barcode, DollarSign, LucideIcon, Check } from 'luci
 import TextTitle from '@/components/text-title'
 import TextSubtitle from '@/components/text-subtitle'
 import { Switch } from '@/components/switch'
+import { trackGtmEvent } from '@/utils/analytics/gtm'
 
 type PaymentMethodType = 'pix' | 'credit_card' | 'debit_card' | 'boleto'
 
@@ -47,6 +48,14 @@ export function PaymentStep({
   function handleSelectMethod(value: PaymentMethodType) {
     setValue('paymentMethod', value, { shouldValidate: true })
 
+    trackGtmEvent('payment_method_selected', {
+      event_category: 'payment',
+      event_label: value,
+      event_description: 'Método de pagamento selecionado.',
+      payment_method: value,
+      use_balance: Boolean(useBalance),
+    })
+
     setTimeout(() => {
       if (value === 'pix') return onPix()
       if (value === 'credit_card') return onCredit()
@@ -57,6 +66,12 @@ export function PaymentStep({
 
   function toggleBalance(checked: boolean) {
     setValue('useBalance', checked)
+    trackGtmEvent('payment_balance_toggle', {
+      event_category: 'payment',
+      event_label: checked ? 'on' : 'off',
+      event_description: 'Usuário ativou/desativou o uso de saldo.',
+      use_balance: checked,
+    })
   }
 
   return (

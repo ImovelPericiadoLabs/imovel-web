@@ -1,7 +1,7 @@
 'use client'
 
 import Image from 'next/image'
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useForm, FormProvider, useFormContext } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -24,6 +24,7 @@ import { startAuth } from '@/services/account'
 import { formatMoney } from '@/utils/text'
 import { queryKey } from '@/constants/queries'
 import { validations, FormTypes } from './validations'
+import { trackGtmEvent, buildConsultItem, DEFAULT_CURRENCY, CONSULT_PRODUCT_PRICE } from '@/utils/analytics/gtm'
 
 import { AuthCodePage } from './AuthCodePage/AuthCodePage'
 
@@ -76,6 +77,8 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
   const [serverError, setServerError] = useState('')
   const [paymentId, setPaymentId] = useState<string | null>(null)
   const [isAuthLoading, setIsAuthLoading] = useState(false)
+  const hasTrackedPaymentConfirmed = useRef(false)
+  const hasTrackedPixView = useRef(false)
 
   const methods = useForm<FormTypes>({
     resolver: zodResolver(validations),
@@ -157,6 +160,25 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
       const expiresAt = new Date(Date.now() + 30 * 60 * 1000)
       const formatted = `${String(expiresAt.getHours()).padStart(2, '0')}:${String(expiresAt.getMinutes()).padStart(2, '0')}`
       setExpirationTime(formatted)
+
+      trackGtmEvent('pix_generated', {
+        event_category: 'payment',
+        event_label: 'pix_generated',
+        event_description: 'Código PIX gerado com sucesso.',
+        payment_method: 'pix',
+        payment_id: payment?.id,
+        currency: DEFAULT_CURRENCY,
+        value: CONSULT_PRODUCT_PRICE,
+      })
+      trackGtmEvent('generate_lead', {
+        event_category: 'payment',
+        event_label: 'pix_generated',
+        event_description: 'Lead gerado ao criar o pagamento via PIX.',
+        payment_method: 'pix',
+        payment_id: payment?.id,
+        currency: DEFAULT_CURRENCY,
+        value: CONSULT_PRODUCT_PRICE,
+      })
     },
   })
 
@@ -166,6 +188,26 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
     enabled: !!paymentId,
     refetchInterval: (queryData) => {
       if (queryData?.state?.data?.status === 'CONFIRMED') {
+        if (!hasTrackedPaymentConfirmed.current) {
+          hasTrackedPaymentConfirmed.current = true
+          trackGtmEvent('payment_confirmed', {
+            event_category: 'payment',
+            event_label: 'confirmed',
+            event_description: 'Pagamento confirmado com sucesso.',
+            payment_method: 'pix',
+            payment_id: paymentId,
+          })
+          trackGtmEvent('purchase', {
+            event_category: 'payment',
+            event_label: 'purchase',
+            event_description: 'Compra concluída com PIX.',
+            payment_method: 'pix',
+            payment_id: paymentId,
+            currency: DEFAULT_CURRENCY,
+            value: CONSULT_PRODUCT_PRICE,
+            items: [buildConsultItem(CONSULT_PRODUCT_PRICE)],
+          })
+        }
         onFinish()
         return false
       }
@@ -194,6 +236,18 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
       setServerError('Erro: Identificador do imóvel não encontrado.')
       return
     }
+
+    trackGtmEvent('add_payment_info', {
+      event_category: 'payment',
+      event_label: 'pix_details',
+      event_description: 'Dados para pagamento via PIX foram preenchidos.',
+      payment_type: 'pix',
+      place_id: finalPlaceId,
+      has_document: Boolean(documentId),
+      currency: DEFAULT_CURRENCY,
+      value: CONSULT_PRODUCT_PRICE,
+      items: [buildConsultItem(CONSULT_PRODUCT_PRICE)],
+    })
 
     clearServerError()
     setIsAuthLoading(true)
@@ -237,6 +291,12 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
           await signOut({ redirect: false })
 
           try {
+            trackGtmEvent('auth_code_requested', {
+              event_category: 'auth',
+              event_label: 'session_expired',
+              event_description: 'Sessão expirada. Código de autenticação solicitado.',
+              has_email: Boolean(formData.email),
+            })
             await startAuth({ email: formData.email })
             setStep('auth')
           } catch (authError) {
@@ -253,6 +313,12 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
       }
     } else {
       try {
+        trackGtmEvent('auth_code_requested', {
+          event_category: 'auth',
+          event_label: 'new_login',
+          event_description: 'Código de autenticação solicitado para continuar.',
+          has_email: Boolean(formData.email),
+        })
         await startAuth({ email: formData.email })
         setStep('auth')
       } catch (error) {
@@ -266,6 +332,11 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
   const handleAuthSuccess = useCallback(async (code: string) => {
     setServerError('')
     setValue('code', code)
+    trackGtmEvent('auth_code_submitted', {
+      event_category: 'auth',
+      event_label: 'code_submitted',
+      event_description: 'Código de autenticação enviado com sucesso.',
+    })
 
     const formData = getValues()
     const finalPlaceId = formData.placeId || placeId
@@ -308,6 +379,14 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
 
+      trackGtmEvent('pix_copied', {
+        event_category: 'payment',
+        event_label: 'pix_copy',
+        event_description: 'Código PIX copiado.',
+        payment_method: 'pix',
+        payment_id: paymentId,
+      })
+
       const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true'
 
       if (isDevMode) {
@@ -319,7 +398,27 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
     } catch (error) {
       console.error(error)
     }
-  }, [pixData, onFinish])
+  }, [pixData, onFinish, paymentId])
+
+  useEffect(() => {
+    if (step !== 'pix' || !pixData || hasTrackedPixView.current) return
+    hasTrackedPixView.current = true
+    trackGtmEvent('pix_view', {
+      event_category: 'payment',
+      event_label: 'pix_view',
+      event_description: 'Tela do PIX exibida para pagamento.',
+      payment_method: 'pix',
+      payment_id: paymentId,
+      expires_at: expirationTime,
+    })
+    trackGtmEvent('payment_pending', {
+      event_category: 'payment',
+      event_label: 'pending',
+      event_description: 'Pagamento via PIX aguardando confirmação.',
+      payment_method: 'pix',
+      payment_id: paymentId,
+    })
+  }, [step, pixData, paymentId, expirationTime])
 
   const isLoading = isAuthLoading || isPixPending
 
