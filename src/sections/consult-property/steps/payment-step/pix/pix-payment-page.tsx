@@ -665,9 +665,9 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
 
         {step === 'pix' && !!pixData && (
           <div className="flex flex-col items-center pt-10 -mt-20">
-            <div className="mb-8 text-white px-1 text-left relative z-10 w-full text-center flex flex-col gap-5">
-              <p className="text-center leading-snug font-normal text-white/90">
-                Realize o pagamento do valor <span className="font-bold text-white">R$ 59,00</span> para começar a consulta dos dados do endereço
+            <div className="mb-8 pt-4 text-black px-1 text-left relative z-10 w-full text-center flex flex-col gap-5">
+              <p className="text-center leading-snug font-normal text-black/80">
+                Realize o pagamento do valor <span className="font-bold text-black">R$ 59,00</span> para começar a consulta dos dados do endereço
               </p>
 
               <AddressSummaryCard
