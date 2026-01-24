@@ -58,7 +58,7 @@ const api = {
     let result
     try {
       result = JSON.parse(responseText)
-    } catch (e) {
+    } catch {
       throw new Error(`Erro parse...`)
     }
 

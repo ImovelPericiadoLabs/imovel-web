@@ -17,10 +17,9 @@ vi.mock('@/sections/consult-property/steps/payment-step/pix', () => ({
 }))
 
 vi.mock('@/sections/consult-property/steps/payment-step/card/select', () => ({
-  SavedCardsPage: ({ onAddNewCard, onConfirmCard }: { onAddNewCard: () => void; onConfirmCard: () => void }) => (
+  SavedCardsPage: ({ onAddNewCard }: { onAddNewCard: () => void }) => (
     <div data-testid="saved-cards-page">
       <button data-testid="card-add-btn" onClick={onAddNewCard}>Add New</button>
-      <button data-testid="card-confirm-btn" onClick={onConfirmCard}>Confirm</button>
     </div>
   ),
 }))
@@ -29,7 +28,6 @@ const defaultProps = {
   onFinish: vi.fn(),
   onBackToMethods: vi.fn(),
   onAddNewCard: vi.fn(),
-  onSelectCard: vi.fn(),
 }
 
 describe('PaymentConfirmationStep', () => {
@@ -60,9 +58,6 @@ describe('PaymentConfirmationStep', () => {
 
     fireEvent.click(screen.getByTestId('card-add-btn'))
     expect(defaultProps.onAddNewCard).toHaveBeenCalled()
-
-    fireEvent.click(screen.getByTestId('card-confirm-btn'))
-    expect(defaultProps.onSelectCard).toHaveBeenCalled()
   })
 
   it('não deve renderizar nada se o método de pagamento for undefined', () => {

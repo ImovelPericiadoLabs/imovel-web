@@ -42,10 +42,8 @@ function FormInput({ label, icon, className, ...props }: InputProps) {
 }
 
 export function CreditCardPage({
-    amount = '59,00',
     onSave,
 }: {
-    amount?: string
     onSave: () => void
 }) {
     const [saveCard, setSaveCard] = useState(false)

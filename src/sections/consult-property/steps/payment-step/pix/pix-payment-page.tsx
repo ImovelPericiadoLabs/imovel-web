@@ -21,7 +21,6 @@ import AddressSummaryCard from '@/components/address-summary-card'
 
 import { processPayment, getPaymentStatus } from '@/services/payments'
 import { startAuth } from '@/services/account'
-import { formatMoney } from '@/utils/text'
 import { queryKey } from '@/constants/queries'
 import { validations, FormTypes } from './validations'
 import { trackGtmEvent, buildConsultItem, DEFAULT_CURRENCY, CONSULT_PRODUCT_PRICE } from '@/utils/analytics/gtm'
@@ -321,7 +320,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
         })
         await startAuth({ email: formData.email })
         setStep('auth')
-      } catch (error) {
+      } catch {
         setServerError('Não foi possível enviar o código. Verifique o e-mail.')
       } finally {
         setIsAuthLoading(false)

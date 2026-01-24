@@ -9,7 +9,6 @@ import { signIn } from 'next-auth/react'
 import { FormTypes } from '@/sections/login/validations'
 import { InputOtp } from '@/sections/login/components/InputOtp'
 import { startAuth } from '@/services/account'
-import Button from '@/components/button'
 
 export function VerifyCodeStep({
   onBack,
@@ -42,7 +41,7 @@ export function VerifyCodeStep({
     }, 1000)
 
     return () => clearInterval(id)
-  }, [enableTimer])
+  }, [enableTimer, timer])
 
   const onSubmit = async (data: FormTypes) => {
     setErrorMsg('')
@@ -59,7 +58,7 @@ export function VerifyCodeStep({
       }
 
       router.refresh()
-    } catch (error) {
+    } catch {
       setErrorMsg('Ocorreu um erro ao validar o código.')
     }
   }
@@ -71,7 +70,7 @@ export function VerifyCodeStep({
     try {
       await startAuth({ email })
       setTimer(59)
-    } catch (error) {
+    } catch {
       setErrorMsg('Aguarde alguns instantes antes de tentar novamente.')
     } finally {
       setIsResending(false)

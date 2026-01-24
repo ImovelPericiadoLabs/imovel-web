@@ -1,7 +1,7 @@
 'use client'
 
 import { ChoiceCards } from '@/components/choice-cards'
-import { Check, Building, Box, Layout, Hash, Info, ChevronRight, ChevronLeft, Pencil, Building2 } from 'lucide-react'
+import { Check, Building, Box, Layout, Hash, Info, ChevronRight, Pencil, Building2 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useFormContext } from 'react-hook-form'
 import { useState, useRef, useImperativeHandle, forwardRef, useCallback, useMemo } from 'react'

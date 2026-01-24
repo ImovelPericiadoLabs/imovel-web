@@ -1,6 +1,6 @@
 'use client'
 
-import { MapPin, Building, LucideIcon } from 'lucide-react'
+import { MapPin, type LucideIcon } from 'lucide-react'
 import { cn } from '@/utils/tailwind'
 
 interface SummaryItem {

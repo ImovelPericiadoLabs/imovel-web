@@ -19,10 +19,8 @@ interface Card {
 
 export function SavedCardsPage({
   onAddNewCard,
-  onConfirmCard,
 }: {
   onAddNewCard: () => void
-  onConfirmCard: () => void
 }) {
   const [cards, setCards] = useState<Card[]>([
     { id: '1', number: '1234', expiry: '11/29', brand: 'Mastercard', isSelected: true },
@@ -43,19 +41,6 @@ export function SavedCardsPage({
       card_id: id,
     })
   }, [])
-
-  const handleConfirm = useCallback(() => {
-    const selected = cards.find((c) => c.isSelected)
-    if (selected) {
-      trackGtmEvent('saved_card_confirm', {
-        event_category: 'payment',
-        event_label: selected.id,
-        event_description: 'Pagamento confirmado com cartão salvo.',
-        card_id: selected.id,
-      })
-      onConfirmCard()
-    }
-  }, [cards, onConfirmCard])
 
   const { getValues } = useFormContext()
 

@@ -9,12 +9,10 @@ export function PaymentConfirmationStep({
     onFinish,
     onBackToMethods,
     onAddNewCard,
-    onSelectCard,
 }: {
     onFinish: () => void
     onBackToMethods: () => void
     onAddNewCard: () => void
-    onSelectCard: () => void
 }) {
     const { watch } = useFormContext<FormTypes>()
     
@@ -35,7 +33,6 @@ export function PaymentConfirmationStep({
         return (
             <SavedCardsPage
                 onAddNewCard={onAddNewCard}
-                onConfirmCard={onSelectCard}
             />
         )
     }

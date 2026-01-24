@@ -5,8 +5,6 @@ import TextTitle from '@/components/text-title'
 import TextSubtitle from '@/components/text-subtitle'
 import { ChoiceCards } from '@/components/choice-cards'
 import SelectedAddressCard from '@/components/selected-address-card'
-import Button from '@/components/button'
-import { ChevronRight } from 'lucide-react'
 import { trackGtmEvent } from '@/utils/analytics/gtm'
 
 export function DocumentConfirmationStep({

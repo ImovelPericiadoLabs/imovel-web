@@ -113,7 +113,7 @@ export default function ConsultarImovelPage() {
     }
   }, [isUnlocked])
 
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+  const handleTouchStart = useCallback(() => {
     if (touchHandledRef.current) return
     touchHandledRef.current = true
     handleStart()

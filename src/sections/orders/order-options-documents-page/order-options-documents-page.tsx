@@ -2,7 +2,6 @@
 
 import { Download, Info } from 'lucide-react'
 import OrderHeader from '@/sections/orders/order-header'
-import BadgeComponent from '@/components/badge'
 import { useEffect, useState } from 'react'
 import { getOrder, Order } from '@/services/orders'
 import { useParams } from 'next/navigation'
@@ -10,7 +9,6 @@ import Link from 'next/link'
 
 export default function OrderOptionsDocumentsPage() {
   const { id } = useParams()
-  const [loading, isLoading] = useState(true)
   const [order, setOrder] = useState<Order | null>(null)
 
   useEffect(() => {
@@ -20,7 +18,6 @@ export default function OrderOptionsDocumentsPage() {
       try {
         const data = await getOrder(id as string)
         setOrder(data)
-        isLoading(false)
       } catch (error) {
         console.error('Erro ao carregar cabeçalho:', error)
       }

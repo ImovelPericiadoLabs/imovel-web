@@ -320,7 +320,6 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle>(function ConsultProper
           <Activity isActive={flow === 'payment-cards'}>
             <SavedCardsPage
               onAddNewCard={() => go('payment-card-new')}
-              onConfirmCard={() => go('payment-confirm')}
             />
           </Activity>
 
@@ -333,7 +332,6 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle>(function ConsultProper
               onFinish={() => go('finished')}
               onBackToMethods={back}
               onAddNewCard={() => go('payment-card-new')}
-              onSelectCard={() => go('finished')}
             />
           </Activity>
 

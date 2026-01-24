@@ -2,16 +2,14 @@
 
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { ChevronRight, Info } from 'lucide-react'
+import { Info } from 'lucide-react'
 
 import { cn } from '@/utils/tailwind'
-import TrafficLightModal from '@/components/traffic-light-modal'
 import Badge from '@/components/badge'
 import OrderHeader from '@/sections/orders/order-header'
 
 import {
-  STATUS_THEME,
-  type BadgeStatus
+  STATUS_THEME
 } from '@/sections/orders/constants'
 import { useEffect, useState } from 'react'
 import { getOrder, Order } from '@/services/orders'

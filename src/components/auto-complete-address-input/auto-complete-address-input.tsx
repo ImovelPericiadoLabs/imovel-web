@@ -5,7 +5,6 @@ import { Search, X, MapPin, CircleAlert, MapPinX, Check, ChevronRight } from 'lu
 import { cn } from '@/utils/tailwind'
 import Button from '@/components/button'
 import TextTitle from '@/components/text-title'
-import TextSubtitle from '../text-subtitle'
 import Skeleton from '@/components/skeleton'
 import BottomSheet from '@/components/bottom-sheet'
 import Input from '@/components/input'
@@ -91,15 +90,6 @@ const AutoCompleteInput = forwardRef<HTMLInputElement, Props>(({
     }
     setValue('')
     internalInputRef.current?.focus()
-  }
-
-  function hasHouseNumber(address: string): boolean {
-    const afterFirstComma = address.split(',')[1]?.trim()
-
-    if (!afterFirstComma) return false
-
-    const regex = /^(\d+[A-Za-z]?|s\/?n)\b/i
-    return regex.test(afterFirstComma)
   }
 
   async function handleSelectAddress({ placeId }: Option) {

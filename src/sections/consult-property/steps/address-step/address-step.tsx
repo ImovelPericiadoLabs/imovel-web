@@ -158,7 +158,7 @@ export const AddressStep = forwardRef<{ focus: () => boolean }, { onNext: () => 
     setAddress('')
   }, [])
 
-  const handleFocusClick = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+  const handleFocusClick = useCallback(() => {
     // Não usar preventDefault aqui para permitir que o sistema entenda como uma interação direta se necessário
     inputRef.current?.focus()
     inputRef.current?.click()

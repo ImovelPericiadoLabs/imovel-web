@@ -28,7 +28,11 @@ export default function OrdersPage() {
   const observerRef = useRef<IntersectionObserver | null>(null)
 
   const fetchOrders = useCallback(async (targetPage: number) => {
-    targetPage === 1 ? setIsLoading(true) : setIsFetchingMore(true)
+    if (targetPage === 1) {
+      setIsLoading(true)
+    } else {
+      setIsFetchingMore(true)
+    }
 
     try {
       const { items, meta } = await listOrders({ limit: 10, p: targetPage })

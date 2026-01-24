@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { useFormContext } from 'react-hook-form'
 import { cn } from '@/utils/tailwind'
 import { FormTypes } from '@/sections/login/validations'
@@ -9,7 +8,6 @@ import { startAuth } from '@/services/account'
 import Button from '@/components/button'
 
 export function InsertStep({ onNext }: { onNext: () => void }) {
-    const router = useRouter()
     const { register, watch, trigger, formState: { errors } } = useFormContext<FormTypes>()
 
     const [isLoading, setIsLoading] = useState(false)
