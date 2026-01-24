@@ -50,6 +50,7 @@ export function DocumentTypeStep({ onNext }: { onNext: () => void }) {
   const documentPreview = watch('documentPreview')
   const [uploadProgress, setUploadProgress] = useState(0)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const uploadCounterRef = useRef(0)
 
   const { mutateAsync, isPending } = useMutation<UploadDocumentResponse, Error, File>({
     mutationFn: async (file: File) => uploadDocument(file, documentType, setUploadProgress),
@@ -144,8 +145,9 @@ export function DocumentTypeStep({ onNext }: { onNext: () => void }) {
     clearErrors('document')
 
     const sizeMB = Math.round((file.size / (1024 * 1024)) * 10) / 10
+    uploadCounterRef.current += 1
     const newDoc = {
-      id: Date.now().toString(),
+      id: String(uploadCounterRef.current),
       name: file.name,
       size: sizeMB,
       file,

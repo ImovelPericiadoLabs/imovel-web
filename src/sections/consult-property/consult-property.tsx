@@ -220,6 +220,10 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle>(function ConsultProper
   useEffect(() => {
     if (isInitialLoading) return
 
+    if (typeof window !== 'undefined') {
+      window.currentFlowStep = flow
+    }
+
     trackGtmEvent('consult_flow_step_view', {
       event_category: 'consult_flow',
       event_label: flow,

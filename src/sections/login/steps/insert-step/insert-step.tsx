@@ -32,9 +32,13 @@ export function InsertStep({ onNext }: { onNext: () => void }) {
 
             onNext()
 
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Erro ao enviar código:', error)
-            const detail = error?.response?.data?.detail || 'Não foi possível enviar o código. Tente novamente.'
+            const err = error as { response?: { data?: { detail?: string } } }
+            const detail =
+                err?.response?.data?.detail ||
+                (error instanceof Error ? error.message : undefined) ||
+                'Não foi possível enviar o código. Tente novamente.'
             setErrorMsg(detail)
         } finally {
             setIsLoading(false)

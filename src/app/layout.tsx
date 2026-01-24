@@ -1,8 +1,10 @@
 // layout.tsx
 import type { Metadata, Viewport } from 'next'
 import { Noto_Sans } from 'next/font/google'
+import { Suspense } from 'react'
 import Script from 'next/script'
 import { Providers } from '@/providers'
+import { PageViewTracker } from '@/components/analytics/PageViewTracker'
 import './globals.css'
 
 const notoSans = Noto_Sans({
@@ -47,6 +49,9 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
         />
       </head>
       <body className={`${notoSans.variable} antialiased h-full flex flex-col`}>
+        <Suspense fallback={null}>
+          <PageViewTracker />
+        </Suspense>
         <noscript>
           <iframe
             src={`https://www.googletagmanager.com/ns.html?id=${gtmId}`}

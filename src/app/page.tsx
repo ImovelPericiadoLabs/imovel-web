@@ -16,30 +16,23 @@ export default function ConsultarImovelPage() {
   const [isMuted, setIsMuted] = useState(true)
   const [progress, setProgress] = useState(0)
   const [remainingTime, setRemainingTime] = useState(0)
-  const [isUnlocked, setIsUnlocked] = useState(false)
-  const [requiresLock, setRequiresLock] = useState(false)
+  const [requiresLock] = useState(() => {
+    if (typeof window === 'undefined') return false
+    const params = new URLSearchParams(window.location.search)
+    return params.has('lock')
+  })
+  const [isUnlocked, setIsUnlocked] = useState(() => {
+    if (typeof window === 'undefined') return false
+    const params = new URLSearchParams(window.location.search)
+    const hasLockParam = params.has('lock')
+    if (!hasLockParam) return true
+    return localStorage.getItem('vsl-unlocked') === 'true'
+  })
   const [hasStartedAudio, setHasStartedAudio] = useState(false)
   const [isPlaying, setIsPlaying] = useState(false)
   const [isConsultActive, setIsConsultActive] = useState(false)
   const consultRef = useRef<ConsultPropertyHandle>(null)
   const touchHandledRef = useRef(false)
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    const hasLockParam = params.has('lock')
-    setRequiresLock(hasLockParam)
-
-    if (!hasLockParam) {
-      setIsUnlocked(true)
-      setRemainingTime(0)
-      return
-    }
-
-    const unlocked = localStorage.getItem('vsl-unlocked') === 'true'
-    if (unlocked) {
-      setIsUnlocked(true)
-    }
-  }, [])
 
   useEffect(() => {
     router.prefetch('/consultar-imovel')

@@ -110,8 +110,9 @@ async function guard<T>(callback: (token: string) => Promise<T>): Promise<T> {
 
   try {
     return await callback(token)
-  } catch (error: any) {
-    if (error?.status === 401) {
+  } catch (error: unknown) {
+    const err = error as { status?: number }
+    if (err?.status === 401) {
       await handleUnauthorized()
     }
     throw error
@@ -164,7 +165,14 @@ export async function getOrderAnalysisDetail(
 
 export async function listPlans() {
   return guard(async (token) => {
-    const response = (await api.get(endpoint.plans, token)) as any
-    return Array.isArray(response) ? response : response?.plans || []
+    const response = (await api.get(endpoint.plans, token)) as unknown
+    if (Array.isArray(response)) {
+      return response
+    }
+    if (response && typeof response === 'object' && 'plans' in response) {
+      const plans = (response as { plans?: unknown }).plans
+      return Array.isArray(plans) ? plans : []
+    }
+    return []
   })
 }

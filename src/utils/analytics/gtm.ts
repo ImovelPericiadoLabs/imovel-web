@@ -6,6 +6,7 @@ export type GtmEventPayload = {
 declare global {
   interface Window {
     dataLayer?: GtmEventPayload[]
+    currentFlowStep?: string
   }
 }
 

@@ -86,9 +86,14 @@ export function AuthCodePage({ onBack, onSuccess }: AuthCodePageProps) {
             clearError()
             await startAuth({ email })
             setTimer(59)
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Erro ao reenviar:', error)
-            setErrorMsg('Aguarde alguns instantes antes de tentar novamente.')
+            const err = error as { response?: { data?: { detail?: string } } }
+            const detail =
+                err?.response?.data?.detail ||
+                (error instanceof Error ? error.message : undefined) ||
+                'Aguarde alguns instantes antes de tentar novamente.'
+            setErrorMsg(detail)
         } finally {
             setIsResending(false)
         }

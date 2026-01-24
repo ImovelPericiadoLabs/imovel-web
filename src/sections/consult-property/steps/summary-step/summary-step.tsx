@@ -6,7 +6,7 @@ import { useFormContext } from 'react-hook-form'
 import TextTitle from '@/components/text-title'
 import TextSubtitle from '@/components/text-subtitle'
 import Button from '@/components/button'
-import { SummaryItemsList } from '@/components/summary-items-list'
+import { SummaryItemsList, type SummaryItems } from '@/components/summary-items-list'
 import { trackGtmEvent, buildConsultItem, DEFAULT_CURRENCY, CONSULT_PRODUCT_PRICE } from '@/utils/analytics/gtm'
 
 export function SummaryStep({ onNext }: { onNext: () => void }) {
@@ -16,7 +16,7 @@ export function SummaryStep({ onNext }: { onNext: () => void }) {
   const summary = useMemo(() => {
     const { address, registry, registrationNumber, allotment, block, lot } = values
 
-    const items: any[] = []
+    const items: SummaryItems = []
 
     if (address) {
       items.push({

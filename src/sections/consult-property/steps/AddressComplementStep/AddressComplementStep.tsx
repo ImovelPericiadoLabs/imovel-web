@@ -248,7 +248,7 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
         onNext()
       }
     }
-  }, [currentSubStep, subSteps, getValues, trigger, trackComplementStep])
+  }, [currentSubStep, subSteps, getValues, trigger, trackComplementStep, onNext])
 
   useImperativeHandle(ref, () => ({
     handleBack: () => {

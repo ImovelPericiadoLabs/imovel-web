@@ -49,9 +49,13 @@ export const authOptions: NextAuthOptions = {
           }
           throw new Error("Código inválido ou resposta inesperada.")
 
-        } catch (error: any) {
-          const errorMessage = error?.response?.data?.detail || error.message || "Falha na verificação";
-          throw new Error(errorMessage);
+        } catch (error: unknown) {
+          const err = error as { response?: { data?: { detail?: string } } }
+          const errorMessage =
+            err?.response?.data?.detail ||
+            (error instanceof Error ? error.message : undefined) ||
+            "Falha na verificação"
+          throw new Error(errorMessage)
         }
       }
     })
