@@ -9,7 +9,7 @@ import TextSubtitle from '@/components/text-subtitle'
 import DocumentItem from '@/components/document-item'
 import Alert from '@/components/alert'
 import LoadingOverlay from '@/components/loading-overlay'
-import { uploadDocument } from '@/services/documents'
+import { uploadDocument, type UploadDocumentResponse } from '@/services/documents'
 import SelectedAddressCard from '@/components/selected-address-card'
 import Button from '@/components/button'
 import { trackGtmEvent } from '@/utils/analytics/gtm'
@@ -51,7 +51,7 @@ export function DocumentTypeStep({ onNext }: { onNext: () => void }) {
   const [uploadProgress, setUploadProgress] = useState(0)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const { mutateAsync, isPending } = useMutation({
+  const { mutateAsync, isPending } = useMutation<UploadDocumentResponse, Error, File>({
     mutationFn: async (file: File) => uploadDocument(file, documentType, setUploadProgress),
     onSuccess(data) {
       setValue('document', data)
