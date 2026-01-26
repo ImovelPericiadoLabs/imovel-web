@@ -47,6 +47,11 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 })(window,document,'script','dataLayer','${gtmId}');`,
           }}
         />
+        <Script
+          id="hotjar"
+          strategy="beforeInteractive"
+          src="https://t.contentsquare.net/uxa/5947ac07f7a4e.js"
+        />
       </head>
       <body className={`${notoSans.variable} antialiased h-full flex flex-col`}>
         <Suspense fallback={null}>
