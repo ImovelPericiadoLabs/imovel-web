@@ -199,8 +199,8 @@ export const AddressStep = forwardRef<{ focus: () => boolean }, { onNext: () => 
     <div className="flex flex-col h-full w-full px-4 relative pb-32">
       <div className="flex-1 flex flex-col gap-4">
         <div className="flex flex-col gap-2 mb-6">
-          <TextTitle className="text-black">Para começar, onde fica seu imóvel?</TextTitle>
-          <TextSubtitle className="text-black/70">Busque pelo endereço completo com número</TextSubtitle>
+          <TextTitle className="text-black">Digite o endereço do imóvel para começar</TextTitle>
+          <TextSubtitle className="text-black/70">Escreva rua, número e bairro para avançar com segurança</TextSubtitle>
         </div>
 
         <div className="relative">

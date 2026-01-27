@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { flushSync } from 'react-dom'
-import { VolumeX } from 'lucide-react'
+import { ArrowDown, Home } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Button from '@/components/button'
@@ -16,6 +16,8 @@ export default function ConsultarImovelPage() {
   const [isMuted, setIsMuted] = useState(true)
   const [progress, setProgress] = useState(0)
   const [remainingTime, setRemainingTime] = useState(0)
+  const [canStartVideo, setCanStartVideo] = useState(false)
+  const [isIntroAnimating, setIsIntroAnimating] = useState(true)
   const [requiresLock] = useState(() => {
     if (typeof window === 'undefined') return false
     const params = new URLSearchParams(window.location.search)
@@ -33,21 +35,36 @@ export default function ConsultarImovelPage() {
   const [isConsultActive, setIsConsultActive] = useState(false)
   const [isAutoplayBlocked, setIsAutoplayBlocked] = useState(false)
   const [isVideoReady, setIsVideoReady] = useState(false)
+  const [ctaTheme] = useState<'default' | 'yellow'>(() => {
+    if (typeof window === 'undefined') return 'default'
+    const params = new URLSearchParams(window.location.search)
+    return params.get('cta') === 'yellow' ? 'yellow' : 'default'
+  })
   const consultRef = useRef<ConsultPropertyHandle>(null)
   const touchHandledRef = useRef(false)
 
   useEffect(() => {
     router.prefetch('/consultar-imovel')
-
-    if (videoRef.current) {
-      videoRef.current.play().then(() => {
-        setIsAutoplayBlocked(false)
-      }).catch((err) => {
-        setIsAutoplayBlocked(true)
-        console.log("Autoplay aguardando interação ou bloqueado:", err)
-      })
-    }
   }, [router])
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setCanStartVideo(true)
+      setIsIntroAnimating(false)
+    }, 1600)
+
+    return () => window.clearTimeout(timer)
+  }, [])
+
+  useEffect(() => {
+    if (!canStartVideo || !videoRef.current) return
+    videoRef.current.play().then(() => {
+      setIsAutoplayBlocked(false)
+    }).catch((err) => {
+      setIsAutoplayBlocked(true)
+      console.log("Autoplay aguardando interação ou bloqueado:", err)
+    })
+  }, [canStartVideo])
 
   const handleTimeUpdate = (e: React.SyntheticEvent<HTMLVideoElement>) => {
     const video = e.currentTarget
@@ -76,15 +93,21 @@ export default function ConsultarImovelPage() {
     setRemainingTime(Math.ceil(e.currentTarget.duration))
   }
 
-  const handleUnmuteAndRestart = useCallback(() => {
+  const handleUnmute = useCallback(() => {
     const video = videoRef.current
     if (!video) return
 
     video.muted = false
     setIsMuted(false)
-    
-    video.currentTime = 0
     setHasStartedAudio(true)
+
+    if (video.paused) {
+      video.play().then(() => {
+        setIsPlaying(true)
+        setIsAutoplayBlocked(false)
+      }).catch(() => { })
+      return
+    }
 
     video.play().then(() => {
       setIsPlaying(true)
@@ -106,21 +129,15 @@ export default function ConsultarImovelPage() {
     }).catch(() => { })
   }, [])
 
-  const togglePlay = useCallback(() => {
-    const video = videoRef.current
-    if (!video) return
-
+  const handleActivateAudio = useCallback((event: React.SyntheticEvent) => {
+    if (!canStartVideo) return
+    const target = event.target as HTMLElement | null
+    if (target?.closest('[data-cta="start"]')) return
     if (!hasStartedAudio) {
-      handleUnmuteAndRestart()
+      handleUnmute()
       return
     }
-
-    if (video.paused) {
-      video.play()
-    } else {
-      video.pause()
-    }
-  }, [hasStartedAudio, handleUnmuteAndRestart])
+  }, [handleUnmute, hasStartedAudio, canStartVideo])
 
   const handleStart = useCallback(() => {
     if (!isUnlocked) return
@@ -155,7 +172,11 @@ export default function ConsultarImovelPage() {
   }
 
   return (
-    <main className="relative w-full h-dvh overflow-hidden bg-black font-sans text-white flex justify-center items-center">
+    <main
+      className="relative w-full h-dvh overflow-hidden bg-black font-sans text-white flex justify-center items-center"
+      onClick={handleActivateAudio}
+      onTouchStart={handleActivateAudio}
+    >
       <div className="relative w-full h-full lg:h-auto lg:max-w-[calc(100dvh*(16/9))] lg:aspect-video mx-auto flex flex-col items-center justify-center overflow-hidden shadow-2xl">
         {/* Atributos vitais para iPhone: 
             - autoPlay + muted + playsInline (obrigatórios para iniciar sem clique)
@@ -166,7 +187,7 @@ export default function ConsultarImovelPage() {
           src="/vsl.mp4"
           className="absolute inset-0 w-full h-full object-cover lg:object-contain cursor-pointer"
           playsInline
-          autoPlay
+          autoPlay={canStartVideo}
           muted
           preload="metadata"
           onTimeUpdate={handleTimeUpdate}
@@ -176,12 +197,12 @@ export default function ConsultarImovelPage() {
             setIsAutoplayBlocked(false)
           }}
           onPause={() => setIsPlaying(false)}
+          loop
           onEnded={() => {
             if (!requiresLock) return
             setIsUnlocked(true)
             localStorage.setItem('vsl-unlocked', 'true')
           }}
-          onClick={togglePlay}
         />
 
         {/* Camadas de Overlay */}
@@ -189,7 +210,7 @@ export default function ConsultarImovelPage() {
         <div className="absolute bottom-0 left-0 right-0 h-1/4 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
         {!isVideoReady && (
           <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/40 text-white pointer-events-none">
-            <span className="text-sm font-medium tracking-wide">Carregando video...</span>
+            <span className="text-sm font-medium tracking-wide">Carregando vídeo...</span>
           </div>
         )}
         {isAutoplayBlocked && (
@@ -200,9 +221,9 @@ export default function ConsultarImovelPage() {
                 e.stopPropagation()
                 handleStartMutedPlayback()
               }}
-              className="pointer-events-auto flex items-center gap-3 rounded-full px-6 py-3 bg-white/20 backdrop-blur-[3px] border border-white/10 text-sm font-semibold hover:bg-white/30 transition"
+              className="pointer-events-auto flex items-center gap-3 rounded-xl px-6 py-3 bg-white/20 backdrop-blur-[3px] border border-white/10 text-sm font-semibold hover:bg-white/30 transition"
             >
-              Toque para iniciar o video
+              Toque para iniciar o vídeo
             </button>
           </div>
         )}
@@ -220,27 +241,10 @@ export default function ConsultarImovelPage() {
             />
           </div>
 
-          {/* Área Central: Botão Ativar Som */}
-          <div className="flex-1 flex items-center justify-center relative">
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                handleUnmuteAndRestart()
-              }}
-              type="button"
-              className={`
-                pointer-events-auto 
-                flex items-center gap-3 px-8 py-3 rounded-full 
-                bg-white/20 backdrop-blur-[3px] border border-white/10
-                transition-all duration-500 ease-in-out
-                hover:bg-white/30 cursor-pointer hover:scale-105
-                ${!isMuted ? 'opacity-0 translate-y-4 pointer-events-none hidden' : 'opacity-100 translate-y-0 z-20'}
-              `}
-            >
-              <span className="text-base font-semibold leading-none tracking-wide">Ativar som</span>
-              <VolumeX className="size-6" />
-            </button>
+          <div className="flex flex-col items-center text-center gap-2 mt-1" />
 
+          {/* Área Central */}
+          <div className="flex-1 flex items-center justify-center relative">
             {!isPlaying && hasStartedAudio && (
               <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
                 <div className="size-20 rounded-full bg-white/20 backdrop-blur-[3px] flex items-center justify-center animate-in fade-in zoom-in duration-300">
@@ -258,33 +262,68 @@ export default function ConsultarImovelPage() {
 
           {/* Rodapé: Texto e Progresso */}
           <div className="flex flex-col gap-2 w-full max-w-md mx-auto mb-2">
-            <div className="flex flex-col gap-2">
-              <div className="pointer-events-auto">
+            <div className="flex flex-col gap-4">
+              <div
+                className={`pointer-events-auto relative flex flex-col items-center gap-2 ${isIntroAnimating ? 'cta-drop' : ''}`}
+                data-cta="start"
+              >
+                {isUnlocked && (
+                  <>
+                    <p
+                      className="text-[12px] text-white/90 font-semibold tracking-wide uppercase"
+                      style={{ textShadow: '0 2px 8px rgba(0,0,0,0.85)' }}
+                    >
+                      Toque No Botao Abaixo
+                    </p>
+                    <ArrowDown
+                      className="size-7 animate-bounce text-white"
+                      aria-hidden="true"
+                      style={{ filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.9))' }}
+                    />
+                  </>
+                )}
                 <Button
                   onClick={handleClick}
                   onTouchStart={handleTouchStart}
                   disabled={!isUnlocked}
+                  icon={<Home className="size-5" />}
                   className={`
-                    w-full h-10 rounded-full text-xs font-semibold transition-all duration-300
+                    w-full h-12 rounded-xl text-lg font-extrabold tracking-wide transition-all duration-300
                     ${isUnlocked
-                      ? 'bg-white text-black hover:bg-gray-100 shadow-[0_0_15px_rgba(255,255,255,0.3)] scale-100'
+                      ? (ctaTheme === 'yellow'
+                        ? '!shadow-[0_6px_0_#b45309] active:!shadow-[0_2px_0_#b45309] bg-amber-500 text-black border border-amber-600/60 hover:bg-amber-400 active:translate-y-1'
+                        : '!shadow-[0_6px_0_#1e3a8a] active:!shadow-[0_2px_0_#1e3a8a] bg-blue-500 text-white border border-blue-700/70 hover:bg-blue-400 active:translate-y-1'
+                      )
                       : 'bg-[#8F8F8F] text-[#1A1A1A] cursor-not-allowed opacity-90'
                     }
                   `}
                 >
-                  {isUnlocked ? 'Começar' : `Começar (faltam ${remainingTime}s)`}
+                  <span className="drop-shadow-[0_2px_2px_rgba(0,0,0,0.35)]">
+                    {isUnlocked ? 'Consultar Imóvel Agora' : `Consultar Imóvel Agora (faltam ${remainingTime}s)`}
+                  </span>
                 </Button>
               </div>
 
-              {/* Barra de Progresso */}
-              <div className="w-full h-1 bg-gray-600/50 rounded-full overflow-hidden backdrop-blur-sm">
-                <div
-                  className={`h-full transition-all duration-200 ease-linear rounded-full ${isUnlocked ? 'bg-white' : 'bg-gray-300'}`}
-                  style={{ width: `${progress}%` }}
-                />
+              {/* Barra de Progresso removida */}
+              <div className="flex justify-center mt-2">
+                <span
+                  className="text-[10px] uppercase tracking-[0.2em] text-white/80 border border-white/25 px-3 py-1 rounded-full"
+                  style={{ textShadow: '0 1px 6px rgba(0,0,0,0.7)' }}
+                >
+                  Plataforma Confiável
+                </span>
               </div>
-              <p className="text-[11px] text-white/80 text-center">
-                {isUnlocked ? 'Toque em "Comecar" para iniciar sua consulta.' : 'Assista ao video para liberar o botao de inicio.'}
+              <p
+                className="text-[11px] text-white/80 text-center uppercase tracking-[0.2em] font-medium"
+                style={{ textShadow: '0 1px 6px rgba(0,0,0,0.7)' }}
+              >
+                CNPJ 50.199.038/0001-03 • LGPD
+              </p>
+              <p
+                className="text-[12px] text-white/90 text-center font-medium"
+                style={{ textShadow: '0 1px 6px rgba(0,0,0,0.7)' }}
+              >
+                Empresa registrada • Dados protegidos por lei • Atendimento humano
               </p>
             </div>
           </div>

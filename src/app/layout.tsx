@@ -1,16 +1,16 @@
 // layout.tsx
 import type { Metadata, Viewport } from 'next'
-import { Noto_Sans } from 'next/font/google'
+import { Plus_Jakarta_Sans } from 'next/font/google'
 import { Suspense } from 'react'
 import Script from 'next/script'
 import { Providers } from '@/providers'
 import { PageViewTracker } from '@/components/analytics/PageViewTracker'
 import './globals.css'
 
-const notoSans = Noto_Sans({
-  variable: '--font-noto-sans',
+const plusJakartaSans = Plus_Jakarta_Sans({
+  variable: '--font-plus-jakarta',
   subsets: ['latin'],
-  weight: ['400', '500', '700'],
+  weight: ['400', '500', '600', '700'],
 })
 
 const gtmId = process.env.NEXT_PUBLIC_GTM_ID || 'GTM-5XK4CG9T'
@@ -53,7 +53,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
           src="https://t.contentsquare.net/uxa/5947ac07f7a4e.js"
         />
       </head>
-      <body className={`${notoSans.variable} antialiased h-full flex flex-col`}>
+      <body className={`${plusJakartaSans.variable} antialiased h-full flex flex-col`}>
         <Suspense fallback={null}>
           <PageViewTracker />
         </Suspense>

@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Controller, useFormContext } from 'react-hook-form'
 import Image from 'next/image'
-import { Mail, AlertCircle } from 'lucide-react'
+import { Mail, AlertCircle, ArrowRight } from 'lucide-react'
 import { signIn } from 'next-auth/react'
 import { FormTypes } from '@/sections/login/validations'
 import { InputOtp } from '@/sections/login/components/InputOtp'
@@ -144,9 +144,12 @@ export function VerifyCodeStep({
       <button
         type="submit"
         disabled={isSubmitting || isResending}
-        className="w-full h-14 rounded-xl font-semibold text-base transition-colors bg-primary text-white hover:bg-primary/90 shadow-md disabled:opacity-70 disabled:cursor-not-allowed"
+        className="w-full h-14 rounded-xl font-semibold text-base transition-colors bg-[var(--color-button-primary)] text-white hover:bg-[var(--color-button-primary-hover)] shadow-[0_6px_0_rgba(11,27,58,0.8)] active:translate-y-1 active:shadow-[0_2px_0_rgba(11,27,58,0.8)] disabled:opacity-70 disabled:cursor-not-allowed"
       >
-        {isSubmitting ? 'Verificando...' : 'Continuar'}
+        <span className="flex items-center justify-center gap-2">
+          {!isSubmitting && <ArrowRight className="size-5" />}
+          {isSubmitting ? 'Verificando...' : 'Continuar'}
+        </span>
       </button>
     </form>
   )
