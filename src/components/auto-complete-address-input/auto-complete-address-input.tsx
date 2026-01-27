@@ -168,7 +168,6 @@ const AutoCompleteInput = forwardRef<HTMLInputElement, Props>(({
 
         <Input
           ref={internalInputRef}
-          autoFocus
           type="text"
           {...props}
           value={value}
