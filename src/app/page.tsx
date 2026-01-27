@@ -39,6 +39,18 @@ export default function ConsultarImovelPage() {
   const consultRef = useRef<ConsultPropertyHandle>(null)
   const touchHandledRef = useRef(false)
 
+  const attemptAutoplay = useCallback(() => {
+    const video = videoRef.current
+    if (!video) return
+    video.muted = true
+    video.playsInline = true
+    video.setAttribute('muted', '')
+    video.setAttribute('playsinline', '')
+    video.play().catch((err) => {
+      console.log("Autoplay aguardando interação ou bloqueado:", err)
+    })
+  }, [])
+
   useEffect(() => {
     router.prefetch('/consultar-imovel')
   }, [router])
@@ -52,14 +64,8 @@ export default function ConsultarImovelPage() {
   }, [])
 
   useEffect(() => {
-    const video = videoRef.current
-    if (!video) return
-    video.muted = true
-    video.playsInline = true
-    video.play().catch((err) => {
-      console.log("Autoplay aguardando interação ou bloqueado:", err)
-    })
-  }, [])
+    attemptAutoplay()
+  }, [attemptAutoplay])
 
   const handleTimeUpdate = (e: React.SyntheticEvent<HTMLVideoElement>) => {
     const video = e.currentTarget
@@ -79,6 +85,7 @@ export default function ConsultarImovelPage() {
 
   const handleLoadedMetadata = (e: React.SyntheticEvent<HTMLVideoElement>) => {
     setIsVideoReady(true)
+    attemptAutoplay()
     if (!requiresLock) {
       setRemainingTime(0)
       return
@@ -168,9 +175,10 @@ export default function ConsultarImovelPage() {
           onTimeUpdate={handleTimeUpdate}
           onLoadedMetadata={handleLoadedMetadata}
           onCanPlay={() => {
-            videoRef.current?.play().catch((err) => {
-              console.log("Autoplay aguardando interação ou bloqueado:", err)
-            })
+            attemptAutoplay()
+          }}
+          onCanPlayThrough={() => {
+            attemptAutoplay()
           }}
           onPlay={() => {
             setIsPlaying(true)
