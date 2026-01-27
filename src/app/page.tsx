@@ -31,6 +31,8 @@ export default function ConsultarImovelPage() {
   const [hasStartedAudio, setHasStartedAudio] = useState(false)
   const [isPlaying, setIsPlaying] = useState(false)
   const [isConsultActive, setIsConsultActive] = useState(false)
+  const [isAutoplayBlocked, setIsAutoplayBlocked] = useState(false)
+  const [isVideoReady, setIsVideoReady] = useState(false)
   const consultRef = useRef<ConsultPropertyHandle>(null)
   const touchHandledRef = useRef(false)
 
@@ -38,7 +40,10 @@ export default function ConsultarImovelPage() {
     router.prefetch('/consultar-imovel')
 
     if (videoRef.current) {
-      videoRef.current.play().catch((err) => {
+      videoRef.current.play().then(() => {
+        setIsAutoplayBlocked(false)
+      }).catch((err) => {
+        setIsAutoplayBlocked(true)
         console.log("Autoplay aguardando interação ou bloqueado:", err)
       })
     }
@@ -63,6 +68,7 @@ export default function ConsultarImovelPage() {
   }
 
   const handleLoadedMetadata = (e: React.SyntheticEvent<HTMLVideoElement>) => {
+    setIsVideoReady(true)
     if (!requiresLock) {
       setRemainingTime(0)
       return
@@ -80,7 +86,24 @@ export default function ConsultarImovelPage() {
     video.currentTime = 0
     setHasStartedAudio(true)
 
-    video.play().then(() => setIsPlaying(true)).catch(() => { })
+    video.play().then(() => {
+      setIsPlaying(true)
+      setIsAutoplayBlocked(false)
+    }).catch(() => { })
+  }, [])
+
+  const handleStartMutedPlayback = useCallback(() => {
+    const video = videoRef.current
+    if (!video) return
+
+    video.muted = true
+    setIsMuted(true)
+    setHasStartedAudio(false)
+
+    video.play().then(() => {
+      setIsPlaying(true)
+      setIsAutoplayBlocked(false)
+    }).catch(() => { })
   }, [])
 
   const togglePlay = useCallback(() => {
@@ -145,10 +168,13 @@ export default function ConsultarImovelPage() {
           playsInline
           autoPlay
           muted
-          preload="auto"
+          preload="metadata"
           onTimeUpdate={handleTimeUpdate}
           onLoadedMetadata={handleLoadedMetadata}
-          onPlay={() => setIsPlaying(true)}
+          onPlay={() => {
+            setIsPlaying(true)
+            setIsAutoplayBlocked(false)
+          }}
           onPause={() => setIsPlaying(false)}
           onEnded={() => {
             if (!requiresLock) return
@@ -161,8 +187,27 @@ export default function ConsultarImovelPage() {
         {/* Camadas de Overlay */}
         <div className="absolute inset-0 bg-black/20 pointer-events-none" />
         <div className="absolute bottom-0 left-0 right-0 h-1/4 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
+        {!isVideoReady && (
+          <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/40 text-white pointer-events-none">
+            <span className="text-sm font-medium tracking-wide">Carregando video...</span>
+          </div>
+        )}
+        {isAutoplayBlocked && (
+          <div className="absolute inset-0 z-20 flex items-center justify-center">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                handleStartMutedPlayback()
+              }}
+              className="pointer-events-auto flex items-center gap-3 rounded-full px-6 py-3 bg-white/20 backdrop-blur-[3px] border border-white/10 text-sm font-semibold hover:bg-white/30 transition"
+            >
+              Toque para iniciar o video
+            </button>
+          </div>
+        )}
 
-        <div className="relative z-10 flex flex-col h-full w-full justify-between px-6 pt-4 pb-4 pointer-events-none">
+        <div className="relative z-10 flex flex-col h-full w-full justify-between px-6 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pointer-events-none">
           {/* Logo */}
           <div className="flex flex-col items-center mt-2 opacity-40 scale-75 lg:scale-100">
             <Image
@@ -238,6 +283,9 @@ export default function ConsultarImovelPage() {
                   style={{ width: `${progress}%` }}
                 />
               </div>
+              <p className="text-[11px] text-white/80 text-center">
+                {isUnlocked ? 'Toque em "Comecar" para iniciar sua consulta.' : 'Assista ao video para liberar o botao de inicio.'}
+              </p>
             </div>
           </div>
         </div>
