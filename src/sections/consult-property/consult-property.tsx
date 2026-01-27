@@ -234,6 +234,14 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
 
     if (!hasTrackedFlowStart.current) {
       hasTrackedFlowStart.current = true
+      const startedFromVsl =
+        typeof window !== 'undefined' &&
+        sessionStorage.getItem('consultFlowStartedFromVsl') === 'true'
+      if (startedFromVsl) {
+        sessionStorage.removeItem('consultFlowStartedFromVsl')
+        return
+      }
+
       trackGtmEvent('consult_flow_started', {
         event_category: 'consult_flow',
         event_label: 'start',

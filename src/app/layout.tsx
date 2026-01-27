@@ -19,7 +19,8 @@ const gtmId = process.env.NEXT_PUBLIC_GTM_ID || 'GTM-5XK4CG9T'
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
+  maximumScale: 5,
+  userScalable: true,
   interactiveWidget: 'resizes-content',
 }
 
@@ -38,7 +39,7 @@ export default function RootLayout({
       <head>
         <Script
           id="google-tag-manager"
-          strategy="beforeInteractive"
+          strategy="afterInteractive"
           dangerouslySetInnerHTML={{
             __html: `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
 new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -46,11 +47,6 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
 })(window,document,'script','dataLayer','${gtmId}');`,
           }}
-        />
-        <Script
-          id="hotjar"
-          strategy="beforeInteractive"
-          src="https://t.contentsquare.net/uxa/5947ac07f7a4e.js"
         />
       </head>
       <body className={`${plusJakartaSans.variable} antialiased h-full flex flex-col`}>

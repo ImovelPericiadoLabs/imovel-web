@@ -4,11 +4,17 @@ import { useState, useRef, useCallback, useEffect } from 'react'
 import { flushSync } from 'react-dom'
 import { ArrowDown, Home } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import dynamic from 'next/dynamic'
 import Image from 'next/image'
 import Button from '@/components/button'
 import LoadingOverlay from '@/components/loading-overlay'
-import ConsultProperty from '@/sections/consult-property'
 import type { ConsultPropertyHandle } from '@/sections/consult-property/consult-property'
+import { trackGtmEvent } from '@/utils/analytics/gtm'
+
+const ConsultProperty = dynamic(() => import('@/sections/consult-property'), {
+  ssr: false,
+  loading: () => null,
+})
 
 export default function VslPage() {
   const router = useRouter()
@@ -166,9 +172,26 @@ export default function VslPage() {
 
   const handleStart = useCallback(() => {
     if (!isUnlocked) return
+    const startPayload = {
+      event_category: 'consult_flow',
+      event_label: 'start',
+      event_description: 'Iniciou o fluxo de consulta do imóvel.',
+      flow_step: 'address',
+      step_index: 1,
+    }
+
+    trackGtmEvent('consult_flow_started', startPayload)
+    import('posthog-js').then(({ default: posthog }) => {
+      posthog.capture('consult_flow_started', startPayload)
+    }).catch(() => {})
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('consultFlowStartedFromVsl', 'true')
+    }
+
     localStorage.setItem('vsl-unlocked', 'true')
     sessionStorage.setItem('autoFocusAddress', 'true')
 
+    import('@/sections/consult-property').catch(() => {})
     flushSync(() => {
       setIsConsultActive(true)
     })
@@ -223,7 +246,8 @@ export default function VslPage() {
             playsInline
             autoPlay
             muted
-            preload="auto"
+            preload="metadata"
+            poster="/images/logo.png"
             onTimeUpdate={handleTimeUpdate}
             onLoadedMetadata={handleLoadedMetadata}
             onCanPlay={() => {
