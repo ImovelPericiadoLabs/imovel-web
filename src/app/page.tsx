@@ -52,8 +52,11 @@ export default function ConsultarImovelPage() {
   }, [])
 
   useEffect(() => {
-    if (!videoRef.current) return
-    videoRef.current.play().catch((err) => {
+    const video = videoRef.current
+    if (!video) return
+    video.muted = true
+    video.playsInline = true
+    video.play().catch((err) => {
       console.log("Autoplay aguardando interação ou bloqueado:", err)
     })
   }, [])
@@ -262,25 +265,11 @@ export default function ConsultarImovelPage() {
               </div>
 
               {/* Barra de Progresso removida */}
-              <div className="flex justify-center mt-2">
-                <span
-                  className="text-[10px] uppercase tracking-[0.2em] text-white/80 border border-white/25 px-3 py-1 rounded-full"
-                  style={{ textShadow: '0 1px 6px rgba(0,0,0,0.7)' }}
-                >
-                  Plataforma Confiável
-                </span>
-              </div>
               <p
                 className="text-[11px] text-white/80 text-center uppercase tracking-[0.2em] font-medium"
                 style={{ textShadow: '0 1px 6px rgba(0,0,0,0.7)' }}
               >
                 CNPJ 50.199.038/0001-03 • LGPD
-              </p>
-              <p
-                className="text-[12px] text-white/90 text-center font-medium"
-                style={{ textShadow: '0 1px 6px rgba(0,0,0,0.7)' }}
-              >
-                Empresa registrada • Dados protegidos por lei • Atendimento humano
               </p>
             </div>
           </div>
