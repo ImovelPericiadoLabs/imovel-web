@@ -13,8 +13,6 @@ export default function ConsultarImovelPage() {
   const router = useRouter()
   const videoRef = useRef<HTMLVideoElement>(null)
 
-  const [isMuted, setIsMuted] = useState(true)
-  const [progress, setProgress] = useState(0)
   const [remainingTime, setRemainingTime] = useState(0)
   const [canStartVideo, setCanStartVideo] = useState(false)
   const [isIntroAnimating, setIsIntroAnimating] = useState(true)
@@ -33,7 +31,6 @@ export default function ConsultarImovelPage() {
   const [hasStartedAudio, setHasStartedAudio] = useState(false)
   const [isPlaying, setIsPlaying] = useState(false)
   const [isConsultActive, setIsConsultActive] = useState(false)
-  const [isAutoplayBlocked, setIsAutoplayBlocked] = useState(false)
   const [isVideoReady, setIsVideoReady] = useState(false)
   const [ctaTheme] = useState<'default' | 'yellow'>(() => {
     if (typeof window === 'undefined') return 'default'
@@ -58,10 +55,7 @@ export default function ConsultarImovelPage() {
 
   useEffect(() => {
     if (!canStartVideo || !videoRef.current) return
-    videoRef.current.play().then(() => {
-      setIsAutoplayBlocked(false)
-    }).catch((err) => {
-      setIsAutoplayBlocked(true)
+    videoRef.current.play().catch((err) => {
       console.log("Autoplay aguardando interação ou bloqueado:", err)
     })
   }, [canStartVideo])
@@ -72,8 +66,6 @@ export default function ConsultarImovelPage() {
     const duration = video.duration || 1
 
     const currentProgress = (currentTime / duration) * 100
-    setProgress(currentProgress)
-
     const left = Math.ceil(duration - currentTime)
     setRemainingTime(Math.max(0, left))
 
@@ -98,34 +90,17 @@ export default function ConsultarImovelPage() {
     if (!video) return
 
     video.muted = false
-    setIsMuted(false)
     setHasStartedAudio(true)
 
     if (video.paused) {
       video.play().then(() => {
         setIsPlaying(true)
-        setIsAutoplayBlocked(false)
       }).catch(() => { })
       return
     }
 
     video.play().then(() => {
       setIsPlaying(true)
-      setIsAutoplayBlocked(false)
-    }).catch(() => { })
-  }, [])
-
-  const handleStartMutedPlayback = useCallback(() => {
-    const video = videoRef.current
-    if (!video) return
-
-    video.muted = true
-    setIsMuted(true)
-    setHasStartedAudio(false)
-
-    video.play().then(() => {
-      setIsPlaying(true)
-      setIsAutoplayBlocked(false)
     }).catch(() => { })
   }, [])
 
@@ -194,7 +169,6 @@ export default function ConsultarImovelPage() {
           onLoadedMetadata={handleLoadedMetadata}
           onPlay={() => {
             setIsPlaying(true)
-            setIsAutoplayBlocked(false)
           }}
           onPause={() => setIsPlaying(false)}
           loop
@@ -211,20 +185,6 @@ export default function ConsultarImovelPage() {
         {!isVideoReady && (
           <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/40 text-white pointer-events-none">
             <span className="text-sm font-medium tracking-wide">Carregando vídeo...</span>
-          </div>
-        )}
-        {isAutoplayBlocked && (
-          <div className="absolute inset-0 z-20 flex items-center justify-center">
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation()
-                handleStartMutedPlayback()
-              }}
-              className="pointer-events-auto flex items-center gap-3 rounded-xl px-6 py-3 bg-white/20 backdrop-blur-[3px] border border-white/10 text-sm font-semibold hover:bg-white/30 transition"
-            >
-              Toque para iniciar o vídeo
-            </button>
           </div>
         )}
 
