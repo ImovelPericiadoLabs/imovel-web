@@ -164,9 +164,14 @@ export default function ConsultarImovelPage() {
           playsInline
           autoPlay
           muted
-          preload="metadata"
+          preload="auto"
           onTimeUpdate={handleTimeUpdate}
           onLoadedMetadata={handleLoadedMetadata}
+          onCanPlay={() => {
+            videoRef.current?.play().catch((err) => {
+              console.log("Autoplay aguardando interação ou bloqueado:", err)
+            })
+          }}
           onPlay={() => {
             setIsPlaying(true)
           }}
