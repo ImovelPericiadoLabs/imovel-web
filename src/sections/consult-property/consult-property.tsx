@@ -45,7 +45,14 @@ export type ConsultPropertyHandle = {
   focusAddress: () => boolean
 }
 
-const ConsultProperty = forwardRef<ConsultPropertyHandle>(function ConsultProperty(_props, ref) {
+type ConsultPropertyProps = {
+  isActive?: boolean
+}
+
+const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(function ConsultProperty(
+  { isActive = true },
+  ref,
+) {
   const router = useRouter()
   const [flow, setFlow] = useState<FlowState>('address')
   const stack = useRef<FlowState[]>([])
@@ -85,6 +92,7 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle>(function ConsultProper
   }))
 
   useEffect(() => {
+    if (!isActive) return
     if (flow === 'address') {
       const handleFocus = () => {
         // Garantir que o input já está renderizado antes do foco (iOS)
@@ -113,7 +121,7 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle>(function ConsultProper
         }
       }
     }
-  }, [flow])
+  }, [flow, isActive])
 
   useEffect(() => {
     if (!isInitialLoading) return
@@ -209,7 +217,7 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle>(function ConsultProper
   const isFinished = flow === 'finished'
 
   useEffect(() => {
-    if (isInitialLoading) return
+    if (!isActive || isInitialLoading) return
 
     if (typeof window !== 'undefined') {
       window.currentFlowStep = flow
@@ -234,7 +242,7 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle>(function ConsultProper
         step_index: currentStepIndex,
       })
     }
-  }, [flow, isInitialLoading, currentStepIndex, isFinished])
+  }, [flow, isInitialLoading, currentStepIndex, isFinished, isActive])
 
   if (isInitialLoading) {
     return (
