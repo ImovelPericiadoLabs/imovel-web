@@ -14,7 +14,6 @@ export default function ConsultarImovelPage() {
   const videoRef = useRef<HTMLVideoElement>(null)
 
   const [remainingTime, setRemainingTime] = useState(0)
-  const [canStartVideo, setCanStartVideo] = useState(false)
   const [isIntroAnimating, setIsIntroAnimating] = useState(true)
   const [requiresLock] = useState(() => {
     if (typeof window === 'undefined') return false
@@ -46,7 +45,6 @@ export default function ConsultarImovelPage() {
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      setCanStartVideo(true)
       setIsIntroAnimating(false)
     }, 1600)
 
@@ -54,11 +52,11 @@ export default function ConsultarImovelPage() {
   }, [])
 
   useEffect(() => {
-    if (!canStartVideo || !videoRef.current) return
+    if (!videoRef.current) return
     videoRef.current.play().catch((err) => {
       console.log("Autoplay aguardando interação ou bloqueado:", err)
     })
-  }, [canStartVideo])
+  }, [])
 
   const handleTimeUpdate = (e: React.SyntheticEvent<HTMLVideoElement>) => {
     const video = e.currentTarget
@@ -105,14 +103,13 @@ export default function ConsultarImovelPage() {
   }, [])
 
   const handleActivateAudio = useCallback((event: React.SyntheticEvent) => {
-    if (!canStartVideo) return
     const target = event.target as HTMLElement | null
     if (target?.closest('[data-cta="start"]')) return
     if (!hasStartedAudio) {
       handleUnmute()
       return
     }
-  }, [handleUnmute, hasStartedAudio, canStartVideo])
+  }, [handleUnmute, hasStartedAudio])
 
   const handleStart = useCallback(() => {
     if (!isUnlocked) return
@@ -162,7 +159,7 @@ export default function ConsultarImovelPage() {
           src="/vsl.mp4"
           className="absolute inset-0 w-full h-full object-cover lg:object-contain cursor-pointer"
           playsInline
-          autoPlay={canStartVideo}
+          autoPlay
           muted
           preload="metadata"
           onTimeUpdate={handleTimeUpdate}
