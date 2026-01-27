@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 import { usePathname, useSearchParams } from 'next/navigation'
+import posthog from 'posthog-js'
 import { trackGtmEvent } from '@/utils/analytics/gtm'
 
 export function PageViewTracker() {
@@ -21,7 +22,7 @@ export function PageViewTracker() {
         ? `${window.location.origin}${url}`
         : url
 
-    trackGtmEvent('page_view', {
+    const eventPayload = {
       event_category: 'navigation',
       event_label: url,
       event_description: 'Visualização de página no app.',
@@ -29,7 +30,10 @@ export function PageViewTracker() {
       page_location: fullUrl,
       page_title: typeof document !== 'undefined' ? document.title : undefined,
       flow_step: typeof window !== 'undefined' ? window.currentFlowStep : undefined,
-    })
+    }
+
+    trackGtmEvent('page_view', eventPayload)
+    posthog.capture('page_view', eventPayload)
   }, [pathname, searchParams])
 
   return null
