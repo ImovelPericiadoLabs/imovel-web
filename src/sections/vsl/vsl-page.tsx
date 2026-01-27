@@ -59,6 +59,11 @@ export default function VslPage() {
 
   useEffect(() => {
     if (typeof window === 'undefined') return
+    sessionStorage.removeItem('autoFocusAddress')
+  }, [])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
     if (sessionStorage.getItem('consultPropertyAssetsReady') === 'true') return
 
     let isCancelled = false
