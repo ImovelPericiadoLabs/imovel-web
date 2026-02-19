@@ -2,6 +2,18 @@ import { signOut } from 'next-auth/react'
 import { url } from '@/constants/api'
 
 const apiUrl = url
+const INTERNAL_API_HEADER_NAME = process.env.INTERNAL_API_HEADER_NAME || 'x-internal-auth'
+const INTERNAL_API_SHARED_SECRET = process.env.INTERNAL_API_SHARED_SECRET
+
+function appendInternalApiHeader(headers: Record<string, string>) {
+  const isServerSide = typeof window === 'undefined'
+
+  if (!isServerSide || !INTERNAL_API_SHARED_SECRET) {
+    return
+  }
+
+  headers[INTERNAL_API_HEADER_NAME] = INTERNAL_API_SHARED_SECRET
+}
 
 async function handleUnauthorized() {
   if (typeof window === 'undefined') return
@@ -14,6 +26,8 @@ const api = {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     }
+
+    appendInternalApiHeader(headers)
 
     if (token) {
       headers['Authorization'] = `Bearer ${token}`
@@ -39,6 +53,8 @@ const api = {
     const headers: Record<string, string> = {
       'Accept': 'application/json',
     }
+
+    appendInternalApiHeader(headers)
 
     if (!isFormData) {
       headers['Content-Type'] = 'application/json'
@@ -75,10 +91,14 @@ const api = {
   },
 
   async put(url: string, body: object) {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    }
+
+    appendInternalApiHeader(headers)
+
     const response = await fetch(`${apiUrl}${url}`, {
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       body: JSON.stringify(body),
       method: 'PUT',
     })
@@ -94,10 +114,14 @@ const api = {
   },
 
   async delete(url: string) {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    }
+
+    appendInternalApiHeader(headers)
+
     const response = await fetch(`${apiUrl}${url}`, {
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       method: 'DELETE',
     })
 
