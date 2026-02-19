@@ -83,9 +83,16 @@ describe('api.post', () => {
     expect(callArgs.headers).not.toHaveProperty('Content-Type')
   })
 
-  it('deve lançar erro de parse se o retorno não for um JSON válido', async () => {
+  it('deve lançar erro amigável se o retorno não for um JSON válido', async () => {
     mockFetch.mockResolvedValue(mockTextResponse('NOT_JSON'))
-    await expect(api.post('/invalid', {})).rejects.toThrow('Erro parse...')
+    await expect(api.post('/invalid', {})).rejects.toThrow('Resposta inválida da API (200).')
+  })
+
+  it('deve lançar erro específico quando a API retorna HTML', async () => {
+    mockFetch.mockResolvedValue(mockTextResponse('<html><body>blocked</body></html>', 403))
+    await expect(api.post('/blocked', {})).rejects.toThrow(
+      'Resposta HTML inesperada da API (403). Verifique URL da API e possíveis bloqueios de firewall/WAF.'
+    )
   })
 })
 
