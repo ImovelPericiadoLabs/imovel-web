@@ -1,259 +1,852 @@
 'use client'
 
-import { MapPin, Building, Clock } from 'lucide-react'
+import { ChoiceCards } from '@/components/choice-cards'
+import { Check, Building, Box, Layout, Hash, Info, ChevronRight, Pencil, Building2 } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { useFormContext } from 'react-hook-form'
-import { useState } from 'react'
+import { useState, useRef, useImperativeHandle, forwardRef, useCallback, useMemo } from 'react'
+import { flushSync } from 'react-dom'
 import TextTitle from '@/components/text-title'
+import TextSubtitle from '@/components/text-subtitle'
 import Button from '@/components/button'
 import BottomSheet from '@/components/bottom-sheet'
+import SelectedAddressCard from '@/components/selected-address-card'
+import InfoCard from '@/components/info-card'
+import { trackGtmEvent } from '@/utils/analytics/gtm'
 
-export function AddressComplementStep({ onNext }: { onNext: () => void }) {
-  const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false)
+export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: () => void, onBack?: () => void }, ref) => {
+  const [currentSubStep, setCurrentSubStep] = useState(0)
+  const subSteps = useMemo(() => ['registration', 'allotment', 'block', 'lot', 'complement'] as const, [])
+  type StepKey = (typeof subSteps)[number]
+  type StepMeta = {
+    label: string
+    icon: LucideIcon
+    tone: StepKey
+    cardClassName: string
+    iconClassName: string
+    badgeClassName: string
+  }
+  const stepMeta = useMemo<Record<StepKey, StepMeta>>(() => ({
+    registration: {
+      label: 'Matrícula',
+      icon: Building,
+      tone: 'registration' as const,
+      cardClassName: 'bg-primary/5 border-primary/10',
+      iconClassName: 'bg-primary/15 text-primary',
+      badgeClassName: 'text-primary bg-primary/10 border-primary/20',
+    },
+    allotment: {
+      label: 'Loteamento',
+      icon: Box,
+      tone: 'allotment' as const,
+      cardClassName: 'bg-emerald-50/70 border-emerald-100',
+      iconClassName: 'bg-emerald-100 text-emerald-700',
+      badgeClassName: 'text-emerald-700 bg-emerald-100/80 border-emerald-200',
+    },
+    block: {
+      label: 'Quadra',
+      icon: Layout,
+      tone: 'block' as const,
+      cardClassName: 'bg-amber-50/70 border-amber-100',
+      iconClassName: 'bg-amber-100 text-amber-700',
+      badgeClassName: 'text-amber-700 bg-amber-100/80 border-amber-200',
+    },
+    lot: {
+      label: 'Lote',
+      icon: Hash,
+      tone: 'lot' as const,
+      cardClassName: 'bg-violet-50/70 border-violet-100',
+      iconClassName: 'bg-violet-100 text-violet-700',
+      badgeClassName: 'text-violet-700 bg-violet-100/80 border-violet-200',
+    },
+    complement: {
+      label: 'Complemento',
+      icon: Building2,
+      tone: 'complement' as const,
+      cardClassName: 'bg-gray-50/80 border-gray-100',
+      iconClassName: 'bg-gray-100 text-gray-700',
+      badgeClassName: 'text-gray-700 bg-gray-100/80 border-gray-200',
+    },
+  }), [])
+  const validationStyles = useMemo(() => ({
+    registration: {
+      sheet: 'border-t-4 border-primary/60',
+      iconWrap: 'bg-primary/10',
+      icon: 'text-primary',
+      title: 'text-primary',
+      button: 'bg-primary hover:bg-primary-hover text-white',
+    },
+    allotment: {
+      sheet: 'border-t-4 border-emerald-400',
+      iconWrap: 'bg-emerald-100',
+      icon: 'text-emerald-700',
+      title: 'text-emerald-700',
+      button: 'bg-emerald-600 hover:bg-emerald-700 text-white',
+    },
+    block: {
+      sheet: 'border-t-4 border-amber-400',
+      iconWrap: 'bg-amber-100',
+      icon: 'text-amber-700',
+      title: 'text-amber-700',
+      button: 'bg-amber-500 hover:bg-amber-600 text-white',
+    },
+    lot: {
+      sheet: 'border-t-4 border-violet-400',
+      iconWrap: 'bg-violet-100',
+      icon: 'text-violet-700',
+      title: 'text-violet-700',
+      button: 'bg-violet-600 hover:bg-violet-700 text-white',
+    },
+    complement: {
+      sheet: 'border-t-4 border-gray-300',
+      iconWrap: 'bg-gray-100',
+      icon: 'text-gray-700',
+      title: 'text-gray-700',
+      button: 'bg-gray-700 hover:bg-gray-800 text-white',
+    },
+  }), [])
+
   const { register, getValues, trigger, watch, setValue, formState: { errors } } = useFormContext()
-  const currentAddress = getValues('address')
-  const complementValue = watch('addressComplement') || ''
-  const currentLength = complementValue.length
-  
-  const unknownRegistration = watch('unknownRegistration')
-  const noComplement = watch('noComplement')
+  const [isValidationBottomSheetOpen, setIsValidationBottomSheetOpen] = useState(false)
+  const [missingFieldLabel, setMissingFieldLabel] = useState('')
 
-  const handleContinue = async () => {
-    const isValid = await trigger(['addressComplement', 'registrationNumber', 'unknownRegistration', 'noComplement'])
+  const trackComplementStep = useCallback((action: 'complete' | 'skip', payload: Record<string, unknown>) => {
+    trackGtmEvent('address_complement_step', {
+      event_category: 'address_complement',
+      event_label: action,
+      event_description: action === 'skip'
+        ? 'Etapa de complemento avançada sem informação.'
+        : 'Etapa de complemento preenchida e concluída.',
+      action,
+      ...payload,
+    })
+  }, [])
+  
+  const handleBack = useCallback(() => {
+    if (currentSubStep > 0) {
+      const prevStep = subSteps[currentSubStep - 1]
+      
+      // Limpa a seleção e o campo do passo anterior ao voltar para ele
+      if (prevStep === 'registration') {
+        setValue('unknownRegistration', undefined)
+        setValue('registrationNumber', '')
+      }
+      if (prevStep === 'allotment') {
+        setValue('noAllotment', undefined)
+        setValue('allotment', '')
+      }
+      if (prevStep === 'block') {
+        setValue('noBlock', undefined)
+        setValue('block', '')
+      }
+      if (prevStep === 'lot') {
+        setValue('noLot', undefined)
+        setValue('lot', '')
+      }
+
+      setCurrentSubStep(prev => prev - 1)
+      window.scrollTo({ top: 0, behavior: 'auto' })
+    } else if (onBack) {
+      // Se estamos voltando do primeiro sub-passo (matrícula) para o endereço, 
+      // também resetamos a matrícula para que ao entrar novamente esteja limpo
+      setValue('unknownRegistration', undefined)
+      setValue('registrationNumber', '')
+      onBack()
+    }
+  }, [currentSubStep, subSteps, setValue, onBack])
+
+  const handleContinue = useCallback(async (forceAdvance?: boolean) => {
+    let fieldsToValidate: string[] = []
+    let fieldLabel = ''
+    
+    const subStep = subSteps[currentSubStep]
+    if (subStep === 'registration') {
+      fieldsToValidate = ['unknownRegistration', 'registrationNumber']
+      fieldLabel = 'o número da matrícula'
+    }
+    if (subStep === 'allotment') {
+      fieldsToValidate = ['noAllotment', 'allotment']
+      fieldLabel = 'o loteamento'
+    }
+    if (subStep === 'block') {
+      fieldsToValidate = ['noBlock', 'block']
+      fieldLabel = 'a quadra'
+    }
+    if (subStep === 'lot') {
+      fieldsToValidate = ['noLot', 'lot']
+      fieldLabel = 'o lote'
+    }
+    if (subStep === 'complement') {
+      const complementValue = String(getValues('complement') || '').trim()
+      if (currentSubStep < subSteps.length - 1) {
+        trackComplementStep('complete', {
+          step_key: subStep,
+          step_index: currentSubStep + 1,
+          has_info: Boolean(complementValue),
+        })
+        setCurrentSubStep(prev => prev + 1)
+        window.scrollTo({ top: 0, behavior: 'auto' })
+      } else {
+        trackComplementStep('complete', {
+          step_key: subStep,
+          step_index: currentSubStep + 1,
+          has_info: Boolean(complementValue),
+        })
+        onNext()
+      }
+      return
+    }
+
+    // Obter os valores atuais
+    const choiceValue = getValues(fieldsToValidate[0])
+    const fieldValue = getValues(fieldsToValidate[1])
+
+    // Se for um avanço forçado (clique no "Não Tenho"), pula validações e avança para o próximo
+    if (forceAdvance) {
+      trackComplementStep('skip', {
+        step_key: subStep,
+        step_index: currentSubStep + 1,
+        has_info: false,
+      })
+      if (currentSubStep < subSteps.length - 1) {
+        setCurrentSubStep(prev => prev + 1)
+        window.scrollTo({ top: 0, behavior: 'auto' })
+      } else {
+        onNext()
+      }
+      return
+    }
+
+    // Caso 1: Usuário ainda não fez a escolha Sim/Não
+    if (choiceValue === undefined) {
+      setMissingFieldLabel('se possui ' + fieldLabel)
+      setIsValidationBottomSheetOpen(true)
+      return
+    }
+
+    // Caso 2: Usuário escolheu "Sim" (false nos campos 'unknown'/'no') mas deixou o campo de texto vazio
+    if (choiceValue === false && (!fieldValue || String(fieldValue).trim() === '')) {
+      setMissingFieldLabel(fieldLabel)
+      setIsValidationBottomSheetOpen(true)
+      return
+    }
+
+    // Forçar trigger de validação nos campos atuais (Zod)
+    const isValid = await trigger(fieldsToValidate)
     
     if (isValid) {
-      setIsBottomSheetOpen(true)
-    }
-  }
-
-  const handleConfirm = () => {
-    setIsBottomSheetOpen(false)
-    onNext()
-  }
-
-  const handleInputScroll = (e: React.SyntheticEvent<HTMLTextAreaElement>) => {
-    const target = e.currentTarget
-
-    setTimeout(() => {
-      target.scrollIntoView({
-        behavior: 'smooth',
-        block: 'center',
-        inline: 'nearest'
+      const hasInfo = choiceValue === false
+      trackComplementStep('complete', {
+        step_key: subStep,
+        step_index: currentSubStep + 1,
+        has_info: hasInfo,
       })
-    }, 300)
-  }
+      if (currentSubStep < subSteps.length - 1) {
+        setCurrentSubStep(prev => prev + 1)
+        window.scrollTo({ top: 0, behavior: 'auto' })
+      } else {
+        onNext()
+      }
+    }
+  }, [currentSubStep, subSteps, getValues, trigger, trackComplementStep, onNext])
+
+  useImperativeHandle(ref, () => ({
+    handleBack: () => {
+      handleBack()
+    }
+  }), [handleBack])
+
+  const currentAddress = getValues('address')
+  
+  const unknownRegistration = watch('unknownRegistration')
+  const noAllotment = watch('noAllotment')
+  const noBlock = watch('noBlock')
+  const noLot = watch('noLot')
+
+  const registrationRef = useRef<HTMLInputElement>(null)
+  const allotmentRef = useRef<HTMLInputElement>(null)
+  const blockRef = useRef<HTMLInputElement>(null)
+  const lotRef = useRef<HTMLInputElement>(null)
+  const complementRef = useRef<HTMLInputElement>(null)
+
+  const focusCurrentField = useCallback(() => {
+    const step = subSteps[currentSubStep]
+    if (step === 'registration') {
+      registrationRef.current?.focus()
+      registrationRef.current?.click()
+      return
+    }
+    if (step === 'allotment') {
+      allotmentRef.current?.focus()
+      allotmentRef.current?.click()
+      return
+    }
+    if (step === 'block') {
+      blockRef.current?.focus()
+      blockRef.current?.click()
+      return
+    }
+    if (step === 'lot') {
+      lotRef.current?.focus()
+      lotRef.current?.click()
+      return
+    }
+    if (step === 'complement') {
+      complementRef.current?.focus()
+      complementRef.current?.click()
+    }
+  }, [currentSubStep, subSteps])
+
+  const showNextButton = useMemo(() => {
+    const currentStepName = subSteps[currentSubStep]
+    if (currentStepName === 'registration') {
+      return unknownRegistration === false
+    }
+    if (currentStepName === 'allotment') {
+      return noAllotment === false
+    }
+    if (currentStepName === 'block') {
+      return noBlock === false
+    }
+    if (currentStepName === 'lot') {
+      return noLot === false
+    }
+    if (currentStepName === 'complement') {
+      return true
+    }
+    return true
+  }, [currentSubStep, subSteps, unknownRegistration, noAllotment, noBlock, noLot])
+
+  const currentStepKey = subSteps[currentSubStep]
+  const currentStepMeta = stepMeta[currentStepKey]
+  const StepIcon = currentStepMeta?.icon ?? Building
+  const validationStyle = validationStyles[currentStepKey]
+  const nextButtonLabel = currentSubStep < subSteps.length - 1 ? 'Próximo' : 'Continuar'
+
+  const renderInlineNextButton = () => (
+    <div className="pt-2">
+      <Button
+        className="w-full h-12 text-base rounded-xl"
+        onClick={() => handleContinue()}
+        icon={<ChevronRight className="size-5" />}
+      >
+        {nextButtonLabel}
+      </Button>
+    </div>
+  )
 
   return (
-    <div className="flex flex-col gap-6 min-h-[calc(100vh-7.5rem)] relative px-4 pb-32">
-      <div className="flex flex-col gap-2">
-        <TextTitle>Deseja adicionar um complemento?</TextTitle>
-      </div>
+    <div className="flex flex-col gap-4 min-h-[calc(100vh-7.5rem)] relative px-4 pb-8">
+      <div className="flex-1 flex flex-col gap-4">
+        <SelectedAddressCard address={currentAddress} />
 
-      <div className="bg-gray-50 p-4 rounded-lg border border-gray-100 flex gap-3 items-start">
-        <MapPin className="size-5 text-primary shrink-0 mt-0.5" />
-        <div>
-          <p className="text-xs font-bold text-gray-700 mb-1">Endereço selecionado:</p>
-          <p className="text-sm text-gray-600 leading-tight">{currentAddress}</p>
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-3">
-        
-        <div className="flex justify-between items-end">
-          <label
-            htmlFor="registrationNumber"
-            className="text-sm font-semibold text-gray-700 ml-1"
-          >
-            Número da matrícula
-          </label>
-        </div>
-
-        <div className="relative group">
-          <div className="absolute left-4 top-4 text-gray-400 group-focus-within:text-primary transition-colors pointer-events-none">
-            <Building className="size-5" />
+        <div
+          key={currentStepKey}
+          className={`rounded-2xl border shadow-sm p-4 flex flex-col gap-4 animate-in fade-in slide-in-from-top-2 duration-300 ${currentStepMeta?.cardClassName ?? 'bg-white border-gray-100'}`}
+        >
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className={`p-2 rounded-xl ${currentStepMeta?.iconClassName ?? 'bg-primary/10 text-primary'}`}>
+                <StepIcon className="size-5" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                  Etapa {currentSubStep + 1} de {subSteps.length}
+                </span>
+                <span className="text-sm font-semibold text-dark">{currentStepMeta?.label}</span>
+              </div>
+            </div>
+            <span className={`text-[10px] font-bold border rounded-full px-2.5 py-1 ${currentStepMeta?.badgeClassName ?? 'text-primary bg-primary/5 border-primary/10'}`}>
+              Responda para continuar
+            </span>
           </div>
 
-          <input
-            id="registrationNumber"
-            type="text"
-            inputMode="numeric"
-            disabled={unknownRegistration}
-            placeholder="Ex: 123456 ou 123.456"
-            maxLength={7}
-            {...register('registrationNumber', {
-              pattern: {
-                value: /^[0-9.\-/]+$/,
-                message: 'Informe apenas números ou separadores válidos'
-              }
-            })}
-            className={`
-              w-full 
-              pl-12 pr-4 py-4
-              bg-white 
-              border ${errors.registrationNumber ? 'border-red-500' : 'border-gray-200'}
-              rounded-xl
-              text-sm text-gray-900 
-              placeholder:text-gray-400 
-              outline-none 
-              transition-all duration-200
-              focus:border-primary 
-              focus:ring-4 focus:ring-primary/10
-              disabled:bg-gray-50 disabled:text-gray-400
-            `}
-          />
-        </div>
-
-        {errors.registrationNumber && (
-          <p className="text-xs text-red-500 ml-1">
-            {errors.registrationNumber.message as string}
-          </p>
-        )}
-
-        <label className="flex items-center gap-2 ml-1 cursor-pointer select-none">
-          <input
-            type="checkbox"
-            className="size-4 rounded border-gray-300 text-primary focus:ring-primary/20"
-            {...register('unknownRegistration')}
-            onChange={(e) => {
-              setValue('unknownRegistration', e.target.checked)
-              if (e.target.checked) {
-                setValue('registrationNumber', '')
-                trigger('registrationNumber')
-              }
-            }}
-          />
-          <span className="text-sm text-gray-600">Não conheço o número da matrícula</span>
-        </label>
-
-        <p className="text-xs text-gray-500 ml-1 leading-relaxed">
-          O número da matrícula é o registro único do imóvel no cartório.
-        </p>
-      </div>
-
-      <div className="flex flex-col gap-3">
-        <div className="flex justify-between items-end">
-          <label
-            htmlFor="complement"
-            className="text-sm font-semibold text-gray-700 ml-1"
-          >
-            Complementos
-          </label>
-        </div>
-
-        <div className="relative group">
-          <div className="absolute left-4 top-4 text-gray-400 group-focus-within:text-primary transition-colors pointer-events-none">
-            <Building className="size-5" />
+          <div className="flex flex-col gap-2">
+            <TextTitle className="text-dark">
+              {subSteps[currentSubStep] === 'registration' && 'Você tem o número da matrícula?'}
+              {subSteps[currentSubStep] === 'allotment' && 'Você tem o nome do loteamento?'}
+              {subSteps[currentSubStep] === 'block' && 'Você tem o número da quadra?'}
+              {subSteps[currentSubStep] === 'lot' && 'Você tem o número do lote?'}
+              {subSteps[currentSubStep] === 'complement' && 'Informe o complemento do endereço'}
+            </TextTitle>
+            <TextSubtitle className="text-gray-500">
+              Isso melhora a precisão da busca por seu imóvel.
+            </TextSubtitle>
           </div>
 
-          <textarea
-            id="complement"
-            rows={4}
-            maxLength={150}
-            disabled={noComplement}
-            placeholder="Ex: Apartamento 10, Bloco B, Casa 2..."
-            {...register('addressComplement')}
+          {subSteps[currentSubStep] === 'registration' && (
+            <div className="flex flex-col gap-3 mt-0">
+            {unknownRegistration === undefined ? (
+              <ChoiceCards
+                className="mt-0"
+                value={undefined}
+                tone="registration"
+                yesLabel="Tenho o número da matrícula"
+                noLabel="Não tenho o número da matrícula"
+                onChange={(hasInfo) => {
+                  const isUnknown = !hasInfo
+                  if (isUnknown) {
+                    setValue('unknownRegistration', isUnknown)
+                    setValue('registrationNumber', '')
+                    handleContinue(true)
+                  } else {
+                    flushSync(() => {
+                      setValue('unknownRegistration', isUnknown)
+                    })
+                    // No iOS, o focus() precisa ser imediato na cadeia de evento de touch/click
+                    registrationRef.current?.focus()
+                    registrationRef.current?.click()
+                  }
+                }}
+              />
+            ) : (
+              <div className="flex flex-col gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                <div className="flex justify-between items-center pr-1">
+                  <label
+                    htmlFor="registrationNumber"
+                    className="text-sm font-semibold text-gray-700 ml-1"
+                  >
+                    {unknownRegistration ? 'Você marcou que não possui matrícula' : 'Digite o número da matrícula'}
+                  </label>
+                  <button
+                    onClick={() => {
+                      setValue('unknownRegistration', undefined)
+                      setValue('registrationNumber', '')
+                    }}
+                    className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] text-primary font-bold bg-primary/5 rounded-lg hover:bg-primary/10 transition-colors border border-primary/10"
+                  >
+                    <Pencil className="size-3" />
+                    Alterar
+                  </button>
+                </div>
 
-            onFocus={handleInputScroll}
-            onClick={handleInputScroll}
+                {!unknownRegistration && (
+                  <>
+                    <div className="relative group">
+                      <div className="absolute left-4 top-4 text-gray-400 group-focus-within:text-primary transition-colors pointer-events-none">
+                        <Building className="size-5" />
+                      </div>
 
-            className={`
-              w-full 
-              pl-12 pr-4 pt-4 pb-10
-              bg-white 
-              border ${errors.addressComplement ? 'border-red-500' : 'border-gray-200'}
-              rounded-xl
-              text-sm text-gray-900 
-              placeholder:text-gray-400 
-              resize-none
-              outline-none 
-              transition-all duration-200
-              focus:border-primary 
-              focus:ring-4 focus:ring-primary/10
-              disabled:bg-gray-50 disabled:text-gray-400
-            `}
-          />
+                      <input
+                        id="registrationNumber"
+                        type="text"
+                        inputMode="numeric"
+                        placeholder="Ex: 123456 ou 123.456"
+                        maxLength={7}
+                        {...register('registrationNumber', {
+                          pattern: {
+                            value: /^[0-9.\-/]+$/,
+                            message: 'Informe apenas números ou separadores válidos'
+                          }
+                        })}
+                        ref={(e) => {
+                          register('registrationNumber').ref(e)
+                          registrationRef.current = e
+                        }}
+                        className={`
+                          w-full 
+                          pl-12 pr-4 py-4
+                          bg-white 
+                          border ${errors.registrationNumber ? 'border-red-500' : 'border-gray-200'}
+                          rounded-xl
+                          text-sm text-gray-900 
+                          placeholder:text-gray-400 
+                          outline-none 
+                          transition-all duration-200
+                          focus:border-primary 
+                          focus:ring-4 focus:ring-primary/10
+                        `}
+                      />
+                    </div>
+                    <InfoCard className="mt-2">
+                      O número da matrícula identifica o imóvel no Cartório de Registro de Imóveis. Você pode encontrá-lo na primeira página da escritura ou contrato de compra e venda.
+                    </InfoCard>
+                    {showNextButton && renderInlineNextButton()}
+                  </>
+                )}
 
-          <span className="absolute bottom-3 right-4 text-xs text-gray-400 font-medium pointer-events-none">
-            {currentLength}/150
-          </span>
+                {errors.registrationNumber && !unknownRegistration && (
+                  <p className="text-xs text-red-500 ml-1">
+                    {errors.registrationNumber.message as string}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+          )}
+
+          {subSteps[currentSubStep] === 'allotment' && (
+            <div className="flex flex-col gap-3 mt-0">
+            {noAllotment === undefined ? (
+              <ChoiceCards
+                className="mt-0"
+                value={undefined}
+                tone="allotment"
+                yesLabel="Tenho o nome do loteamento"
+                noLabel="Não tenho o nome do loteamento"
+                onChange={(hasInfo) => {
+                  const isNoInfo = !hasInfo
+                  if (isNoInfo) {
+                    setValue('noAllotment', isNoInfo)
+                    setValue('allotment', '')
+                    handleContinue(true)
+                  } else {
+                    flushSync(() => {
+                      setValue('noAllotment', isNoInfo)
+                    })
+                    allotmentRef.current?.focus()
+                    allotmentRef.current?.click()
+                  }
+                }}
+              />
+            ) : (
+              <div className="flex flex-col gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                <div className="flex justify-between items-center pr-1">
+                  <label
+                    htmlFor="allotment"
+                    className="text-sm font-semibold text-gray-700 ml-1"
+                  >
+                    {noAllotment ? 'Você marcou que não possui loteamento' : 'Digite o nome do loteamento'}
+                  </label>
+                  <button
+                    onClick={() => {
+                      setValue('noAllotment', undefined)
+                      setValue('allotment', '')
+                    }}
+                    className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] text-primary font-bold bg-primary/5 rounded-lg hover:bg-primary/10 transition-colors border border-primary/10"
+                  >
+                    <Pencil className="size-3" />
+                    Alterar
+                  </button>
+                </div>
+
+                {!noAllotment && (
+                  <>
+                    <div className="relative group">
+                      <div className="absolute left-4 top-4 text-gray-400 group-focus-within:text-primary transition-colors pointer-events-none">
+                        <Box className="size-5" />
+                      </div>
+
+                      <input
+                        id="allotment"
+                        type="text"
+                        placeholder="Ex: Jardim das Oliveiras"
+                        {...register('allotment')}
+                        ref={(e) => {
+                          register('allotment').ref(e)
+                          allotmentRef.current = e
+                        }}
+                        className={`
+                          w-full 
+                          pl-12 pr-4 py-4
+                          bg-white 
+                          border ${errors.allotment ? 'border-red-500' : 'border-gray-200'}
+                          rounded-xl
+                          text-sm text-gray-900 
+                          placeholder:text-gray-400 
+                          outline-none 
+                          transition-all duration-200
+                          focus:border-primary 
+                          focus:ring-4 focus:ring-primary/10
+                        `}
+                      />
+                    </div>
+                    <InfoCard className="mt-2">
+                      O nome do loteamento é a denominação dada à área dividida em lotes. Geralmente consta no endereço oficial ou no contrato do imóvel.
+                    </InfoCard>
+                    {showNextButton && renderInlineNextButton()}
+                  </>
+                )}
+
+                {errors.allotment && !noAllotment && (
+                  <p className="text-xs text-red-500 ml-1">
+                    {errors.allotment.message as string}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+          )}
+
+          {subSteps[currentSubStep] === 'block' && (
+            <div className="flex flex-col gap-3 mt-0">
+            {noBlock === undefined ? (
+              <ChoiceCards
+                className="mt-0"
+                value={undefined}
+                tone="block"
+                yesLabel="Tenho o número da quadra"
+                noLabel="Não tenho o número da quadra"
+                onChange={(hasInfo) => {
+                  const isNoInfo = !hasInfo
+                  if (isNoInfo) {
+                    setValue('noBlock', isNoInfo)
+                    setValue('block', '')
+                    handleContinue(true)
+                  } else {
+                    flushSync(() => {
+                      setValue('noBlock', isNoInfo)
+                    })
+                    blockRef.current?.focus()
+                    blockRef.current?.click()
+                  }
+                }}
+              />
+            ) : (
+              <div className="flex flex-col gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                <div className="flex justify-between items-center pr-1">
+                  <label
+                    htmlFor="block"
+                    className="text-sm font-semibold text-gray-700 ml-1"
+                  >
+                    {noBlock ? 'Você marcou que não possui quadra' : 'Quadra'}
+                  </label>
+                  <button
+                    onClick={() => {
+                      setValue('noBlock', undefined)
+                      setValue('block', '')
+                    }}
+                    className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] text-primary font-bold bg-primary/5 rounded-lg hover:bg-primary/10 transition-colors border border-primary/10"
+                  >
+                    <Pencil className="size-3" />
+                    Alterar
+                  </button>
+                </div>
+
+                {!noBlock && (
+                  <>
+                    <div className="relative group">
+                      <div className="absolute left-4 top-4 text-gray-400 group-focus-within:text-primary transition-colors pointer-events-none">
+                        <Layout className="size-5" />
+                      </div>
+
+                      <input
+                        id="block"
+                        type="text"
+                        inputMode="numeric"
+                        placeholder="Ex: Quadra A ou 12"
+                        {...register('block')}
+                        ref={(e) => {
+                          register('block').ref(e)
+                          blockRef.current = e
+                        }}
+                        className={`
+                          w-full 
+                          pl-12 pr-4 py-4
+                          bg-white 
+                          border ${errors.block ? 'border-red-500' : 'border-gray-200'}
+                          rounded-xl
+                          text-sm text-gray-900 
+                          placeholder:text-gray-400 
+                          outline-none 
+                          transition-all duration-200
+                          focus:border-primary 
+                          focus:ring-4 focus:ring-primary/10
+                        `}
+                      />
+                    </div>
+                    <InfoCard className="mt-2">
+                      A quadra é o conjunto de lotes delimitado por ruas. Verifique no seu carnê de IPTU ou contrato.
+                    </InfoCard>
+                    {showNextButton && renderInlineNextButton()}
+                  </>
+                )}
+
+                {errors.block && !noBlock && (
+                  <p className="text-xs text-red-500 ml-1">
+                    {errors.block.message as string}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+          )}
+
+          {subSteps[currentSubStep] === 'lot' && (
+            <div className="flex flex-col gap-3 mt-0">
+            {noLot === undefined ? (
+              <ChoiceCards
+                className="mt-0"
+                value={undefined}
+                tone="lot"
+                yesLabel="Tenho o número do lote"
+                noLabel="Não tenho o número do lote"
+                onChange={(hasInfo) => {
+                  const isNoInfo = !hasInfo
+                  setValue('noLot', isNoInfo)
+                  if (isNoInfo) {
+                    setValue('lot', '')
+                    handleContinue(true)
+                  } else {
+                    flushSync(() => {
+                      setValue('noLot', isNoInfo)
+                    })
+                    lotRef.current?.focus()
+                    lotRef.current?.click()
+                  }
+                }}
+              />
+            ) : (
+              <div className="flex flex-col gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                <div className="flex justify-between items-center pr-1">
+                  <label
+                    htmlFor="lot"
+                    className="text-sm font-semibold text-gray-700 ml-1"
+                  >
+                    {noLot ? 'Você marcou que não possui lote' : 'Lote'}
+                  </label>
+                  <button
+                    onClick={() => {
+                      setValue('noLot', undefined)
+                      setValue('lot', '')
+                    }}
+                    className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] text-primary font-bold bg-primary/5 rounded-lg hover:bg-primary/10 transition-colors border border-primary/10"
+                  >
+                    <Pencil className="size-3" />
+                    Alterar
+                  </button>
+                </div>
+
+                {!noLot && (
+                  <>
+                    <div className="relative group">
+                      <div className="absolute left-4 top-4 text-gray-400 group-focus-within:text-primary transition-colors pointer-events-none">
+                        <Hash className="size-5" />
+                      </div>
+
+                      <input
+                        id="lot"
+                        type="text"
+                        inputMode="numeric"
+                        placeholder="Ex: Lote 01 ou 10"
+                        {...register('lot')}
+                        ref={(e) => {
+                          register('lot').ref(e)
+                          lotRef.current = e
+                        }}
+                        className={`
+                          w-full 
+                          pl-12 pr-4 py-4
+                          bg-white 
+                          border ${errors.lot ? 'border-red-500' : 'border-gray-200'}
+                          rounded-xl
+                          text-sm text-gray-900 
+                          placeholder:text-gray-400 
+                          outline-none 
+                          transition-all duration-200
+                          focus:border-primary 
+                          focus:ring-4 focus:ring-primary/10
+                        `}
+                      />
+                    </div>
+                    <InfoCard className="mt-2">
+                      O lote é a unidade mínima de terra dentro da quadra. Encontre essa informação no IPTU ou na matrícula.
+                    </InfoCard>
+                    {showNextButton && renderInlineNextButton()}
+                  </>
+                )}
+
+                {errors.lot && !noLot && (
+                  <p className="text-xs text-red-500 ml-1">
+                    {errors.lot.message as string}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+          )}
+
+          {subSteps[currentSubStep] === 'complement' && (
+            <div className="flex flex-col gap-3 mt-0">
+              <div className="flex flex-col gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                <label
+                  htmlFor="complement"
+                  className="text-sm font-semibold text-gray-700 ml-1"
+                >
+                  Complemento do endereço
+                </label>
+
+                <div className="relative group">
+                  <div className="absolute left-4 top-4 text-gray-400 group-focus-within:text-primary transition-colors pointer-events-none">
+                    <Building2 className="size-5" />
+                  </div>
+
+                  <input
+                    id="complement"
+                    type="text"
+                    placeholder="Ex: Edifício Sol, Bloco B, Apto 301"
+                    {...register('complement')}
+                    ref={(e) => {
+                      register('complement').ref(e)
+                      complementRef.current = e
+                    }}
+                    className={`
+                      w-full 
+                      pl-12 pr-4 py-4
+                      bg-white 
+                      border ${errors.complement ? 'border-red-500' : 'border-gray-200'}
+                      rounded-xl
+                      text-sm text-gray-900 
+                      placeholder:text-gray-400 
+                      outline-none 
+                      transition-all duration-200
+                      focus:border-primary 
+                      focus:ring-4 focus:ring-primary/10
+                    `}
+                  />
+                </div>
+
+                <InfoCard className="mt-2">
+                  Sugestão: informe edifício, número do bloco e número do apartamento.
+                </InfoCard>
+
+                {renderInlineNextButton()}
+              </div>
+            </div>
+          )}
         </div>
-
-        {errors.addressComplement && (
-          <p className="text-xs text-red-500 ml-1">
-            {errors.addressComplement.message as string}
-          </p>
-        )}
-
-        <label className="flex items-center gap-2 ml-1 cursor-pointer select-none">
-          <input
-            type="checkbox"
-            className="size-4 rounded border-gray-300 text-primary focus:ring-primary/20"
-            {...register('noComplement')}
-            onChange={(e) => {
-              setValue('noComplement', e.target.checked)
-              if (e.target.checked) {
-                setValue('addressComplement', '')
-                trigger('addressComplement')
-              }
-            }}
-          />
-          <span className="text-sm text-gray-600">Não possuo nenhum complemento</span>
-        </label>
-
-        <p className="text-xs text-gray-500 ml-1 leading-relaxed">
-          Preencha com informações que facilitem a localização do imóvel, como lote, quadra ou unidade (apto/sala).
-        </p>
       </div>
-      <div className="
-        fixed bottom-0 left-0 right-0 
-        px-4 pt-5 pb-7 
-        bg-white mt-auto 
-        border-t border-gray-100 
-        z-10
-        supports-[-webkit-touch-callout:none]:pb-22
-      ">
-        <Button className="w-full h-12 text-base" onClick={handleContinue}>
-          Continuar
-        </Button>
-      </div>
-
       <BottomSheet 
-        isOpen={isBottomSheetOpen} 
-        onClose={() => setIsBottomSheetOpen(false)}
+        isOpen={isValidationBottomSheetOpen} 
+        onClose={() => setIsValidationBottomSheetOpen(false)}
         variant="alert"
+        className={validationStyle.sheet}
       >
         <div className="p-6 flex flex-col gap-6">
           <div className="flex flex-col gap-4">
-            <div className="flex items-center gap-2 text-yellow-600">
-              <Clock className="size-6" />
-              <h3 className="text-xl font-bold">Atenção ao prazo</h3>
+            <div className="flex items-center gap-3">
+              <div className={`p-2 rounded-xl ${validationStyle.iconWrap}`}>
+                <Info className={`size-6 ${validationStyle.icon}`} />
+              </div>
+              <h3 className={`text-xl font-bold ${validationStyle.title}`}>Campo obrigatório</h3>
             </div>
             
-            <p className={`text-lg font-semibold leading-tight ${unknownRegistration ? 'text-yellow-700' : 'text-emerald-700'}`}>
-              {unknownRegistration
-                ? "Sem o número da matrícula, o prazo para a consulta é de até 2 dias úteis."
-                : "Com o número da matrícula, sua consulta será realizada em apenas 1 hora!"}
+            <p className="text-lg font-semibold leading-tight text-gray-700">
+              Por favor, informe {missingFieldLabel} para prosseguir.
             </p>
 
-            <p className="text-sm text-gray-500">
-              {unknownRegistration 
-                ? "Dica: Informar a matrícula agiliza o processo juridicamente."
-                : "Seu pedido terá prioridade total no processamento."}
+            <p className="text-sm text-gray-500 leading-relaxed">
+              Esta informação é necessária para localizarmos o seu imóvel com precisão. Caso não possua a informação, você pode marcar a opção &quot;Não Tenho&quot; acima.
             </p>
           </div>
 
           <div className="flex flex-col gap-3">
-            <Button onClick={handleConfirm} className="w-full">
-              Confirmar
-            </Button>
             <Button 
-              onClick={() => setIsBottomSheetOpen(false)}
-              className="bg-gray-100 hover:bg-gray-200 text-gray-600 shadow-none border border-gray-200"
+              onClick={() => {
+                flushSync(() => {
+                  setIsValidationBottomSheetOpen(false)
+                })
+                focusCurrentField()
+              }} 
+              className={`w-full h-12 rounded-xl ${validationStyle.button}`}
+              icon={<Check className="size-5" />}
             >
-              Voltar
+              Entendido
             </Button>
           </div>
         </div>
       </BottomSheet>
     </div >
   )
-}
+})
+AddressComplementStep.displayName = 'AddressComplementStep'

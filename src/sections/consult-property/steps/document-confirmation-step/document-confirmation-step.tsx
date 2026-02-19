@@ -1,11 +1,11 @@
 'use client'
 
-import { useEffect } from 'react'
 import { useFormContext } from 'react-hook-form'
-import { ThumbsUp, ThumbsDown } from 'lucide-react'
-import OptionCard from '@/components/option-card/option-card.tsx'
 import TextTitle from '@/components/text-title'
-import { useEffectEvent } from 'react'
+import TextSubtitle from '@/components/text-subtitle'
+import { ChoiceCards } from '@/components/choice-cards'
+import SelectedAddressCard from '@/components/selected-address-card'
+import { trackGtmEvent } from '@/utils/analytics/gtm'
 
 export function DocumentConfirmationStep({
   onNext,
@@ -14,50 +14,53 @@ export function DocumentConfirmationStep({
   onNext: () => void
   onSkip: () => void
 }) {
-  const { setValue } = useFormContext()
+  const { setValue, watch, getValues } = useFormContext()
+  const hasDocument = watch('hasDocument')
+  const currentAddress = getValues('address')
 
-  function handleSelect(hasDocument: boolean) {
-    setValue('hasDocument', hasDocument, { shouldValidate: true })
+  function handleSelect(value: boolean) {
+    setValue('hasDocument', value, { shouldValidate: true })
 
-    if (hasDocument) {
-      onNext()
-    } else {
+    trackGtmEvent('document_availability_selected', {
+      event_category: 'document',
+      event_label: value ? 'has_document' : 'no_document',
+      event_description: value
+        ? 'Usuário informou que possui o documento do imóvel.'
+        : 'Usuário informou que não possui o documento do imóvel.',
+      has_document: value,
+      address_present: Boolean(currentAddress),
+    })
+
+    if (!value) {
       setValue('documentType', undefined)
       setValue('document', undefined)
       setValue('documentPreview', undefined)
       onSkip()
+    } else {
+      onNext()
     }
   }
 
-  const resetValue = useEffectEvent(() =>
-    setValue('hasDocument', undefined, { shouldValidate: true })
-  )
-
-  useEffect(() => {
-    resetValue()
-  }, [])
-
   return (
     <div className="relative flex-1 px-4">
-      <div className="flex flex-col gap-5 pb-24 md:pb-0">
-        <TextTitle>Você tem o documento do imóvel?</TextTitle>
-
-        <div className="grid auto-rows-fr gap-4">
-          <OptionCard
-            icon={ThumbsUp}
-            title="Sim, eu tenho"
-            subtitle="Aceitamos PDF, Imagem ou Word"
-            onClick={() => handleSelect(true)}
-          />
-
-          <OptionCard
-            icon={ThumbsDown}
-            title="Não tenho"
-            subtitle="Sem problemas, você pode continuar"
-            onClick={() => handleSelect(false)}
-          />
+      <div className="flex flex-col gap-4 pb-24 md:pb-0">
+        <SelectedAddressCard address={currentAddress} />
+        <div className="flex flex-col gap-2 mb-2">
+          <TextTitle className="text-dark">Você tem o documento do imóvel?</TextTitle>
+          <TextSubtitle className="text-gray-500">Isso agiliza a análise do seu pedido</TextSubtitle>
         </div>
+
+        <ChoiceCards
+          className="mt-0"
+          value={hasDocument}
+          onChange={handleSelect}
+          yesLabel="Tenho o documento do imóvel"
+          yesSubtitle="Aceitamos PDF, Imagem ou Word"
+          noLabel="Não tenho o documento do imóvel"
+          noSubtitle="Sem problemas, você pode continuar"
+        />
       </div>
+
     </div>
   )
 }

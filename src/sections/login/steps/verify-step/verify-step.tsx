@@ -3,12 +3,12 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Controller, useFormContext } from 'react-hook-form'
-import { Mail, AlertCircle } from 'lucide-react'
+import Image from 'next/image'
+import { Mail, AlertCircle, ArrowRight } from 'lucide-react'
 import { signIn } from 'next-auth/react'
 import { FormTypes } from '@/sections/login/validations'
 import { InputOtp } from '@/sections/login/components/InputOtp'
 import { startAuth } from '@/services/account'
-import Button from '@/components/button'
 
 export function VerifyCodeStep({
   onBack,
@@ -41,7 +41,7 @@ export function VerifyCodeStep({
     }, 1000)
 
     return () => clearInterval(id)
-  }, [enableTimer])
+  }, [enableTimer, timer])
 
   const onSubmit = async (data: FormTypes) => {
     setErrorMsg('')
@@ -58,7 +58,7 @@ export function VerifyCodeStep({
       }
 
       router.refresh()
-    } catch (error) {
+    } catch {
       setErrorMsg('Ocorreu um erro ao validar o código.')
     }
   }
@@ -70,7 +70,7 @@ export function VerifyCodeStep({
     try {
       await startAuth({ email })
       setTimer(59)
-    } catch (error) {
+    } catch {
       setErrorMsg('Aguarde alguns instantes antes de tentar novamente.')
     } finally {
       setIsResending(false)
@@ -84,13 +84,24 @@ export function VerifyCodeStep({
       onSubmit={handleSubmit(onSubmit)}
       className="flex flex-col items-center animate-in fade-in slide-in-from-right-4 duration-300 text-center"
     >
-      <div className="mb-6 flex items-center justify-center size-16 rounded-full bg-[#F3E8FF]">
+      <div className="mb-12">
+        <Image
+          src="/images/logo.svg"
+          alt="Logo"
+          width={72}
+          height={70}
+          priority
+          className="object-contain -my-2.5"
+        />
+      </div>
+
+      <div className="mb-6 flex items-center justify-center size-16 rounded-full bg-primary/10">
         <Mail className="size-8 text-primary" />
       </div>
 
       <h1 className="text-[1.375rem] font-bold text-[#1A1A1A] mb-2">Confira seu e-mail</h1>
       <p className="text-sm text-[#4B4B4B] mb-8 max-w-xs">
-        Enviamos um código de 6 dígitos para <span className="font-medium">{email}</span>.
+        Enviamos um código de 6 dígitos para <span className="font-medium text-dark">{email}</span>.
       </p>
 
       <Controller
@@ -103,6 +114,7 @@ export function VerifyCodeStep({
             value={field.value ?? ''}
             length={6}
             isError={!!fieldState.error || !!errorMsg}
+            autoFocus={true}
           />
         )}
       />
@@ -132,9 +144,12 @@ export function VerifyCodeStep({
       <button
         type="submit"
         disabled={isSubmitting || isResending}
-        className="w-full h-14 rounded-full font-semibold text-base transition-colors bg-primary text-white hover:bg-primary/90 shadow-md disabled:opacity-70 disabled:cursor-not-allowed"
+        className="w-full h-14 rounded-xl font-semibold text-base transition-colors bg-[var(--color-button-primary)] text-white hover:bg-[var(--color-button-primary-hover)] shadow-[0_6px_0_rgba(11,27,58,0.8)] active:translate-y-1 active:shadow-[0_2px_0_rgba(11,27,58,0.8)] disabled:opacity-70 disabled:cursor-not-allowed"
       >
-        {isSubmitting ? 'Verificando...' : 'Continuar'}
+        <span className="flex items-center justify-center gap-2">
+          {!isSubmitting && <ArrowRight className="size-5" />}
+          {isSubmitting ? 'Verificando...' : 'Continuar'}
+        </span>
       </button>
     </form>
   )

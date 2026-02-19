@@ -1,4 +1,4 @@
-import { vi, describe, it, expect } from 'vitest'
+import { vi, describe, it, expect, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import React from 'react'
 
@@ -49,10 +49,14 @@ vi.mock('@/components/bottom-sheet', () => ({
 import AutoCompleteInput from './auto-complete-address-input'
 
 describe('AutoCompleteInput', () => {
-  const defaultProps = {
-    onConfirm: vi.fn(),
-    onSelectAddress: vi.fn().mockResolvedValue({ address: 'Rua Teste, 123', addressNumber: '123' }),
-  }
+  let defaultProps: any
+
+  beforeEach(() => {
+    defaultProps = {
+      onConfirm: vi.fn(),
+      onSelectAddress: vi.fn().mockResolvedValue({ address: 'Rua Teste, 123', addressNumber: '123' }),
+    }
+  })
 
   it('deve renderizar e atualizar o valor', () => {
     render(<AutoCompleteInput {...defaultProps} placeholder="Buscar..." />)
@@ -82,20 +86,37 @@ describe('AutoCompleteInput', () => {
     expect(defaultProps.onConfirm).toHaveBeenCalledWith('Rua Teste, 123')
   })
 
-  it('deve mostrar erro quando endereço não tem número e fechar', async () => {
+  it('deve mostrar modal de consentimento quando endereço não tem número e permitir continuar', async () => {
     const mockNoNumber = vi.fn().mockResolvedValue({ address: 'Rua S/N', addressNumber: null })
     render(<AutoCompleteInput {...defaultProps} onSelectAddress={mockNoNumber} options={[{ primary: 'Rua A', placeId: '1' }]} />)
 
     fireEvent.change(screen.getByTestId('base-input'), { target: { value: 'Rua' } })
     fireEvent.click(screen.getByText('Rua A'))
 
-    const modalErro = await screen.findByText('Número do endereço obrigatório')
-    const parentSheet = modalErro.closest('[data-testid="bottom-sheet"]') as HTMLElement
+    const modalConsent = await screen.findByText('Endereço sem número')
+    const parentSheet = modalConsent.closest('[data-testid="bottom-sheet"]') as HTMLElement
 
-    const btn = within(parentSheet).getByText('Entendi')
-    fireEvent.click(btn)
+    const btnContinuar = within(parentSheet).getByText('Continuar assim mesmo')
+    fireEvent.click(btnContinuar)
 
-    expect(screen.queryByText('Número do endereço obrigatório')).not.toBeInTheDocument()
+    expect(defaultProps.onConfirm).toHaveBeenCalledWith('Rua S/N')
+  })
+
+  it('deve permitir fechar o modal de consentimento ao clicar em Corrigir endereço', async () => {
+    const mockNoNumber = vi.fn().mockResolvedValue({ address: 'Rua S/N', addressNumber: null })
+    render(<AutoCompleteInput {...defaultProps} onSelectAddress={mockNoNumber} options={[{ primary: 'Rua A', placeId: '1' }]} />)
+
+    fireEvent.change(screen.getByTestId('base-input'), { target: { value: 'Rua' } })
+    fireEvent.click(screen.getByText('Rua A'))
+
+    const modalConsent = await screen.findByText('Endereço sem número')
+    const parentSheet = modalConsent.closest('[data-testid="bottom-sheet"]') as HTMLElement
+
+    const btnCorrigir = within(parentSheet).getByText('Corrigir endereço')
+    fireEvent.click(btnCorrigir)
+
+    expect(screen.queryByText('Endereço sem número')).not.toBeInTheDocument()
+    expect(defaultProps.onConfirm).not.toHaveBeenCalled()
   })
 
   it('deve mostrar modal de "não encontrado" quando isDirty e fechar', async () => {

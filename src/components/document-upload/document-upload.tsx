@@ -60,7 +60,7 @@ export default function DocumentUpload({ onFileSelect }: DocumentUploadAreaProps
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
-      className={`border rounded-lg p-8 text-center cursor-pointer transition-colors ${
+      className={`border rounded-xl p-8 text-center cursor-pointer transition-colors ${
         isDragging
           ? 'border-primary border-dashed bg-purple-50'
           : 'border-gray-200 bg-white hover:border-primary'

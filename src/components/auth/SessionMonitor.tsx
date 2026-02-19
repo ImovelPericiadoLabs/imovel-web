@@ -1,8 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useForm, FormProvider } from 'react-hook-form'
-import { VerifyCodeStep } from '@/sections/login/steps/verify-step' 
+import { VerifyCodeStep } from '@/sections/login/steps/verify-step'
+import { InsertStep } from '@/sections/login/steps/insert-step'
 import { X } from 'lucide-react'
 
 type FormProps = {
@@ -10,8 +11,12 @@ type FormProps = {
   code: string;
 }
 
+type FlowState = 'email' | 'code'
+const STORAGE_KEY = '@pix-payment:form-data'
+
 export function SessionMonitor() {
   const [isOpen, setIsOpen] = useState(false)
+  const [flow, setFlow] = useState<FlowState>('email')
 
   const methods = useForm<FormProps>({
     defaultValues: {
@@ -21,7 +26,19 @@ export function SessionMonitor() {
   })
 
   useEffect(() => {
-    const handleUnauthorized = (event: Event) => {
+    const handleUnauthorized = () => {
+      const savedData = localStorage.getItem(STORAGE_KEY)
+      if (savedData) {
+        try {
+          const { email } = JSON.parse(savedData)
+          if (email) {
+            methods.setValue('email', email)
+          }
+        } catch {
+          // no-op: fallback to empty email input
+        }
+      }
+      setFlow('email')
       setIsOpen(true)
     }
 
@@ -32,6 +49,12 @@ export function SessionMonitor() {
     }
   }, [methods])
 
+  const handleClose = useCallback(() => {
+    setIsOpen(false)
+    setFlow('email')
+    methods.reset({ email: '', code: '' })
+  }, [methods])
+
   if (!isOpen) return null
 
   return (
@@ -39,14 +62,18 @@ export function SessionMonitor() {
       <div className="relative w-full max-w-md bg-white p-6 rounded-2xl shadow-2xl mx-4">
         
         <button 
-          onClick={() => setIsOpen(false)}
+          onClick={handleClose}
           className="absolute right-4 top-4 text-gray-400 hover:text-gray-600"
         >
           <X className="size-5" />
         </button>
 
         <FormProvider {...methods}>
-          <VerifyCodeStep onBack={() => setIsOpen(false)} />
+          {flow === 'email' ? (
+            <InsertStep onNext={() => setFlow('code')} />
+          ) : (
+            <VerifyCodeStep onBack={() => setFlow('email')} />
+          )}
         </FormProvider>
       </div>
     </div>

@@ -1,11 +1,10 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
-import { Search, X, MapPin, CircleAlert, MapPinX } from 'lucide-react'
+import { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react'
+import { Search, X, MapPin, CircleAlert, MapPinX, Check, ChevronRight } from 'lucide-react'
 import { cn } from '@/utils/tailwind'
 import Button from '@/components/button'
 import TextTitle from '@/components/text-title'
-import TextSubtitle from '../text-subtitle'
 import Skeleton from '@/components/skeleton'
 import BottomSheet from '@/components/bottom-sheet'
 import Input from '@/components/input'
@@ -29,13 +28,14 @@ interface Props extends React.InputHTMLAttributes<HTMLInputElement> {
   } | null
   isDirty?: boolean
   onClear?: () => void
+  onFocus?: () => void
 }
 
 const loadingOptions = Array.from({ length: 5 }, (_, i) => ({
   value: i,
 }))
 
-export default function AutoCompleteInput({
+const AutoCompleteInput = forwardRef<HTMLInputElement, Props>(({
   options,
   isLoading,
   isLoadingAddress,
@@ -44,18 +44,22 @@ export default function AutoCompleteInput({
   error,
   isDirty,
   onClear,
+  onFocus,
   ...props
-}: Props) {
+}, ref) => {
   const [value, setValue] = useState('')
   const [isOpenAddressSheet, setIsOpenAddressSheet] = useState(false)
   const [isOpenErrorSheet, setIsOpenErrorSheet] = useState(false)
   const [isOpenNotFoundAddressSheet, setIsOpenNotFoundAddressSheet] = useState(false)
+  const [isOpenConsentSheet, setIsOpenConsentSheet] = useState(false)
   const [addressError, setAddressError] = useState<{ title: string; subtitle: string } | null>(null)
 
-  const inputRef = useRef<HTMLInputElement>(null)
+  const internalInputRef = useRef<HTMLInputElement>(null)
+
+  useImperativeHandle(ref, () => internalInputRef.current as HTMLInputElement)
 
   function handleFocusInput() {
-    const el = inputRef?.current
+    const el = internalInputRef?.current
 
     el?.focus()
     el?.setSelectionRange(el.value.length, el.value.length)
@@ -85,16 +89,7 @@ export default function AutoCompleteInput({
       onClear()
     }
     setValue('')
-    inputRef.current?.focus()
-  }
-
-  function hasHouseNumber(address: string): boolean {
-    const afterFirstComma = address.split(',')[1]?.trim()
-
-    if (!afterFirstComma) return false
-
-    const regex = /^(\d+[A-Za-z]?|s\/?n)\b/i
-    return regex.test(afterFirstComma)
+    internalInputRef.current?.focus()
   }
 
   async function handleSelectAddress({ placeId }: Option) {
@@ -103,17 +98,18 @@ export default function AutoCompleteInput({
     const result = await onSelectAddress(placeId as string)
 
     if (!result.addressNumber) {
-      setAddressError({
-        title: 'Número do endereço obrigatório',
-        subtitle: 'O local selecionado não possui numeração. Por favor, informe o número.',
-      })
-
+      setIsOpenConsentSheet(true)
       handleCloseAddressSheet()
-      inputRef?.current?.blur()
+      setValue(result.address)
       return
     }
 
     setValue(result.address)
+  }
+
+  function handleContinueWithoutNumber() {
+    setIsOpenConsentSheet(false)
+    onConfirm(value)
   }
 
   function handleOpenAddressSheet() {
@@ -133,6 +129,8 @@ export default function AutoCompleteInput({
 
     handleCloseNotFoundAddressSheet()
 
+    setIsOpenConsentSheet(false)
+
     setAddressError(null)
   }
 
@@ -141,22 +139,21 @@ export default function AutoCompleteInput({
   }, [error])
 
   useEffect(() => {
-    if (error) {
-      inputRef.current?.blur()
-    }
-  }, [error])
-
-  useEffect(() => {
     if (!isLoading && isDirty && value?.length && !options?.length) {
       setIsOpenNotFoundAddressSheet(true)
-      inputRef.current?.blur()
     }
   }, [options, isLoading, isDirty, value])
+
+  useEffect(() => {
+    if (isOpenAddressSheet || isOpenErrorSheet || isOpenNotFoundAddressSheet || isOpenConsentSheet || error) {
+      internalInputRef.current?.blur()
+    }
+  }, [isOpenAddressSheet, isOpenErrorSheet, isOpenNotFoundAddressSheet, isOpenConsentSheet, error])
 
   return (
     <div
       className={cn({
-        'bg-white rounded-t-4xl rounded-b-[1.75rem]': !!options?.length,
+        'bg-white rounded-xl': !!options?.length,
       })}
     >
       <div className="relative">
@@ -170,12 +167,12 @@ export default function AutoCompleteInput({
         )}
 
         <Input
-          ref={inputRef}
-          autoFocus
+          ref={internalInputRef}
           type="text"
           {...props}
           value={value}
           onChange={handleChange}
+          onFocus={onFocus}
         />
       </div>
 
@@ -184,7 +181,7 @@ export default function AutoCompleteInput({
           {loadingOptions?.map((address) => (
             <div
               key={address.value}
-              className="flex items-start gap-4 px-7 pb-4 border-b border-hr last:border-b-0 cursor-pointer"
+              className="flex items-start gap-4 px-7 pb-4 border-b border-gray-200 last:border-b-0 cursor-pointer"
             >
               <div className="shrink-0 mt-1">
                 <MapPin className="size-6" />
@@ -204,7 +201,7 @@ export default function AutoCompleteInput({
           {options?.map((address) => (
             <button
               key={address.value}
-              className="w-full flex items-start gap-4 px-7 pb-4 border-b border-hr last:border-b-0 cursor-pointer"
+              className="w-full flex items-start gap-4 px-7 pb-4 border-b border-gray-200 last:border-b-0 cursor-pointer"
               onClick={() => {
                 handleSelectAddress(address)
               }}
@@ -228,68 +225,129 @@ export default function AutoCompleteInput({
         isOpen={isOpenErrorSheet || !!addressError?.title?.length}
         onClose={handleChangeAddress}
       >
-        <div className="px-6 py-8 pb-12 max-h-[70vh] overflow-y-auto flex flex-col items-center gap-2 text-center">
-          <div className="rounded-full bg-error-50 size-14 flex items-center justify-center">
-            <div className="rounded-full size-10 bg-error-100 flex items-center justify-center">
-              <CircleAlert stroke="#D92D20" className="size-7 text-amber-100" />
+        <div className="px-6 py-8 pb-12 flex flex-col gap-6">
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center gap-3 text-red-600">
+              <div className="p-2 bg-red-50 rounded-xl">
+                <CircleAlert className="size-6" />
+              </div>
+              <TextTitle className="text-xl font-bold">{error?.title || addressError?.title}</TextTitle>
             </div>
+            
+            <p className="text-lg font-semibold leading-tight text-gray-700">
+              {error?.subtitle || addressError?.subtitle}
+            </p>
           </div>
-          <TextTitle className="text-dark">{error?.title || addressError?.title}</TextTitle>
-          <TextSubtitle className="mb-2 text-gray-2">
-            {error?.subtitle || addressError?.subtitle}
-          </TextSubtitle>
-          <Button onClick={handleCloseErrorSheet}>Entendi</Button>
+
+          <Button onClick={handleCloseErrorSheet} className="h-12 rounded-xl" icon={<Check className="size-5" />}>
+            Entendi
+          </Button>
         </div>
       </BottomSheet>
 
       <BottomSheet isOpen={isOpenNotFoundAddressSheet && !error} onClose={handleChangeAddress}>
-        <div className="px-6 py-8 pb-12 max-h-[70vh] overflow-y-auto flex flex-col items-center gap-2 text-center">
-          <div className="rounded-full bg-violet-50 size-14 flex items-center justify-center">
-            <div className="rounded-full size-10 bg-violet-100 flex items-center justify-center">
-              <MapPinX className="size-7 text-primary" />
+        <div className="px-6 py-8 pb-12 flex flex-col gap-6">
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center gap-3 text-primary">
+              <div className="p-2 bg-primary/5 rounded-xl">
+                <MapPinX className="size-6" />
+              </div>
+              <TextTitle className="text-xl font-bold">Não encontramos seu endereço</TextTitle>
             </div>
+            
+            <p className="text-lg font-semibold leading-tight text-gray-700">
+              Verifique o local e tente novamente.
+            </p>
           </div>
-          <TextTitle className="text-dark">Não encontramos seu endereço</TextTitle>
-          <TextSubtitle className="mb-2 text-gray-2">
-            Verifique o local e tente novamente.
-          </TextSubtitle>
-          <Button onClick={handleCloseNotFoundAddressSheet}>Entendi</Button>
+
+          <Button onClick={handleCloseNotFoundAddressSheet} className="h-12 rounded-xl" icon={<Check className="size-5" />}>
+            Entendi
+          </Button>
         </div>
       </BottomSheet>
 
       <BottomSheet isOpen={isOpenAddressSheet} onClose={handleChangeAddress}>
-        <div className="px-6 py-8 pb-12 max-h-[70vh] overflow-y-auto">
-          <TextTitle className="mb-7 text-dark">Confirmar este endereço?</TextTitle>
+        <div className="px-6 py-8 pb-12 flex flex-col gap-6">
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center gap-3 text-dark">
+              <div className="p-2 bg-gray-50 rounded-xl">
+                <MapPin className="size-6" />
+              </div>
+              <TextTitle className="text-xl font-bold">Confirmar este endereço?</TextTitle>
+            </div>
 
-          <div className="border border-[#EBEBEB] rounded-[0.25rem] px-4 py-3 mb-6 bg-white">
-            <div className="flex flex-col items-start">
-              <MapPin className="size-5 text-dark mb-2" />
+            <div className="border border-gray-100 rounded-xl px-4 py-4 bg-gray-50 flex flex-col gap-3">
               {isLoadingAddress ? (
-                <Skeleton className="w-80 h-4 mt-2 rounded-full" />
+                <Skeleton className="w-full h-5 rounded-full" />
               ) : (
-                <p className="text-dark font-medium text-base leading-6 mb-3">{value}</p>
+                <p className="text-gray-700 font-semibold text-base leading-tight">{value}</p>
               )}
 
-              {isLoadingAddress ? (
-                <Skeleton className="w-20 h-4 mt-4 rounded-full" />
-              ) : (
+              {!isLoadingAddress && (
                 <button
                   onClick={handleChangeAddress}
-                  className="cursor-pointer text-primary font-semibold text-sm transition-colors"
+                  className="w-fit text-primary font-bold text-sm hover:underline"
                 >
-                  Mudar
+                  Mudar endereço
                 </button>
               )}
             </div>
           </div>
 
           {!isLoadingAddress ? (
-            <Button onClick={() => onConfirm(value)}>Confirmar</Button>
+            <Button 
+              onClick={() => {
+                onConfirm(value)
+              }} 
+              className="h-12 rounded-xl" 
+              icon={<Check className="size-5" />}
+            >
+              Confirmar
+            </Button>
           ) : (
-            <Skeleton className="w-full h-12 mt-4 rounded-full" />
+            <Skeleton className="w-full h-12 rounded-xl" />
           )}
+        </div>
+      </BottomSheet>
+
+      <BottomSheet isOpen={isOpenConsentSheet} onClose={handleChangeAddress}>
+        <div className="px-6 py-8 pb-12 flex flex-col gap-6">
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center gap-3 text-yellow-600">
+              <div className="p-2 bg-yellow-50 rounded-xl">
+                <CircleAlert className="size-6" />
+              </div>
+              <TextTitle className="text-xl font-bold">Endereço sem número</TextTitle>
+            </div>
+            
+            <p className="text-lg font-semibold leading-tight text-gray-700">
+              O endereço selecionado não possui um número.
+            </p>
+            
+            <p className="text-sm text-gray-500 leading-relaxed">
+              Deseja continuar assim mesmo ou prefere corrigir?
+            </p>
+          </div>
+
+          <div className="flex flex-col w-full gap-3">
+            <Button onClick={handleContinueWithoutNumber} className="h-12 rounded-xl" icon={<Check className="size-5" />}>
+              Continuar assim mesmo
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={handleChangeAddress} 
+              className="h-12 rounded-xl"
+              icon={<ChevronRight className="size-5 rotate-180" />}
+            >
+              Corrigir endereço
+            </Button>
+          </div>
         </div>
       </BottomSheet>
     </div>
   )
-}
+})
+
+AutoCompleteInput.displayName = 'AutoCompleteInput'
+
+export default AutoCompleteInput

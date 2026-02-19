@@ -5,7 +5,7 @@
   body {
     background-color: var(--color-background);
     color: var(--color-dark-text);
-    font-family: var(--font-noto-sans), sans-serif;
+    font-family: var(--font-plus-jakarta), sans-serif;
   }
 
   :root {
@@ -15,6 +15,10 @@
     --color-violet-50: #F9F5FF;
     --color-violet-100: #F4EBFF;
     --color-violet-600: #7F56D9;
+
+    /* Midnight Blue */
+    --color-midnight-500: #142a5b;
+    --color-midnight-600: #0b1b3a;
   }
 }
 
@@ -50,8 +54,10 @@
   /* ---------------------------------------------------------------------- */
   /* Primary Actions (Main buttons, highlighted links, etc.)                */
   /* ---------------------------------------------------------------------- */
-  --color-primary: var(--color-violet-600);
-  --color-primary-hover:  var(--color-violet-500);
+  --color-primary: var(--color-midnight-600);
+  --color-primary-hover: var(--color-midnight-500);
+  --color-button-primary: var(--color-midnight-600);
+  --color-button-primary-hover: var(--color-midnight-500);
 
   --color-secondary: #E8DEF8;
   
@@ -92,6 +98,11 @@
   .direction-rtl {
     direction: rtl;
   }
+
+  .cta-drop {
+    animation: cta-drop 1.6s ease-out forwards;
+    will-change: transform, opacity;
+  }
 }
 
 @layer base {
@@ -129,6 +140,21 @@
     100% {
       opacity: 1;
       transform: scale(1) rotate(0deg);
+    }
+  }
+
+  @keyframes cta-drop {
+    0% {
+      transform: translateY(-40vh);
+      opacity: 0.3;
+    }
+    60% {
+      transform: translateY(4vh);
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(0);
+      opacity: 1;
     }
   }
 

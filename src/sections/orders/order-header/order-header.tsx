@@ -2,13 +2,14 @@
 
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { MapPin } from 'lucide-react'
+import { MapPin, Hash, Box, Layout, Package } from 'lucide-react'
 
 import TrafficLight from '@/components/traffic-light'
 import Badge from '@/components/badge'
 
 import { formatDateWithTime } from '@/utils/date'
 import { cn } from '@/utils/tailwind'
+import { SummaryItemsList, type SummaryItems } from '@/components/summary-items-list'
 
 // service
 import { getOrder, type Order } from '@/services/orders'
@@ -64,6 +65,81 @@ export default function OrderHeader({ Badge: ExtraBadge }: Props) {
     ? `#${String(order.code).padStart(6, '0')}`
     : '...'
 
+  const summaryItems: SummaryItems = [
+    {
+      key: 'address',
+      title: 'Endereço selecionado',
+      icon: MapPin,
+      value: (
+        <div className="flex flex-col gap-1">
+          <span>{order.formatted_address || 'Endereço não informado'}</span>
+          {order.complement && (
+            <span className="text-[10px] text-gray-400 italic">
+              {order.complement}
+            </span>
+          )}
+        </div>
+      )
+    }
+  ]
+
+  if (order.registration_number) {
+    summaryItems.push({
+      key: 'registration_number',
+      title: 'Matrícula',
+      value: order.registration_number,
+      icon: Hash
+    })
+  }
+
+  if (order.lot_name) {
+    summaryItems.push({
+      key: 'lot_name',
+      title: 'Loteamento',
+      value: order.lot_name,
+      icon: Box
+    })
+  }
+
+  if (order.block_number && order.lot_number) {
+    summaryItems.push({
+      key: 'block-lot',
+      isGroup: true,
+      items: [
+        {
+          key: 'block_number',
+          title: 'Quadra',
+          value: order.block_number,
+          icon: Layout
+        },
+        {
+          key: 'lot_number',
+          title: 'Lote',
+          value: order.lot_number,
+          icon: Package
+        }
+      ]
+    })
+  } else {
+    if (order.block_number) {
+      summaryItems.push({
+        key: 'block_number',
+        title: 'Quadra',
+        value: order.block_number,
+        icon: Layout
+      })
+    }
+
+    if (order.lot_number) {
+      summaryItems.push({
+        key: 'lot_number',
+        title: 'Lote',
+        value: order.lot_number,
+        icon: Package
+      })
+    }
+  }
+
   return (
     <div className="flex flex-col gap-6 px-3 py-4 mb-3 bg-background">
       {/* ID e Data */}
@@ -82,23 +158,9 @@ export default function OrderHeader({ Badge: ExtraBadge }: Props) {
         </div>
       </div>
 
-      {/* Endereço */}
-      <div className="bg-box rounded-sm px-4 py-5 w-full mx-auto lg:max-w-lg">
-        <div className="flex gap-4">
-          <MapPin className={cn('size-6 shrink-0', theme.text)} />
-
-          <div className="flex flex-col gap-1">
-            <p className="text-xs font-normal leading-[130%] break-words text-gray-900">
-              {order.formatted_address || 'Endereço não informado'}
-            </p>
-
-            {order.complement && (
-              <p className="text-[10px] text-gray-400 italic">
-                {order.complement}
-              </p>
-            )}
-          </div>
-        </div>
+      {/* Resumo do imóvel */}
+      <div className="w-full mx-auto lg:max-w-lg bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <SummaryItemsList items={summaryItems} />
       </div>
 
       {/* Status / Semáforo */}

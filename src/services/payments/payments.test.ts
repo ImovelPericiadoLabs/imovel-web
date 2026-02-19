@@ -24,7 +24,11 @@ describe('Payments Service', () => {
     document: '99999999999',
     whatsapp: '11999999999',
     complement: 'Apto 101',
-    notary: '1º Cartório de Registro de Imóveis'
+    registration_number: '1455',
+    notary: '1º Cartório de Registro de Imóveis',
+    lot_number: '12',
+    lot_name: 'Loteamente 4',
+    block_number: 'Quadra 1'
   }
 
   beforeEach(() => {

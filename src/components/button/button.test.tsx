@@ -18,7 +18,7 @@ describe('Button', () => {
     expect(button.className).toContain('cursor-pointer')
     expect(button.className).toContain('bg-primary')
     expect(button.className).toContain('text-white')
-    expect(button.className).toContain('rounded-full')
+    expect(button.className).toContain('rounded-xl')
   })
 
   it('should merge custom className with default classes', () => {

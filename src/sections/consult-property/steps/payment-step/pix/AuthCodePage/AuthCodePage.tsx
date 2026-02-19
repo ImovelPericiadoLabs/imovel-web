@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { Controller, useFormContext } from 'react-hook-form'
-import { Mail, ArrowLeft, AlertCircle } from 'lucide-react'
+import Image from 'next/image'
+import { Mail, ArrowLeft } from 'lucide-react'
 import { signIn } from 'next-auth/react'
 
 import Button from '@/components/button'
@@ -17,7 +18,7 @@ interface AuthCodePageProps {
 }
 
 export function AuthCodePage({ onBack, onSuccess }: AuthCodePageProps) {
-    const { control, watch, handleSubmit, getValues } = useFormContext<FormTypes>()
+    const { control, watch, handleSubmit } = useFormContext<FormTypes>()
 
     const email = watch('email')
 
@@ -85,9 +86,14 @@ export function AuthCodePage({ onBack, onSuccess }: AuthCodePageProps) {
             clearError()
             await startAuth({ email })
             setTimer(59)
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Erro ao reenviar:', error)
-            setErrorMsg('Aguarde alguns instantes antes de tentar novamente.')
+            const err = error as { response?: { data?: { detail?: string } } }
+            const detail =
+                err?.response?.data?.detail ||
+                (error instanceof Error ? error.message : undefined) ||
+                'Aguarde alguns instantes antes de tentar novamente.'
+            setErrorMsg(detail)
         } finally {
             setIsResending(false)
         }
@@ -98,20 +104,31 @@ export function AuthCodePage({ onBack, onSuccess }: AuthCodePageProps) {
     return (
         <div className="min-h-screen w-full bg-white fixed inset-0 z-50 flex flex-col items-center justify-start pt-8 px-4">
             <button onClick={onBack} className="absolute top-6 left-4 p-2 rounded-full hover:bg-gray-100">
-                <ArrowLeft className="size-6 text-gray-600" />
+                <ArrowLeft className="size-6 text-dark" />
             </button>
 
-            <div className="flex flex-col items-center max-w-sm w-full pt-16">
-                <div className="mb-6 flex items-center justify-center size-16 rounded-full bg-[#F3E8FF]">
+            <div className="flex flex-col items-center max-w-sm w-full pt-6">
+                <div className="mb-12">
+                    <Image
+                        src="/images/logo.svg"
+                        alt="Logo"
+                        width={72}
+                        height={70}
+                        priority
+                        className="object-contain -my-2.5"
+                    />
+                </div>
+
+                <div className="mb-6 flex items-center justify-center size-16 rounded-full bg-primary/10">
                     <Mail className="size-8 text-primary" />
                 </div>
 
-                <h1 className="text-[1.375rem] font-bold text-[#1A1A1A] mb-2">Confira seu e-mail</h1>
+                <h1 className="text-[1.375rem] font-bold text-dark mb-2">Confira seu e-mail</h1>
 
                 {/* --- ALTERAÇÃO AQUI: Agrupei o texto e o botão de alterar --- */}
                 <div className="flex flex-col items-center gap-1 mb-8 text-center">
-                    <p className="text-sm text-[#4B4B4B] max-w-xs">
-                        Enviamos um código de 6 dígitos para <span className="font-medium">{email}</span>.
+                    <p className="text-sm text-gray-500 max-w-xs">
+                        Enviamos um código de 6 dígitos para <span className="font-medium text-dark">{email}</span>.
                     </p>
                     <button
                         type="button"
@@ -148,13 +165,13 @@ export function AuthCodePage({ onBack, onSuccess }: AuthCodePageProps) {
                         <Alert variant="error" message={errorMsg} className="mt-4" />
                     )}
 
-                    <div className="text-xs text-[#4B4B4B] mt-6 mb-8 flex gap-1">
+                    <div className="text-xs text-gray-500 mt-6 mb-8 flex gap-1">
                         {timer === 0 ? (
                             <button
                                 type="button"
                                 onClick={handleResendCode}
                                 disabled={isResending || isSubmitting}
-                                className="text-primary font-medium hover:text-primary/80 transition-colors disabled:opacity-50"
+                                className="text-primary font-medium hover:underline transition-colors disabled:opacity-50"
                             >
                                 {isResending ? 'Enviando...' : 'Reenviar agora'}
                             </button>
@@ -166,7 +183,7 @@ export function AuthCodePage({ onBack, onSuccess }: AuthCodePageProps) {
                     <Button
                         type="submit"
                         disabled={isSubmitting || isResending}
-                        className="w-full"
+                        className="w-full h-14 rounded-xl font-semibold text-base transition-colors bg-primary text-white hover:bg-primary/90 shadow-md"
                     >
                         {isSubmitting ? 'Verificando...' : 'Confirmar e Gerar Pix'}
                     </Button>

@@ -2,7 +2,6 @@
 
 import { Download, Info } from 'lucide-react'
 import OrderHeader from '@/sections/orders/order-header'
-import BadgeComponent from '@/components/badge'
 import { useEffect, useState } from 'react'
 import { getOrder, Order } from '@/services/orders'
 import { useParams } from 'next/navigation'
@@ -10,7 +9,6 @@ import Link from 'next/link'
 
 export default function OrderOptionsDocumentsPage() {
   const { id } = useParams()
-  const [loading, isLoading] = useState(true)
   const [order, setOrder] = useState<Order | null>(null)
 
   useEffect(() => {
@@ -20,7 +18,6 @@ export default function OrderOptionsDocumentsPage() {
       try {
         const data = await getOrder(id as string)
         setOrder(data)
-        isLoading(false)
       } catch (error) {
         console.error('Erro ao carregar cabeçalho:', error)
       }
@@ -38,14 +35,14 @@ export default function OrderOptionsDocumentsPage() {
       <div className="flex flex-col gap-2 px-3 lg:px-0 w-full mx-auto lg:max-w-lg">
         {order && (!order.documents || order.documents.length === 0) && (
           <div className="flex flex-col gap-2 px-3 lg:px-0 w-full mx-auto lg:max-w-lg">
-            <div className="flex flex-col items-center justify-center p-8 border border-blue-100 rounded-sm bg-blue-50/50 text-center gap-4">
+            <div className="flex flex-col items-center justify-center p-6 border border-blue-100 rounded-2xl bg-blue-50/60 text-center gap-4 shadow-sm">
               <div className="bg-blue-100 p-3 rounded-full">
                 <Info className="size-8 text-blue-600" />
               </div>
 
               <div className="flex flex-col gap-1">
-                <h3 className="text-sm font-semibold text-blue-900 uppercase tracking-wide">
-                  Processo em análise
+                <h3 className="text-sm font-semibold text-blue-900">
+                  Consulta em Análise
                 </h3>
                 <p className="text-xs text-blue-700 leading-relaxed">
                   Esta consulta ainda está sendo processada pela nossa equipe.

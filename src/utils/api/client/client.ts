@@ -3,6 +3,12 @@ import { url } from '@/constants/api'
 
 const apiUrl = url
 
+async function handleUnauthorized() {
+  if (typeof window === 'undefined') return
+  window.dispatchEvent(new Event('auth:unauthorized'))
+  await signOut({ redirect: false })
+}
+
 const api = {
   async get(url: string, token?: string) {
     const headers: Record<string, string> = {
@@ -21,9 +27,7 @@ const api = {
     const result = await response.json()
 
     if (response.status === 401) {
-      if (typeof window !== 'undefined') {
-        signOut()
-      }
+      await handleUnauthorized()
       throw result
     }
 
@@ -54,14 +58,12 @@ const api = {
     let result
     try {
       result = JSON.parse(responseText)
-    } catch (e) {
+    } catch {
       throw new Error(`Erro parse...`)
     }
 
     if (response.status === 401) {
-      if (typeof window !== 'undefined') {
-        signOut()
-      }
+      await handleUnauthorized()
       throw result
     }
 
@@ -80,9 +82,7 @@ const api = {
     const result = await response.text()
 
     if (response.status === 401) {
-      if (typeof window !== 'undefined') {
-        signOut()
-      }
+      await handleUnauthorized()
       throw result
     }
 
@@ -100,9 +100,7 @@ const api = {
     const result = await response.text()
 
     if (response.status === 401) {
-      if (typeof window !== 'undefined') {
-        signOut()
-      }
+      await handleUnauthorized()
       throw result
     }
 
@@ -124,7 +122,8 @@ const api = {
       xhr.onload = () => {
         if (xhr.status === 401) {
           if (typeof window !== 'undefined') {
-            signOut()
+            window.dispatchEvent(new Event('auth:unauthorized'))
+            void signOut({ redirect: false })
           }
           reject(xhr.responseText)
           return

@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Consulta #30 - Imóvel Periciado</title>
+    <style>
+      @page {
+        size: A4;
+        margin: 16mm 14mm;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: "Tahoma", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+        color: #1c1c1f;
+        background: #ffffff;
+        font-size: 15px;
+      }
+      .page {
+        width: 100%;
+      }
+      .micro-bar {
+        background: #4a3f6b;
+        color: #ffffff;
+        font-size: 11.5px;
+        letter-spacing: 0.4px;
+        padding: 10px 14px;
+      }
+      .micro-bar table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      .micro-bar td {
+        vertical-align: middle;
+      }
+      .micro-bar .right {
+        text-align: right;
+        white-space: nowrap;
+      }
+      .micro-bar a {
+        color: #ffffff;
+        text-decoration: none;
+        margin-left: 10px;
+      }
+      .shell {
+        padding: 18px 6px 0 6px;
+      }
+      .header-card {
+        border: 1px solid #e4e2ea;
+        border-radius: 18px;
+        padding: 18px 18px 16px;
+        background: #ffffff;
+      }
+      .header-row {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      .header-row td {
+        vertical-align: top;
+      }
+      .brand {
+        font-weight: 700;
+        font-size: 14px;
+        letter-spacing: 1.8px;
+        color: #2f2a3e;
+        text-transform: uppercase;
+      }
+      .brand img {
+        height: 34px;
+        vertical-align: middle;
+        margin-right: 10px;
+      }
+      .hero-title {
+        margin: 10px 0 6px;
+        font-size: 28px;
+        color: #1f1c2e;
+        letter-spacing: 0.3px;
+      }
+      .hero-sub {
+        font-size: 12px;
+        color: #6f6b7d;
+        letter-spacing: 0.8px;
+        text-transform: uppercase;
+      }
+      .order-box {
+        text-align: center;
+        font-size: 12.5px;
+        color: #494456;
+        border: 1px solid #e4e2ea;
+        border-radius: 16px;
+        padding: 14px 16px;
+        background: #fafafa;
+        width: 100%;
+      }
+      .order-box strong {
+        font-size: 14px;
+        color: #2c2550;
+      }
+      .seal-row {
+        margin-top: 12px;
+      }
+      .seal {
+        border: 1px solid #e4e2ea;
+        border-radius: 999px;
+        padding: 5px 10px;
+        font-size: 10.5px;
+        color: #5f5a6d;
+        display: inline-block;
+        margin-right: 6px;
+        background: #ffffff;
+      }
+      .status-badge {
+        display: inline-block;
+        padding: 6px 12px;
+        border: 1.5px solid #2f9c67;
+        border-radius: 999px;
+        color: #2f9c67;
+        font-weight: 700;
+        font-size: 12.5px;
+        background: #f6fffa;
+        letter-spacing: 0.3px;
+      }
+      .status-traffic {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        padding: 6px 0 2px;
+        border: none;
+        border-radius: 0;
+        color: #2f9c67;
+        font-weight: 700;
+        font-size: 15px;
+        background: transparent;
+        letter-spacing: 0.8px;
+        text-transform: uppercase;
+        width: 100%;
+      }
+      .status-text {
+        display: inline-block;
+      }
+      .status-main {
+        font-size: 15px;
+        color: #2f9c67;
+        letter-spacing: 0.8px;
+      }
+      .status-sub {
+        margin-top: 6px;
+        font-size: 13px;
+        color: #4e7f67;
+        letter-spacing: 0.2px;
+        text-transform: none;
+      }
+      .status-sub:last-child {
+        margin-top: 4px;
+        font-size: 12.5px;
+        color: #6b736f;
+      }
+      .status-divider {
+        height: 1px;
+        background: #e2e2e2;
+        margin: 8px 0 6px;
+        width: 100%;
+      }
+      .traffic-icon {
+        width: 78px;
+        padding: 14px 10px;
+        border-radius: 24px;
+        background: #f3f5f3;
+        border: 1px solid #dde6df;
+        display: inline-flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+      }
+      .traffic-light {
+        width: 28px;
+        height: 28px;
+        border-radius: 999px;
+        background: #cfd9d2;
+      }
+      .traffic-light.on {
+        background: #2f9c67;
+        box-shadow: 0 0 0 6px #cfeedd, 0 0 16px #58c989;
+      }
+      .status-panel {
+        margin-top: 14px;
+        border: 1px solid #e4e2ea;
+        border-radius: 16px;
+        padding: 14px 16px;
+        background: #ffffff;
+      }
+      .status-panel table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      .status-panel td {
+        vertical-align: middle;
+      }
+      .summary-grid {
+        margin-top: 16px;
+      }
+      .summary-grid table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      .summary-grid td {
+        vertical-align: top;
+        width: 50%;
+        padding-right: 10px;
+      }
+      .summary-grid td:last-child {
+        padding-right: 0;
+        padding-left: 10px;
+      }
+      .summary-card {
+        border: 1px solid #e4e2ea;
+        border-radius: 16px;
+        padding: 16px;
+        background: #ffffff;
+      }
+      .summary-card .label {
+        font-size: 12px;
+        letter-spacing: 0.9px;
+        text-transform: uppercase;
+        color: #6b6676;
+        margin-bottom: 6px;
+        font-weight: 600;
+      }
+      .owners-card {
+        margin-top: 14px;
+        border: 1px solid #e4e2ea;
+        border-radius: 16px;
+        padding: 16px;
+        background: #ffffff;
+      }
+      .field-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+        color: #262626;
+      }
+      .field-table td {
+        padding: 3px 0;
+      }
+      .field-label {
+        width: 140px;
+        color: #6b6676;
+        text-transform: uppercase;
+        font-size: 10.5px;
+        letter-spacing: 0.8px;
+      }
+      .field-value {
+        color: #1f1c2e;
+        font-weight: 600;
+      }
+      .owners {
+        margin-top: 12px;
+        font-size: 13.5px;
+        color: #33313d;
+      }
+      .owners .owner {
+        padding: 8px 0;
+        border-bottom: 1px dashed #e2e2e2;
+      }
+      .owners .owner:last-child {
+        border-bottom: none;
+      }
+      .owners strong {
+        color: #2c2550;
+      }
+      .section-title {
+        margin: 24px 0 12px;
+        font-size: 18px;
+        letter-spacing: 0.9px;
+        text-transform: uppercase;
+        color: #3a3550;
+        padding-bottom: 8px;
+        border-bottom: 1px solid #e4e2ea;
+      }
+      .card {
+        border: 1px solid #e4e2ea;
+        border-radius: 16px;
+        padding: 16px 18px;
+        margin: 14px 0;
+        background: #ffffff;
+      }
+      .card h3 {
+        margin: 0 0 10px;
+        font-size: 17px;
+        color: #1f1c2e;
+      }
+      .card .status-badge {
+        margin-bottom: 6px;
+      }
+      .card p {
+        margin: 0;
+        font-size: 14px;
+        line-height: 1.55;
+        color: #4f4b5f;
+      }
+      .trust-line {
+        margin-top: 16px;
+        border: 1px solid #e4e2ea;
+        border-radius: 16px;
+        padding: 14px 16px;
+        background: #fafafa;
+        font-size: 12px;
+        color: #6b6676;
+      }
+      .footer-note {
+        margin: 18px 6px 0;
+        padding-top: 12px;
+        border-top: 1px solid #e6e1f1;
+        font-size: 11px;
+        color: #7a7493;
+      }
+      .footer-brand {
+        margin-top: 8px;
+        text-align: center;
+        color: #9a93b3;
+        font-size: 10.5px;
+        letter-spacing: 1.6px;
+        text-transform: uppercase;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <div class="micro-bar">
+        <table>
+          <tr>
+            <td>WhatsApp: (xx) 0 0000-0000 · suporte@imovelpericiado.com</td>
+            <td class="right">
+              Atendimento Premium · Monitoramento 24/7
+              <a href="https://instagram.com/imovelpericiado">Instagram</a>
+              <a href="https://youtube.com/@imovelpericiado">YouTube</a>
+              <a href="https://tiktok.com/@imovelpericiado">TikTok</a>
+              <a href="https://linkedin.com/company/imovelpericiado">LinkedIn</a>
+            </td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="shell">
+        <div class="header-card">
+          <table class="header-row">
+            <tr>
+              <td>
+                <div class="brand">
+                  <img src="images/logo-mini.png" alt="Imóvel Periciado" />
+                  IMÓVEL PERICIADO
+                </div>
+                <div class="hero-title">Relatório de Segurança Imobiliária</div>
+                <div class="hero-sub">
+                  Consulta Inteligente · Integridade Verificada · Sigilo Total
+                </div>
+                <div class="seal-row">
+                  <span class="seal">Criptografia ponta a ponta</span>
+                  <span class="seal">Conformidade LGPD</span>
+                  <span class="seal">Processo auditável</span>
+                </div>
+              </td>
+              <td style="width: 200px;">
+                <div class="order-box">
+                  <div><strong>Pedido nº 30</strong></div>
+                  <div>Consulta em 20/01/2026 às 14:07</div>
+                </div>
+              </td>
+            </tr>
+          </table>
+
+          <div class="status-panel">
+            <table>
+              <tr>
+                <td style="width: 160px;">
+                  <span class="traffic-icon">
+                    <span class="traffic-light"></span>
+                    <span class="traffic-light"></span>
+                    <span class="traffic-light on"></span>
+                  </span>
+                </td>
+                <td>
+                  <div class="status-text">
+                    <div class="status-main">APROVADO</div>
+                    <div class="status-sub">Sinal Verde</div>
+                    <div class="status-divider"></div>
+                    <div class="status-sub">
+                      Nao foi encontrado nenhum impeditivo de compra e venda
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            </table>
+          </div>
+        </div>
+
+        <div class="summary-grid">
+          <table>
+            <tr>
+              <td>
+                <div class="summary-card">
+                  <div class="label">Imóvel consultado</div>
+                  <table class="field-table">
+                    <tr>
+                      <td class="field-label">Endereço</td>
+                      <td class="field-value">
+                        R. Visc. do Serro Frio, 100 - Novo Mundo, Curitiba - PR,
+                        81050-080, Brasil
+                      </td>
+                    </tr>
+                    <tr>
+                      <td class="field-label">Matrícula</td>
+                      <td class="field-value">123.456</td>
+                    </tr>
+                    <tr>
+                      <td class="field-label">Loteamento</td>
+                      <td class="field-value">Residencial Novo Mundo</td>
+                    </tr>
+                    <tr>
+                      <td class="field-label">Quadra</td>
+                      <td class="field-value">B</td>
+                    </tr>
+                    <tr>
+                      <td class="field-label">Lote</td>
+                      <td class="field-value">12</td>
+                    </tr>
+                  </table>
+                </div>
+              </td>
+              <td>
+                <div class="summary-card">
+                  <div class="label">Imóvel localizado</div>
+                  <table class="field-table">
+                    <tr>
+                      <td class="field-label">Endereço</td>
+                      <td class="field-value">
+                        Rua Visconde do Serro Frio, 100, Lote 12, Quadra B,
+                        Curitiba - PR, 81050-080
+                      </td>
+                    </tr>
+                    <tr>
+                      <td class="field-label">Matrícula</td>
+                      <td class="field-value">654.321</td>
+                    </tr>
+                    <tr>
+                      <td class="field-label">Loteamento</td>
+                      <td class="field-value">Residencial Novo Mundo</td>
+                    </tr>
+                    <tr>
+                      <td class="field-label">Quadra</td>
+                      <td class="field-value">B</td>
+                    </tr>
+                    <tr>
+                      <td class="field-label">Lote</td>
+                      <td class="field-value">12</td>
+                    </tr>
+                  </table>
+                </div>
+              </td>
+            </tr>
+          </table>
+        </div>
+
+        <div class="owners-card">
+          <div class="label">Proprietários atuais</div>
+          <div class="owners">
+            <div class="owner">
+              <strong>NILSON SOUZA</strong> | CPF/CNPJ: 39413551987 | Parte ideal:
+              50%
+            </div>
+            <div class="owner">
+              <strong>NELSON SOUZA FILHO</strong> | CPF/CNPJ: 18456090930 | Parte
+              ideal: 25%
+            </div>
+            <div class="owner">
+              <strong>TEREZA ANESI SOUZA</strong> | CPF/CNPJ: 16970284972 | Parte
+              ideal: 25%
+            </div>
+          </div>
+        </div>
+
+        <div class="trust-line">
+          Documento gerado com rastreabilidade completa, assinatura digital e
+          trilha de auditoria. Entrega exclusiva via canal seguro.
+        </div>
+
+        <div class="section-title">Relatório detalhado</div>
+
+        <div class="card">
+          <h3>Hipoteca</h3>
+          <div class="status-badge">TUDO CERTO</div>
+          <p>
+            Foi identificada a hipoteca em favor da Caixa Econômica Federal no
+            AV-1, contudo, a mesma foi quitada conforme averbação de baixa no
+            AV-4 da matrícula.
+          </p>
+        </div>
+
+        <div class="card">
+          <h3>Penhora</h3>
+          <div class="status-badge">TUDO CERTO</div>
+          <p>
+            Não foi localizada penhora ou gravame equivalente na matrícula.
+          </p>
+        </div>
+
+        <div class="card">
+          <h3>Indisponibilidade de Bens</h3>
+          <div class="status-badge">TUDO CERTO</div>
+          <p>
+            Não foi localizado registro ou averbação de indisponibilidade de
+            bens na matrícula.
+          </p>
+        </div>
+
+        <div class="card">
+          <h3>Sequestro ou Arresto</h3>
+          <div class="status-badge">TUDO CERTO</div>
+          <p>
+            Não foi localizado na matrícula nenhum registro ou averbação de
+            sequestro ou arresto.
+          </p>
+        </div>
+
+        <div class="card">
+          <h3>Usufruto</h3>
+          <div class="status-badge">TUDO CERTO</div>
+          <p>
+            Não foi localizado registro ou averbação de instituição de usufruto
+            na matrícula.
+          </p>
+        </div>
+
+        <div class="card">
+          <h3>Averbação Premonitória</h3>
+          <div class="status-badge">TUDO CERTO</div>
+          <p>
+            Não foi localizada averbação premonitória ou registro de ajuizamento
+            de ação de execução na matrícula.
+          </p>
+        </div>
+
+        <div class="card">
+          <h3>Ações Reais ou Pessoais Reipersecutórias</h3>
+          <div class="status-badge">TUDO CERTO</div>
+          <p>
+            Não foi localizada na matrícula nenhuma citação ou averbação
+            referente a ação real ou pessoal reipersecutória, como ação
+            reivindicatória, usucapião ou adjudicação compulsória.
+          </p>
+        </div>
+
+        <div class="card">
+          <h3>Contrato de Locação com Cláusula de Vigência</h3>
+          <div class="status-badge">TUDO CERTO</div>
+          <p>
+            Não foi localizado registro ou averbação de contrato de locação com
+            cláusula de vigência na matrícula.
+          </p>
+        </div>
+
+        <div class="card">
+          <h3>Tombamento</h3>
+          <div class="status-badge">TUDO CERTO</div>
+          <p>
+            Não foi localizado na matrícula nenhum registro ou averbação
+            referente a tombamento do imóvel como patrimônio histórico, cultural
+            ou artístico.
+          </p>
+        </div>
+
+        <div class="card">
+          <h3>Ação de Publicidade</h3>
+          <div class="status-badge">TUDO CERTO</div>
+          <p>
+            Não foi identificado na matrícula nenhum registro ou averbação que
+            se enquadre na natureza jurídica de Ação de Publicidade, como
+            averbação premonitória ou de citação em ação reipersecutória.
+          </p>
+        </div>
+
+        <div class="card">
+          <h3>Servidão de Passagem ou Outras Servidões</h3>
+          <div class="status-badge">TUDO CERTO</div>
+          <p>
+            Não foi localizado na matrícula nenhum registro ou averbação
+            referente à constituição de servidão de passagem ou outras
+            modalidades de servidão.
+          </p>
+        </div>
+
+        <div class="card">
+          <h3>Restrições Ambientais</h3>
+          <div class="status-badge">TUDO CERTO</div>
+          <p>
+            Não foram encontrados registros ou averbações de restrições
+            ambientais, como área de preservação permanente (APP), reserva legal
+            ou outras áreas protegidas, na matrícula.
+          </p>
+        </div>
+
+        <div class="card">
+          <h3>Declaração de Utilidade Pública</h3>
+          <div class="status-badge">TUDO CERTO</div>
+          <p>
+            Não foi localizado na matrícula nenhum registro ou averbação
+            referente à Declaração de Utilidade Pública ou desapropriação.
+          </p>
+        </div>
+
+        <div class="card">
+          <h3>Alienação Fiduciária</h3>
+          <div class="status-badge">TUDO CERTO</div>
+          <p>
+            Não foi localizada alienação fiduciária registrada na matrícula. A
+            AV-1 refere-se a uma hipoteca, instituto jurídico diverso, que
+            ademais foi quitada conforme AV-4.
+          </p>
+        </div>
+
+        <div class="card">
+          <h3>Cláusula de Inalienabilidade</h3>
+          <div class="status-badge">TUDO CERTO</div>
+          <p>
+            Não foi localizada na matrícula nenhuma cláusula de inalienabilidade
+            registrada ou averbada.
+          </p>
+        </div>
+
+        <div class="card">
+          <h3>Cláusula Incomunicabilidade</h3>
+          <div class="status-badge">TUDO CERTO</div>
+          <p>
+            Não foi localizada cláusula de incomunicabilidade nos atos registrais
+            da matrícula.
+          </p>
+        </div>
+
+        <div class="card">
+          <h3>Cláusula Impenhorabilidade</h3>
+          <div class="status-badge">TUDO CERTO</div>
+          <p>
+            Não foi localizada cláusula de impenhorabilidade ou termo jurídico
+            correspondente nos atos registrais da matrícula.
+          </p>
+        </div>
+
+        <div class="card">
+          <h3>Promessa de Compra e Venda</h3>
+          <div class="status-badge">TUDO CERTO</div>
+          <p>
+            Não foi localizado registro de promessa de compra e venda. O pacto
+            comissório instituído no R-2, que não se confunde com o critério, foi
+            cancelado pela AV-3.
+          </p>
+        </div>
+      </div>
+
+      <div class="footer-note">
+        Esta consulta é gerada automaticamente por inteligência artificial,
+        baseando-se apenas em padrões textuais. Sendo utilizada como triagem
+        preliminar e não substitui, em hipótese alguma, a análise jurídica
+        técnica de um advogado, nem constitui certidão de ônus reais.
+      </div>
+      <div class="footer-brand">IMÓVEL PERICIADO</div>
+    </div>
+  </body>
+</html>

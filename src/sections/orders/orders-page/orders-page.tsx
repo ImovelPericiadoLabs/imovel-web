@@ -28,7 +28,11 @@ export default function OrdersPage() {
   const observerRef = useRef<IntersectionObserver | null>(null)
 
   const fetchOrders = useCallback(async (targetPage: number) => {
-    targetPage === 1 ? setIsLoading(true) : setIsFetchingMore(true)
+    if (targetPage === 1) {
+      setIsLoading(true)
+    } else {
+      setIsFetchingMore(true)
+    }
 
     try {
       const { items, meta } = await listOrders({ limit: 10, p: targetPage })
@@ -79,7 +83,7 @@ export default function OrdersPage() {
 
   return (
     <div className="relative z-40 flex-1 px-4 flex flex-col gap-5 pb-24 md:pb-0 max-w-4xl mx-auto w-full min-h-[80vh]">
-      <TextTitle>Minhas Consultas</TextTitle>
+      <TextTitle className="text-white">Minhas Consultas</TextTitle>
 
       {!isLoading && orders.length === 0 ? (
         renderEmptyState()
@@ -99,7 +103,7 @@ export default function OrdersPage() {
                 <Link
                   href={`/consultas/${order.id}/opcoes`}
                   className={cn(
-                    'group p-4 bg-white border rounded-lg transition-all duration-200 block shadow-sm hover:shadow-md',
+                    'group p-4 bg-white border rounded-xl transition-all duration-200 block shadow-sm hover:shadow-md',
                     theme.border
                   )}
                 >

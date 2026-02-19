@@ -2,6 +2,12 @@ import api from '@/utils/api/client'
 import { endpoint } from '@/constants/api'
 import { getSession, signOut } from 'next-auth/react'
 
+async function handleUnauthorized() {
+  if (typeof window === 'undefined') return
+  window.dispatchEvent(new Event('auth:unauthorized'))
+  await signOut({ redirect: false })
+}
+
 export type SemaphoreStatus = 'green' | 'yellow' | 'red' | 'blue' | 'gray'
 export type AnalisisStatus = {
   value: SemaphoreStatus
@@ -29,6 +35,10 @@ export type Order = {
   place_id: string
   formatted_address: string | null
   complement: string | null
+  registration_number?: string | null
+  lot_name?: string | null
+  block_number?: string | null
+  lot_number?: string | null
   created: string
   modified: string
   
@@ -40,7 +50,7 @@ export type Order = {
 export type OwnersDetails = {
     id: string
     name: string,
-    textId: string,
+    tax_id: string | null,
     undivided_interest: number
 }
 
@@ -94,19 +104,16 @@ async function guard<T>(callback: (token: string) => Promise<T>): Promise<T> {
   const token = session?.accessToken
 
   if (!token) {
-    if (typeof window !== 'undefined') {
-      await signOut({ redirect: false })
-      window.location.reload()
-    }
+    await handleUnauthorized()
     throw new Error('Sessão inválida ou expirada.')
   }
 
   try {
     return await callback(token)
-  } catch (error: any) {
-    if (error?.status === 401 && typeof window !== 'undefined') {
-      await signOut({ redirect: false })
-      window.location.reload()
+  } catch (error: unknown) {
+    const err = error as { status?: number }
+    if (err?.status === 401) {
+      await handleUnauthorized()
     }
     throw error
   }
@@ -158,7 +165,14 @@ export async function getOrderAnalysisDetail(
 
 export async function listPlans() {
   return guard(async (token) => {
-    const response = (await api.get(endpoint.plans, token)) as any
-    return Array.isArray(response) ? response : response?.plans || []
+    const response = (await api.get(endpoint.plans, token)) as unknown
+    if (Array.isArray(response)) {
+      return response
+    }
+    if (response && typeof response === 'object' && 'plans' in response) {
+      const plans = (response as { plans?: unknown }).plans
+      return Array.isArray(plans) ? plans : []
+    }
+    return []
   })
 }

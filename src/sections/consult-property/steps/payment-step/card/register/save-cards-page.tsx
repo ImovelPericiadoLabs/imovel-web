@@ -1,7 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Switch } from '@/components/switch'
+import { useFormContext } from 'react-hook-form'
+import TextTitle from '@/components/text-title'
+import TextSubtitle from '@/components/text-subtitle'
+import AddressSummaryCard from '@/components/address-summary-card'
+import { trackGtmEvent, DEFAULT_CURRENCY, CONSULT_PRODUCT_PRICE, buildConsultItem } from '@/utils/analytics/gtm'
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
     label?: string
@@ -24,8 +29,8 @@ function FormInput({ label, icon, className, ...props }: InputProps) {
                 )}
                 <input
                     className={`
-            w-full h-[50px] bg-white border border-gray-300 rounded-[10000px] 
-            focus:outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]
+            w-full h-[50px] bg-white border border-gray-300 rounded-xl 
+            focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20
             transition-all placeholder:text-gray-400 text-gray-700 text-[16px]
             ${icon ? 'pl-14' : 'pl-4'} ${className}
           `}
@@ -37,10 +42,8 @@ function FormInput({ label, icon, className, ...props }: InputProps) {
 }
 
 export function CreditCardPage({
-    amount = '59,00',
     onSave,
 }: {
-    amount?: string
     onSave: () => void
 }) {
     const [saveCard, setSaveCard] = useState(false)
@@ -84,12 +87,73 @@ export function CreditCardPage({
     }
 
     function handleSubmit() {
+        trackGtmEvent('add_payment_info', {
+            event_category: 'payment',
+            event_label: 'credit_card',
+            event_description: 'Dados do cartão preenchidos para pagamento.',
+            payment_type: 'credit_card',
+            currency: DEFAULT_CURRENCY,
+            value: CONSULT_PRODUCT_PRICE,
+            items: [buildConsultItem(CONSULT_PRODUCT_PRICE)],
+            save_card: saveCard,
+            has_name: Boolean(form.name),
+            has_cpf: Boolean(form.cpf),
+        })
+        trackGtmEvent('credit_card_submit', {
+            event_category: 'payment',
+            event_label: 'submit',
+            event_description: 'Usuário enviou os dados do cartão.',
+            save_card: saveCard,
+        })
         onSave()
     }
 
+    const { getValues } = useFormContext()
+
+    const cardValues = (field: string) => {
+        return getValues(field)
+    }
+
+    useEffect(() => {
+        trackGtmEvent('credit_card_view', {
+            event_category: 'payment',
+            event_label: 'credit_card_form',
+            event_description: 'Tela de cadastro de cartão visualizada.',
+        })
+    }, [])
+
+    useEffect(() => {
+        trackGtmEvent('save_card_toggle', {
+            event_category: 'payment',
+            event_label: saveCard ? 'on' : 'off',
+            event_description: 'Usuário ativou/desativou salvar cartão.',
+            save_card: saveCard,
+        })
+    }, [saveCard])
+
     return (
-        <form className="flex flex-col relative w-full z-50 -mt-15">
-            <div className="bg-background min-h-[calc(100vh-80px)] px-6 pt-8 pb-8 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)]">
+        <form className="flex flex-col relative w-full z-50 -mt-15 px-6 pb-20">
+            
+            <div className="flex flex-col gap-2 mb-6 px-1">
+                <TextTitle className="text-dark">Novo cartão</TextTitle>
+                <TextSubtitle>Preencha os dados do cartão para continuar</TextSubtitle>
+            </div>
+
+            <div className="mb-8 relative z-50 w-full flex flex-col gap-5">
+                <p className="text-center text-dark leading-snug font-normal px-4">
+                    Realize o pagamento do valor <span className="font-bold">R$ 59,00</span> para começar a consulta dos dados do endereço
+                </p>
+
+                <AddressSummaryCard
+                    address={cardValues('address')}
+                    registrationNumber={cardValues('registrationNumber')}
+                    allotment={cardValues('allotment')}
+                    block={cardValues('block')}
+                    lot={cardValues('lot')}
+                />
+            </div>
+
+            <div className="bg-background min-h-[calc(100vh-80px)] px-0 pt-0 pb-8 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)]">
                 <div className="flex flex-col gap-5">
 
                     <FormInput
@@ -150,7 +214,7 @@ export function CreditCardPage({
                         <button
                             type="button"
                             onClick={handleSubmit}
-                            className="w-full bg-[var(--color-primary)] hover:opacity-90 active:opacity-100 text-white font-semibold text-base h-12 rounded-full flex items-center justify-center gap-2 transition-all shadow-lg shadow-violet-100 mb-6"
+                            className="w-full bg-primary hover:opacity-90 active:opacity-100 text-white font-semibold text-base h-12 rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm mb-6"
                         >
                             Pagar
                         </button>

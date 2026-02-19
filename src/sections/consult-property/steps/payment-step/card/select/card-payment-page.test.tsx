@@ -9,11 +9,9 @@ vi.mock('lucide-react', () => ({
 
 describe('SavedCardsPage', () => {
   const mockOnAddNewCard = vi.fn()
-  const mockOnConfirmCard = vi.fn()
 
   const defaultProps = {
     onAddNewCard: mockOnAddNewCard,
-    onConfirmCard: mockOnConfirmCard,
   }
 
   it('deve renderizar a lista de cartões inicial corretamente', () => {

@@ -6,5 +6,5 @@ type Props = {
 } & PropsWithChildren
 
 export default function TextSubtitle({ className, children }: Props) {
-  return <h1 className={cn('text-sm font-normal text-white leading-4', className)}>{children}</h1>
+  return <h1 className={cn('text-sm font-normal text-gray-500 leading-4', className)}>{children}</h1>
 }

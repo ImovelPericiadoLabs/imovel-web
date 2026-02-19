@@ -2,16 +2,14 @@
 
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { useState, useRef, ReactNode } from 'react'
+import { memo, useState, useRef, ReactNode, useEffect, useCallback, useMemo, forwardRef, useImperativeHandle } from 'react'
 import { FormProvider, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { ChevronLeft, CircleQuestionMark } from 'lucide-react'
-import ProgressBar from '@/components/progress-bar'
 import {
   AddressStep,
   DocumentConfirmationStep,
   DocumentTypeStep,
-  SendDocumentStep,
   SummaryStep,
   AddressComplementStep,
   SuccessStep
@@ -20,55 +18,156 @@ import { PaymentConfirmationStep } from '@/sections/consult-property/steps/payme
 import { SavedCardsPage } from '@/sections/consult-property/steps/payment-step/card/select'
 import { CreditCardPage } from '@/sections/consult-property/steps/payment-step/card/register'
 import TrafficLightModal from '@/components/traffic-light-modal'
+import LoadingOverlay from '@/components/loading-overlay'
 import { validations, FormTypes } from '@/sections/consult-property/validations'
+import { trackGtmEvent } from '@/utils/analytics/gtm'
 
 type FlowState =
   | 'address'
   | 'address-complement'
   | 'doc-confirmation'
   | 'doc-type'
-  | 'send-doc'
   | 'summary'
   | 'payment-cards'
   | 'payment-card-new'
   | 'payment-confirm'
   | 'finished'
 
-function Activity({ isActive, children }: { isActive: boolean; children: ReactNode }) {
+const Activity = memo(function Activity({ isActive, children }: { isActive: boolean; children: ReactNode }) {
   return (
     <div aria-hidden={!isActive} style={{ display: isActive ? 'block' : 'none' }}>
       {children}
     </div>
   )
+})
+
+export type ConsultPropertyHandle = {
+  focusAddress: () => boolean
 }
 
-export default function ConsultProperty() {
+type ConsultPropertyProps = {
+  isActive?: boolean
+}
+
+const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(function ConsultProperty(
+  { isActive = true },
+  ref,
+) {
   const router = useRouter()
   const [flow, setFlow] = useState<FlowState>('address')
   const stack = useRef<FlowState[]>([])
+  const hasTrackedFlowStart = useRef(false)
+  const [isInitialLoading, setIsInitialLoading] = useState(() => {
+    if (typeof window === 'undefined') return true
+    return sessionStorage.getItem('consultPropertyAssetsReady') !== 'true'
+  })
 
   const methods = useForm<FormTypes>({
     resolver: zodResolver(validations),
     defaultValues: {
       paymentMethod: 'pix',
-      addressComplement: '',
+      allotment: '',
+      noAllotment: undefined,
+      block: '',
+      noBlock: undefined,
+      lot: '',
+      noLot: undefined,
+      complement: '',
       registrationNumber: '',
-      unknownRegistration: false,
-      noComplement: false
+      unknownRegistration: undefined,
+      hasDocument: undefined,
+      registry: null,
     },
     shouldUnregister: false,
     mode: 'onChange',
   })
 
-  function go(next: FlowState) {
+  const addressStepRef = useRef<{ focus: () => boolean }>(null)
+  const addressComplementRef = useRef<{ handleBack: () => void }>(null)
+
+  useImperativeHandle(ref, () => ({
+    focusAddress: () => {
+      return addressStepRef.current?.focus() ?? false
+    },
+  }))
+
+  useEffect(() => {
+    if (!isActive) return
+    if (flow === 'address') {
+      const handleFocus = () => {
+        // Garantir que o input já está renderizado antes do foco (iOS)
+        requestAnimationFrame(() => {
+          addressStepRef.current?.focus()
+        })
+        setTimeout(() => {
+          addressStepRef.current?.focus()
+        }, 120)
+      }
+
+      const params = new URLSearchParams(window.location.search)
+      const hasAutoFocusParam = params.get('autoFocus') === 'true'
+      const hasAutoFocusFlag = !!sessionStorage.getItem('autoFocusAddress')
+
+      if (hasAutoFocusParam || hasAutoFocusFlag) {
+        handleFocus()
+
+        // Limpar marcações para não focar novamente
+        sessionStorage.removeItem('autoFocusAddress')
+
+        // Atualiza a URL sem recarregar a página
+        if (hasAutoFocusParam) {
+          const newUrl = window.location.pathname
+          window.history.replaceState({}, '', newUrl)
+        }
+      }
+    }
+  }, [flow, isActive])
+
+  useEffect(() => {
+    if (!isInitialLoading) return
+
+    let isCancelled = false
+
+    const waitForLoad = new Promise<void>((resolve) => {
+      if (document.readyState === 'complete') {
+        resolve()
+        return
+      }
+      window.addEventListener('load', () => resolve(), { once: true })
+    })
+
+    const waitForFonts = document.fonts?.ready ?? Promise.resolve()
+
+    Promise.all([waitForLoad, waitForFonts]).then(() => {
+      if (isCancelled) return
+      sessionStorage.setItem('consultPropertyAssetsReady', 'true')
+      requestAnimationFrame(() => {
+        if (!isCancelled) {
+          setIsInitialLoading(false)
+        }
+      })
+    })
+
+    return () => {
+      isCancelled = true
+    }
+  }, [isInitialLoading])
+
+  const go = useCallback((next: FlowState) => {
     stack.current.push(flow)
     setFlow(next)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
+    // Usar scroll imediato em vez de smooth para evitar atrasos na percepção de troca de página
+    window.scrollTo({ top: 0, behavior: 'auto' })
+  }, [flow])
 
-  function back() {
+  const back = useCallback(() => {
     if (flow === 'finished') {
       window.location.href = '/consultar-imovel'
+      return
+    }
+
+    if (flow === 'address-complement' && addressComplementRef.current) {
+      addressComplementRef.current.handleBack()
       return
     }
 
@@ -80,34 +179,86 @@ export default function ConsultProperty() {
     }
 
     if (previous) {
-      setFlow(previous)
-      window.scrollTo({ top: 0, behavior: 'smooth' })
-    }
-  }
+      // Resetar estados ao voltar para passos anteriores que possuem Sim/Não
+      if (previous === 'doc-confirmation') {
+        methods.setValue('hasDocument', undefined)
+      }
+      
+      if (previous === 'doc-type') {
+        methods.setValue('documentType', undefined)
+        methods.setValue('document', undefined)
+        methods.setValue('documentPreview', undefined)
+      }
+      
+      if (previous === 'address-complement') {
+        // Se voltarmos do documento para o complemento, resetamos o último sub-passo
+        methods.setValue('complement', '')
+      }
 
-  const progressSteps: Record<FlowState, number> = {
+      setFlow(previous)
+      window.scrollTo({ top: 0, behavior: 'auto' })
+    }
+  }, [flow, router, methods])
+
+  const progressSteps: Record<FlowState, number> = useMemo(() => ({
     address: 1,
     'address-complement': 1,
     'doc-confirmation': 2,
     'doc-type': 3,
-    'send-doc': 4,
-    summary: 5,
-    'payment-confirm': 6,
-    'payment-cards': 6,
-    'payment-card-new': 6,
-    finished: 6,
-  }
+    summary: 4,
+    'payment-confirm': 5,
+    'payment-cards': 5,
+    'payment-card-new': 5,
+    finished: 5,
+  }), [])
 
-  const currentProgress = (progressSteps[flow] / 6) * 100
+  const currentStepIndex = progressSteps[flow]
 
   const isFinished = flow === 'finished'
 
-  const showProgressBar = ![
-    'payment-cards',
-    'payment-card-new',
-    'payment-confirm',
-    'finished',
-  ].includes(flow)
+  useEffect(() => {
+    if (!isActive || isInitialLoading) return
+
+    if (typeof window !== 'undefined') {
+      window.currentFlowStep = flow
+    }
+
+    trackGtmEvent('consult_flow_step_view', {
+      event_category: 'consult_flow',
+      event_label: flow,
+      event_description: `Visualizou a etapa "${flow}" do fluxo de consulta do imóvel.`,
+      flow_step: flow,
+      step_index: currentStepIndex,
+      is_finished: isFinished,
+    })
+
+    if (!hasTrackedFlowStart.current) {
+      hasTrackedFlowStart.current = true
+      const startedFromVsl =
+        typeof window !== 'undefined' &&
+        sessionStorage.getItem('consultFlowStartedFromVsl') === 'true'
+      if (startedFromVsl) {
+        sessionStorage.removeItem('consultFlowStartedFromVsl')
+        return
+      }
+
+      trackGtmEvent('consult_flow_started', {
+        event_category: 'consult_flow',
+        event_label: 'start',
+        event_description: 'Iniciou o fluxo de consulta do imóvel.',
+        flow_step: flow,
+        step_index: currentStepIndex,
+      })
+    }
+  }, [flow, isInitialLoading, currentStepIndex, isFinished, isActive])
+
+  if (isInitialLoading) {
+    return (
+      <section className="min-h-screen bg-background">
+        <LoadingOverlay isLoading message="Carregando recursos..." />
+      </section>
+    )
+  }
 
   return (
     <section className="min-h-screen bg-background">
@@ -115,16 +266,22 @@ export default function ConsultProperty() {
         className={`flex flex-col pt-4 px-4 relative z-40 transition-colors duration-500 ${isFinished ? 'bg-emerald-600' : 'bg-primary'
           }`}
       >
-        <div className="flex items-center justify-between py-4.5 mb-6">
+        <div className="flex items-center justify-between py-4.5 mb-2">
           <ChevronLeft
             onClick={back}
-            className={`size-7 text-white transition-opacity ${flow === 'address' ? 'opacity-0 pointer-events-none' : 'cursor-pointer'
+            className={`size-7 transition-opacity text-white ${flow === 'address' ? 'opacity-0 pointer-events-none' : 'cursor-pointer'
               }`}
             role="button"
           />
 
           <div className="relative">
-            <Image src="/images/logo.png" alt="Logo" width={200} height={50} />
+            <Image
+              src="/images/logo.svg"
+              alt="Logo"
+              width={72}
+              height={70}
+              className="object-contain -my-2.5"
+            />
           </div>
 
           <TrafficLightModal>
@@ -132,22 +289,29 @@ export default function ConsultProperty() {
           </TrafficLightModal>
         </div>
 
-        {showProgressBar && <ProgressBar value={currentProgress} className="mb-3" />}
+        
       </header>
 
-      <div
-        className={`relative h-30 -mt-1 transition-colors duration-500 ${isFinished ? 'bg-emerald-600' : 'bg-primary'
-          }`}
-      ></div>
+      <div className="relative h-24 -mt-1 transition-colors duration-500 bg-sky-200"></div>
 
       <FormProvider {...methods}>
-        <main className="w-full mx-auto lg:max-w-lg pt-5 px-0 -mt-24">
+        <main className="w-full mx-auto lg:max-w-lg pt-2 px-0 -mt-20">
           <Activity isActive={flow === 'address'}>
-            <AddressStep onNext={() => go('address-complement')} />
+            <AddressStep ref={addressStepRef} onNext={() => go('address-complement')} />
           </Activity>
 
           <Activity isActive={flow === 'address-complement'}>
-            <AddressComplementStep onNext={() => go('doc-confirmation')} />
+            <AddressComplementStep 
+              ref={addressComplementRef}
+              onNext={() => go('doc-confirmation')} 
+              onBack={() => {
+                const previous = stack.current.pop()
+                if (previous) {
+                  setFlow(previous)
+                  window.scrollTo({ top: 0, behavior: 'auto' })
+                }
+              }} 
+            />
           </Activity>
 
           <Activity isActive={flow === 'doc-confirmation'}>
@@ -155,11 +319,7 @@ export default function ConsultProperty() {
           </Activity>
 
           <Activity isActive={flow === 'doc-type'}>
-            <DocumentTypeStep onNext={() => go('send-doc')} />
-          </Activity>
-
-          <Activity isActive={flow === 'send-doc'}>
-            <SendDocumentStep onNext={() => go('summary')} />
+            <DocumentTypeStep onNext={() => go('summary')} />
           </Activity>
 
           <Activity isActive={flow === 'summary'}>
@@ -169,7 +329,6 @@ export default function ConsultProperty() {
           <Activity isActive={flow === 'payment-cards'}>
             <SavedCardsPage
               onAddNewCard={() => go('payment-card-new')}
-              onConfirmCard={() => go('payment-confirm')}
             />
           </Activity>
 
@@ -182,7 +341,6 @@ export default function ConsultProperty() {
               onFinish={() => go('finished')}
               onBackToMethods={back}
               onAddNewCard={() => go('payment-card-new')}
-              onSelectCard={() => go('finished')}
             />
           </Activity>
 
@@ -193,4 +351,6 @@ export default function ConsultProperty() {
       </FormProvider>
     </section>
   )
-}
+})
+ConsultProperty.displayName = 'ConsultProperty'
+export default ConsultProperty
