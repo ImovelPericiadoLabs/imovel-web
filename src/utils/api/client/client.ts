@@ -5,14 +5,38 @@ const apiUrl = url
 const INTERNAL_API_HEADER_NAME = process.env.INTERNAL_API_HEADER_NAME || 'x-internal-auth'
 const INTERNAL_API_SHARED_SECRET = process.env.INTERNAL_API_SHARED_SECRET
 
-function appendInternalApiHeader(headers: Record<string, string>) {
+function logInternalHeaderDecision(method: string, endpointPath: string, applied: boolean, reason: string) {
+  if (typeof window !== 'undefined') return
+
+  console.info('[api][internal-header]', {
+    method,
+    url: `${apiUrl}${endpointPath}`,
+    headerName: INTERNAL_API_HEADER_NAME,
+    hasInternalSecretConfigured: Boolean(INTERNAL_API_SHARED_SECRET),
+    applied,
+    reason,
+  })
+}
+
+function appendInternalApiHeader(
+  headers: Record<string, string>,
+  method: string,
+  endpointPath: string,
+) {
   const isServerSide = typeof window === 'undefined'
 
-  if (!isServerSide || !INTERNAL_API_SHARED_SECRET) {
+  if (!isServerSide) {
+    logInternalHeaderDecision(method, endpointPath, false, 'browser_request')
+    return
+  }
+
+  if (!INTERNAL_API_SHARED_SECRET) {
+    logInternalHeaderDecision(method, endpointPath, false, 'missing_internal_secret')
     return
   }
 
   headers[INTERNAL_API_HEADER_NAME] = INTERNAL_API_SHARED_SECRET
+  logInternalHeaderDecision(method, endpointPath, true, 'header_attached')
 }
 
 async function handleUnauthorized() {
@@ -27,7 +51,7 @@ const api = {
       'Content-Type': 'application/json',
     }
 
-    appendInternalApiHeader(headers)
+    appendInternalApiHeader(headers, 'GET', url)
 
     if (token) {
       headers['Authorization'] = `Bearer ${token}`
@@ -54,7 +78,7 @@ const api = {
       'Accept': 'application/json',
     }
 
-    appendInternalApiHeader(headers)
+    appendInternalApiHeader(headers, 'POST', url)
 
     if (!isFormData) {
       headers['Content-Type'] = 'application/json'
@@ -95,7 +119,7 @@ const api = {
       'Content-Type': 'application/json',
     }
 
-    appendInternalApiHeader(headers)
+    appendInternalApiHeader(headers, 'PUT', url)
 
     const response = await fetch(`${apiUrl}${url}`, {
       headers,
@@ -118,7 +142,7 @@ const api = {
       'Content-Type': 'application/json',
     }
 
-    appendInternalApiHeader(headers)
+    appendInternalApiHeader(headers, 'DELETE', url)
 
     const response = await fetch(`${apiUrl}${url}`, {
       headers,
