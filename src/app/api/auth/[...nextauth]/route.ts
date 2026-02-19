@@ -5,6 +5,37 @@ import { refreshToken, verifyAuth } from "@/services/account"
 const SESSION_MAX_AGE_SECONDS = 7 * 24 * 60 * 60 - 60 * 60
 const ACCESS_TOKEN_SAFETY_WINDOW_SECONDS = 60
 
+function maskEmail(email?: string) {
+  if (!email || !email.includes('@')) return 'unknown'
+
+  const [localPart, domain] = email.split('@')
+
+  if (!localPart || !domain) return 'unknown'
+
+  const maskedLocal =
+    localPart.length <= 2
+      ? `${localPart[0] ?? '*'}*`
+      : `${localPart.slice(0, 2)}***`
+
+  return `${maskedLocal}@${domain}`
+}
+
+function getSafeResponseSnippet(data: unknown) {
+  if (typeof data === 'string') {
+    return data.replace(/\s+/g, ' ').trim().slice(0, 200)
+  }
+
+  if (data && typeof data === 'object') {
+    try {
+      return JSON.stringify(data).slice(0, 200)
+    } catch {
+      return null
+    }
+  }
+
+  return null
+}
+
 function getJwtExpiration(accessToken?: string) {
   if (!accessToken) return null
   const parts = accessToken.split('.')
@@ -50,11 +81,34 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Código inválido ou resposta inesperada.")
 
         } catch (error: unknown) {
-          const err = error as { response?: { data?: { detail?: string } } }
+          const err = error as {
+            response?: {
+              status?: number
+              data?: { detail?: string } | string | Record<string, unknown>
+            }
+            name?: string
+          }
           const errorMessage =
-            err?.response?.data?.detail ||
+            (typeof err?.response?.data === 'object' && err?.response?.data && 'detail' in err.response.data
+              ? (err.response.data as { detail?: string }).detail
+              : undefined) ||
             (error instanceof Error ? error.message : undefined) ||
             "Falha na verificação"
+
+          console.error('[auth][credentials][authorize_error]', {
+            provider: 'credentials',
+            email: maskEmail(credentials?.email),
+            hasCode: Boolean(credentials?.code),
+            apiStatus: err?.response?.status,
+            apiDetail:
+              typeof err?.response?.data === 'object' && err?.response?.data && 'detail' in err.response.data
+                ? (err.response.data as { detail?: string }).detail
+                : undefined,
+            responseSnippet: getSafeResponseSnippet(err?.response?.data),
+            errorName: err?.name,
+            errorMessage,
+          })
+
           throw new Error(errorMessage)
         }
       }

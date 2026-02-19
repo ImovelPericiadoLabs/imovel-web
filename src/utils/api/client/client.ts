@@ -37,7 +37,7 @@ const api = {
   async post(url: string, rawBody: object, token?: string) {
     const isFormData = rawBody instanceof FormData
     const headers: Record<string, string> = {
-      'User-Agent': 'Mozilla/5.0 ...'
+      'Accept': 'application/json',
     }
 
     if (!isFormData) {
@@ -59,7 +59,11 @@ const api = {
     try {
       result = JSON.parse(responseText)
     } catch {
-      throw new Error(`Erro parse...`)
+      const isHtmlResponse = /<html|<!doctype html/i.test(responseText)
+      const message = isHtmlResponse
+        ? `Resposta HTML inesperada da API (${response.status}). Verifique URL da API e possíveis bloqueios de firewall/WAF.`
+        : `Resposta inválida da API (${response.status}).`
+      throw new Error(message)
     }
 
     if (response.status === 401) {
