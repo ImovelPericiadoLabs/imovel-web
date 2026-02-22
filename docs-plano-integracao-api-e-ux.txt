@@ -1,0 +1,117 @@
+# Plano: Integração de API (créditos, re-solicitação, erros) e ajustes de UX
+
+Use este plano para aplicar as mesmas ideias em outro projeto frontend que consuma uma API com contrato semelhante.
+
+---
+
+## 1. CONTRATO DA API (referência)
+
+- **GET /v1/me/** — Auth Bearer. Resposta: `{ email, credits_balance: number, whatsapp }`. `credits_balance` em reais.
+- **GET /v1/orders/** — Lista paginada. Cada item: `id, code, status: { value, label }, can_rerequest: boolean, ...`
+- **POST /v1/orders/:id/re-request/** — Body (todos opcionais): `place_id?, notary?, lot_number?, block_number?, lot_name?, tower?`
+- **GET /v1/plans/** — Para obter preço do plano (ex.: primeiro item `.price`) e comparar com saldo.
+- **Erros 400 padronizados:** `{ "error": { "code": string, "message": string } }`. Códigos úteis: `invalid_cep`, `insufficient_credits`, `invalid_status`, etc.
+
+---
+
+## 2. SALDO DE CRÉDITOS (após login)
+
+**Objetivo:** Exibir saldo no header/perfil usando o mesmo valor que a API usa para cobrança.
+
+- Adicionar endpoint `me: '/me/'` nos constantes da API.
+- Criar serviço `getMe()` que chama GET /me/ com token e retorna `{ email, credits_balance, whatsapp }`.
+- No componente de exibição de créditos (ex.: header):
+  - Usar `getMe()` em vez de um endpoint antigo de “saldo” (ex.: /credits/ com `balance` string).
+  - Formatar `credits_balance` como número em reais (ex.: `Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })`).
+  - Exibir texto no estilo: "Créditos: R$ X,XX".
+- Adicionar query key para cache (ex.: `me`) e usar em `useQuery` com `getMe` como `queryFn`.
+
+---
+
+## 3. LISTAGEM DE PEDIDOS E RE-SOLICITAÇÃO
+
+**Objetivo:** Listar pedidos com status e permitir re-solicitar quando a API indicar.
+
+- No tipo do pedido (Order), incluir `can_rerequest?: boolean`.
+- Nos constantes de status, incluir `REJECTED_DATA` com label "Dados rejeitados" (e qualquer outro que a API use).
+- Na listagem de pedidos:
+  - Usar `status.value` e `status.label` para badge (incluindo REJECTED_DATA).
+  - Quando `order.can_rerequest === true`, exibir botão "Re-solicitar" que leva à tela de detalhe do pedido (onde fica o formulário de re-solicitação).
+
+**Endpoint de re-solicitação:**
+
+- Adicionar endpoint `reRequest: (orderId) => \`/orders/${orderId}/re-request/\``.
+- Criar tipo para o body: `place_id?, notary?, lot_number?, block_number?, lot_name?, tower?`.
+- Criar função `rerequestOrder(orderId, body?)` que faz POST no endpoint com o body; em resposta 200 retornar o pedido atualizado; em 400 com `error: { code, message }` lançar um erro estruturado (veja item 5).
+
+---
+
+## 4. TELA DE RE-SOLICITAÇÃO (detalhe do pedido)
+
+**Objetivo:** Formulário com campos alinhados ao body da API e validação de saldo.
+
+- Exibir o bloco de re-solicitação quando `order.can_rerequest === true` (ou condição legada se existir outro fluxo).
+- Campos do formulário: cartório (notary), bloco/apt (tower), quadra (block_number), lote (lot_number), loteamento (lot_name). Incluir place_id se houver mudança de endereço (e validação de CEP conforme API).
+- Antes de enviar:
+  - Buscar saldo: `getMe().credits_balance`.
+  - Buscar preço: primeiro item de `listPlans()` (ex.: `plans[0].price`).
+  - Se `credits_balance < planPrice`, exibir mensagem "Saldo insuficiente" e desabilitar o botão de envio.
+- No submit: chamar `rerequestOrder(orderId, { place_id?, notary?, lot_number?, block_number?, lot_name?, tower? })`.
+- Em sucesso (200): atualizar cache do pedido (ex.: `queryClient.setQueryData`) e fechar/atualizar a UI.
+- Em erro (400): exibir `error.message`; se `error.code === 'insufficient_credits'`, destacar (ex.: estilo de alerta em vermelho).
+
+---
+
+## 5. ERROS PADRONIZADOS (400)
+
+**Objetivo:** Tratar respostas 400 no formato `{ "error": { "code", "message" } }` de forma consistente.
+
+- Criar classe (ex.: `ApiError`) com `code: string` e `message: string` (e `extends Error` com `message`).
+- Colocá-la em um módulo compartilhado (ex.: `utils/api/errors.ts`) para uso em serviços e telas.
+- Nos serviços que chamam endpoints que retornam esse 400:
+  - Após receber a resposta, verificar se o body tem a forma `{ error: { code, message } }`.
+  - Se tiver, lançar `new ApiError(body.error.code, body.error.message)` em vez de retornar o body.
+- Nas telas (re-solicitação, pagamento):
+  - Em `catch`, verificar `err instanceof ApiError` e exibir `err.message`.
+  - Usar `err.code` para lógica (ex.: `insufficient_credits` → destacar saldo; `invalid_cep` → mensagem específica).
+
+**Pagamentos (ex.: POST /v1/payments/):**
+
+- No serviço de pagamento, após o POST: se a resposta for 400 com `error: { code, message }`, lançar `ApiError` em vez de retornar.
+- Na tela de PIX e na de pagamento com créditos: em `catch`, exibir `err.message` quando for `ApiError` (assim mensagens como "CEP deve conter 8 dígitos" aparecem para o usuário).
+
+---
+
+## 6. REMOVER MODAL GLOBAL DE LOGIN EM 401
+
+**Objetivo:** Evitar que um modal de "Acessar / Insira seu e-mail" abra automaticamente sempre que qualquer chamada retornar 401.
+
+- Identificar o componente que escuta o evento de sessão inválida (ex.: `auth:unauthorized`) e abre esse modal (ex.: SessionMonitor).
+- Remover esse componente do tree de providers (ex.: remover `<SessionMonitor />` do layout/providers).
+- Manter o comportamento atual da API client: em 401, fazer signOut e disparar o evento (se existir). As telas que precisam de login (listagem de pedidos, fluxo de pagamento) continuam tratando “não autenticado” cada uma à sua maneira (ex.: mensagem “Faça login” + botão para /login, ou fluxo de código por e-mail na própria tela de pagamento).
+
+---
+
+## 7. CORRIGIR ERRO DE HIDRATAÇÃO (SSR)
+
+**Objetivo:** Evitar "Hydration failed because the server rendered HTML didn't match the client" em componentes que dependem de `window`, `localStorage` ou query string.
+
+- **Problema:** Inicializar estado com `useState(() => { ... window, localStorage, location ... })` faz o servidor ver um valor (ou undefined) e o cliente outro, gerando HTML diferente.
+- **Solução:**
+  1. Inicializar todos os estados que hoje dependem de `window`/`localStorage`/URL com valores **fixos** que sejam iguais no servidor e no primeiro render do cliente (ex.: `false`, `'default'`, `0`).
+  2. Em um `useEffect` (que só roda no cliente), ler `window.location.search`, `localStorage`, etc., e atualizar o estado com `setState`. Assim o primeiro HTML (servidor e cliente) é idêntico; depois da hidratação o efeito roda e a UI atualiza para o valor real.
+- Exemplo: estado “unlocked” e “theme” que vêm de URL/localStorage → `useState(false)` e `useState('default')`; no `useEffect`, parse da query e `localStorage` e chamar `setUnlocked(...)`, `setTheme(...)`.
+
+---
+
+## 8. CHECKLIST RÁPIDO
+
+- [ ] Endpoint `/me/` e serviço `getMe()`; exibir credits_balance no header.
+- [ ] Tipo Order com `can_rerequest`; constante REJECTED_DATA.
+- [ ] Endpoint e função `rerequestOrder`; body com place_id, notary, tower, etc.
+- [ ] Botão "Re-solicitar" na listagem quando `can_rerequest`.
+- [ ] Formulário de re-solicitação na tela de detalhe; checagem saldo vs preço do plano; tratamento de ApiError.
+- [ ] Classe ApiError em módulo compartilhado; serviços lançando ApiError em 400; telas exibindo message e usando code.
+- [ ] Pagamentos: 400 com error lança ApiError; telas de PIX/créditos exibem err.message (ex.: invalid_cep).
+- [ ] Remover modal global de login em 401 dos providers.
+- [ ] Estados que usam window/localStorage/URL: valor inicial fixo + useEffect no client para atualizar.
