@@ -1,6 +1,7 @@
 import api from '@/utils/api/client'
 import { endpoint } from '@/constants/api'
-import { getSession, signOut } from 'next-auth/react'
+import { signOut } from 'next-auth/react'
+import { getSessionDeduplicated } from '@/utils/session'
 
 async function handleUnauthorized() {
   if (typeof window === 'undefined') return
@@ -123,7 +124,7 @@ export type OrdersApiResponse = {
 }
 
 async function guard<T>(callback: (token: string) => Promise<T>): Promise<T> {
-  const session = await getSession()
+  const session = await getSessionDeduplicated()
   const token = session?.accessToken
 
   if (!token) {
@@ -190,12 +191,12 @@ export async function getOrderAnalysisDetail(
 }
 
 /**
- * Retorna o PDF do relatório de análise (GET /analysis/pdfview/:id).
+ * Retorna o PDF do relatório de análise (GET /analysis/pdfview/:orderId).
  * Use para download com nome "Consulta #{order.code}.pdf".
  */
-export async function getAnalysisPdfBlob(analysisId: string): Promise<Blob> {
+export async function getAnalysisPdfBlob(orderId: string): Promise<Blob> {
   return guard(async (token) => {
-    return api.getBlob(endpoint.analysisPdfView(analysisId), token)
+    return api.getBlob(endpoint.analysisPdfView(orderId), token)
   })
 }
 

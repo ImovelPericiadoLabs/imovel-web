@@ -45,14 +45,13 @@ export default function OrderOptionsDocumentsPage() {
   })
 
   const isFinished = order?.status?.value === 'FINISHED'
-  const firstAnalysisId = order?.analysis?.[0]?.id
-  const hasReport = Boolean(isFinished && firstAnalysisId)
+  const hasReport = Boolean(isFinished && orderId)
 
   const handleDownloadReport = async () => {
-    if (!order?.code || !firstAnalysisId) return
+    if (!order?.code || !orderId) return
     setLoadingReport(true)
     try {
-      const blob = await getAnalysisPdfBlob(firstAnalysisId)
+      const blob = await getAnalysisPdfBlob(orderId)
       downloadBlob(blob, `Consulta #${order.code}.pdf`)
     } finally {
       setLoadingReport(false)

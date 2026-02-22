@@ -1,6 +1,6 @@
 import api from '@/utils/api/client'
 import { endpoint } from '@/constants/api'
-import { getSession } from 'next-auth/react'
+import { getSessionDeduplicated } from '@/utils/session'
 
 type PaymentRequest = {
   place_id: string
@@ -18,7 +18,7 @@ type PaymentRequest = {
 }
 
 export async function processPayment(data: PaymentRequest) {
-  const session = await getSession()
+  const session = await getSessionDeduplicated()
   const token = session?.accessToken
 
   if (!token) {
@@ -29,7 +29,7 @@ export async function processPayment(data: PaymentRequest) {
 }
 
 export async function getPaymentStatus(paymentId: string) {
-  const session = await getSession()
+  const session = await getSessionDeduplicated()
   const token = session?.accessToken
 
   return api.get(`${endpoint.payments.status}/${paymentId}/`, token)

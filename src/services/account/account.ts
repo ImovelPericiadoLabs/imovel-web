@@ -1,4 +1,4 @@
-import { getSession } from 'next-auth/react'
+import { getSessionDeduplicated } from '@/utils/session'
 import api from '@/utils/api/client'
 import { endpoint } from '@/constants/api'
 
@@ -85,7 +85,7 @@ export type MeResponse = {
  * Endpoint: GET /me/
  */
 export async function getMe(): Promise<MeResponse | null> {
-  const session = await getSession()
+  const session = await getSessionDeduplicated()
   const token = session?.accessToken
   if (!token) return null
   const result = (await api.get(endpoint.me, token)) as MeResponse
