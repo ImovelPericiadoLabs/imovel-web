@@ -1,7 +1,8 @@
 import { getSession } from 'next-auth/react'
+import type { Session } from 'next-auth'
 
 /** Promessa em andamento de getSession, para deduplicar chamadas simultâneas a /api/auth/session. */
-let sessionPromise: Promise<ReturnType<typeof getSession>> | null = null
+let sessionPromise: Promise<Session | null> | null = null
 
 /**
  * getSession() deduplicado: chamadas simultâneas compartilham a mesma requisição.
