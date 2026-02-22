@@ -4,6 +4,8 @@ export {
   getOrder,
   orderQueryKey,
   rerequestOrder,
+  getAnalysisPdfBlob,
+  getDocumentBlob,
 
   type Order,
   type OrderAnalysisResult,
@@ -11,5 +13,6 @@ export {
   type ListOrdersRequest,
   type OrdersApiResponse,
   type ReRequestOrderBody,
-  type PlaceResponse
+  type PlaceResponse,
+  type Document
 } from './orders'

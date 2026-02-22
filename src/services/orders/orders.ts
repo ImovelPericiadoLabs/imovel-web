@@ -189,6 +189,26 @@ export async function getOrderAnalysisDetail(
   })
 }
 
+/**
+ * Retorna o PDF do relatório de análise (GET /analysis/pdfview/:id).
+ * Use para download com nome "Consulta #{order.code}.pdf".
+ */
+export async function getAnalysisPdfBlob(analysisId: string): Promise<Blob> {
+  return guard(async (token) => {
+    return api.getBlob(endpoint.analysisPdfView(analysisId), token)
+  })
+}
+
+/**
+ * Retorna o blob de um documento do pedido (file_path pode ser URL absoluta ou path).
+ * Use para download com nome correto (incluindo .pdf) e evitar arquivo sem extensão.
+ */
+export async function getDocumentBlob(filePath: string): Promise<Blob> {
+  return guard(async (token) => {
+    return api.getBlob(filePath, token)
+  })
+}
+
 export type ReRequestOrderBody = {
   /** Se enviado, backend usa este objeto (não chama API de endereço). CEP validado 8 dígitos. */
   place_response?: PlaceResponse

@@ -73,6 +73,24 @@ const api = {
     return result
   },
 
+  /**
+   * GET que retorna o corpo como Blob (ex.: PDF).
+   * pathOrUrl: caminho relativo (ex.: /analysis/pdfview/xxx) ou URL absoluta.
+   */
+  async getBlob(pathOrUrl: string, token?: string): Promise<Blob> {
+    const fullUrl = pathOrUrl.startsWith('http') ? pathOrUrl : `${apiUrl}${pathOrUrl}`
+    const headers: Record<string, string> = {}
+    if (token) headers['Authorization'] = `Bearer ${token}`
+    appendInternalApiHeader(headers, 'GET', pathOrUrl.startsWith('http') ? pathOrUrl : pathOrUrl)
+    const response = await fetch(fullUrl, { method: 'GET', headers })
+    if (response.status === 401) {
+      await handleUnauthorized()
+      throw new Error('Não autorizado')
+    }
+    if (!response.ok) throw new Error(`Erro ${response.status}`)
+    return response.blob()
+  },
+
   async post(url: string, rawBody: object, token?: string) {
     const isFormData = rawBody instanceof FormData
     const headers: Record<string, string> = {
