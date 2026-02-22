@@ -144,6 +144,9 @@ export async function listOrders(params: ListOrdersRequest = {}) {
   })
 }
 
+/** Query key para React Query: uso compartilhado entre OrderHeader, OrderOptionsPage, etc. */
+export const orderQueryKey = (orderId: string) => ['order', orderId] as const
+
 export async function getOrder(orderId: string) {
   return guard(async (token) => {
     const baseUrl = endpoint.orders.replace(/\/$/, '')

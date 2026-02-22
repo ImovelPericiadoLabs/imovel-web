@@ -12,6 +12,7 @@ export const endpoint = {
   start: '/auth/start/',
   verify: '/auth/verify/',
   refresh: '/auth/refresh/',
+  me: '/me/',
   orders: '/orders/',
   plans: '/plans/',
 }

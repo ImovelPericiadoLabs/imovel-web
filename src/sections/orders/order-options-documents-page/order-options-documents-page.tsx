@@ -1,31 +1,21 @@
 'use client'
 
-import { Download, Info } from 'lucide-react'
-import OrderHeader from '@/sections/orders/order-header'
-import { useEffect, useState } from 'react'
-import { getOrder, Order } from '@/services/orders'
-import { useParams } from 'next/navigation'
 import Link from 'next/link'
+import { Download, Info } from 'lucide-react'
+import { useParams } from 'next/navigation'
+import { useQuery } from '@tanstack/react-query'
+import OrderHeader from '@/sections/orders/order-header'
+import { getOrder, orderQueryKey } from '@/services/orders'
 
 export default function OrderOptionsDocumentsPage() {
   const { id } = useParams()
-  const [order, setOrder] = useState<Order | null>(null)
+  const orderId = id as string
 
-  useEffect(() => {
-    async function fetchHeaderData() {
-      if (!id) return
-
-      try {
-        const data = await getOrder(id as string)
-        setOrder(data)
-      } catch (error) {
-        console.error('Erro ao carregar cabeçalho:', error)
-      }
-    }
-    fetchHeaderData()
-
-
-  }, [id])
+  const { data: order } = useQuery({
+    queryKey: orderQueryKey(orderId),
+    queryFn: () => getOrder(orderId),
+    enabled: !!orderId
+  })
 
 
   return (

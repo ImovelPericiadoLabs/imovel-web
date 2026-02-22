@@ -1,7 +1,8 @@
-export { 
+export {
   listOrders,
   listPlans,
   getOrder,
+  orderQueryKey,
 
   type Order,
   type OrderAnalysisResult,

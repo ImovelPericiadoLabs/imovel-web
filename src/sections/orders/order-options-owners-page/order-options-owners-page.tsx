@@ -1,33 +1,21 @@
 'use client'
 
 import { Info, User } from 'lucide-react'
+import { useParams } from 'next/navigation'
+import { useQuery } from '@tanstack/react-query'
 import OrderHeader from '@/sections/orders/order-header'
 import BadgeComponent from '@/components/badge'
-import { useParams } from 'next/navigation'
-import { useEffect, useState } from 'react'
-import { getOrder, Order } from '@/services/orders'
+import { getOrder, orderQueryKey } from '@/services/orders'
 
 export default function OrderOptionsOwnersPage() {
   const { id } = useParams()
-  const [order, setOrder] = useState<Order | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const orderId = id as string
 
-  useEffect(() => {
-    async function fetchData() {
-      if (!id) return
-
-      try {
-        const data = await getOrder(id as string)
-        setOrder(data)
-      } catch (error) {
-        console.error('Erro ao buscar pedido:', error)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    fetchData()
-  }, [id])
+  const { data: order, isLoading } = useQuery({
+    queryKey: orderQueryKey(orderId),
+    queryFn: () => getOrder(orderId),
+    enabled: !!orderId
+  })
 
   if (isLoading) {
     return (
