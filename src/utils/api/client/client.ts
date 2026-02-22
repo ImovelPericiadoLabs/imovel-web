@@ -1,5 +1,6 @@
 import { signOut } from 'next-auth/react'
 import { url } from '@/constants/api'
+import { ApiError } from '@/utils/api/errors'
 
 const apiUrl = url
 const INTERNAL_API_HEADER_NAME = process.env.INTERNAL_API_HEADER_NAME || 'x-internal-auth'
@@ -72,6 +73,24 @@ const api = {
     return result
   },
 
+  /**
+   * GET que retorna o corpo como Blob (ex.: PDF).
+   * pathOrUrl: caminho relativo (ex.: /analysis/pdfview/xxx) ou URL absoluta.
+   */
+  async getBlob(pathOrUrl: string, token?: string): Promise<Blob> {
+    const fullUrl = pathOrUrl.startsWith('http') ? pathOrUrl : `${apiUrl}${pathOrUrl}`
+    const headers: Record<string, string> = {}
+    if (token) headers['Authorization'] = `Bearer ${token}`
+    appendInternalApiHeader(headers, 'GET', pathOrUrl.startsWith('http') ? pathOrUrl : pathOrUrl)
+    const response = await fetch(fullUrl, { method: 'GET', headers })
+    if (response.status === 401) {
+      await handleUnauthorized()
+      throw new Error('Não autorizado')
+    }
+    if (!response.ok) throw new Error(`Erro ${response.status}`)
+    return response.blob()
+  },
+
   async post(url: string, rawBody: object, token?: string) {
     const isFormData = rawBody instanceof FormData
     const headers: Record<string, string> = {
@@ -109,6 +128,14 @@ const api = {
     if (response.status === 401) {
       await handleUnauthorized()
       throw result
+    }
+
+    if (response.status === 400 || response.status === 429) {
+      const err = result?.error
+      if (err && typeof err.code === 'string' && typeof err.message === 'string') {
+        throw new ApiError(err.code, err.message)
+      }
+      throw new Error(typeof result?.message === 'string' ? result.message : 'Erro na requisição')
     }
 
     return result

@@ -148,6 +148,8 @@ export function resolveListBadgeLabel(order: OrderLike) {
 
   if (!status) return '—'
 
+  if (status === 'REJECTED_DATA') return 'Dados rejeitados'
+
   if (status === 'FINISHED') {
     if (order.semaphore === 'green') return 'Tudo certo'
     if (order.semaphore === 'red') return 'Impeditivo de compra e venda'

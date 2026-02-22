@@ -52,9 +52,27 @@ export type ListAddressResponse = {
   addressComponents?: AddressComponent[]
 }
 
+/** Formato enviado/recebido no re-request (place_response). */
+export type PlaceResponseFromApi = {
+  formatted_address?: string
+  street_number?: string
+  route?: string
+  neighborhood?: string
+  sublocality?: string
+  city?: string
+  state?: string
+  country?: string
+  postal_code?: string
+  latitude?: number
+  longitude?: number
+}
+
 export type FormattedAddressResult = {
   address: string
   addressNumber: string | null
+  postalCode?: string | null
+  /** Montado a partir de addressComponents para enviar em re-request. */
+  place_response?: PlaceResponseFromApi
 }
 
 export async function listAddresses(address: string) {
@@ -122,10 +140,40 @@ export async function listAddress({
   const numberComponent = addressComponents.find((c) =>
     c.types.includes('street_number')
   )
+  const postalCodeComponent = addressComponents.find((c) =>
+    c.types.includes('postal_code')
+  )
+
+  const place_response = buildPlaceResponseFromComponents(
+    addressComponents,
+    finalAddress
+  )
 
   return {
     address: finalAddress,
     addressNumber: numberComponent?.longText || null,
+    postalCode: postalCodeComponent?.longText ?? null,
+    place_response,
+  }
+}
+
+function buildPlaceResponseFromComponents(
+  components: AddressComponent[],
+  formattedAddress: string
+): PlaceResponseFromApi {
+  const byType = (type: string) =>
+    components.find((c) => c.types.includes(type))?.longText ?? undefined
+  const postal = byType('postal_code')
+  return {
+    formatted_address: formattedAddress || undefined,
+    street_number: byType('street_number'),
+    route: byType('route'),
+    neighborhood: byType('neighborhood') || byType('sublocality'),
+    sublocality: byType('sublocality'),
+    city: byType('locality'),
+    state: byType('administrative_area_level_1'),
+    country: byType('country'),
+    postal_code: postal ? postal.replace(/\D/g, '').slice(0, 8) : undefined,
   }
 }
 

@@ -1,5 +1,5 @@
-import ConsultProperty from '@/sections/consult-property'
+import ConsultPropertyClient from './consult-property-client'
 
 export default function ConsultarImovelPage() {
-  return <ConsultProperty />
+  return <ConsultPropertyClient />
 }

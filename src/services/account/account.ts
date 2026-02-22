@@ -1,3 +1,4 @@
+import { getSessionDeduplicated } from '@/utils/session'
 import api from '@/utils/api/client'
 import { endpoint } from '@/constants/api'
 
@@ -70,5 +71,23 @@ export async function refreshToken(token: string) {
 
   const result = (await api.post(endpoint.refresh, data)) as RefreshTokenResponse
 
+  return result
+}
+
+export type MeResponse = {
+  email: string
+  credits_balance: number
+  whatsapp?: string
+}
+
+/**
+ * Dados do usuário autenticado (saldo de créditos, email, etc.).
+ * Endpoint: GET /me/
+ */
+export async function getMe(): Promise<MeResponse | null> {
+  const session = await getSessionDeduplicated()
+  const token = session?.accessToken
+  if (!token) return null
+  const result = (await api.get(endpoint.me, token)) as MeResponse
   return result
 }

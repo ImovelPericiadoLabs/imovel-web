@@ -1,6 +1,7 @@
 import api from '@/utils/api/client'
 import { endpoint } from '@/constants/api'
-import { getSession, signOut } from 'next-auth/react'
+import { signOut } from 'next-auth/react'
+import { getSessionDeduplicated } from '@/utils/session'
 
 async function handleUnauthorized() {
   if (typeof window === 'undefined') return
@@ -26,6 +27,21 @@ export type OrderAnalysisResult = {
   reason: string
 }
 
+/** Objeto de endereço usado na análise e no re-request (GET/POST). CEP 8 dígitos quando enviado. */
+export type PlaceResponse = {
+  formatted_address?: string
+  street_number?: string
+  route?: string
+  neighborhood?: string
+  sublocality?: string
+  city?: string
+  state?: string
+  country?: string
+  postal_code?: string
+  latitude?: number
+  longitude?: number
+}
+
 export type Order = {
   id: string
   code: number
@@ -41,7 +57,15 @@ export type Order = {
   lot_number?: string | null
   created: string
   modified: string
-  
+  can_rerequest?: boolean
+  document_response?: {
+    status?: string
+    onr_protocol?: string
+    return_reason?: string
+  }
+  /** Endereço usado na análise; preencher re-solicitação e permitir edição. */
+  place_response?: PlaceResponse | null
+
   owners?: OwnersDetails[]
   semaphore?: SemaphoreStatus
   analysis?: OrderAnalysisResult[]
@@ -100,7 +124,7 @@ export type OrdersApiResponse = {
 }
 
 async function guard<T>(callback: (token: string) => Promise<T>): Promise<T> {
-  const session = await getSession()
+  const session = await getSessionDeduplicated()
   const token = session?.accessToken
 
   if (!token) {
@@ -144,6 +168,9 @@ export async function listOrders(params: ListOrdersRequest = {}) {
   })
 }
 
+/** Query key para React Query: uso compartilhado entre OrderHeader, OrderOptionsPage, etc. */
+export const orderQueryKey = (orderId: string) => ['order', orderId] as const
+
 export async function getOrder(orderId: string) {
   return guard(async (token) => {
     const baseUrl = endpoint.orders.replace(/\/$/, '')
@@ -160,6 +187,53 @@ export async function getOrderAnalysisDetail(
   return guard(async (token) => {
     const url = `${endpoint.orders}${orderId}/analysis/${analysisId}/`
     return api.get(url, token) as Promise<OrderAnalysisDetail>
+  })
+}
+
+/**
+ * Retorna o PDF do relatório de análise (GET /analysis/pdfview/:orderId).
+ * Use para download com nome "Consulta #{order.code}.pdf".
+ */
+export async function getAnalysisPdfBlob(orderId: string): Promise<Blob> {
+  return guard(async (token) => {
+    return api.getBlob(endpoint.analysisPdfView(orderId), token)
+  })
+}
+
+/**
+ * Retorna o blob de um documento do pedido (file_path pode ser URL absoluta ou path).
+ * Use para download com nome correto (incluindo .pdf) e evitar arquivo sem extensão.
+ */
+export async function getDocumentBlob(filePath: string): Promise<Blob> {
+  return guard(async (token) => {
+    return api.getBlob(filePath, token)
+  })
+}
+
+export type ReRequestOrderBody = {
+  /** Se enviado, backend usa este objeto (não chama API de endereço). CEP validado 8 dígitos. */
+  place_response?: PlaceResponse
+  /** Opcional se place_response enviado; usado quando usuário escolhe outro endereço no autocomplete. */
+  place_id?: string
+  notary?: string
+  lot_number?: string
+  block_number?: string
+  lot_name?: string
+  tower?: string
+}
+
+/**
+ * Re-solicitar pedido. POST /orders/:orderId/re-request/
+ * 200: retorna o pedido atualizado.
+ * 400: api client lança ApiError (error.code, error.message).
+ */
+export async function rerequestOrder(
+  orderId: string,
+  body: ReRequestOrderBody = {}
+): Promise<Order> {
+  return guard(async (token) => {
+    const url = endpoint.reRequest(orderId)
+    return api.post(url, body, token) as Promise<Order>
   })
 }
 

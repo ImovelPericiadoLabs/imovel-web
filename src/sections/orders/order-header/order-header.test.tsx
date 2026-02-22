@@ -2,9 +2,21 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import OrderHeader from './order-header'
 import { useParams } from 'next/navigation'
 import { getOrder } from '@/services/orders'
+
+function wrapper({ children }: { children: React.ReactNode }) {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } }
+  })
+  return (
+    <QueryClientProvider client={queryClient}>
+      {children}
+    </QueryClientProvider>
+  )
+}
 
 vi.mock('next/navigation', () => ({
   useParams: vi.fn(),
@@ -12,6 +24,7 @@ vi.mock('next/navigation', () => ({
 
 vi.mock('@/services/orders', () => ({
   getOrder: vi.fn(),
+  orderQueryKey: (id: string) => ['order', id],
 }))
 
 vi.mock('@/utils/date', () => ({
@@ -53,7 +66,7 @@ describe('OrderHeader', () => {
     vi.mocked(useParams).mockReturnValue({ id: '1' })
     vi.mocked(getOrder).mockReturnValue(new Promise(() => {}))
 
-    const { container } = render(<OrderHeader />)
+    const { container } = render(<OrderHeader />, { wrapper })
     expect(container.querySelector('.animate-pulse')).toBeInTheDocument()
   })
 
@@ -61,7 +74,7 @@ describe('OrderHeader', () => {
     vi.mocked(useParams).mockReturnValue({ id: '1' })
     vi.mocked(getOrder).mockResolvedValue(mockOrder as any)
 
-    render(<OrderHeader />)
+    render(<OrderHeader />, { wrapper })
 
     await waitFor(() => {
       expect(screen.getByText('#000123')).toBeInTheDocument()
@@ -81,14 +94,14 @@ describe('OrderHeader', () => {
     vi.mocked(getOrder).mockResolvedValue({
       ...mockOrder,
       status: { value: 'APPROVED', label: 'Aprovado' },
-      semaphore: 'red' 
+      semaphore: 'red'
     } as any)
 
-    render(<OrderHeader />)
+    render(<OrderHeader />, { wrapper })
 
     await waitFor(() => {
-      // Como não é FINISHED, deve mostrar o label do status
-      expect(screen.getByText('Aprovado')).toBeInTheDocument()
+      // Status desconhecido (APPROVED não está em OrderStatus) usa fallback "—"
+      expect(screen.getByText('—')).toBeInTheDocument()
       // E não deve mostrar o semáforo
       expect(screen.queryByTestId('traffic-light')).not.toBeInTheDocument()
     })
@@ -104,7 +117,7 @@ describe('OrderHeader', () => {
       complement: undefined
     } as any)
 
-    render(<OrderHeader />)
+    render(<OrderHeader />, { wrapper })
 
     await waitFor(() => {
       expect(screen.getByText('Endereço não informado')).toBeInTheDocument()
@@ -117,29 +130,29 @@ describe('OrderHeader', () => {
 
   it('deve exibir mensagem de erro de pagamento se o status value for FAILED', async () => {
     vi.mocked(useParams).mockReturnValue({ id: '1' })
-    vi.mocked(getOrder).mockResolvedValue({ 
-      ...mockOrder, 
+    vi.mocked(getOrder).mockResolvedValue({
+      ...mockOrder,
       status: { value: 'FAILED', label: 'Falhou' },
       semaphore: undefined
     } as any)
 
-    render(<OrderHeader />)
+    render(<OrderHeader />, { wrapper })
 
     await waitFor(() => {
-      expect(screen.getByText('Pagamento Falhou')).toBeInTheDocument()
+      expect(screen.getByText('Pagamento falhou')).toBeInTheDocument()
     })
   })
 
   it('deve lidar com erro na chamada da API', async () => {
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
     vi.mocked(useParams).mockReturnValue({ id: '1' })
     vi.mocked(getOrder).mockRejectedValue(new Error('Erro API'))
 
-    render(<OrderHeader />)
+    render(<OrderHeader />, { wrapper })
 
     await waitFor(() => {
-      expect(consoleSpy).toHaveBeenCalledWith('Erro ao carregar cabeçalho:', expect.any(Error))
+      expect(getOrder).toHaveBeenCalledWith('1')
     })
-    consoleSpy.mockRestore()
+    // Com useQuery, em erro data fica undefined e o componente retorna null
+    expect(screen.queryByText('#000123')).not.toBeInTheDocument()
   })
 })

@@ -23,27 +23,28 @@ export default function VslPage() {
   const [remainingTime, setRemainingTime] = useState(0)
   const [isIntroAnimating, setIsIntroAnimating] = useState(false)
   const [isPageReady, setIsPageReady] = useState(false)
-  const [requiresLock] = useState(() => {
-    if (typeof window === 'undefined') return false
-    const params = new URLSearchParams(window.location.search)
-    return params.has('lock')
-  })
-  const [isUnlocked, setIsUnlocked] = useState(() => {
-    if (typeof window === 'undefined') return false
-    const params = new URLSearchParams(window.location.search)
-    const hasLockParam = params.has('lock')
-    if (!hasLockParam) return true
-    return localStorage.getItem('vsl-unlocked') === 'true'
-  })
+  const [requiresLock, setRequiresLock] = useState(false)
+  const [isUnlocked, setIsUnlocked] = useState(false)
   const [hasStartedAudio, setHasStartedAudio] = useState(false)
   const [isPlaying, setIsPlaying] = useState(false)
   const [isConsultActive, setIsConsultActive] = useState(false)
   const [isVideoReady, setIsVideoReady] = useState(false)
-  const [ctaTheme] = useState<'default' | 'yellow'>(() => {
-    if (typeof window === 'undefined') return 'default'
+  const [ctaTheme, setCtaTheme] = useState<'default' | 'yellow'>('default')
+
+  useEffect(() => {
     const params = new URLSearchParams(window.location.search)
-    return params.get('cta') === 'yellow' ? 'yellow' : 'default'
-  })
+    setRequiresLock(params.has('lock'))
+    setCtaTheme(params.get('cta') === 'yellow' ? 'yellow' : 'default')
+    if (!params.has('lock')) {
+      setIsUnlocked(true)
+    } else {
+      try {
+        setIsUnlocked(localStorage.getItem('vsl-unlocked') === 'true')
+      } catch {
+        setIsUnlocked(false)
+      }
+    }
+  }, [])
   const consultRef = useRef<ConsultPropertyHandle>(null)
   const touchHandledRef = useRef(false)
 

@@ -1,8 +1,9 @@
 'use client'
 
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useRef, useCallback } from 'react'
 import Link from 'next/link'
 import { ChevronRight, Inbox } from 'lucide-react'
+import { useInfiniteQuery } from '@tanstack/react-query'
 
 import TextTitle from '@/components/text-title'
 import Badge from '@/components/badge'
@@ -18,52 +19,41 @@ import {
   resolveListBadgeLabel
 } from '@/sections/orders/constants'
 
-export default function OrdersPage() {
-  const [orders, setOrders] = useState<Order[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [isFetchingMore, setIsFetchingMore] = useState(false)
-  const [page, setPage] = useState(1)
-  const [hasMore, setHasMore] = useState(true)
+const ORDERS_QUERY_KEY = ['orders'] as const
+const PAGE_SIZE = 10
 
+export default function OrdersPage() {
   const observerRef = useRef<IntersectionObserver | null>(null)
 
-  const fetchOrders = useCallback(async (targetPage: number) => {
-    if (targetPage === 1) {
-      setIsLoading(true)
-    } else {
-      setIsFetchingMore(true)
-    }
+  const {
+    data,
+    isLoading,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage
+  } = useInfiniteQuery({
+    queryKey: ORDERS_QUERY_KEY,
+    queryFn: ({ pageParam }) =>
+      listOrders({ limit: PAGE_SIZE, p: pageParam }),
+    initialPageParam: 1,
+    getNextPageParam: lastPage =>
+      lastPage.meta.has_next ? lastPage.meta.page + 1 : undefined
+  })
 
-    try {
-      const { items, meta } = await listOrders({ limit: 10, p: targetPage })
-      setOrders(prev => (targetPage === 1 ? items : [...prev, ...items]))
-      setHasMore(meta.has_next)
-    } catch (error) {
-      console.error('Erro ao buscar consultas:', error)
-    } finally {
-      setIsLoading(false)
-      setIsFetchingMore(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    fetchOrders(page)
-  }, [page, fetchOrders])
+  const orders: Order[] = data?.pages.flatMap(p => p.items) ?? []
 
   const lastOrderElementRef = useCallback(
     (node: HTMLElement | null) => {
-      if (isLoading || isFetchingMore || !hasMore) return
+      if (isLoading || isFetchingNextPage || !hasNextPage) return
       if (observerRef.current) observerRef.current.disconnect()
 
       observerRef.current = new IntersectionObserver(entries => {
-        if (entries[0].isIntersecting) {
-          setPage(prev => prev + 1)
-        }
+        if (entries[0].isIntersecting) fetchNextPage()
       })
 
       if (node) observerRef.current.observe(node)
     },
-    [isLoading, isFetchingMore, hasMore]
+    [isLoading, isFetchingNextPage, hasNextPage, fetchNextPage]
   )
 
   const renderEmptyState = () => (
@@ -99,7 +89,7 @@ export default function OrdersPage() {
             const dateLabel = isFinished ? 'Analisado em' : 'Solicitado em'
 
             return (
-              <div key={order.id} ref={isLast ? lastOrderElementRef : null}>
+              <div key={order.id} ref={isLast ? lastOrderElementRef : null} className="flex flex-col gap-2">
                 <Link
                   href={`/consultas/${order.id}/opcoes`}
                   className={cn(
@@ -132,7 +122,7 @@ export default function OrdersPage() {
                         )}
                       </p>
 
-                      <div className="mt-2 flex gap-2 items-center">
+                      <div className="mt-2 flex gap-2 items-center flex-wrap">
                         <Badge
                           variant={theme.variant}
                           className={cn(
@@ -142,6 +132,15 @@ export default function OrdersPage() {
                         >
                           {badgeLabel}
                         </Badge>
+
+                        {order.can_rerequest && (
+                          <Badge
+                            variant="warning"
+                            className="bg-amber-50 text-amber-800 border-amber-200 text-xs font-medium"
+                          >
+                            Pode re-solicitar
+                          </Badge>
+                        )}
 
                         {!!order.analysis?.length && (
                           <span className="text-[10px] text-gray-400">
@@ -167,14 +166,14 @@ export default function OrdersPage() {
         </div>
       )}
 
-      {isFetchingMore && (
+      {isFetchingNextPage && (
         <div className="flex justify-center py-6">
           <div className="w-6 h-6 border-2 border-gray-200 border-t-primary rounded-full animate-spin" />
         </div>
       )}
 
       <LoadingOverlay
-        isLoading={isLoading && page === 1}
+        isLoading={isLoading}
         message="Carregando consultas..."
       />
     </div>

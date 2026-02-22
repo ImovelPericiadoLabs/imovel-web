@@ -3,37 +3,25 @@
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { Info } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
 
 import { cn } from '@/utils/tailwind'
 import Badge from '@/components/badge'
 import OrderHeader from '@/sections/orders/order-header'
 
-import {
-  STATUS_THEME
-} from '@/sections/orders/constants'
-import { useEffect, useState } from 'react'
-import { getOrder, Order } from '@/services/orders'
-import { SemaphoreStatus } from '@/services/orders/orders'
+import { STATUS_THEME } from '@/sections/orders/constants'
+import { getOrder, orderQueryKey } from '@/services/orders'
+import type { SemaphoreStatus } from '@/services/orders/orders'
 
 export default function OrderPage() {
   const { id } = useParams()
+  const orderId = id as string
 
-  const [order, setOrder] = useState<Order | null>(null)
-
-  useEffect(() => {
-    async function fetchHeaderData() {
-      if (!id) return
-
-      try {
-        const data = await getOrder(id as string)
-        setOrder(data)
-      } catch (error) {
-        console.error('Erro ao carregar cabeçalho:', error)
-      }
-    }
-
-    fetchHeaderData()
-  }, [id])
+  const { data: order } = useQuery({
+    queryKey: orderQueryKey(orderId),
+    queryFn: () => getOrder(orderId),
+    enabled: !!orderId
+  })
 
 
   const SEMAPHORE_STATUS_THEME_MAP: Record<

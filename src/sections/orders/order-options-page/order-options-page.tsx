@@ -1,33 +1,23 @@
 'use client'
-import { useState, useEffect } from 'react'
+
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { ChevronRight, FileText, Files, Users, Info } from 'lucide-react'
+import { ChevronRight, FileText, Files, Users, Info, RotateCcw } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
 import OrderHeader from '@/sections/orders/order-header'
 import { cn } from '@/utils/tailwind'
 
-import { getOrder, Order } from '@/services/orders'
+import { getOrder, orderQueryKey } from '@/services/orders'
 
 export default function OrderOptionsPage() {
   const { id } = useParams()
-  const [order, setOrder] = useState<Order | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const orderId = id as string
 
-  useEffect(() => {
-    async function fetchData() {
-      if (!id) return
-      try {
-        const data = await getOrder(id as string)
-        setOrder(data)
-      } catch (error) {
-        console.error('Erro ao buscar pedido:', error)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    fetchData()
-  }, [id])
+  const { data: order, isLoading } = useQuery({
+    queryKey: orderQueryKey(orderId),
+    queryFn: () => getOrder(orderId),
+    enabled: !!orderId
+  })
 
   const buttons = [
     {
@@ -50,6 +40,17 @@ export default function OrderOptionsPage() {
     },
   ]
 
+  const returnReason = order?.document_response?.return_reason
+  const onrProtocol = order?.document_response?.onr_protocol
+  const statusValue = order?.status?.value
+  const statusLabel = order?.status?.label ?? statusValue
+
+  const inProgress =
+    statusValue === 'SEARCHING_DOCUMENT' || statusValue === 'IN_PROGRESS'
+  const showRerequest = order?.can_rerequest === true
+  const isCanceledOrRejected =
+    statusValue === 'CANCELED' || statusValue === 'REJECTED_DATA'
+
   if (isLoading) {
     return (
       <div className="flex flex-col gap-3">
@@ -61,14 +62,47 @@ export default function OrderOptionsPage() {
     )
   }
 
-  const isNotFinished = order?.status?.value !== 'FINISHED'
+  function renderOptionCards() {
+    return buttons.map((button) => (
+      <Link
+        key={button.title}
+        href={button.href}
+        className={cn(
+          'flex flex-col p-4 border border-box rounded-sm group transition-colors',
+          button.title === 'Resultado' ? 'border-primary' : 'hover:border-primary'
+        )}
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex gap-4 items-center">
+            <button.icon className="size-6 text-primary" />
+            <div className="flex flex-col gap-2">
+              <p
+                className={cn(
+                  'text-sm font-semibold leading-[130%]',
+                  button.title === 'Resultado'
+                    ? 'text-primary'
+                    : 'group-hover:text-primary'
+                )}
+              >
+                {button.title}
+              </p>
+              <p className="text-gray-2 text-xs font-normal leading-[130%] group-hover:text-primary">
+                {button.subtitle}
+              </p>
+            </div>
+          </div>
+          <ChevronRight className="size-6 text-primary" />
+        </div>
+      </Link>
+    ))
+  }
 
   return (
     <div className="flex flex-col gap-3">
       <OrderHeader />
 
       <div className="flex flex-col gap-2 px-3 lg:px-0 w-full mx-auto lg:max-w-lg">
-        {isNotFinished ? (
+        {inProgress ? (
           <div className="flex flex-col items-center justify-center p-6 border border-blue-100 rounded-2xl bg-blue-50/60 text-center gap-4 shadow-sm">
             <div className="bg-blue-100 p-3 rounded-full">
               <Info className="size-8 text-blue-600" />
@@ -78,47 +112,85 @@ export default function OrderOptionsPage() {
                 Consulta em Análise
               </h3>
               <p className="text-xs text-blue-700 leading-relaxed">
-                Esta consulta ainda está sendo processada pela nossa equipe. <br />
-                As opções de visualização serão liberadas em breve.
+                Esta consulta ainda está sendo processada pela nossa equipe. As
+                opções de visualização serão liberadas em breve.
               </p>
             </div>
           </div>
-        ) : (
-          buttons.map((button) => (
-
-            <Link
-              key={button.title}
-              href={button.href}
-              className={cn(
-                'flex flex-col p-4 border border-box rounded-sm group transition-colors',
-                button.title === "Resultado"
-                  ? 'border-primary'
-                  : 'hover:border-primary'
+        ) : statusValue === 'PENDING' ? (
+          <div className="flex flex-col items-center justify-center p-6 border border-gray-200 rounded-2xl bg-gray-50/80 text-center gap-4 shadow-sm">
+            <h3 className="text-sm font-semibold text-gray-900">Pendente</h3>
+            <p className="text-xs text-gray-600 leading-relaxed">
+              Sua solicitação foi recebida. O processamento será iniciado em
+              breve.
+            </p>
+          </div>
+        ) : statusValue === 'FINISHED' ? (
+          renderOptionCards()
+        ) : isCanceledOrRejected ? (
+          <>
+            <div className="p-4 border border-amber-200 rounded-xl bg-amber-50/80">
+              <h3 className="text-sm font-semibold text-amber-900 mb-2">
+                {statusLabel}
+              </h3>
+              {returnReason ? (
+                <p
+                  className={cn(
+                    'text-sm text-amber-900 leading-relaxed whitespace-pre-line',
+                    statusValue === 'REJECTED_DATA' &&
+                      'font-medium py-2 px-3 rounded-lg bg-amber-100/80 border border-amber-300'
+                  )}
+                >
+                  {returnReason}
+                </p>
+              ) : statusValue === 'CANCELED' ? (
+                <p className="text-sm text-amber-900 leading-relaxed">
+                  Esta consulta foi cancelada. Você pode re-solicitar usando seus
+                  créditos.
+                </p>
+              ) : (
+                <p className="text-sm text-amber-900 leading-relaxed">
+                  Não foi possível concluir a consulta. Você pode re-solicitar
+                  usando seus créditos, corrigindo ou complementando os dados.
+                </p>
               )}
-            >
+              {onrProtocol && (
+                <p className="text-xs text-amber-700 mt-2">
+                  Protocolo: {onrProtocol}
+                </p>
+              )}
+            </div>
 
-              <div className="flex items-center justify-between">
-                <div className="flex gap-4 items-center">
-                  <button.icon className="size-6 text-primary" />
-                  <div className="flex flex-col gap-2">
-                    <p
-                      className={cn(
-                        'text-sm font-semibold leading-[130%]',
-                        button.title === 'Resultado'
-                          ? 'text-primary'
-                          : 'group-hover:text-primary'
-                      )}
-                    >{button.title}
-                    </p>
-                    <p className="text-gray-2 text-xs font-normal leading-[130%] group-hover:text-primary">
-                      {button.subtitle}
-                    </p>
+            {showRerequest && (
+              <Link
+                href={`/consultas/${id}/opcoes/re-solicitar`}
+                className={cn(
+                  'flex flex-col p-4 border border-box rounded-sm group transition-colors hover:border-primary'
+                )}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex gap-4 items-center">
+                    <RotateCcw className="size-6 text-primary" />
+                    <div className="flex flex-col gap-2">
+                      <p className="text-sm font-semibold leading-[130%] group-hover:text-primary text-gray-900">
+                        Re-solicitar
+                      </p>
+                      <p className="text-gray-2 text-xs font-normal leading-[130%] group-hover:text-primary">
+                        Corrigir dados e solicitar novamente
+                      </p>
+                    </div>
                   </div>
+                  <ChevronRight className="size-6 text-primary" />
                 </div>
-                <ChevronRight className="size-6 text-primary" />
-              </div>
-            </Link>
-          ))
+              </Link>
+            )}
+          </>
+        ) : (
+          <div className="p-4 border border-gray-200 rounded-xl bg-gray-50/80">
+            <h3 className="text-sm font-semibold text-gray-900">
+              {statusLabel}
+            </h3>
+          </div>
         )}
       </div>
     </div>

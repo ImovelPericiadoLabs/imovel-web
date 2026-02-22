@@ -12,6 +12,10 @@ export const endpoint = {
   start: '/auth/start/',
   verify: '/auth/verify/',
   refresh: '/auth/refresh/',
+  me: '/me/',
   orders: '/orders/',
+  reRequest: (orderId: string) => `/orders/${orderId}/re-request/`,
   plans: '/plans/',
+  /** PDF do relatório de análise. GET com Bearer retorna application/pdf. Parâmetro: order ID. */
+  analysisPdfView: (orderId: string) => `/analysis/pdfview/${orderId}`,
 }

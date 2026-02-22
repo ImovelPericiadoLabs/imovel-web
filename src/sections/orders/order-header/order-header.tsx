@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
+import { useQuery } from '@tanstack/react-query'
 import { MapPin, Hash, Box, Layout, Package } from 'lucide-react'
 
 import TrafficLight from '@/components/traffic-light'
@@ -11,10 +11,7 @@ import { formatDateWithTime } from '@/utils/date'
 import { cn } from '@/utils/tailwind'
 import { SummaryItemsList, type SummaryItems } from '@/components/summary-items-list'
 
-// service
-import { getOrder, type Order } from '@/services/orders'
-
-// domínio (nível sênior)
+import { getOrder, orderQueryKey, type Order } from '@/services/orders'
 import {
   resolveOrderTheme,
   resolveBadgeLabel
@@ -26,25 +23,13 @@ type Props = {
 
 export default function OrderHeader({ Badge: ExtraBadge }: Props) {
   const { id } = useParams()
-  const [order, setOrder] = useState<Order | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const orderId = id as string
 
-  useEffect(() => {
-    async function fetchHeaderData() {
-      if (!id) return
-
-      try {
-        const data = await getOrder(id as string)
-        setOrder(data)
-      } catch (error) {
-        console.error('Erro ao carregar cabeçalho:', error)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    fetchHeaderData()
-  }, [id])
+  const { data: order, isLoading } = useQuery({
+    queryKey: orderQueryKey(orderId),
+    queryFn: () => getOrder(orderId),
+    enabled: !!orderId
+  })
 
   if (isLoading) {
     return (
