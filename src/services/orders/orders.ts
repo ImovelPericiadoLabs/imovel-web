@@ -26,6 +26,21 @@ export type OrderAnalysisResult = {
   reason: string
 }
 
+/** Objeto de endereço usado na análise e no re-request (GET/POST). CEP 8 dígitos quando enviado. */
+export type PlaceResponse = {
+  formatted_address?: string
+  street_number?: string
+  route?: string
+  neighborhood?: string
+  sublocality?: string
+  city?: string
+  state?: string
+  country?: string
+  postal_code?: string
+  latitude?: number
+  longitude?: number
+}
+
 export type Order = {
   id: string
   code: number
@@ -41,7 +56,15 @@ export type Order = {
   lot_number?: string | null
   created: string
   modified: string
-  
+  can_rerequest?: boolean
+  document_response?: {
+    status?: string
+    onr_protocol?: string
+    return_reason?: string
+  }
+  /** Endereço usado na análise; preencher re-solicitação e permitir edição. */
+  place_response?: PlaceResponse | null
+
   owners?: OwnersDetails[]
   semaphore?: SemaphoreStatus
   analysis?: OrderAnalysisResult[]
@@ -163,6 +186,33 @@ export async function getOrderAnalysisDetail(
   return guard(async (token) => {
     const url = `${endpoint.orders}${orderId}/analysis/${analysisId}/`
     return api.get(url, token) as Promise<OrderAnalysisDetail>
+  })
+}
+
+export type ReRequestOrderBody = {
+  /** Se enviado, backend usa este objeto (não chama API de endereço). CEP validado 8 dígitos. */
+  place_response?: PlaceResponse
+  /** Opcional se place_response enviado; usado quando usuário escolhe outro endereço no autocomplete. */
+  place_id?: string
+  notary?: string
+  lot_number?: string
+  block_number?: string
+  lot_name?: string
+  tower?: string
+}
+
+/**
+ * Re-solicitar pedido. POST /orders/:orderId/re-request/
+ * 200: retorna o pedido atualizado.
+ * 400: api client lança ApiError (error.code, error.message).
+ */
+export async function rerequestOrder(
+  orderId: string,
+  body: ReRequestOrderBody = {}
+): Promise<Order> {
+  return guard(async (token) => {
+    const url = endpoint.reRequest(orderId)
+    return api.post(url, body, token) as Promise<Order>
   })
 }
 

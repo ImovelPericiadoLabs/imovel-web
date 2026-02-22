@@ -14,5 +14,6 @@ export const endpoint = {
   refresh: '/auth/refresh/',
   me: '/me/',
   orders: '/orders/',
+  reRequest: (orderId: string) => `/orders/${orderId}/re-request/`,
   plans: '/plans/',
 }

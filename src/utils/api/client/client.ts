@@ -1,5 +1,6 @@
 import { signOut } from 'next-auth/react'
 import { url } from '@/constants/api'
+import { ApiError } from '@/utils/api/errors'
 
 const apiUrl = url
 const INTERNAL_API_HEADER_NAME = process.env.INTERNAL_API_HEADER_NAME || 'x-internal-auth'
@@ -109,6 +110,14 @@ const api = {
     if (response.status === 401) {
       await handleUnauthorized()
       throw result
+    }
+
+    if (response.status === 400 || response.status === 429) {
+      const err = result?.error
+      if (err && typeof err.code === 'string' && typeof err.message === 'string') {
+        throw new ApiError(err.code, err.message)
+      }
+      throw new Error(typeof result?.message === 'string' ? result.message : 'Erro na requisição')
     }
 
     return result

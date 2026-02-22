@@ -89,7 +89,7 @@ export default function OrdersPage() {
             const dateLabel = isFinished ? 'Analisado em' : 'Solicitado em'
 
             return (
-              <div key={order.id} ref={isLast ? lastOrderElementRef : null}>
+              <div key={order.id} ref={isLast ? lastOrderElementRef : null} className="flex flex-col gap-2">
                 <Link
                   href={`/consultas/${order.id}/opcoes`}
                   className={cn(
@@ -122,7 +122,7 @@ export default function OrdersPage() {
                         )}
                       </p>
 
-                      <div className="mt-2 flex gap-2 items-center">
+                      <div className="mt-2 flex gap-2 items-center flex-wrap">
                         <Badge
                           variant={theme.variant}
                           className={cn(
@@ -132,6 +132,15 @@ export default function OrdersPage() {
                         >
                           {badgeLabel}
                         </Badge>
+
+                        {order.can_rerequest && (
+                          <Badge
+                            variant="warning"
+                            className="bg-amber-50 text-amber-800 border-amber-200 text-xs font-medium"
+                          >
+                            Pode re-solicitar
+                          </Badge>
+                        )}
 
                         {!!order.analysis?.length && (
                           <span className="text-[10px] text-gray-400">

@@ -20,6 +20,7 @@ import AddressSummaryCard from '@/components/address-summary-card'
 
 import { processPayment, getPaymentStatus } from '@/services/payments'
 import { startAuth } from '@/services/account'
+import { ApiError } from '@/utils/api/errors'
 import { queryKey } from '@/constants/queries'
 import { validations, FormTypes } from './validations'
 import { trackGtmEvent, buildConsultItem, DEFAULT_CURRENCY, CONSULT_PRODUCT_PRICE } from '@/utils/analytics/gtm'
@@ -331,7 +332,9 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
             setStep('details')
           }
         } else {
-          setServerError('Erro ao processar pagamento. Tente novamente.')
+          setServerError(
+            error instanceof ApiError ? error.message : 'Erro ao processar pagamento. Tente novamente.'
+          )
           setStep('details')
         }
       } finally {
@@ -393,7 +396,10 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
       })
 
       setStep('pix')
-    } catch {
+    } catch (error) {
+      if (error instanceof ApiError) {
+        setServerError(error.message)
+      }
     } finally {
       setIsAuthLoading(false)
     }

@@ -1,1 +1,8 @@
-export { listAddresses, listRegistry, type Registry, listAddress } from './addresses'
+export {
+  listAddresses,
+  listRegistry,
+  listAddress,
+  type Registry,
+  type PlaceResponseFromApi,
+  type FormattedAddressResult
+} from './addresses'
