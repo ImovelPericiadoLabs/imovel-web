@@ -53,7 +53,7 @@ function getAutoIcon(content: React.ReactNode) {
   return null
 }
 
-export default function Button({ children, className, href, variant = 'primary', icon, ...rest }: ButtonProps) {
+export default function Button({ children, className, href, variant = 'primary', icon, type, ...rest }: ButtonProps) {
   
   const variants = {
     primary: 'bg-[var(--color-button-primary)] hover:bg-[var(--color-button-primary-hover)] text-white',
@@ -69,6 +69,7 @@ export default function Button({ children, className, href, variant = 'primary',
       disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:bg-gray-300 disabled:shadow-none
       flex items-center justify-center text-center decoration-0
       !shadow-[0_6px_0_rgba(11,27,58,0.8)] active:translate-y-1 active:!shadow-[0_2px_0_rgba(11,27,58,0.8)]
+      touch-manipulation
     `,
     variants[variant],
     className
@@ -89,6 +90,7 @@ export default function Button({ children, className, href, variant = 'primary',
 
   return (
     <button
+      type={type ?? 'button'}
       className={baseClasses}
       {...(rest as React.ButtonHTMLAttributes<HTMLButtonElement>)}
     >

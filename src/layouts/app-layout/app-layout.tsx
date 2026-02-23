@@ -77,21 +77,23 @@ export default function AppLayout({ children }: PropsWithChildren) {
     <Providers>
       <section className="min-h-screen bg-white pb-6">
         <header className="flex flex-col pt-4 px-4 bg-primary relative z-40">
-          <div className="flex items-center justify-between py-4.5 mb-6">
-            <div className="flex items-center justify-center gap-3.5">
+          <div className="flex items-center justify-between py-4.5 mb-6 relative">
+            <div className="flex items-center gap-3.5 min-w-0 flex-1 justify-start">
               <ChevronLeft
                 onClick={handleGoBack}
-                className="size-7 text-white cursor-pointer"
+                className="size-7 text-white cursor-pointer shrink-0 touch-manipulation"
                 role="button"
+                aria-label="Voltar"
               />
               {headerTitle}
             </div>
 
+            {/* Logo centralizada com posicionamento absoluto para não ser deslocada pelos créditos */}
             {pathname === '/consultas' && (
-              <div className="relative">
+              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
                 <Image
                   src="/images/logo.svg"
-                  alt="Logo"
+                  alt="Logo Imóvel Periciado"
                   width={72}
                   height={70}
                   className="object-contain -my-2.5"
@@ -99,15 +101,15 @@ export default function AppLayout({ children }: PropsWithChildren) {
               </div>
             )}
 
-            <div className="flex items-center gap-2">
-              <span className="text-white text-sm font-medium whitespace-nowrap">
+            <div className="flex items-center gap-2 min-w-0 flex-1 justify-end">
+              <span className="text-white text-sm font-medium whitespace-nowrap truncate max-w-[140px] sm:max-w-none">
                 {creditsLabel}
               </span>
               {isConsultas && (
                 <button
                   type="button"
                   onClick={() => setSidebarOpen(true)}
-                  className="p-1 text-white hover:opacity-80"
+                  className="p-1 text-white hover:opacity-80 shrink-0 touch-manipulation"
                   aria-label="Abrir menu"
                 >
                   <Menu className="size-7" />
@@ -137,7 +139,7 @@ export default function AppLayout({ children }: PropsWithChildren) {
                 <button
                   type="button"
                   onClick={() => setSidebarOpen(false)}
-                  className="p-2 text-gray-500 hover:text-gray-700 rounded-lg hover:bg-gray-100"
+                  className="p-2 text-gray-500 hover:text-gray-700 rounded-lg hover:bg-gray-100 touch-manipulation"
                   aria-label="Fechar"
                 >
                   <X className="size-5" />
@@ -152,7 +154,7 @@ export default function AppLayout({ children }: PropsWithChildren) {
                 <button
                   type="button"
                   onClick={handleLogout}
-                  className="flex items-center gap-2 w-full px-4 py-3 text-left text-red-600 hover:bg-red-50 rounded-lg font-medium"
+                  className="flex items-center gap-2 w-full px-4 py-3 text-left text-red-600 hover:bg-red-50 rounded-lg font-medium touch-manipulation"
                 >
                   <LogOut className="size-5" />
                   Sair da conta
