@@ -3,7 +3,8 @@
 import { PropsWithChildren, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { ChevronLeft, Menu, X, LogOut } from 'lucide-react'
+import { ChevronLeft, Menu, X, LogOut, Wallet, Mail, Search, List } from 'lucide-react'
+import Link from 'next/link'
 import { useSession } from 'next-auth/react'
 import { useQuery } from '@tanstack/react-query'
 import { signOut } from 'next-auth/react'
@@ -30,11 +31,6 @@ export default function AppLayout({ children }: PropsWithChildren) {
     queryFn: getMe,
     enabled: status === 'authenticated'
   })
-
-  const creditsLabel =
-    me != null && typeof me.credits_balance === 'number'
-      ? `Créditos: R$ ${formatCredits(me.credits_balance)}`
-      : 'Créditos: --'
 
   const isConsultas = pathname.startsWith('/consultas')
 
@@ -101,16 +97,13 @@ export default function AppLayout({ children }: PropsWithChildren) {
               </div>
             )}
 
-            <div className="flex items-center gap-2 min-w-0 flex-1 justify-end">
-              <span className="text-white text-sm font-medium whitespace-nowrap truncate max-w-[140px] sm:max-w-none">
-                {creditsLabel}
-              </span>
+            <div className="flex items-center min-w-0 flex-1 justify-end">
               {isConsultas && (
                 <button
                   type="button"
                   onClick={() => setSidebarOpen(true)}
                   className="p-1 text-white hover:opacity-80 shrink-0 touch-manipulation"
-                  aria-label="Abrir menu"
+                  aria-label="Abrir configurações"
                 >
                   <Menu className="size-7" />
                 </button>
@@ -145,10 +138,50 @@ export default function AppLayout({ children }: PropsWithChildren) {
                   <X className="size-5" />
                 </button>
               </div>
-              <div className="flex-1 p-4">
-                <p className="text-sm text-gray-600">
-                  Informações da conta e opções do aplicativo.
-                </p>
+              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                {/* Saldo de créditos */}
+                <div className="rounded-xl bg-primary/5 border border-primary/10 p-4">
+                  <div className="flex items-center gap-2 text-primary font-semibold mb-1">
+                    <Wallet className="size-5 shrink-0" />
+                    <span>Saldo de créditos</span>
+                  </div>
+                  <p className="text-xl font-bold text-gray-900 tabular-nums">
+                    {me != null && typeof me.credits_balance === 'number'
+                      ? `R$ ${formatCredits(me.credits_balance)}`
+                      : '--'}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Use para consultas e complementos de laudo.
+                  </p>
+                </div>
+
+                {/* E-mail da conta */}
+                {me?.email && (
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <Mail className="size-4 shrink-0 text-gray-400" />
+                    <span className="truncate">{me.email}</span>
+                  </div>
+                )}
+
+                {/* Links úteis */}
+                <nav className="space-y-1 pt-2">
+                  <Link
+                    href="/consultar-imovel"
+                    onClick={() => setSidebarOpen(false)}
+                    className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-gray-700 hover:bg-gray-100 font-medium touch-manipulation"
+                  >
+                    <Search className="size-5 text-primary shrink-0" />
+                    Nova consulta
+                  </Link>
+                  <Link
+                    href="/consultas"
+                    onClick={() => setSidebarOpen(false)}
+                    className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-gray-700 hover:bg-gray-100 font-medium touch-manipulation"
+                  >
+                    <List className="size-5 text-primary shrink-0" />
+                    Minhas consultas
+                  </Link>
+                </nav>
               </div>
               <div className="p-4 border-t border-gray-200">
                 <button
