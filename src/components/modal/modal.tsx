@@ -71,13 +71,13 @@ export default function Modal({ children, content, title, open, onClose }: Modal
 
           <div className="relative bg-white w-full h-full shadow-lg animate-slide-up flex flex-col overflow-hidden">
             <div className="flex flex-row items-center gap-1 mb-0 px-4 py-5 bg-primary text-white">
-              <button onClick={handleClose} className="cursor-pointer">
+              <button type="button" onClick={handleClose} className="cursor-pointer touch-manipulation">
                 <ChevronLeft className="size-7" />
               </button>
 
               <h2 className="text-sm font-semibold">{title}</h2>
 
-              <button onClick={handleClose} className="ml-auto cursor-pointer">
+              <button type="button" onClick={handleClose} className="ml-auto cursor-pointer touch-manipulation">
                 <X className="size-7" />
               </button>
             </div>

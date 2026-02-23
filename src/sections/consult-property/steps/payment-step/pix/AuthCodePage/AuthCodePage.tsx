@@ -103,7 +103,7 @@ export function AuthCodePage({ onBack, onSuccess }: AuthCodePageProps) {
 
     return (
         <div className="min-h-screen w-full bg-white fixed inset-0 z-50 flex flex-col items-center justify-start pt-8 px-4">
-            <button onClick={onBack} className="absolute top-6 left-4 p-2 rounded-full hover:bg-gray-100">
+            <button type="button" onClick={onBack} className="absolute top-6 left-4 p-2 rounded-full hover:bg-gray-100 touch-manipulation">
                 <ArrowLeft className="size-6 text-dark" />
             </button>
 

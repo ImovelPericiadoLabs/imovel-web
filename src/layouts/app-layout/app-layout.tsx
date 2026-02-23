@@ -3,7 +3,8 @@
 import { PropsWithChildren, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { ChevronLeft, Menu, X, LogOut } from 'lucide-react'
+import { ChevronLeft, Menu, X, LogOut, Wallet, Mail, Search, List } from 'lucide-react'
+import Link from 'next/link'
 import { useSession } from 'next-auth/react'
 import { useQuery } from '@tanstack/react-query'
 import { signOut } from 'next-auth/react'
@@ -30,11 +31,6 @@ export default function AppLayout({ children }: PropsWithChildren) {
     queryFn: getMe,
     enabled: status === 'authenticated'
   })
-
-  const creditsLabel =
-    me != null && typeof me.credits_balance === 'number'
-      ? `Créditos: R$ ${formatCredits(me.credits_balance)}`
-      : 'Créditos: --'
 
   const isConsultas = pathname.startsWith('/consultas')
 
@@ -77,21 +73,23 @@ export default function AppLayout({ children }: PropsWithChildren) {
     <Providers>
       <section className="min-h-screen bg-white pb-6">
         <header className="flex flex-col pt-4 px-4 bg-primary relative z-40">
-          <div className="flex items-center justify-between py-4.5 mb-6">
-            <div className="flex items-center justify-center gap-3.5">
+          <div className="flex items-center justify-between py-4.5 mb-6 relative">
+            <div className="flex items-center gap-3.5 min-w-0 flex-1 justify-start">
               <ChevronLeft
                 onClick={handleGoBack}
-                className="size-7 text-white cursor-pointer"
+                className="size-7 text-white cursor-pointer shrink-0 touch-manipulation"
                 role="button"
+                aria-label="Voltar"
               />
               {headerTitle}
             </div>
 
+            {/* Logo centralizada com posicionamento absoluto para não ser deslocada pelos créditos */}
             {pathname === '/consultas' && (
-              <div className="relative">
+              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
                 <Image
                   src="/images/logo.svg"
-                  alt="Logo"
+                  alt="Logo Imóvel Periciado"
                   width={72}
                   height={70}
                   className="object-contain -my-2.5"
@@ -99,16 +97,13 @@ export default function AppLayout({ children }: PropsWithChildren) {
               </div>
             )}
 
-            <div className="flex items-center gap-2">
-              <span className="text-white text-sm font-medium whitespace-nowrap">
-                {creditsLabel}
-              </span>
+            <div className="flex items-center min-w-0 flex-1 justify-end">
               {isConsultas && (
                 <button
                   type="button"
                   onClick={() => setSidebarOpen(true)}
-                  className="p-1 text-white hover:opacity-80"
-                  aria-label="Abrir menu"
+                  className="p-1 text-white hover:opacity-80 shrink-0 touch-manipulation"
+                  aria-label="Abrir configurações"
                 >
                   <Menu className="size-7" />
                 </button>
@@ -137,22 +132,62 @@ export default function AppLayout({ children }: PropsWithChildren) {
                 <button
                   type="button"
                   onClick={() => setSidebarOpen(false)}
-                  className="p-2 text-gray-500 hover:text-gray-700 rounded-lg hover:bg-gray-100"
+                  className="p-2 text-gray-500 hover:text-gray-700 rounded-lg hover:bg-gray-100 touch-manipulation"
                   aria-label="Fechar"
                 >
                   <X className="size-5" />
                 </button>
               </div>
-              <div className="flex-1 p-4">
-                <p className="text-sm text-gray-600">
-                  Informações da conta e opções do aplicativo.
-                </p>
+              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                {/* Saldo de créditos */}
+                <div className="rounded-xl bg-primary/5 border border-primary/10 p-4">
+                  <div className="flex items-center gap-2 text-primary font-semibold mb-1">
+                    <Wallet className="size-5 shrink-0" />
+                    <span>Saldo de créditos</span>
+                  </div>
+                  <p className="text-xl font-bold text-gray-900 tabular-nums">
+                    {me != null && typeof me.credits_balance === 'number'
+                      ? `R$ ${formatCredits(me.credits_balance)}`
+                      : '--'}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Use para consultas e complementos de laudo.
+                  </p>
+                </div>
+
+                {/* E-mail da conta */}
+                {me?.email && (
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <Mail className="size-4 shrink-0 text-gray-400" />
+                    <span className="truncate">{me.email}</span>
+                  </div>
+                )}
+
+                {/* Links úteis */}
+                <nav className="space-y-1 pt-2">
+                  <Link
+                    href="/consultar-imovel"
+                    onClick={() => setSidebarOpen(false)}
+                    className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-gray-700 hover:bg-gray-100 font-medium touch-manipulation"
+                  >
+                    <Search className="size-5 text-primary shrink-0" />
+                    Nova consulta
+                  </Link>
+                  <Link
+                    href="/consultas"
+                    onClick={() => setSidebarOpen(false)}
+                    className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-gray-700 hover:bg-gray-100 font-medium touch-manipulation"
+                  >
+                    <List className="size-5 text-primary shrink-0" />
+                    Minhas consultas
+                  </Link>
+                </nav>
               </div>
               <div className="p-4 border-t border-gray-200">
                 <button
                   type="button"
                   onClick={handleLogout}
-                  className="flex items-center gap-2 w-full px-4 py-3 text-left text-red-600 hover:bg-red-50 rounded-lg font-medium"
+                  className="flex items-center gap-2 w-full px-4 py-3 text-left text-red-600 hover:bg-red-50 rounded-lg font-medium touch-manipulation"
                 >
                   <LogOut className="size-5" />
                   Sair da conta
