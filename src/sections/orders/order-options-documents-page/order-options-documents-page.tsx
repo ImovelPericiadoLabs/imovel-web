@@ -59,6 +59,11 @@ export default function OrderOptionsDocumentsPage() {
   }
 
   const handleDownloadDocument = async (doc: Document) => {
+    const isSignedUrl = doc.file_path.startsWith('http://') || doc.file_path.startsWith('https://')
+    if (isSignedUrl) {
+      window.open(doc.file_path, '_blank', 'noopener,noreferrer')
+      return
+    }
     setLoadingDocId(doc.id)
     try {
       const blob = await getDocumentBlob(doc.file_path)
