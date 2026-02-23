@@ -104,6 +104,17 @@ export default function VslPage() {
     return () => cancelAnimationFrame(raf)
   }, [isVideoReady])
 
+  // Timeout de segurança: se o vídeo não carregar em 10s, libera a experiência (evita "Carregando..." travado)
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      setIsVideoReady((prev) => {
+        if (!prev) return true
+        return prev
+      })
+    }, 10000)
+    return () => window.clearTimeout(timeout)
+  }, [])
+
   useEffect(() => {
     if (!isIntroAnimating) return
     const timer = window.setTimeout(() => {
@@ -142,6 +153,10 @@ export default function VslPage() {
     }
     setRemainingTime(Math.ceil(e.currentTarget.duration))
   }
+
+  const handleVideoError = useCallback(() => {
+    setIsVideoReady(true)
+  }, [])
 
   const handleUnmute = useCallback(() => {
     const video = videoRef.current
@@ -251,6 +266,7 @@ export default function VslPage() {
             poster="/images/logo.png"
             onTimeUpdate={handleTimeUpdate}
             onLoadedMetadata={handleLoadedMetadata}
+            onError={handleVideoError}
             onCanPlay={() => {
               attemptAutoplay()
             }}
