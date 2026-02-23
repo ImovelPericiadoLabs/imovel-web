@@ -132,6 +132,8 @@ export function resolveBadgeLabel(order: OrderLike) {
     return SEMAPHORE_CONFIG[order.semaphore].label
   }
 
+  if (order.status?.label) return order.status.label
+
   if (isOrderStatus(status) && status !== 'FINISHED') {
     return STATUS_LABEL[status]
   }
@@ -149,6 +151,7 @@ export function resolveListBadgeLabel(order: OrderLike) {
   if (!status) return '—'
 
   if (status === 'REJECTED_DATA') return 'Dados rejeitados'
+  if (status === 'RETURNED_BY_NOTARY') return 'Devolvido pelo cartório'
 
   if (status === 'FINISHED') {
     if (order.semaphore === 'green') return 'Tudo certo'
@@ -170,9 +173,18 @@ export function resolveDetailBadgeLabel(order: OrderLike) {
     return SEMAPHORE_CONFIG[order.semaphore].label
   }
 
+  if (order.status?.label) return order.status.label
+
   if (isOrderStatus(status) && status !== 'FINISHED') {
     return STATUS_LABEL[status]
   }
 
   return '—'
 }
+
+/** Status que não mostram "Consulta em Análise" e podem mostrar Re-solicitar (quando can_rerequest). */
+export const REREQUESTABLE_STATUS_VALUES = [
+  'CANCELED',
+  'REJECTED_DATA',
+  'RETURNED_BY_NOTARY'
+] as const

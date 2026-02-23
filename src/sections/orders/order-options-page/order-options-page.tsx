@@ -8,6 +8,7 @@ import OrderHeader from '@/sections/orders/order-header'
 import { cn } from '@/utils/tailwind'
 
 import { getOrder, orderQueryKey } from '@/services/orders'
+import { REREQUESTABLE_STATUS_VALUES } from '@/sections/orders/constants'
 
 export default function OrderOptionsPage() {
   const { id } = useParams()
@@ -48,8 +49,11 @@ export default function OrderOptionsPage() {
   const inProgress =
     statusValue === 'SEARCHING_DOCUMENT' || statusValue === 'IN_PROGRESS'
   const showRerequest = order?.can_rerequest === true
-  const isCanceledOrRejected =
-    statusValue === 'CANCELED' || statusValue === 'REJECTED_DATA'
+  const isFinalWithRerequest =
+    statusValue != null &&
+    REREQUESTABLE_STATUS_VALUES.includes(
+      statusValue as (typeof REREQUESTABLE_STATUS_VALUES)[number]
+    )
 
   if (isLoading) {
     return (
@@ -127,7 +131,7 @@ export default function OrderOptionsPage() {
           </div>
         ) : statusValue === 'FINISHED' ? (
           renderOptionCards()
-        ) : isCanceledOrRejected ? (
+        ) : isFinalWithRerequest ? (
           <>
             <div className="p-4 border border-amber-200 rounded-xl bg-amber-50/80">
               <h3 className="text-sm font-semibold text-amber-900 mb-2">
@@ -137,7 +141,8 @@ export default function OrderOptionsPage() {
                 <p
                   className={cn(
                     'text-sm text-amber-900 leading-relaxed whitespace-pre-line',
-                    statusValue === 'REJECTED_DATA' &&
+                    (statusValue === 'REJECTED_DATA' ||
+                      statusValue === 'RETURNED_BY_NOTARY') &&
                       'font-medium py-2 px-3 rounded-lg bg-amber-100/80 border border-amber-300'
                   )}
                 >
@@ -147,6 +152,11 @@ export default function OrderOptionsPage() {
                 <p className="text-sm text-amber-900 leading-relaxed">
                   Esta consulta foi cancelada. Você pode re-solicitar usando seus
                   créditos.
+                </p>
+              ) : statusValue === 'RETURNED_BY_NOTARY' ? (
+                <p className="text-sm text-amber-900 leading-relaxed">
+                  Justificativa não disponível. Você pode re-solicitar usando
+                  seus créditos.
                 </p>
               ) : (
                 <p className="text-sm text-amber-900 leading-relaxed">
