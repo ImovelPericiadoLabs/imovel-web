@@ -105,6 +105,16 @@ export default function VslPage() {
   }, [isVideoReady])
 
   useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      setIsVideoReady((prev) => {
+        if (!prev) return true
+        return prev
+      })
+    }, 1000)
+    return () => window.clearTimeout(timeout)
+  }, [])
+
+  useEffect(() => {
     if (!isIntroAnimating) return
     const timer = window.setTimeout(() => {
       setIsIntroAnimating(false)
@@ -142,6 +152,10 @@ export default function VslPage() {
     }
     setRemainingTime(Math.ceil(e.currentTarget.duration))
   }
+
+  const handleVideoError = useCallback(() => {
+    setIsVideoReady(true)
+  }, [])
 
   const handleUnmute = useCallback(() => {
     const video = videoRef.current
@@ -251,6 +265,7 @@ export default function VslPage() {
             poster="/images/logo.png"
             onTimeUpdate={handleTimeUpdate}
             onLoadedMetadata={handleLoadedMetadata}
+            onError={handleVideoError}
             onCanPlay={() => {
               attemptAutoplay()
             }}
