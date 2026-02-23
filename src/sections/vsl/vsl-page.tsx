@@ -104,14 +104,13 @@ export default function VslPage() {
     return () => cancelAnimationFrame(raf)
   }, [isVideoReady])
 
-  // Timeout de segurança: se o vídeo não carregar em 10s, libera a experiência (evita "Carregando..." travado)
   useEffect(() => {
     const timeout = window.setTimeout(() => {
       setIsVideoReady((prev) => {
         if (!prev) return true
         return prev
       })
-    }, 10000)
+    }, 1000)
     return () => window.clearTimeout(timeout)
   }, [])
 
