@@ -3,14 +3,40 @@ import { notFound } from 'next/navigation'
 import LegalDocument from '@/components/legal/legal-document'
 import { getLegalDocument, legalDocuments, type LegalDocumentSlug } from '@/constants/legal'
 
+export const dynamic = 'force-dynamic'
+
 type LegalDocumentPageProps = {
-  params: {
+  params: Promise<{
     slug: string
-  }
+  }>
 }
 
-export function generateMetadata({ params }: { params: { slug: string } }): Metadata {
-  const document = getLegalDocument(params.slug)
+function normalizeBaseUrl(value: string) {
+  return value.replace(/\/$/, '')
+}
+
+async function fetchLegalDocumentHtml(slug: string) {
+  const baseUrl = process.env.LEGAL_BACKEND_URL
+    || process.env.NEXT_PUBLIC_API_URL?.replace(/\/v1\/?$/, '')
+    || 'https://api.imovelpericiado.com'
+
+  const response = await fetch(`${normalizeBaseUrl(baseUrl)}/legal/${slug}/`, {
+    cache: 'no-store',
+    headers: {
+      Accept: 'text/html',
+    },
+  })
+
+  if (!response.ok) {
+    throw new Error(`Falha ao carregar documento legal ${slug}`)
+  }
+
+  return response.text()
+}
+
+export async function generateMetadata({ params }: LegalDocumentPageProps): Promise<Metadata> {
+  const { slug } = await params
+  const document = getLegalDocument(slug)
 
   if (!document) {
     return {
@@ -34,14 +60,16 @@ export function generateStaticParams() {
   }))
 }
 
-export default function LegalDocumentPage({ params }: LegalDocumentPageProps) {
-  const { slug } = params
+export default async function LegalDocumentPage({ params }: LegalDocumentPageProps) {
+  const { slug } = await params
   const document = getLegalDocument(slug)
 
   if (!document) {
     notFound()
   }
 
-  return <LegalDocument slug={document.slug as LegalDocumentSlug} />
+  const contentHtml = await fetchLegalDocumentHtml(document.slug)
+
+  return <LegalDocument slug={document.slug as LegalDocumentSlug} contentHtml={contentHtml} />
 }
 

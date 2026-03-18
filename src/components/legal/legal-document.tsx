@@ -2,17 +2,17 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, ExternalLink, LoaderCircle, RotateCcw, ShieldCheck } from 'lucide-react'
-import { legalDocuments, type LegalDocumentSlug, getLegalRoute, getLegalSourceUrl } from '@/constants/legal'
+import { ArrowLeft, ShieldCheck } from 'lucide-react'
+import { legalDocuments, type LegalDocumentSlug, getLegalRoute } from '@/constants/legal'
 
 type LegalDocumentProps = {
   slug: LegalDocumentSlug
+  contentHtml: string
 }
 
-export default function LegalDocument({ slug }: LegalDocumentProps) {
+export default function LegalDocument({ slug, contentHtml }: LegalDocumentProps) {
   const [isLoaded, setIsLoaded] = useState(false)
   const document = useMemo(() => legalDocuments.find((item) => item.slug === slug) ?? legalDocuments[0], [slug])
-  const sourceUrl = getLegalSourceUrl(document.slug)
 
   return (
     <section className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(10,26,54,0.08),_transparent_35%),linear-gradient(180deg,#f8fafc_0%,#ffffff_100%)]">
@@ -22,7 +22,7 @@ export default function LegalDocument({ slug }: LegalDocumentProps) {
             <div className="space-y-2">
               <div className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">
                 <ShieldCheck className="size-3.5" />
-                Conteúdo legal
+                Documento oficial
               </div>
               <div className="space-y-1">
                 <h1 className="text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">
@@ -35,15 +35,6 @@ export default function LegalDocument({ slug }: LegalDocumentProps) {
             </div>
 
             <div className="flex flex-wrap gap-3">
-              <a
-                href={sourceUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-              >
-                <ExternalLink className="size-4" />
-                Abrir origem
-              </a>
               <Link
                 href="/legal"
                 className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-white transition hover:opacity-95"
@@ -79,30 +70,38 @@ export default function LegalDocument({ slug }: LegalDocumentProps) {
               </div>
             </aside>
 
-            <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-slate-950 shadow-[0_30px_80px_rgba(2,6,23,0.15)]">
-              <div className="flex items-center justify-between border-b border-white/10 px-4 py-3 text-xs font-medium uppercase tracking-[0.18em] text-white/70">
-                <span>Espelho do backend</span>
-                <span className="inline-flex items-center gap-2">
-                  {isLoaded ? <RotateCcw className="size-3.5" /> : <LoaderCircle className="size-3.5 animate-spin" />}
-                  {isLoaded ? 'Atualizado' : 'Carregando'}
-                </span>
+            <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-[0_30px_80px_rgba(2,6,23,0.10)]">
+              <div className="border-b border-slate-200 px-4 py-3 text-xs font-medium uppercase tracking-[0.18em] text-slate-500">
+                Documento
               </div>
 
-              <div className="relative bg-white">
+              <div className="relative min-h-[78vh] bg-white">
                 {!isLoaded && (
-                  <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/90">
-                    <div className="flex items-center gap-3 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm">
-                      <LoaderCircle className="size-4 animate-spin text-primary" />
-                      Sincronizando conteúdo legal
+                  <div className="absolute inset-0 z-10 p-4">
+                    <div className="h-full rounded-[20px] border border-slate-200 bg-slate-50 p-5">
+                      <div className="animate-pulse space-y-4">
+                        <div className="h-4 w-36 rounded-full bg-slate-200" />
+                        <div className="h-8 w-3/4 rounded-xl bg-slate-200" />
+                        <div className="space-y-3 pt-2">
+                          <div className="h-3 w-full rounded-full bg-slate-200" />
+                          <div className="h-3 w-11/12 rounded-full bg-slate-200" />
+                          <div className="h-3 w-10/12 rounded-full bg-slate-200" />
+                          <div className="h-3 w-9/12 rounded-full bg-slate-200" />
+                          <div className="h-3 w-8/12 rounded-full bg-slate-200" />
+                        </div>
+                        <div className="grid gap-3 pt-4">
+                          <div className="h-24 rounded-2xl bg-white shadow-sm ring-1 ring-slate-200" />
+                          <div className="h-24 rounded-2xl bg-white shadow-sm ring-1 ring-slate-200" />
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}
                 <iframe
                   title={document.title}
-                  src={sourceUrl}
+                  srcDoc={contentHtml}
                   className="h-[78vh] w-full bg-white"
                   loading="lazy"
-                  referrerPolicy="no-referrer"
                   onLoad={() => setIsLoaded(true)}
                 />
               </div>
