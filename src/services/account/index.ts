@@ -3,11 +3,14 @@ export {
   verifyAuth,
   refreshToken,
   getMe,
+  requestAccountDeletion,
   type StartAuthRequest,
   type StartAuthResponse,
   type VerifyAuthRequest,
   type VerifyAuthResponse,
   type RefreshTokenRequest,
   type RefreshTokenResponse,
-  type MeResponse
+  type MeResponse,
+  type RequestAccountDeletionRequest,
+  type RequestAccountDeletionResponse,
 } from './account'

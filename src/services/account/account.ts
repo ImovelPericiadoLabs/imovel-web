@@ -91,3 +91,60 @@ export async function getMe(): Promise<MeResponse | null> {
   const result = (await api.get(endpoint.me, token)) as MeResponse
   return result
 }
+
+export type RequestAccountDeletionRequest = {
+  email: string
+  reason?: string
+}
+
+export type RequestAccountDeletionResponse = {
+  detail: string
+  email?: string
+}
+
+function getLegalBackendBaseUrl() {
+  const baseUrl = process.env.LEGAL_BACKEND_URL
+    || process.env.NEXT_PUBLIC_API_URL?.replace(/\/v1\/?$/, '')
+    || 'https://api.imovelpericiado.com'
+
+  return baseUrl.replace(/\/$/, '')
+}
+
+export async function requestAccountDeletion({
+  email,
+  reason,
+}: RequestAccountDeletionRequest): Promise<RequestAccountDeletionResponse> {
+  const session = await getSessionDeduplicated()
+  const token = session?.accessToken
+
+  if (!token) {
+    throw new Error('Usuário não autenticado.')
+  }
+
+  const response = await fetch(`${getLegalBackendBaseUrl()}/legal/exclusao-de-dados/callback/`, {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      email,
+      reason,
+    }),
+  })
+
+  const payload = await response.json().catch(async () => ({
+    detail: await response.text(),
+  }))
+
+  if (!response.ok) {
+    throw new Error(
+      typeof payload?.detail === 'string'
+        ? payload.detail
+        : 'Não foi possível processar a exclusão da conta.',
+    )
+  }
+
+  return payload as RequestAccountDeletionResponse
+}
