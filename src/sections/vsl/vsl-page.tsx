@@ -4,12 +4,14 @@ import { useState, useRef, useCallback, useEffect } from 'react'
 import { flushSync } from 'react-dom'
 import { ArrowDown, Home } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import Image from 'next/image'
 import Button from '@/components/button'
 import LoadingOverlay from '@/components/loading-overlay'
 import type { ConsultPropertyHandle } from '@/sections/consult-property/consult-property'
 import { trackGtmEvent } from '@/utils/analytics/gtm'
+import { legalDocuments, getLegalRoute } from '@/constants/legal'
 
 const ConsultProperty = dynamic(() => import('@/sections/consult-property'), {
   ssr: false,
@@ -371,6 +373,17 @@ export default function VslPage() {
                 >
                   CNPJ 50.199.038/0001-03 • LGPD
                 </p>
+                <div className="pointer-events-auto flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-[11px] text-white/85">
+                  {legalDocuments.map((document) => (
+                    <Link
+                      key={document.slug}
+                      href={getLegalRoute(document.slug)}
+                      className="font-medium underline decoration-white/30 underline-offset-4 transition hover:text-white hover:decoration-white"
+                    >
+                      {document.title}
+                    </Link>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
