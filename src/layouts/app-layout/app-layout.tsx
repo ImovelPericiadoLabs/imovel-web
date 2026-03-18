@@ -1,17 +1,18 @@
 'use client'
 
-import { PropsWithChildren, useMemo, useState } from 'react'
+import { PropsWithChildren, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { ChevronLeft, Menu, X, LogOut, Wallet, Mail, Search, List, FileText } from 'lucide-react'
+import { ChevronLeft, Menu, X, LogOut, Wallet, Mail, Search, List, FileText, Trash2, AlertTriangle, LoaderCircle } from 'lucide-react'
 import Link from 'next/link'
 import { useSession } from 'next-auth/react'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { signOut } from 'next-auth/react'
 import HeaderTitle from '@/components/header-title'
+import Modal from '@/components/modal'
 import useIsRouteMatch from '@/hooks/use-is-router-match'
 import { Providers } from '@/providers/'
-import { getMe, type MeResponse } from '@/services/account'
+import { getMe, requestAccountDeletion, type MeResponse } from '@/services/account'
 import { legalDocuments, getLegalRoute } from '@/constants/legal'
 
 function formatCredits(value: number) {
@@ -24,8 +25,14 @@ function formatCredits(value: number) {
 export default function AppLayout({ children }: PropsWithChildren) {
   const { push, back } = useRouter()
   const { isMatch, pathname } = useIsRouteMatch()
-  const { status } = useSession()
+  const { status, data: session } = useSession()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [deletionOpen, setDeletionOpen] = useState(false)
+  const [deletionEmail, setDeletionEmail] = useState('')
+  const [deletionReason, setDeletionReason] = useState('')
+  const [deletionAcknowledged, setDeletionAcknowledged] = useState(false)
+  const [deletionError, setDeletionError] = useState<string | null>(null)
+  const holdTimerRef = useRef<number | null>(null)
 
   const { data: me } = useQuery<MeResponse | null>({
     queryKey: ['me'],
@@ -33,7 +40,24 @@ export default function AppLayout({ children }: PropsWithChildren) {
     enabled: status === 'authenticated'
   })
 
+  const deletionMutation = useMutation({
+    mutationFn: requestAccountDeletion,
+    onSuccess: async (response) => {
+      setDeletionError(null)
+      if (typeof window !== 'undefined') {
+        window.setTimeout(() => {
+          void signOut({ redirect: true, callbackUrl: '/consultar-imovel' })
+        }, 1200)
+      }
+      return response
+    },
+    onError: (error: unknown) => {
+      setDeletionError(error instanceof Error ? error.message : 'Não foi possível excluir a conta.')
+    },
+  })
+
   const isConsultas = pathname.startsWith('/consultas')
+  const currentEmail = me?.email ?? session?.user?.email ?? ''
 
   function handleGoBack() {
     const mapRoutes: Record<string, string> = {
@@ -49,6 +73,51 @@ export default function AppLayout({ children }: PropsWithChildren) {
   function handleLogout() {
     setSidebarOpen(false)
     signOut({ redirect: true, callbackUrl: '/consultas' })
+  }
+
+  const openDeletionModal = useCallback(() => {
+    setDeletionEmail(currentEmail)
+    setDeletionReason('')
+    setDeletionAcknowledged(false)
+    setDeletionError(null)
+    setDeletionOpen(true)
+  }, [currentEmail])
+
+  const clearHoldTimer = useCallback(() => {
+    if (holdTimerRef.current) {
+      window.clearTimeout(holdTimerRef.current)
+      holdTimerRef.current = null
+    }
+  }, [])
+
+  const startHoldTimer = useCallback(() => {
+    clearHoldTimer()
+    holdTimerRef.current = window.setTimeout(() => {
+      openDeletionModal()
+    }, 1200)
+  }, [clearHoldTimer, openDeletionModal])
+
+  useEffect(() => {
+    return () => {
+      clearHoldTimer()
+    }
+  }, [clearHoldTimer])
+
+  const canConfirmDeletion =
+    deletionEmail.trim().toLowerCase() === currentEmail.trim().toLowerCase() &&
+    deletionAcknowledged &&
+    !deletionMutation.isPending
+
+  const handleConfirmDeletion = async () => {
+    if (!currentEmail) {
+      setDeletionError('Não foi possível identificar seu e-mail.')
+      return
+    }
+
+    await deletionMutation.mutateAsync({
+      email: currentEmail,
+      reason: deletionReason.trim(),
+    })
   }
 
   const headerTitle = useMemo(() => {
@@ -158,10 +227,19 @@ export default function AppLayout({ children }: PropsWithChildren) {
 
                 {/* E-mail da conta */}
                 {me?.email && (
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <button
+                    type="button"
+                    onPointerDown={startHoldTimer}
+                    onPointerUp={clearHoldTimer}
+                    onPointerCancel={clearHoldTimer}
+                    onPointerLeave={clearHoldTimer}
+                    onDoubleClick={openDeletionModal}
+                    className="flex w-full items-center gap-2 text-left text-sm text-gray-600 touch-manipulation"
+                    aria-label="Informações da conta"
+                  >
                     <Mail className="size-4 shrink-0 text-gray-400" />
                     <span className="truncate">{me.email}</span>
-                  </div>
+                  </button>
                 )}
 
                 {/* Links úteis */}
@@ -216,6 +294,100 @@ export default function AppLayout({ children }: PropsWithChildren) {
             </aside>
           </>
         )}
+
+        <Modal
+          open={deletionOpen}
+          onClose={() => setDeletionOpen(false)}
+          title="Desativar conta"
+          content={
+            <div className="flex min-h-full flex-col bg-white">
+              <div className="border-b border-gray-200 px-4 py-4 sm:px-6">
+                <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-950">
+                  <AlertTriangle className="mt-0.5 size-5 shrink-0 text-amber-600" />
+                  <div className="space-y-1">
+                    <p className="font-semibold">Atenção</p>
+                    <p className="text-sm leading-6 text-amber-900">
+                      Esta ação desativa sua conta imediatamente. Você precisará confirmar o e-mail da conta e informar o motivo.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex-1 space-y-4 px-4 py-5 sm:px-6">
+                <div>
+                  <label htmlFor="delete-account-email" className="mb-2 block text-sm font-medium text-gray-900">
+                    Digite seu e-mail para confirmar
+                  </label>
+                  <input
+                    id="delete-account-email"
+                    type="email"
+                    value={deletionEmail}
+                    onChange={(event) => setDeletionEmail(event.target.value)}
+                    placeholder={currentEmail}
+                    className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-primary"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="delete-account-reason" className="mb-2 block text-sm font-medium text-gray-900">
+                    Motivo da solicitação
+                  </label>
+                  <textarea
+                    id="delete-account-reason"
+                    value={deletionReason}
+                    onChange={(event) => setDeletionReason(event.target.value)}
+                    placeholder="Opcional: descreva brevemente o motivo"
+                    rows={4}
+                    className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-primary"
+                  />
+                </div>
+
+                <label className="flex items-start gap-3 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
+                  <input
+                    type="checkbox"
+                    checked={deletionAcknowledged}
+                    onChange={(event) => setDeletionAcknowledged(event.target.checked)}
+                    className="mt-1 size-4 rounded border-gray-300 text-primary focus:ring-primary"
+                  />
+                  <span className="text-sm leading-6 text-gray-700">
+                    Entendo que esta ação desativa minha conta e que o acesso será encerrado imediatamente.
+                  </span>
+                </label>
+
+                {deletionError && (
+                  <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                    {deletionError}
+                  </div>
+                )}
+              </div>
+
+              <div className="border-t border-gray-200 px-4 py-4 sm:px-6">
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <button
+                    type="button"
+                    onClick={() => setDeletionOpen(false)}
+                    className="inline-flex flex-1 items-center justify-center rounded-xl border border-gray-300 px-4 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleConfirmDeletion}
+                    disabled={!canConfirmDeletion}
+                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-red-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {deletionMutation.isPending ? (
+                      <LoaderCircle className="size-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="size-4" />
+                    )}
+                    Desativar conta
+                  </button>
+                </div>
+              </div>
+            </div>
+          }
+        />
       </section>
     </Providers>
   )

@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { startAuth, verifyAuth, refreshToken } from './account'
+import { startAuth, verifyAuth, refreshToken, requestAccountDeletion } from './account'
 import api from '@/utils/api/client'
 import { endpoint } from '@/constants/api'
+import { getSessionDeduplicated } from '@/utils/session'
 
 vi.mock('@/utils/api/client', () => ({
   default: {
@@ -17,9 +18,14 @@ vi.mock('@/constants/api', () => ({
   },
 }))
 
+vi.mock('@/utils/session', () => ({
+  getSessionDeduplicated: vi.fn(),
+}))
+
 describe('Account Services', () => {
   afterEach(() => {
     vi.clearAllMocks()
+    vi.unstubAllGlobals()
   })
 
   it('should call startAuth with correct parameters', async () => {
@@ -63,5 +69,38 @@ describe('Account Services', () => {
     vi.mocked(api.post).mockRejectedValue(error)
 
     await expect(startAuth({ email: 'fail@example.com' })).rejects.toThrow('Network Error')
+  })
+
+  it('should request account deletion with the session token', async () => {
+    vi.mocked(getSessionDeduplicated).mockResolvedValue({
+      accessToken: 'access-token',
+    } as never)
+
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ detail: 'Conta desativada' }), {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await requestAccountDeletion({
+      email: 'lucas@imovelpericiado.com',
+      reason: 'Teste',
+    })
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/legal/exclusao-de-dados/callback/'),
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({
+          Authorization: 'Bearer access-token',
+        }),
+      }),
+    )
+    expect(result).toEqual({ detail: 'Conta desativada' })
   })
 })
