@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 export default function LegalHubPage() {
   return (
     <section className="min-h-screen bg-[linear-gradient(180deg,#f8fafc_0%,#ffffff_100%)]">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-12 sm:px-6 lg:px-8">
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8 sm:gap-8 sm:px-6 sm:py-12 lg:px-8">
         <div className="max-w-3xl space-y-4">
           <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-primary">
             <ShieldCheck className="size-3.5" />
@@ -31,12 +31,12 @@ export default function LegalHubPage() {
           </div>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {legalDocuments.map((document) => (
             <Link
               key={document.slug}
               href={getLegalRoute(document.slug)}
-              className="group rounded-[24px] border border-slate-200 bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)] transition hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-[0_26px_70px_rgba(15,23,42,0.10)]"
+              className="group rounded-[22px] border border-slate-200 bg-white p-5 shadow-[0_20px_60px_rgba(15,23,42,0.06)] transition hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-[0_26px_70px_rgba(15,23,42,0.10)] sm:rounded-[24px] sm:p-6"
             >
               <div className="flex h-full flex-col justify-between gap-6">
                 <div className="space-y-3">
@@ -44,7 +44,7 @@ export default function LegalHubPage() {
                     {document.slug}
                   </span>
                   <div className="space-y-2">
-                    <h2 className="text-xl font-semibold text-slate-950">{document.title}</h2>
+                    <h2 className="text-lg font-semibold text-slate-950 sm:text-xl">{document.title}</h2>
                     <p className="text-sm leading-6 text-slate-600">{document.description}</p>
                   </div>
                 </div>
