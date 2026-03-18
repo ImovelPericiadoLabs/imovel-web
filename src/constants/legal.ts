@@ -35,23 +35,11 @@ const legalDocumentBySlug = legalDocuments.reduce<Record<LegalDocumentSlug, Lega
   {} as Record<LegalDocumentSlug, LegalDocument>,
 )
 
-function normalizeBaseUrl(value: string) {
-  return value.replace(/\/$/, '')
-}
-
 export function getLegalDocument(slug: string) {
   return legalDocumentBySlug[slug as LegalDocumentSlug] ?? null
 }
 
 export function getLegalRoute(slug: LegalDocumentSlug) {
   return `/legal/${slug}`
-}
-
-export function getLegalSourceUrl(slug: LegalDocumentSlug) {
-  const baseUrl = process.env.NEXT_PUBLIC_LEGAL_BASE_URL
-    || process.env.NEXT_PUBLIC_API_URL?.replace(/\/v1\/?$/, '')
-    || 'https://api.imovelpericiado.com'
-
-  return `${normalizeBaseUrl(baseUrl)}/legal/${slug}/`
 }
 
