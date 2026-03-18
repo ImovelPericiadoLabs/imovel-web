@@ -3,7 +3,7 @@
 import { PropsWithChildren, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { ChevronLeft, Menu, X, LogOut, Wallet, Mail, Search, List } from 'lucide-react'
+import { ChevronLeft, Menu, X, LogOut, Wallet, Mail, Search, List, FileText } from 'lucide-react'
 import Link from 'next/link'
 import { useSession } from 'next-auth/react'
 import { useQuery } from '@tanstack/react-query'
@@ -12,6 +12,7 @@ import HeaderTitle from '@/components/header-title'
 import useIsRouteMatch from '@/hooks/use-is-router-match'
 import { Providers } from '@/providers/'
 import { getMe, type MeResponse } from '@/services/account'
+import { legalDocuments, getLegalRoute } from '@/constants/legal'
 
 function formatCredits(value: number) {
   return new Intl.NumberFormat('pt-BR', {
@@ -182,6 +183,25 @@ export default function AppLayout({ children }: PropsWithChildren) {
                     Minhas consultas
                   </Link>
                 </nav>
+
+                <div className="pt-4">
+                  <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-[0.18em] text-gray-400">
+                    Institucional
+                  </p>
+                  <div className="space-y-1">
+                    {legalDocuments.map((document) => (
+                      <Link
+                        key={document.slug}
+                        href={getLegalRoute(document.slug)}
+                        onClick={() => setSidebarOpen(false)}
+                        className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-gray-700 hover:bg-gray-100 font-medium touch-manipulation"
+                      >
+                        <FileText className="size-5 text-primary shrink-0" />
+                        {document.title}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
               </div>
               <div className="p-4 border-t border-gray-200">
                 <button
