@@ -36,6 +36,7 @@ export default function LegalHubPage() {
             <Link
               key={document.slug}
               href={getLegalRoute(document.slug)}
+              prefetch={false}
               className="group rounded-2xl border border-slate-200/90 bg-white p-6 shadow-[0_4px_24px_rgba(11,27,58,0.06)] transition hover:border-[#0b1b3a]/20 hover:shadow-[0_8px_32px_rgba(11,27,58,0.08)]"
             >
               <div className="flex h-full flex-col justify-between gap-6">
