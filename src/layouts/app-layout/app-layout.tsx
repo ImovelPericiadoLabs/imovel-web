@@ -271,6 +271,7 @@ export default function AppLayout({ children }: PropsWithChildren) {
                       <Link
                         key={document.slug}
                         href={getLegalRoute(document.slug)}
+                        prefetch={false}
                         onClick={() => setSidebarOpen(false)}
                         className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-gray-700 hover:bg-gray-100 font-medium touch-manipulation"
                       >

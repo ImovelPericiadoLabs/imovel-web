@@ -3,7 +3,6 @@ import { redirect } from 'next/navigation'
 import LegalDocument from '@/components/legal/legal-document'
 import { LegalDocumentErrorPanel } from '@/components/legal/legal-document-error-panel'
 import { getLegalDocument, legalDocuments, type LegalDocumentSlug } from '@/constants/legal'
-import { extractLegalDocumentFragment } from '@/lib/extract-legal-html'
 
 export const dynamic = 'force-dynamic'
 
@@ -22,7 +21,8 @@ async function fetchLegalDocumentHtml(slug: string) {
     || process.env.NEXT_PUBLIC_API_URL?.replace(/\/v1\/?$/, '')
     || 'https://api.imovelpericiado.com'
 
-  const response = await fetch(`${normalizeBaseUrl(baseUrl)}/legal/${slug}/`, {
+  /* embed=1: HTML sem topbar duplicado; mesmo CSS/markdown que o Django renderiza. */
+  const response = await fetch(`${normalizeBaseUrl(baseUrl)}/legal/${slug}/?embed=1`, {
     cache: 'no-store',
     headers: {
       Accept: 'text/html',
@@ -81,8 +81,6 @@ export default async function LegalDocumentPage({ params }: LegalDocumentPagePro
     return <LegalDocumentErrorPanel document={document} reason="network" />
   }
 
-  const fragment = extractLegalDocumentFragment(contentHtml)
-
-  return <LegalDocument slug={document.slug as LegalDocumentSlug} contentHtml={fragment} />
+  return <LegalDocument slug={document.slug as LegalDocumentSlug} fullDocumentHtml={contentHtml} />
 }
 

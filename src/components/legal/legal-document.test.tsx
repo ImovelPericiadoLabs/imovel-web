@@ -12,14 +12,8 @@ vi.mock('next/navigation', () => ({
   }),
 }))
 
-const sampleFragment = `
-  <div class="legal-ready">
-    <p class="legal-eyebrow">Termos</p>
-    <h1 id="legal-doc-title">Título interno</h1>
-    <p class="legal-meta">Atualizado em 01/01/2025</p>
-    <div class="legal-content"><p>Corpo do texto legal para teste.</p></div>
-  </div>
-`
+const fullHtml =
+  '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Termos</title></head><body><p>Corpo do documento</p></body></html>'
 
 describe('LegalDocument', () => {
   beforeEach(() => {
@@ -27,14 +21,17 @@ describe('LegalDocument', () => {
     mockPush.mockReset()
   })
 
-  it('renderiza o documento a partir do HTML injetado (sem iframe)', () => {
-    render(<LegalDocument slug="termos-de-servico" contentHtml={sampleFragment} />)
+  it('renderiza iframe com HTML completo da API (srcDoc)', () => {
+    const { container } = render(
+      <LegalDocument slug="termos-de-servico" fullDocumentHtml={fullHtml} />,
+    )
 
+    const iframe = container.querySelector('iframe')
+    expect(iframe).toBeTruthy()
+    expect(iframe).toHaveAttribute('srcDoc', fullHtml)
+    expect(iframe).toHaveAttribute('title', 'Termos de Serviço')
     expect(screen.getByRole('heading', { name: 'Termos de Serviço' })).toBeInTheDocument()
-    expect(screen.getByText('Corpo do texto legal para teste.')).toBeInTheDocument()
-    expect(screen.queryByTitle('Termos de Serviço')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Voltar' })).toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: /abrir origem/i })).not.toBeInTheDocument()
   })
 
   it('volta à página anterior ao clicar em Voltar', () => {
@@ -43,7 +40,7 @@ describe('LegalDocument', () => {
       value: 2,
     })
 
-    render(<LegalDocument slug="termos-de-servico" contentHtml={sampleFragment} />)
+    render(<LegalDocument slug="termos-de-servico" fullDocumentHtml={fullHtml} />)
 
     screen.getByRole('button', { name: 'Voltar' }).click()
 

@@ -27,6 +27,7 @@ export function LegalDocumentErrorPanel({ document, reason = 'network' }: LegalD
           <div className="mt-8 flex flex-wrap gap-3">
             <Link
               href={getLegalRoute(document.slug)}
+              prefetch={false}
               className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#0b1b3a] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#142a5b]"
             >
               <RefreshCw className="size-4" />
