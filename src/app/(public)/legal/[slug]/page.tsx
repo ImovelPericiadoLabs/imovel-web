@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
-import { notFound } from 'next/navigation'
+import { redirect } from 'next/navigation'
 import LegalDocument from '@/components/legal/legal-document'
+import { LegalDocumentErrorPanel } from '@/components/legal/legal-document-error-panel'
 import { getLegalDocument, legalDocuments, type LegalDocumentSlug } from '@/constants/legal'
 
 export const dynamic = 'force-dynamic'
@@ -65,10 +66,19 @@ export default async function LegalDocumentPage({ params }: LegalDocumentPagePro
   const document = getLegalDocument(slug)
 
   if (!document) {
-    notFound()
+    redirect('/legal')
   }
 
-  const contentHtml = await fetchLegalDocumentHtml(document.slug)
+  let contentHtml: string | null = null
+  try {
+    contentHtml = await fetchLegalDocumentHtml(document.slug)
+  } catch {
+    contentHtml = null
+  }
+
+  if (!contentHtml) {
+    return <LegalDocumentErrorPanel document={document} reason="network" />
+  }
 
   return <LegalDocument slug={document.slug as LegalDocumentSlug} contentHtml={contentHtml} />
 }

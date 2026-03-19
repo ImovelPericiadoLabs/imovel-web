@@ -1,20 +1,71 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, ShieldCheck } from 'lucide-react'
 import { legalDocuments, type LegalDocumentSlug, getLegalRoute } from '@/constants/legal'
+
+const IFRAME_MIN_HEIGHT_PX = 320
+const IFRAME_HEIGHT_PADDING_PX = 40
 
 type LegalDocumentProps = {
   slug: LegalDocumentSlug
   contentHtml: string
 }
 
+function measureIframeContentHeight(iframe: HTMLIFrameElement): number | null {
+  try {
+    const doc = iframe.contentDocument
+    if (!doc?.body) return null
+    const root = doc.documentElement
+    const body = doc.body
+    return Math.max(
+      body.scrollHeight,
+      body.offsetHeight,
+      root.clientHeight,
+      root.scrollHeight,
+      root.offsetHeight,
+    )
+  } catch {
+    return null
+  }
+}
+
 export default function LegalDocument({ slug, contentHtml }: LegalDocumentProps) {
   const router = useRouter()
-  const [isLoaded, setIsLoaded] = useState(false)
-  const document = useMemo(() => legalDocuments.find((item) => item.slug === slug) ?? legalDocuments[0], [slug])
+  const iframeRef = useRef<HTMLIFrameElement>(null)
+  const [iframeHeight, setIframeHeight] = useState(IFRAME_MIN_HEIGHT_PX)
+  const [frameReady, setFrameReady] = useState(false)
+
+  const document = useMemo(
+    () => legalDocuments.find((item) => item.slug === slug) ?? legalDocuments[0],
+    [slug],
+  )
+
+  const syncIframeHeight = useCallback(() => {
+    const iframe = iframeRef.current
+    if (!iframe) return
+    const h = measureIframeContentHeight(iframe)
+    if (h != null && h > 0) {
+      setIframeHeight(Math.max(IFRAME_MIN_HEIGHT_PX, h + IFRAME_HEIGHT_PADDING_PX))
+    }
+  }, [])
+
+  useLayoutEffect(() => {
+    setFrameReady(false)
+    setIframeHeight(IFRAME_MIN_HEIGHT_PX)
+  }, [contentHtml])
+
+  useLayoutEffect(() => {
+    if (!frameReady) return
+    syncIframeHeight()
+    const iframe = iframeRef.current
+    const win = iframe?.contentWindow
+    if (!win) return
+    win.addEventListener('resize', syncIframeHeight)
+    return () => win.removeEventListener('resize', syncIframeHeight)
+  }, [frameReady, syncIframeHeight, contentHtml])
 
   function handleGoBack() {
     if (window.history.length > 1) {
@@ -23,6 +74,13 @@ export default function LegalDocument({ slug, contentHtml }: LegalDocumentProps)
     }
 
     router.push('/')
+  }
+
+  function handleIframeLoad() {
+    setFrameReady(true)
+    requestAnimationFrame(() => {
+      syncIframeHeight()
+    })
   }
 
   return (
@@ -49,7 +107,7 @@ export default function LegalDocument({ slug, contentHtml }: LegalDocumentProps)
               <button
                 type="button"
                 onClick={handleGoBack}
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-white transition hover:opacity-95"
+                className="inline-flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-white transition hover:opacity-95"
               >
                 <ArrowLeft className="size-4" />
                 Voltar
@@ -57,10 +115,10 @@ export default function LegalDocument({ slug, contentHtml }: LegalDocumentProps)
             </div>
           </div>
 
-          <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[260px_minmax(0,1fr)] lg:items-start">
-            <aside className="rounded-2xl border border-slate-200 bg-slate-50 p-3 sm:p-4 lg:sticky lg:top-6">
+          <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,240px)_minmax(0,1fr)] lg:items-start lg:gap-6">
+            <aside className="rounded-2xl border border-slate-200 bg-slate-50 p-3 sm:p-4 lg:max-w-none">
               <p className="text-sm font-semibold text-slate-900">Documentos disponíveis</p>
-              <div className="mt-3 flex gap-3 overflow-x-auto pb-1 lg:mt-4 lg:block lg:space-y-2 lg:overflow-visible lg:pb-0">
+              <div className="mt-3 flex gap-3 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] lg:mt-4 lg:block lg:space-y-2 lg:overflow-visible lg:pb-0 [&::-webkit-scrollbar]:hidden">
                 {legalDocuments.map((item) => {
                   const isActive = item.slug === document.slug
 
@@ -68,7 +126,7 @@ export default function LegalDocument({ slug, contentHtml }: LegalDocumentProps)
                     <Link
                       key={item.slug}
                       href={getLegalRoute(item.slug)}
-                      className={`min-w-[220px] rounded-xl border px-3 py-3 transition lg:min-w-0 ${
+                      className={`block min-w-[220px] max-w-full rounded-xl border px-3 py-3 break-words transition lg:min-w-0 ${
                         isActive
                           ? 'border-primary bg-primary/5 text-slate-950'
                           : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
@@ -82,39 +140,21 @@ export default function LegalDocument({ slug, contentHtml }: LegalDocumentProps)
               </div>
             </aside>
 
-            <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-[0_30px_80px_rgba(2,6,23,0.10)]">
+            <div className="min-w-0 overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-[0_30px_80px_rgba(2,6,23,0.10)]">
               <div className="border-b border-slate-200 px-4 py-3 text-xs font-medium uppercase tracking-[0.18em] text-slate-500">
                 Documento
               </div>
 
-              <div className="relative min-h-[70vh] bg-white sm:min-h-[78vh]">
-                {!isLoaded && (
-                  <div className="absolute inset-0 z-10 p-3 sm:p-4">
-                    <div className="h-full rounded-[16px] border border-slate-200 bg-slate-50 p-4 sm:rounded-[20px] sm:p-5">
-                      <div className="animate-pulse space-y-3 sm:space-y-4">
-                        <div className="h-4 w-28 rounded-full bg-slate-200 sm:w-36" />
-                        <div className="h-7 w-2/3 rounded-xl bg-slate-200 sm:h-8 sm:w-3/4" />
-                        <div className="space-y-3 pt-2">
-                          <div className="h-3 w-full rounded-full bg-slate-200" />
-                          <div className="h-3 w-11/12 rounded-full bg-slate-200" />
-                          <div className="h-3 w-10/12 rounded-full bg-slate-200" />
-                          <div className="h-3 w-9/12 rounded-full bg-slate-200" />
-                          <div className="h-3 w-8/12 rounded-full bg-slate-200" />
-                        </div>
-                        <div className="grid gap-3 pt-4 sm:grid-cols-2">
-                          <div className="h-24 rounded-2xl bg-white shadow-sm ring-1 ring-slate-200" />
-                          <div className="h-24 rounded-2xl bg-white shadow-sm ring-1 ring-slate-200" />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
+              <div className="relative min-h-[200px] bg-white">
                 <iframe
+                  ref={iframeRef}
                   title={document.title}
                   srcDoc={contentHtml}
-                  className="h-[70vh] w-full bg-white sm:h-[78vh]"
-                  loading="lazy"
-                  onLoad={() => setIsLoaded(true)}
+                  onLoad={handleIframeLoad}
+                  className="block w-full max-w-full border-0 bg-white transition-opacity duration-200 [overflow-anchor:none]"
+                  style={{ height: iframeHeight }}
+                  loading="eager"
+                  referrerPolicy="no-referrer-when-downgrade"
                 />
               </div>
             </div>
@@ -124,4 +164,3 @@ export default function LegalDocument({ slug, contentHtml }: LegalDocumentProps)
     </section>
   )
 }
-
