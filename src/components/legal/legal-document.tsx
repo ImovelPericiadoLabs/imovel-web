@@ -1,166 +1,148 @@
 'use client'
 
-import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, ShieldCheck } from 'lucide-react'
+import { ArrowLeft, FileText } from 'lucide-react'
 import { legalDocuments, type LegalDocumentSlug, getLegalRoute } from '@/constants/legal'
-
-const IFRAME_MIN_HEIGHT_PX = 320
-const IFRAME_HEIGHT_PADDING_PX = 40
 
 type LegalDocumentProps = {
   slug: LegalDocumentSlug
+  /** HTML já extraído do `<main>` (sem iframe). */
   contentHtml: string
 }
 
-function measureIframeContentHeight(iframe: HTMLIFrameElement): number | null {
-  try {
-    const doc = iframe.contentDocument
-    if (!doc?.body) return null
-    const root = doc.documentElement
-    const body = doc.body
-    return Math.max(
-      body.scrollHeight,
-      body.offsetHeight,
-      root.clientHeight,
-      root.scrollHeight,
-      root.offsetHeight,
-    )
-  } catch {
-    return null
-  }
+const embedStyles = `
+.legal-doc-embed .legal-skeleton,
+.legal-doc-embed .legal-toc-mobile,
+.legal-doc-embed .legal-toc-desktop {
+  display: none !important;
 }
+.legal-doc-embed #legal-doc-title {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.legal-doc-embed .legal-content {
+  counter-reset: legal-section;
+}
+.legal-doc-embed .legal-content h2 {
+  counter-increment: legal-section;
+  scroll-margin-top: 5rem;
+}
+.legal-doc-embed .legal-content h2::before {
+  content: counter(legal-section) ". ";
+  color: #0b1b3a;
+  font-weight: 800;
+  margin-right: 0.35em;
+}
+`
 
 export default function LegalDocument({ slug, contentHtml }: LegalDocumentProps) {
   const router = useRouter()
-  const iframeRef = useRef<HTMLIFrameElement>(null)
-  const [iframeHeight, setIframeHeight] = useState(IFRAME_MIN_HEIGHT_PX)
-  const [frameReady, setFrameReady] = useState(false)
 
   const document = useMemo(
     () => legalDocuments.find((item) => item.slug === slug) ?? legalDocuments[0],
     [slug],
   )
 
-  const syncIframeHeight = useCallback(() => {
-    const iframe = iframeRef.current
-    if (!iframe) return
-    const h = measureIframeContentHeight(iframe)
-    if (h != null && h > 0) {
-      setIframeHeight(Math.max(IFRAME_MIN_HEIGHT_PX, h + IFRAME_HEIGHT_PADDING_PX))
-    }
-  }, [])
-
-  useLayoutEffect(() => {
-    setFrameReady(false)
-    setIframeHeight(IFRAME_MIN_HEIGHT_PX)
-  }, [contentHtml])
-
-  useLayoutEffect(() => {
-    if (!frameReady) return
-    syncIframeHeight()
-    const iframe = iframeRef.current
-    const win = iframe?.contentWindow
-    if (!win) return
-    win.addEventListener('resize', syncIframeHeight)
-    return () => win.removeEventListener('resize', syncIframeHeight)
-  }, [frameReady, syncIframeHeight, contentHtml])
-
   function handleGoBack() {
     if (window.history.length > 1) {
       router.back()
       return
     }
-
     router.push('/')
   }
 
-  function handleIframeLoad() {
-    setFrameReady(true)
-    requestAnimationFrame(() => {
-      syncIframeHeight()
-    })
-  }
-
   return (
-    <section className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(10,26,54,0.08),_transparent_35%),linear-gradient(180deg,#f8fafc_0%,#ffffff_100%)]">
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-3 py-4 sm:gap-6 sm:px-6 sm:py-8 lg:px-8">
-        <div className="flex flex-col gap-4 rounded-[24px] border border-slate-200/80 bg-white/90 p-4 shadow-[0_24px_70px_rgba(15,23,42,0.08)] backdrop-blur sm:rounded-[28px] sm:p-5">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="space-y-2">
-              <div className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">
-                <ShieldCheck className="size-3.5" />
-                Documento oficial
-              </div>
-              <div className="space-y-1">
-                <h1 className="text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">
-                  {document.title}
-                </h1>
-                <p className="max-w-2xl text-sm leading-6 text-slate-600 sm:text-base">
-                  {document.description}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap gap-2 sm:gap-3">
-              <button
-                type="button"
-                onClick={handleGoBack}
-                className="inline-flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-white transition hover:opacity-95"
-              >
-                <ArrowLeft className="size-4" />
-                Voltar
-              </button>
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,240px)_minmax(0,1fr)] lg:items-start lg:gap-6">
-            <aside className="rounded-2xl border border-slate-200 bg-slate-50 p-3 sm:p-4 lg:max-w-none">
-              <p className="text-sm font-semibold text-slate-900">Documentos disponíveis</p>
-              <div className="mt-3 flex gap-3 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] lg:mt-4 lg:block lg:space-y-2 lg:overflow-visible lg:pb-0 [&::-webkit-scrollbar]:hidden">
-                {legalDocuments.map((item) => {
-                  const isActive = item.slug === document.slug
-
-                  return (
-                    <Link
-                      key={item.slug}
-                      href={getLegalRoute(item.slug)}
-                      className={`block min-w-[220px] max-w-full rounded-xl border px-3 py-3 break-words transition lg:min-w-0 ${
-                        isActive
-                          ? 'border-primary bg-primary/5 text-slate-950'
-                          : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
-                      }`}
-                    >
-                      <span className="block text-sm font-semibold">{item.title}</span>
-                      <span className="mt-1 block text-xs leading-5 text-slate-500 sm:text-[13px]">{item.description}</span>
-                    </Link>
-                  )
-                })}
-              </div>
-            </aside>
-
-            <div className="min-w-0 overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-[0_30px_80px_rgba(2,6,23,0.10)]">
-              <div className="border-b border-slate-200 px-4 py-3 text-xs font-medium uppercase tracking-[0.18em] text-slate-500">
-                Documento
-              </div>
-
-              <div className="relative min-h-[200px] bg-white">
-                <iframe
-                  ref={iframeRef}
-                  title={document.title}
-                  srcDoc={contentHtml}
-                  onLoad={handleIframeLoad}
-                  className="block w-full max-w-full border-0 bg-white transition-opacity duration-200 [overflow-anchor:none]"
-                  style={{ height: iframeHeight }}
-                  loading="eager"
-                  referrerPolicy="no-referrer-when-downgrade"
-                />
-              </div>
+    <div className="min-h-screen bg-[var(--color-background,#F6F5FA)] pb-12 pt-0">
+      <header className="sticky top-0 z-30 border-b border-slate-200/90 bg-white/90 backdrop-blur-md">
+        <div className="mx-auto flex max-w-5xl flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
+          <div className="flex min-w-0 flex-1 items-center gap-3">
+            <button
+              type="button"
+              onClick={handleGoBack}
+              className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-800 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
+              aria-label="Voltar"
+            >
+              <ArrowLeft className="size-5" />
+            </button>
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">Documentos legais</p>
+              <h1 className="truncate text-lg font-semibold tracking-tight text-[#0b1b3a] sm:text-xl">
+                {document.title}
+              </h1>
             </div>
           </div>
         </div>
-      </div>
-    </section>
+
+        <nav
+          className="mx-auto max-w-5xl border-t border-slate-100 px-2 pb-3 pt-2 sm:px-4 lg:px-8"
+          aria-label="Escolher documento"
+        >
+          <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:flex-wrap sm:overflow-visible sm:pb-0 [&::-webkit-scrollbar]:hidden">
+            {legalDocuments.map((item) => {
+              const active = item.slug === document.slug
+              return (
+                <Link
+                  key={item.slug}
+                  href={getLegalRoute(item.slug)}
+                  className={[
+                    'inline-flex min-h-11 shrink-0 items-center justify-center rounded-full px-4 py-2.5 text-sm font-semibold transition',
+                    active
+                      ? 'bg-[#0b1b3a] text-white shadow-sm'
+                      : 'border border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50',
+                  ].join(' ')}
+                >
+                  {item.title}
+                </Link>
+              )
+            })}
+          </div>
+        </nav>
+      </header>
+
+      <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
+        <article className="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-[0_4px_24px_rgba(11,27,58,0.06)]">
+          <div className="border-b border-slate-100 bg-slate-50/80 px-5 py-4 sm:px-8 sm:py-5">
+            <div className="flex flex-wrap items-center gap-2 text-sm text-slate-600">
+              <FileText className="size-4 text-[#0b1b3a]" aria-hidden />
+              <span>Texto fornecido pela plataforma e atualizado no servidor.</span>
+            </div>
+          </div>
+
+          <div className="px-4 py-8 sm:px-8 sm:py-10 lg:px-12 lg:py-12">
+            <style dangerouslySetInnerHTML={{ __html: embedStyles }} />
+            <div
+              className={[
+                'legal-doc-embed max-w-3xl',
+                /* Tipografia do bloco injetado */
+                '[&_.legal-eyebrow]:mb-2 [&_.legal-eyebrow]:inline-block [&_.legal-eyebrow]:text-[11px] [&_.legal-eyebrow]:font-bold [&_.legal-eyebrow]:uppercase [&_.legal-eyebrow]:tracking-[0.14em] [&_.legal-eyebrow]:text-[#0b1b3a]',
+                '[&_.legal-meta]:mb-8 [&_.legal-meta]:border-b [&_.legal-meta]:border-slate-200 [&_.legal-meta]:pb-6 [&_.legal-meta]:text-sm [&_.legal-meta]:text-slate-500',
+                '[&_.legal-content]:text-[15px] [&_.legal-content]:leading-[1.75] [&_.legal-content]:text-slate-700',
+                '[&_.legal-content_p]:mb-4 [&_.legal-content_p]:last:mb-0',
+                '[&_.legal-content_a]:font-medium [&_.legal-content_a]:text-[#142a5b] [&_.legal-content_a]:underline [&_.legal-content_a]:decoration-slate-300 [&_.legal-content_a]:underline-offset-[3px] [&_.legal-content_a]:transition-colors hover:[&_.legal-content_a]:text-[#0b1b3a]',
+                '[&_.legal-content_a]:break-words',
+                '[&_.legal-content_h2]:mt-10 [&_.legal-content_h2]:scroll-mt-24 [&_.legal-content_h2]:border-b [&_.legal-content_h2]:border-slate-100 [&_.legal-content_h2]:pb-2 [&_.legal-content_h2]:text-lg [&_.legal-content_h2]:font-semibold [&_.legal-content_h2]:text-[#0b1b3a] first:[&_.legal-content_h2]:mt-0',
+                '[&_.legal-content_h3]:mt-8 [&_.legal-content_h3]:text-base [&_.legal-content_h3]:font-semibold [&_.legal-content_h3]:text-slate-900',
+                '[&_.legal-content_ul]:my-4 [&_.legal-content_ul]:list-disc [&_.legal-content_ul]:space-y-2 [&_.legal-content_ul]:pl-6',
+                '[&_.legal-content_ol]:my-4 [&_.legal-content_ol]:list-decimal [&_.legal-content_ol]:space-y-2 [&_.legal-content_ol]:pl-6',
+                '[&_.legal-content_li]:pl-1',
+                '[&_.legal-content_blockquote]:my-5 [&_.legal-content_blockquote]:border-l-4 [&_.legal-content_blockquote]:border-[#0b1b3a]/25 [&_.legal-content_blockquote]:bg-slate-50 [&_.legal-content_blockquote]:py-3 [&_.legal-content_blockquote]:pl-4 [&_.legal-content_blockquote]:pr-2 [&_.legal-content_blockquote]:text-slate-700',
+                '[&_.legal-content_pre]:my-5 [&_.legal-content_pre]:max-w-full [&_.legal-content_pre]:overflow-x-auto [&_.legal-content_pre]:rounded-xl [&_.legal-content_pre]:border [&_.legal-content_pre]:border-slate-200 [&_.legal-content_pre]:bg-slate-50 [&_.legal-content_pre]:p-4 [&_.legal-content_pre]:text-sm',
+                '[&_.legal-content_code]:rounded-md [&_.legal-content_code]:bg-slate-100 [&_.legal-content_code]:px-1.5 [&_.legal-content_code]:py-0.5 [&_.legal-content_code]:text-[0.9em]',
+              ].join(' ')}
+              dangerouslySetInnerHTML={{ __html: contentHtml }}
+            />
+          </div>
+        </article>
+      </main>
+    </div>
   )
 }
