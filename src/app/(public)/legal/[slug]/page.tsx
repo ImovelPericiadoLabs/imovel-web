@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
-import { notFound } from 'next/navigation'
+import { redirect } from 'next/navigation'
 import LegalDocument from '@/components/legal/legal-document'
+import { LegalDocumentErrorPanel } from '@/components/legal/legal-document-error-panel'
 import { getLegalDocument, legalDocuments, type LegalDocumentSlug } from '@/constants/legal'
 
 export const dynamic = 'force-dynamic'
@@ -20,7 +21,8 @@ async function fetchLegalDocumentHtml(slug: string) {
     || process.env.NEXT_PUBLIC_API_URL?.replace(/\/v1\/?$/, '')
     || 'https://api.imovelpericiado.com'
 
-  const response = await fetch(`${normalizeBaseUrl(baseUrl)}/legal/${slug}/`, {
+  /* embed=1: HTML sem topbar duplicado; mesmo CSS/markdown que o Django renderiza. */
+  const response = await fetch(`${normalizeBaseUrl(baseUrl)}/legal/${slug}/?embed=1`, {
     cache: 'no-store',
     headers: {
       Accept: 'text/html',
@@ -65,11 +67,20 @@ export default async function LegalDocumentPage({ params }: LegalDocumentPagePro
   const document = getLegalDocument(slug)
 
   if (!document) {
-    notFound()
+    redirect('/legal')
   }
 
-  const contentHtml = await fetchLegalDocumentHtml(document.slug)
+  let contentHtml: string | null = null
+  try {
+    contentHtml = await fetchLegalDocumentHtml(document.slug)
+  } catch {
+    contentHtml = null
+  }
 
-  return <LegalDocument slug={document.slug as LegalDocumentSlug} contentHtml={contentHtml} />
+  if (!contentHtml) {
+    return <LegalDocumentErrorPanel document={document} reason="network" />
+  }
+
+  return <LegalDocument slug={document.slug as LegalDocumentSlug} fullDocumentHtml={contentHtml} />
 }
 

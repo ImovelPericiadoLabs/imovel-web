@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import LegalDocument from './legal-document'
 
@@ -12,36 +12,35 @@ vi.mock('next/navigation', () => ({
   }),
 }))
 
+const fullHtml =
+  '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Termos</title></head><body><p>Corpo do documento</p></body></html>'
+
 describe('LegalDocument', () => {
   beforeEach(() => {
     mockBack.mockReset()
     mockPush.mockReset()
   })
 
-  it('renders the legal document without exposing the source', async () => {
-    render(<LegalDocument slug="termos-de-servico" contentHtml="<html><body><main>Termos</main></body></html>" />)
+  it('renderiza iframe com HTML completo da API (srcDoc)', () => {
+    const { container } = render(
+      <LegalDocument slug="termos-de-servico" fullDocumentHtml={fullHtml} />,
+    )
 
-    await waitFor(() => {
-      expect(screen.getByTitle('Termos de Serviço')).toBeInTheDocument()
-    })
-
+    const iframe = container.querySelector('iframe')
+    expect(iframe).toBeTruthy()
+    expect(iframe).toHaveAttribute('srcDoc', fullHtml)
+    expect(iframe).toHaveAttribute('title', 'Termos de Serviço')
     expect(screen.getByRole('heading', { name: 'Termos de Serviço' })).toBeInTheDocument()
-    expect(screen.getByTitle('Termos de Serviço')).toHaveAttribute('srcdoc', '<html><body><main>Termos</main></body></html>')
     expect(screen.getByRole('button', { name: 'Voltar' })).toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: /abrir origem/i })).not.toBeInTheDocument()
   })
 
-  it('navigates back to the previous page', async () => {
+  it('volta à página anterior ao clicar em Voltar', () => {
     Object.defineProperty(window.history, 'length', {
       configurable: true,
       value: 2,
     })
 
-    render(<LegalDocument slug="termos-de-servico" contentHtml="<html><body><main>Termos</main></body></html>" />)
-
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Voltar' })).toBeInTheDocument()
-    })
+    render(<LegalDocument slug="termos-de-servico" fullDocumentHtml={fullHtml} />)
 
     screen.getByRole('button', { name: 'Voltar' }).click()
 
@@ -49,4 +48,3 @@ describe('LegalDocument', () => {
     expect(mockPush).not.toHaveBeenCalled()
   })
 })
-

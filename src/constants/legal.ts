@@ -35,8 +35,35 @@ const legalDocumentBySlug = legalDocuments.reduce<Record<LegalDocumentSlug, Lega
   {} as Record<LegalDocumentSlug, LegalDocument>,
 )
 
+const LEGAL_SLUG_ALIASES: Record<string, LegalDocumentSlug> = {
+  politica: 'politica-de-privacidade',
+  privacidade: 'politica-de-privacidade',
+  'politica-privacidade': 'politica-de-privacidade',
+  privacy: 'politica-de-privacidade',
+  terms: 'termos-de-servico',
+  termos: 'termos-de-servico',
+  exclusao: 'exclusao-de-dados',
+  'exclusao-dados': 'exclusao-de-dados',
+}
+
+function normalizeLegalSlugInput(raw: string): string {
+  try {
+    return decodeURIComponent(raw).trim().replace(/\/+$/g, '').toLowerCase()
+  } catch {
+    return raw.trim().replace(/\/+$/g, '').toLowerCase()
+  }
+}
+
 export function getLegalDocument(slug: string) {
-  return legalDocumentBySlug[slug as LegalDocumentSlug] ?? null
+  const key = normalizeLegalSlugInput(slug)
+  if (key in legalDocumentBySlug) {
+    return legalDocumentBySlug[key as LegalDocumentSlug]
+  }
+  const alias = LEGAL_SLUG_ALIASES[key]
+  if (alias) {
+    return legalDocumentBySlug[alias]
+  }
+  return null
 }
 
 export function getLegalRoute(slug: LegalDocumentSlug) {

@@ -14,29 +14,30 @@ export const metadata: Metadata = {
 
 export default function LegalHubPage() {
   return (
-    <section className="min-h-screen bg-[linear-gradient(180deg,#f8fafc_0%,#ffffff_100%)]">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8 sm:gap-8 sm:px-6 sm:py-12 lg:px-8">
-        <div className="max-w-3xl space-y-4">
-          <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-primary">
-            <ShieldCheck className="size-3.5" />
+    <section className="min-h-screen bg-[var(--color-background,#F6F5FA)]">
+      <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-10 sm:gap-10 sm:px-6 sm:py-14 lg:px-8">
+        <div className="max-w-2xl space-y-4">
+          <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-600 shadow-sm">
+            <ShieldCheck className="size-3.5 text-[#0b1b3a]" />
             Área institucional
           </div>
           <div className="space-y-3">
-            <h1 className="text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
+            <h1 className="text-3xl font-semibold tracking-tight text-[#0b1b3a] sm:text-4xl">
               Documentos legais
             </h1>
-            <p className="max-w-2xl text-base leading-7 text-slate-600">
-              As páginas abaixo carregam o conteúdo administrado no backend e são exibidas em iframe para manter a atualização centralizada.
+            <p className="max-w-2xl text-base leading-relaxed text-slate-600">
+              Conteúdo atualizado diretamente no servidor. Escolha um documento para leitura em página única, responsiva e acessível.
             </p>
           </div>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2">
           {legalDocuments.map((document) => (
             <Link
               key={document.slug}
               href={getLegalRoute(document.slug)}
-              className="group rounded-[22px] border border-slate-200 bg-white p-5 shadow-[0_20px_60px_rgba(15,23,42,0.06)] transition hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-[0_26px_70px_rgba(15,23,42,0.10)] sm:rounded-[24px] sm:p-6"
+              prefetch={false}
+              className="group rounded-2xl border border-slate-200/90 bg-white p-6 shadow-[0_4px_24px_rgba(11,27,58,0.06)] transition hover:border-[#0b1b3a]/20 hover:shadow-[0_8px_32px_rgba(11,27,58,0.08)]"
             >
               <div className="flex h-full flex-col justify-between gap-6">
                 <div className="space-y-3">
@@ -49,7 +50,7 @@ export default function LegalHubPage() {
                   </div>
                 </div>
 
-                <div className="inline-flex items-center gap-2 text-sm font-semibold text-primary">
+                <div className="inline-flex items-center gap-2 text-sm font-semibold text-[#0b1b3a]">
                   Abrir documento
                   <ArrowRight className="size-4 transition group-hover:translate-x-0.5" />
                 </div>

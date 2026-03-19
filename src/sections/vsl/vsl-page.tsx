@@ -378,6 +378,7 @@ export default function VslPage() {
                     <Link
                       key={document.slug}
                       href={getLegalRoute(document.slug)}
+                      prefetch={false}
                       className="font-medium underline decoration-white/30 underline-offset-4 transition hover:text-white hover:decoration-white"
                     >
                       {document.title}
