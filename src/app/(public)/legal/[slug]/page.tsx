@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import LegalDocument from '@/components/legal/legal-document'
 import { LegalDocumentErrorPanel } from '@/components/legal/legal-document-error-panel'
 import { getLegalDocument, legalDocuments, type LegalDocumentSlug } from '@/constants/legal'
+import { extractLegalDocumentFragment } from '@/lib/extract-legal-html'
 
 export const dynamic = 'force-dynamic'
 
@@ -80,6 +81,8 @@ export default async function LegalDocumentPage({ params }: LegalDocumentPagePro
     return <LegalDocumentErrorPanel document={document} reason="network" />
   }
 
-  return <LegalDocument slug={document.slug as LegalDocumentSlug} contentHtml={contentHtml} />
+  const fragment = extractLegalDocumentFragment(contentHtml)
+
+  return <LegalDocument slug={document.slug as LegalDocumentSlug} contentHtml={fragment} />
 }
 

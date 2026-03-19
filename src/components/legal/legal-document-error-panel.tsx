@@ -15,26 +15,26 @@ export function LegalDocumentErrorPanel({ document, reason = 'network' }: LegalD
       : 'Não encontramos este documento na lista atual. Use os links abaixo para acessar a versão oficial.'
 
   return (
-    <section className="min-h-screen bg-[linear-gradient(180deg,#f8fafc_0%,#ffffff_100%)]">
-      <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-10 sm:px-6 sm:py-14">
-        <div className="rounded-[24px] border border-amber-200/90 bg-amber-50/90 p-6 shadow-[0_20px_50px_rgba(15,23,42,0.06)] sm:p-8">
-          <div className="inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-amber-800 ring-1 ring-amber-200">
-            <ShieldCheck className="size-3.5" />
+    <section className="min-h-screen bg-[var(--color-background,#F6F5FA)]">
+      <div className="mx-auto flex w-full max-w-lg flex-col gap-6 px-4 py-12 sm:px-6 sm:py-16">
+        <div className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-[0_4px_24px_rgba(11,27,58,0.06)] sm:p-8">
+          <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-600">
+            <ShieldCheck className="size-3.5 text-[#0b1b3a]" />
             {document.title}
           </div>
-          <h1 className="mt-4 text-2xl font-semibold tracking-tight text-slate-950">Conteúdo indisponível</h1>
-          <p className="mt-3 text-base leading-7 text-slate-700">{message}</p>
-          <div className="mt-6 flex flex-wrap gap-3">
+          <h1 className="mt-5 text-xl font-semibold tracking-tight text-[#0b1b3a] sm:text-2xl">Conteúdo indisponível</h1>
+          <p className="mt-3 text-base leading-relaxed text-slate-600">{message}</p>
+          <div className="mt-8 flex flex-wrap gap-3">
             <Link
               href={getLegalRoute(document.slug)}
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white transition hover:opacity-95"
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#0b1b3a] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#142a5b]"
             >
               <RefreshCw className="size-4" />
               Tentar de novo
             </Link>
             <Link
               href="/legal"
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 shadow-sm transition hover:bg-slate-50"
             >
               <ArrowLeft className="size-4" />
               Todos os documentos
