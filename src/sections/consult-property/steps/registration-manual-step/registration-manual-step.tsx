@@ -1,11 +1,12 @@
 'use client'
 
-import { Building, Hash } from 'lucide-react'
+import { Hash } from 'lucide-react'
 import { useFormContext } from 'react-hook-form'
 import TextTitle from '@/components/text-title'
 import TextSubtitle from '@/components/text-subtitle'
 import Button from '@/components/button'
 import InfoCard from '@/components/info-card'
+import { NotaryOfficeCombobox } from '@/components/notary-office-combobox/notary-office-combobox'
 import { FormTypes } from '@/sections/consult-property/validations'
 import { trackGtmEvent } from '@/utils/analytics/gtm'
 
@@ -79,27 +80,16 @@ export function RegistrationManualStep({ onNext, onBack }: RegistrationManualSte
           {regErr ? <span className="text-xs text-red-600">{regErr}</span> : null}
         </label>
 
-        <label className="flex flex-col gap-1.5">
-          <span className="text-xs font-semibold text-gray-700">Cartório de Registro de Imóveis</span>
-          <div className="relative group">
-            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary pointer-events-none">
-              <Building className="size-5" />
-            </div>
-            <input
-              type="text"
-              autoComplete="organization"
-              placeholder="Ex.: 1º CRI de Florianópolis"
-              maxLength={100}
-              className="w-full pl-12 pr-4 py-3.5 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10"
-              {...register('notaryName')}
-            />
-          </div>
-          {notaryErr ? <span className="text-xs text-red-600">{notaryErr}</span> : null}
-        </label>
+        <NotaryOfficeCombobox
+          inputId="notaryName"
+          value={String(notaryName || '')}
+          onChange={(v) => setValue('notaryName', v, { shouldValidate: true, shouldDirty: true })}
+          error={notaryErr ? String(notaryErr) : undefined}
+        />
 
         <InfoCard className="mt-1">
-          A matrícula costuma estar na primeira página da escritura. O cartório é o tabelionato onde o imóvel está
-          registrado — use o nome como consta no documento, se souber.
+          A matrícula costuma estar na primeira página da escritura. Na lista de cartórios, ao escolher um item o sistema
+          grava o número oficial e o nome padrão — você ainda pode ajustar o texto se precisar.
         </InfoCard>
       </div>
 
