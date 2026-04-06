@@ -4,6 +4,8 @@ import { getSessionDeduplicated } from '@/utils/session'
 
 type PaymentRequest = {
   place_id: string
+  /** Texto livre quando o usuário não selecionou place_id no Google (mín. 10 caracteres no back se sem documento). */
+  address_hint?: string
   plan_id: string
   document_id?: string
   name: string

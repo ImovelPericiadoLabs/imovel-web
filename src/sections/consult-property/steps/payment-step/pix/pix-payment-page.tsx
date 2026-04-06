@@ -138,9 +138,18 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
 
   // Unificamos os métodos de pegar valores para usar o formulário pai nos campos de endereço
   const getValues = useCallback((field?: string) => {
-    const parentFields = ['address', 'registrationNumber', 'allotment', 'block', 'lot', 'complement']
+    const parentFields = [
+      'address',
+      'addressHint',
+      'placeId',
+      'registrationNumber',
+      'allotment',
+      'block',
+      'lot',
+      'complement',
+    ]
     if (field && parentFields.includes(field)) {
-      return parentForm?.getValues(field)
+      return parentForm?.getValues(field as keyof FormTypes)
     }
     return getLocalValues(field as keyof FormTypes)
   }, [parentForm, getLocalValues])
@@ -203,21 +212,25 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
       formData: { name: string; document: string; email: string; whatsapp: string },
       finalPlaceId: string,
       whatsappClean: string,
-    ) => ({
-      place_id: finalPlaceId,
-      plan_id: FIXED_PLAN_ID,
-      document_id: documentId,
-      name: formData.name,
-      document: formData.document,
-      whatsapp: whatsappClean,
-      complement,
-      registration_number: registrationNumber,
-      notary,
-      lot_name: allotment,
-      block_number: block,
-      lot_number: lot,
-    }),
-    [documentId, complement, registrationNumber, notary, allotment, block, lot],
+    ) => {
+      const hint = String(parentForm?.getValues('addressHint') || '').trim()
+      return {
+        place_id: finalPlaceId,
+        ...(hint.length > 0 ? { address_hint: hint } : {}),
+        plan_id: FIXED_PLAN_ID,
+        document_id: documentId,
+        name: formData.name,
+        document: formData.document,
+        whatsapp: whatsappClean,
+        complement,
+        registration_number: registrationNumber,
+        notary,
+        lot_name: allotment,
+        block_number: block,
+        lot_number: lot,
+      }
+    },
+    [parentForm, documentId, complement, registrationNumber, notary, allotment, block, lot],
   )
 
   const attemptPayWithCredits = useCallback(
@@ -344,9 +357,13 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
       whatsapp: formData.whatsapp,
     }))
 
-    const finalPlaceId = formData.placeId || placeId
-    if (!finalPlaceId) {
-      setServerError('Erro: Identificador do imóvel não encontrado.')
+    const finalPlaceId = String(formData.placeId || placeId || '').trim()
+    const hint = String(parentForm?.getValues('addressHint') || '').trim()
+    const hasDoc = Boolean(parentForm?.getValues('document')?.id)
+    if (!finalPlaceId && !hasDoc && hint.length < 10) {
+      setServerError(
+        'Selecione o endereço na busca, descreva o local (mínimo 10 caracteres) ou envie o documento do imóvel.',
+      )
       return
     }
 
@@ -355,7 +372,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
       event_label: 'credits_choice',
       event_description: 'Usuário optou por pagamento com créditos.',
       payment_type: 'credits',
-      place_id: finalPlaceId,
+      place_id: finalPlaceId || undefined,
       has_document: Boolean(documentId),
       currency: DEFAULT_CURRENCY,
       value: planPriceFromApi,
@@ -444,6 +461,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
     planPriceFromApi,
     attemptPayWithCredits,
     onFinish,
+    parentForm,
   ])
 
   const handleDetailsSubmit = useCallback(async () => {
@@ -461,10 +479,13 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
       whatsapp: formData.whatsapp,
     }))
 
-    const finalPlaceId = formData.placeId || placeId
-
-    if (!finalPlaceId) {
-      setServerError('Erro: Identificador do imóvel não encontrado.')
+    const finalPlaceId = String(formData.placeId || placeId || '').trim()
+    const hint = String(parentForm?.getValues('addressHint') || '').trim()
+    const hasDoc = Boolean(parentForm?.getValues('document')?.id)
+    if (!finalPlaceId && !hasDoc && hint.length < 10) {
+      setServerError(
+        'Selecione o endereço na busca, descreva o local (mínimo 10 caracteres) ou envie o documento do imóvel.',
+      )
       return
     }
 
@@ -473,7 +494,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
       event_label: 'pix_details',
       event_description: 'Dados para pagamento via PIX foram preenchidos.',
       payment_type: 'pix',
-      place_id: finalPlaceId,
+      place_id: finalPlaceId || undefined,
       has_document: Boolean(documentId),
       currency: DEFAULT_CURRENCY,
       value: CONSULT_PRODUCT_PRICE,
@@ -487,20 +508,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
 
     if (status === 'authenticated') {
       try {
-        await generatePix({
-          place_id: finalPlaceId,
-          plan_id: FIXED_PLAN_ID,
-          document_id: documentId,
-          name: formData.name,
-          document: formData.document,
-          whatsapp: whatsappClean,
-          complement,
-          registration_number: registrationNumber,
-          notary,
-          lot_name: allotment,
-          block_number: block,
-          lot_number: lot
-        })
+        await generatePix(buildPaymentPayload(formData, finalPlaceId, whatsappClean))
         setStep('pix')
       } catch (error) {
         console.error('❌ Erro ao processar pagamento:', error);
@@ -560,7 +568,16 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
         setIsAuthLoading(false)
       }
     }
-  }, [trigger, getValues, placeId, clearServerError, status, generatePix, documentId, complement, registrationNumber, notary, allotment, block, lot])
+  }, [
+    trigger,
+    getValues,
+    placeId,
+    clearServerError,
+    status,
+    generatePix,
+    buildPaymentPayload,
+    parentForm,
+  ])
 
   const handleAuthSuccess = useCallback(async (code: string) => {
     setServerError('')
@@ -572,10 +589,13 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
     })
 
     const formData = getValues()
-    const finalPlaceId = formData.placeId || placeId
-
-    if (!finalPlaceId) {
-      setServerError('Erro: Identificador do imóvel não encontrado.')
+    const finalPlaceId = String(formData.placeId || placeId || '').trim()
+    const hint = String(parentForm?.getValues('addressHint') || '').trim()
+    const hasDoc = Boolean(parentForm?.getValues('document')?.id)
+    if (!finalPlaceId && !hasDoc && hint.length < 10) {
+      setServerError(
+        'Selecione o endereço na busca, descreva o local (mínimo 10 caracteres) ou envie o documento do imóvel.',
+      )
       return
     }
 
@@ -617,20 +637,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
     }
 
     try {
-      await generatePix({
-        place_id: finalPlaceId,
-        plan_id: FIXED_PLAN_ID,
-        document_id: documentId,
-        name: formData.name,
-        document: formData.document,
-        whatsapp: whatsappClean,
-        complement,
-        registration_number: registrationNumber,
-        notary,
-        lot_name: allotment,
-        block_number: block,
-        lot_number: lot
-      })
+      await generatePix(buildPaymentPayload(formData, finalPlaceId, whatsappClean))
 
       setStep('pix')
     } catch (error) {
@@ -645,13 +652,8 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
     getValues,
     placeId,
     generatePix,
-    documentId,
-    complement,
-    registrationNumber,
-    notary,
-    allotment,
-    block,
-    lot,
+    buildPaymentPayload,
+    parentForm,
     attemptPayWithCredits,
     planPriceFromApi,
     onFinish,
