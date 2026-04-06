@@ -9,6 +9,7 @@ import { ChevronLeft, CircleQuestionMark } from 'lucide-react'
 import {
   AddressStep,
   AddressHintStep,
+  RegistrationManualStep,
   ConsultEntryStep,
   DocumentConfirmationStep,
   DocumentTypeStep,
@@ -27,6 +28,7 @@ import { trackGtmEvent } from '@/utils/analytics/gtm'
 
 type FlowState =
   | 'entry'
+  | 'registry-manual'
   | 'address-hint'
   | 'address'
   | 'address-complement'
@@ -86,6 +88,7 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
       placeId: '',
       address: '',
       addressHint: '',
+      notaryName: '',
     },
     shouldUnregister: false,
     mode: 'onChange',
@@ -224,6 +227,7 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
 
   const progressSteps: Record<FlowState, number> = useMemo(() => ({
     entry: 0,
+    'registry-manual': 1,
     'address-hint': 1,
     address: 1,
     'address-complement': 1,
@@ -317,10 +321,11 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
         
       </header>
 
-      <div className="relative h-24 -mt-1 transition-colors duration-500 bg-sky-200"></div>
+      {/* Altura mínima maior no mobile: o conteúdo do passo de endereço sobrepõe esta faixa (-mt); título+subtítulo quebrados precisam de mais banda azul. */}
+      <div className="relative min-h-[9rem] sm:min-h-24 sm:h-24 -mt-1 transition-colors duration-500 bg-sky-200" />
 
       <FormProvider {...methods}>
-        <main className="w-full mx-auto lg:max-w-lg pt-2 px-0 -mt-20">
+        <main className="w-full mx-auto lg:max-w-lg pt-2 px-0 -mt-[7rem] sm:-mt-20">
           <Activity isActive={flow === 'entry'}>
             <ConsultEntryStep
               onChoose={(choice) => {
@@ -331,10 +336,17 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
                   methods.setValue('hasDocument', true, { shouldValidate: true })
                   go('doc-type')
                 } else {
-                  go('address-hint')
+                  methods.setValue('registrationNumber', '', { shouldValidate: false })
+                  methods.setValue('notaryName', '', { shouldValidate: false })
+                  methods.setValue('unknownRegistration', undefined, { shouldValidate: false })
+                  go('registry-manual')
                 }
               }}
             />
+          </Activity>
+
+          <Activity isActive={flow === 'registry-manual'}>
+            <RegistrationManualStep onBack={back} onNext={() => go('doc-confirmation')} />
           </Activity>
 
           <Activity isActive={flow === 'address-hint'}>

@@ -33,7 +33,7 @@ const cards: {
   {
     id: 'unsure',
     title: 'Não sei o endereço exato',
-    subtitle: 'Descreva o que souber; nossa IA ajuda a completar na análise.',
+    subtitle: 'Informe matrícula e cartório — o jeito mais preciso quando você não tem o endereço no mapa.',
     icon: HelpCircle,
   },
 ]
@@ -75,8 +75,8 @@ export function ConsultEntryStep({ onChoose }: ConsultEntryStepProps) {
       </div>
 
       <p className="mt-6 text-[11px] text-gray-400 leading-relaxed px-1">
-        Se você já tiver matrícula ou contrato em mãos, enviar o arquivo agiliza a análise. Sem documento, também
-        dá — usamos o endereço e buscamos a matrícula para você.
+        Se você já tiver matrícula ou contrato em mãos, enviar o arquivo agiliza a análise. Sem endereço no mapa,
+        use matrícula e cartório. Com endereço, também podemos buscar a matrícula para você.
       </p>
     </div>
   )

@@ -16,8 +16,12 @@ export function DocumentConfirmationStep({
 }) {
   const { setValue, watch, getValues } = useFormContext()
   const hasDocument = watch('hasDocument')
+  const reg = String(getValues('registrationNumber') || '').trim()
+  const notaryManual = String(getValues('notaryName') || '').trim()
   const currentAddress =
-    String(getValues('address') || '').trim() || String(getValues('addressHint') || '').trim()
+    String(getValues('address') || '').trim() ||
+    String(getValues('addressHint') || '').trim() ||
+    (reg && notaryManual ? `Matrícula ${reg} · ${notaryManual}` : '')
 
   function handleSelect(value: boolean) {
     setValue('hasDocument', value, { shouldValidate: true })

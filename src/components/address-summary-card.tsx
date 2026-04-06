@@ -13,6 +13,8 @@ interface SummaryItem {
 interface AddressSummaryCardProps {
   address: string
   registrationNumber?: string
+  /** Cartório informado manualmente (fluxo sem mapa). */
+  notary?: string
   allotment?: string
   block?: string
   lot?: string
@@ -22,13 +24,16 @@ interface AddressSummaryCardProps {
 export default function AddressSummaryCard({
   address,
   registrationNumber,
+  notary,
   allotment,
   block,
   lot,
   className
 }: AddressSummaryCardProps) {
+  const addrLine = String(address || '').trim()
   const details: SummaryItem[] = [
     { key: 'registrationNumber', title: 'Matrícula', value: registrationNumber || '' },
+    { key: 'notary', title: 'Cartório', value: notary || '' },
     { key: 'allotment', title: 'Loteamento', value: allotment || '' },
     { key: 'block', title: 'Quadra', value: block || '' },
     { key: 'lot', title: 'Lote', value: lot || '' },
@@ -47,9 +52,11 @@ export default function AddressSummaryCard({
             <MapPin className="size-4 text-primary" />
           </div>
           <div className="flex flex-col min-w-0">
-            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Endereço selecionado</span>
+            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
+              {addrLine ? 'Endereço selecionado' : 'Consulta sem endereço no mapa'}
+            </span>
             <p className="text-sm font-semibold text-dark leading-tight break-words">
-              {address || 'Endereço não informado'}
+              {addrLine || 'Você informou matrícula e cartório; o endereço pode ser refinado depois.'}
             </p>
           </div>
         </div>
