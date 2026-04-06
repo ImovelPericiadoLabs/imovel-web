@@ -18,7 +18,7 @@ import PixIcon from '@/components/icons/pix-icon'
 import Alert from '@/components/alert'
 import AddressSummaryCard from '@/components/address-summary-card'
 
-import { processPayment, getPaymentStatus } from '@/services/payments'
+import { processPayment, getPaymentStatus, type ProcessPaymentResult } from '@/services/payments'
 import { getMe, startAuth } from '@/services/account'
 import { listPlans } from '@/services/orders/orders'
 import { ApiError } from '@/utils/api/errors'
@@ -39,6 +39,12 @@ type Step = 'details' | 'auth' | 'pix'
 const FIXED_PLAN_ID = '019aea72-ccab-76ee-883c-72cce61cedbb'
 const STORAGE_KEY = '@pix-payment:form-data'
 type MaskType = 'cpf' | 'whatsapp' | ((value: string) => string)
+
+function pixPayloadFromResult(data: ProcessPaymentResult | undefined): string {
+  if (!data) return ''
+  if ('paid_with_credits' in data && data.paid_with_credits) return ''
+  return 'payload' in data ? (data.payload ?? '') : ''
+}
 
 function applyMask(value: string, mask?: MaskType): string {
   const digits = value.replace(/\D/g, '')
@@ -255,7 +261,13 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
   }, [step, paymentId, onCancel])
 
   const { mutateAsync: generatePix, data: pixData, isPending: isPixPending } = useMutation({
-    mutationFn: processPayment,
+    mutationFn: (data: Parameters<typeof processPayment>[0]) =>
+      processPayment(data, {
+        idempotencyKey:
+          typeof globalThis.crypto !== 'undefined' && typeof globalThis.crypto.randomUUID === 'function'
+            ? globalThis.crypto.randomUUID()
+            : `${Date.now()}-${Math.random()}`,
+      }),
     onSuccess(payment) {
       if (payment?.id) {
         setPaymentId(payment.id)
@@ -647,7 +659,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
 
   const handleCopy = useCallback(async () => {
     try {
-      await navigator.clipboard.writeText(pixData?.payload || '')
+      await navigator.clipboard.writeText(pixPayloadFromResult(pixData))
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
 
@@ -916,7 +928,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
           />
         )}
 
-        {step === 'pix' && !!pixData && (
+        {step === 'pix' && !!pixData && pixPayloadFromResult(pixData) !== '' && (
           <div className="flex flex-col items-center pt-10 -mt-20">
             <div className="mb-8 pt-4 text-black px-1 text-left relative z-10 w-full text-center flex flex-col gap-5">
               <p className="text-center leading-snug font-normal text-black/80">
@@ -939,7 +951,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
                     {isPixPending && <Skeleton className="w-full h-full object-contain" />}
                     {!!pixData && (
                       <Image
-                        src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(pixData.payload)}&margin=0`}
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(pixPayloadFromResult(pixData))}&margin=0`}
                         alt="QR Pix"
                         className="w-full h-full object-contain"
                         width={150}
@@ -956,7 +968,9 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
                 <p className="text-dark text-[15px] font-medium">Este código expira em 30 min, pague até {expirationTime}</p>
               </div>
               <div className="w-full bg-white border border-gray-200 rounded-xl p-4 mb-6">
-                <p className="text-[11px] text-gray-600 break-all font-mono text-center uppercase">{pixData.payload}</p>
+                <p className="text-[11px] text-gray-600 break-all font-mono text-center uppercase">
+                  {pixPayloadFromResult(pixData)}
+                </p>
               </div>
               <Button onClick={handleCopy} type="button" className="rounded-xl h-12">
                 <div className="flex items-center justify-center gap-2">
