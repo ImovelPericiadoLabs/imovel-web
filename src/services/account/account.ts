@@ -78,6 +78,8 @@ export type MeResponse = {
   email: string
   credits_balance: number
   whatsapp?: string
+  is_superuser?: boolean
+  is_staff?: boolean
 }
 
 /**

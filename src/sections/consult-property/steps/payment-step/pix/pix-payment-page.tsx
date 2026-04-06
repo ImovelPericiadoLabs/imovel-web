@@ -5,7 +5,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useForm, FormProvider, useFormContext } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Check, Clock, Copy, IdCard, Mail, Phone, User } from 'lucide-react'
+import { Check, Clock, Copy, IdCard, Mail, Phone, User, Wallet } from 'lucide-react'
 import { useSession, signOut } from 'next-auth/react'
 
 import TextTitle from '@/components/text-title'
@@ -19,7 +19,8 @@ import Alert from '@/components/alert'
 import AddressSummaryCard from '@/components/address-summary-card'
 
 import { processPayment, getPaymentStatus } from '@/services/payments'
-import { startAuth } from '@/services/account'
+import { getMe, startAuth } from '@/services/account'
+import { listPlans } from '@/services/orders/orders'
 import { ApiError } from '@/utils/api/errors'
 import { queryKey } from '@/constants/queries'
 import { validations, FormTypes } from './validations'
@@ -102,6 +103,8 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
   const [isAuthLoading, setIsAuthLoading] = useState(false)
   const hasTrackedPaymentConfirmed = useRef(false)
   const hasTrackedPixView = useRef(false)
+  /** Após login por e-mail, segue para débito em créditos em vez de gerar PIX. */
+  const paymentIntentRef = useRef<'credits' | null>(null)
 
   const methods = useForm<FormTypes>({
     resolver: zodResolver(validations),
@@ -165,6 +168,79 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
       setStep('pix')
     }
   }, [paymentId])
+
+  const { data: meSnapshot } = useQuery({
+    queryKey: ['me'],
+    queryFn: getMe,
+    enabled: status === 'authenticated',
+  })
+
+  const { data: plansSnapshot } = useQuery({
+    queryKey: ['plans'],
+    queryFn: listPlans,
+    enabled: status === 'authenticated',
+  })
+
+  const planPriceFromApi = useMemo(() => {
+    const arr = Array.isArray(plansSnapshot) ? plansSnapshot : []
+    const p = arr[0]?.price
+    return typeof p === 'number' ? p : CONSULT_PRODUCT_PRICE
+  }, [plansSnapshot])
+
+  const creditsForUi = Number(meSnapshot?.credits_balance ?? 0)
+  const showCreditsOption =
+    status !== 'loading' &&
+    (status !== 'authenticated' || creditsForUi >= planPriceFromApi)
+
+  const buildPaymentPayload = useCallback(
+    (
+      formData: { name: string; document: string; email: string; whatsapp: string },
+      finalPlaceId: string,
+      whatsappClean: string,
+    ) => ({
+      place_id: finalPlaceId,
+      plan_id: FIXED_PLAN_ID,
+      document_id: documentId,
+      name: formData.name,
+      document: formData.document,
+      whatsapp: whatsappClean,
+      complement,
+      registration_number: registrationNumber,
+      notary,
+      lot_name: allotment,
+      block_number: block,
+      lot_number: lot,
+    }),
+    [documentId, complement, registrationNumber, notary, allotment, block, lot],
+  )
+
+  const attemptPayWithCredits = useCallback(
+    async (
+      formData: { name: string; document: string; email: string; whatsapp: string },
+      finalPlaceId: string,
+      whatsappClean: string,
+    ) => {
+      const [me, plans] = await Promise.all([getMe(), listPlans()])
+      const arr = Array.isArray(plans) ? plans : []
+      const price = typeof arr[0]?.price === 'number' ? arr[0].price : CONSULT_PRODUCT_PRICE
+      const bal = Number(me?.credits_balance ?? 0)
+      if (bal < price) {
+        return false
+      }
+
+      await processPayment(
+        { ...buildPaymentPayload(formData, finalPlaceId, whatsappClean), use_credits: true },
+        {
+          idempotencyKey:
+            typeof globalThis.crypto !== 'undefined' && typeof globalThis.crypto.randomUUID === 'function'
+              ? globalThis.crypto.randomUUID()
+              : `${Date.now()}-${Math.random()}`,
+        },
+      )
+      return true
+    },
+    [buildPaymentPayload],
+  )
 
   const clearServerError = useCallback(() => {
     setServerError('')
@@ -243,7 +319,123 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
     refetchIntervalInBackground: false,
   })
 
+  const handlePayWithCreditsClick = useCallback(async () => {
+    const isValid = await trigger(['name', 'document', 'email', 'whatsapp'])
+    if (!isValid) return
+
+    const formData = getValues()
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      name: formData.name,
+      document: formData.document,
+      email: formData.email,
+      whatsapp: formData.whatsapp,
+    }))
+
+    const finalPlaceId = formData.placeId || placeId
+    if (!finalPlaceId) {
+      setServerError('Erro: Identificador do imóvel não encontrado.')
+      return
+    }
+
+    trackGtmEvent('add_payment_info', {
+      event_category: 'payment',
+      event_label: 'credits_choice',
+      event_description: 'Usuário optou por pagamento com créditos.',
+      payment_type: 'credits',
+      place_id: finalPlaceId,
+      has_document: Boolean(documentId),
+      currency: DEFAULT_CURRENCY,
+      value: planPriceFromApi,
+      items: [buildConsultItem(planPriceFromApi)],
+    })
+
+    clearServerError()
+    const whatsappClean = formData.whatsapp.replace(/\D/g, '').slice(0, 12)
+
+    if (status !== 'authenticated') {
+      paymentIntentRef.current = 'credits'
+      setIsAuthLoading(true)
+      try {
+        trackGtmEvent('auth_code_requested', {
+          event_category: 'auth',
+          event_label: 'new_login_credits',
+          event_description: 'Código de autenticação para pagamento com créditos.',
+          has_email: Boolean(formData.email),
+        })
+        await startAuth({ email: formData.email })
+        setStep('auth')
+      } catch {
+        paymentIntentRef.current = null
+        setServerError('Não foi possível enviar o código. Verifique o e-mail.')
+      } finally {
+        setIsAuthLoading(false)
+      }
+      return
+    }
+
+    setIsAuthLoading(true)
+    try {
+      const paid = await attemptPayWithCredits(formData, finalPlaceId, whatsappClean)
+      if (!paid) {
+        setServerError('Saldo insuficiente. Recarregue os créditos ou pague com PIX.')
+        return
+      }
+      trackGtmEvent('purchase', {
+        event_category: 'payment',
+        event_label: 'purchase',
+        event_description: 'Compra concluída com saldo em créditos.',
+        payment_method: 'credits',
+        currency: DEFAULT_CURRENCY,
+        value: planPriceFromApi,
+        items: [buildConsultItem(planPriceFromApi)],
+      })
+      onFinish()
+    } catch (error) {
+      const err = error as {
+        code?: string
+        detail?: string
+        response?: { status: number }
+        status?: number
+      }
+      const isUnauthorized =
+        err?.code === 'token_not_valid' ||
+        err?.detail === 'Given token not valid for any token type' ||
+        err?.response?.status === 401 ||
+        err?.status === 401
+
+      if (isUnauthorized) {
+        await signOut({ redirect: false })
+        paymentIntentRef.current = 'credits'
+        try {
+          await startAuth({ email: formData.email })
+          setStep('auth')
+        } catch {
+          setServerError('Sessão expirada. Verifique seu e-mail.')
+          paymentIntentRef.current = null
+        }
+      } else {
+        setServerError(
+          error instanceof ApiError ? error.message : 'Erro ao processar pagamento com saldo. Tente novamente.',
+        )
+      }
+    } finally {
+      setIsAuthLoading(false)
+    }
+  }, [
+    trigger,
+    getValues,
+    placeId,
+    clearServerError,
+    status,
+    documentId,
+    planPriceFromApi,
+    attemptPayWithCredits,
+    onFinish,
+  ])
+
   const handleDetailsSubmit = useCallback(async () => {
+    paymentIntentRef.current = null
     const isValid = await trigger(['name', 'document', 'email', 'whatsapp'])
 
     if (!isValid) return
@@ -378,6 +570,39 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
     setIsAuthLoading(true)
 
     const whatsappClean = formData.whatsapp.replace(/\D/g, '').slice(0, 12)
+    const creditsIntent = paymentIntentRef.current
+    paymentIntentRef.current = null
+
+    if (creditsIntent === 'credits') {
+      try {
+        const paid = await attemptPayWithCredits(formData, finalPlaceId, whatsappClean)
+        if (paid) {
+          trackGtmEvent('purchase', {
+            event_category: 'payment',
+            event_label: 'purchase',
+            event_description: 'Compra concluída com saldo em créditos.',
+            payment_method: 'credits',
+            currency: DEFAULT_CURRENCY,
+            value: planPriceFromApi,
+            items: [buildConsultItem(planPriceFromApi)],
+          })
+          onFinish()
+          return
+        }
+        setServerError('Saldo insuficiente. Recarregue os créditos ou pague com PIX.')
+        setStep('details')
+      } catch (error) {
+        if (error instanceof ApiError) {
+          setServerError(error.message)
+        } else {
+          setServerError('Erro ao processar pagamento com saldo. Tente novamente.')
+        }
+        setStep('details')
+      } finally {
+        setIsAuthLoading(false)
+      }
+      return
+    }
 
     try {
       await generatePix({
@@ -403,7 +628,22 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
     } finally {
       setIsAuthLoading(false)
     }
-  }, [setValue, getValues, placeId, generatePix, documentId, complement, registrationNumber, notary, allotment, block, lot])
+  }, [
+    setValue,
+    getValues,
+    placeId,
+    generatePix,
+    documentId,
+    complement,
+    registrationNumber,
+    notary,
+    allotment,
+    block,
+    lot,
+    attemptPayWithCredits,
+    planPriceFromApi,
+    onFinish,
+  ])
 
   const handleCopy = useCallback(async () => {
     try {
@@ -474,7 +714,11 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
                     Último passo para sua consulta do imóvel
                   </TextTitle>
                   <TextSubtitle className="text-sm text-gray-500 leading-snug">
-                    Preencha seus dados para gerar o PIX de 59,00
+                    {showCreditsOption
+                      ? status === 'authenticated'
+                        ? `Preencha os dados e escolha pagar com saldo ou PIX (R$ ${planPriceFromApi.toFixed(2).replace('.', ',')})`
+                        : 'Preencha os dados: você pode usar o saldo da sua conta após confirmar o e-mail ou pagar com PIX'
+                      : `Preencha seus dados para gerar o PIX de ${planPriceFromApi.toFixed(2).replace('.', ',')}`}
                   </TextSubtitle>
                 </div>
               </div>
@@ -633,11 +877,27 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
                   )}
                 </div>
 
-                <div className="pt-2">
-                  <Button 
-                    type="button" 
-                    onClick={handleDetailsSubmit} 
-                    disabled={isLoading} 
+                <div className="flex flex-col gap-3 pt-2">
+                  {showCreditsOption && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handlePayWithCreditsClick}
+                      disabled={isLoading}
+                      className="rounded-xl h-12"
+                      icon={<Wallet className="size-5" />}
+                    >
+                      {isLoading
+                        ? 'Processando...'
+                        : status === 'authenticated'
+                          ? `Pagar com saldo (R$ ${creditsForUi.toFixed(2).replace('.', ',')} disponíveis)`
+                          : 'Pagar com saldo'}
+                    </Button>
+                  )}
+                  <Button
+                    type="button"
+                    onClick={handleDetailsSubmit}
+                    disabled={isLoading}
                     className="rounded-xl h-12"
                     icon={<PixIcon className="size-5" />}
                   >
