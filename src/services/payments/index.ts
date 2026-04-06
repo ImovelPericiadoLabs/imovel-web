@@ -1,1 +1,1 @@
-export { processPayment, getPaymentStatus } from './payments'
+export { processPayment, getPaymentStatus, type ProcessPaymentResult } from './payments'
