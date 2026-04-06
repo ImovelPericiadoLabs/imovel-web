@@ -15,9 +15,17 @@ type PaymentRequest = {
   lot_number?: string
   lot_name?: string
   block_number?: string
+  use_credits?: boolean
 }
 
-export async function processPayment(data: PaymentRequest) {
+export type ProcessPaymentResult =
+  | { encodedImage?: string; payload?: string; id?: string }
+  | { id: string; paid_with_credits: true }
+
+export async function processPayment(
+  data: PaymentRequest,
+  options?: { idempotencyKey?: string },
+): Promise<ProcessPaymentResult> {
   const session = await getSessionDeduplicated()
   const token = session?.accessToken
 
@@ -25,7 +33,12 @@ export async function processPayment(data: PaymentRequest) {
     throw new Error('Usuário não autenticado')
   }
 
-  return api.post(endpoint.payments.process, data, token)
+  const extraHeaders =
+    options?.idempotencyKey != null && options.idempotencyKey !== ''
+      ? { 'Idempotency-Key': options.idempotencyKey }
+      : undefined
+
+  return api.post(endpoint.payments.process, data, token, extraHeaders) as Promise<ProcessPaymentResult>
 }
 
 export async function getPaymentStatus(paymentId: string) {

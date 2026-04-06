@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, Mock } from 'vitest'
 import api from '@/utils/api/client'
 import { endpoint } from '@/constants/api'
+import { getSessionDeduplicated } from '@/utils/session'
 import { processPayment, getPaymentStatus } from './payments'
 
 vi.mock('@/utils/api/client', () => ({
@@ -10,8 +11,8 @@ vi.mock('@/utils/api/client', () => ({
   },
 }))
 
-vi.mock('next-auth/react', () => ({
-  getSession: vi.fn(() => Promise.resolve({ accessToken: 'mock-token' })),
+vi.mock('@/utils/session', () => ({
+  getSessionDeduplicated: vi.fn(),
 }))
 
 describe('Payments Service', () => {
@@ -34,6 +35,7 @@ describe('Payments Service', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.stubGlobal('document', { cookie: 'next-auth.session-token=mock' })
+    vi.mocked(getSessionDeduplicated).mockResolvedValue({ accessToken: mockToken } as never)
   })
 
   describe('processPayment', () => {
@@ -44,9 +46,10 @@ describe('Payments Service', () => {
       const result = await processPayment(mockProcessData)
 
       expect(api.post).toHaveBeenCalledWith(
-        endpoint.payments.process, 
-        mockProcessData, 
-        mockToken
+        endpoint.payments.process,
+        mockProcessData,
+        mockToken,
+        undefined,
       )
       expect(result).toEqual(mockedResponse)
     })
@@ -59,9 +62,10 @@ describe('Payments Service', () => {
       const result = await processPayment(minimalData)
 
       expect(api.post).toHaveBeenCalledWith(
-        endpoint.payments.process, 
-        minimalData, 
-        mockToken
+        endpoint.payments.process,
+        minimalData,
+        mockToken,
+        undefined,
       )
       expect(result).toEqual(mockedResponse)
     })

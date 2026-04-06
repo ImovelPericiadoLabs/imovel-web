@@ -91,7 +91,12 @@ const api = {
     return response.blob()
   },
 
-  async post(url: string, rawBody: object, token?: string) {
+  async post(
+    url: string,
+    rawBody: object,
+    token?: string,
+    extraHeaders?: Record<string, string>,
+  ) {
     const isFormData = rawBody instanceof FormData
     const headers: Record<string, string> = {
       'Accept': 'application/json',
@@ -105,6 +110,10 @@ const api = {
 
     if (token) {
       headers['Authorization'] = `Bearer ${token}`
+    }
+
+    if (extraHeaders) {
+      Object.assign(headers, extraHeaders)
     }
 
     const response = await fetch(`${apiUrl}${url}`, {
@@ -130,10 +139,64 @@ const api = {
       throw result
     }
 
-    if (response.status === 400 || response.status === 429) {
+    if (response.status === 400 || response.status === 403 || response.status === 429 || response.status === 502) {
       const err = result?.error
       if (err && typeof err.code === 'string' && typeof err.message === 'string') {
         throw new ApiError(err.code, err.message)
+      }
+      throw new Error(typeof result?.message === 'string' ? result.message : 'Erro na requisição')
+    }
+
+    if (!response.ok) {
+      throw new Error(`Erro ${response.status}`)
+    }
+
+    return result
+  },
+
+  async patch(url: string, body: object, token?: string) {
+    const headers: Record<string, string> = {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    }
+
+    appendInternalApiHeader(headers, 'PATCH', url)
+
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+
+    const response = await fetch(`${apiUrl}${url}`, {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify(body),
+    })
+
+    const responseText = await response.text()
+    let result
+    try {
+      result = JSON.parse(responseText)
+    } catch {
+      const isHtmlResponse = /<html|<!doctype html/i.test(responseText)
+      const message = isHtmlResponse
+        ? `Resposta HTML inesperada da API (${response.status}). Verifique URL da API e possíveis bloqueios de firewall/WAF.`
+        : `Resposta inválida da API (${response.status}).`
+      throw new Error(message)
+    }
+
+    if (response.status === 401) {
+      await handleUnauthorized()
+      throw result
+    }
+
+    if (response.status === 400 || response.status === 403 || response.status === 429) {
+      const err = result?.error
+      if (err && typeof err.code === 'string' && typeof err.message === 'string') {
+        throw new ApiError(err.code, err.message)
+      }
+      const detail = result?.detail
+      if (typeof detail === 'string') {
+        throw new Error(detail)
       }
       throw new Error(typeof result?.message === 'string' ? result.message : 'Erro na requisição')
     }

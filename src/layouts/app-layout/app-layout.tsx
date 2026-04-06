@@ -3,7 +3,7 @@
 import { PropsWithChildren, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { ChevronLeft, Menu, X, LogOut, Wallet, Mail, Search, List, FileText, Trash2, AlertTriangle, LoaderCircle } from 'lucide-react'
+import { ChevronLeft, Menu, X, LogOut, Wallet, Mail, Search, List, FileText, Trash2, AlertTriangle, LoaderCircle, Megaphone } from 'lucide-react'
 import Link from 'next/link'
 import { useSession } from 'next-auth/react'
 import { useMutation, useQuery } from '@tanstack/react-query'
@@ -57,11 +57,13 @@ export default function AppLayout({ children }: PropsWithChildren) {
   })
 
   const isConsultas = pathname.startsWith('/consultas')
+  const isAdminArea = pathname.startsWith('/admin')
   const currentEmail = me?.email ?? session?.user?.email ?? ''
 
   function handleGoBack() {
     const mapRoutes: Record<string, string> = {
-      '/consultas': '/consultar-imovel'
+      '/consultas': '/consultar-imovel',
+      '/admin/outreach': '/consultas',
     }
     if (mapRoutes[pathname]) {
       push(mapRoutes[pathname])
@@ -136,8 +138,11 @@ export default function AppLayout({ children }: PropsWithChildren) {
     if (isMatch('/consultas/:id/opcoes/proprietarios')) {
       return <HeaderTitle>Proprietários</HeaderTitle>
     }
+    if (pathname.startsWith('/admin/outreach')) {
+      return <HeaderTitle>Divulgação</HeaderTitle>
+    }
     return <></>
-  }, [isMatch])
+  }, [isMatch, pathname])
 
   return (
     <Providers>
@@ -168,7 +173,7 @@ export default function AppLayout({ children }: PropsWithChildren) {
             )}
 
             <div className="flex items-center min-w-0 flex-1 justify-end">
-              {isConsultas && (
+              {(isConsultas || isAdminArea) && (
                 <button
                   type="button"
                   onClick={() => setSidebarOpen(true)}
@@ -260,6 +265,16 @@ export default function AppLayout({ children }: PropsWithChildren) {
                     <List className="size-5 text-primary shrink-0" />
                     Minhas consultas
                   </Link>
+                  {me?.is_superuser && (
+                    <Link
+                      href="/admin/outreach"
+                      onClick={() => setSidebarOpen(false)}
+                      className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-gray-700 hover:bg-gray-100 font-medium touch-manipulation"
+                    >
+                      <Megaphone className="size-5 text-primary shrink-0" />
+                      Divulgação (admin)
+                    </Link>
+                  )}
                 </nav>
 
                 <div className="pt-4">
