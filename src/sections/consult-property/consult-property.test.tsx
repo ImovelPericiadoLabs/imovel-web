@@ -28,6 +28,20 @@ vi.mock('@/components/traffic-light-modal', () => ({
 }))
 
 vi.mock('@/sections/consult-property/steps', () => ({
+  ConsultEntryStep: ({ onChoose }: any) => (
+    <div data-testid="entry-step">
+      <button type="button" onClick={() => onChoose('address')}>
+        Pick Address Path
+      </button>
+    </div>
+  ),
+  AddressHintStep: ({ onNext }: any) => (
+    <div data-testid="address-hint-step">
+      <button type="button" onClick={onNext}>
+        Next Hint
+      </button>
+    </div>
+  ),
   AddressStep: ({ onNext }: any) => (
     <div data-testid="address-step"><button onClick={onNext}>Next Address</button></div>
   ),
@@ -74,17 +88,23 @@ vi.mock('@/sections/consult-property/steps/payment-step/card/register', () => ({
 
 describe('ConsultProperty Flow', () => {
   beforeEach(() => {
+    sessionStorage.setItem('consultPropertyAssetsReady', 'true')
     Object.defineProperty(window, 'scrollTo', { value: vi.fn(), writable: true })
     vi.clearAllMocks()
   })
 
-  afterEach(cleanup)
+  afterEach(() => {
+    sessionStorage.removeItem('consultPropertyAssetsReady')
+    cleanup()
+  })
 
   it('deve navegar por todo o fluxo linear com sucesso', () => {
     render(<ConsultProperty />)
 
+    expect(screen.getByTestId('entry-step')).toBeVisible()
+
+    fireEvent.click(screen.getByText('Pick Address Path'))
     expect(screen.getByTestId('address-step')).toBeVisible()
-    expect(screen.getByTestId('progress-bar')).toHaveAttribute('data-value', '20')
 
     fireEvent.click(screen.getByText('Next Address'))
     expect(screen.getByTestId('address-complement-step')).toBeVisible()
@@ -105,11 +125,9 @@ describe('ConsultProperty Flow', () => {
     expect(screen.getByTestId('success-step')).toBeVisible()
   })
 
-  it('deve esconder o botão voltar no início e navegar para home se clicado', () => {
+  it('na entrada, voltar envia para a home', () => {
     render(<ConsultProperty />)
     const backBtn = screen.getByTestId('chevron-left')
-    expect(backBtn).toHaveClass('opacity-0')
-
     fireEvent.click(backBtn)
     expect(mockPush).toHaveBeenCalledWith('/')
   })
@@ -117,6 +135,7 @@ describe('ConsultProperty Flow', () => {
   it('deve gerenciar a pilha de estados (stack) ao voltar passos', () => {
     render(<ConsultProperty />)
 
+    fireEvent.click(screen.getByText('Pick Address Path'))
     fireEvent.click(screen.getByText('Next Address'))
     fireEvent.click(screen.getByText('Next Complement'))
 
@@ -125,6 +144,9 @@ describe('ConsultProperty Flow', () => {
 
     fireEvent.click(screen.getByTestId('chevron-left'))
     expect(screen.getByTestId('address-step')).toBeVisible()
+
+    fireEvent.click(screen.getByTestId('chevron-left'))
+    expect(screen.getByTestId('entry-step')).toBeVisible()
   })
 
   it('deve resetar o estado Sim/Não ao voltar passos entre componentes principais', () => {
@@ -135,6 +157,7 @@ describe('ConsultProperty Flow', () => {
     // Vou apenas verificar se o fluxo de navegação funciona após os resets adicionados.
     render(<ConsultProperty />)
 
+    fireEvent.click(screen.getByText('Pick Address Path'))
     fireEvent.click(screen.getByText('Next Address'))
     fireEvent.click(screen.getByText('Next Complement'))
     fireEvent.click(screen.getByText('Next DocConfirm'))
@@ -154,6 +177,7 @@ describe('ConsultProperty Flow', () => {
 
     render(<ConsultProperty />)
 
+    fireEvent.click(screen.getByText('Pick Address Path'))
     fireEvent.click(screen.getByText('Next Address'))
     fireEvent.click(screen.getByText('Next Complement'))
     fireEvent.click(screen.getByText('Next DocConfirm'))

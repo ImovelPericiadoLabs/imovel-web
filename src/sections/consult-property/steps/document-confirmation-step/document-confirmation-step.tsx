@@ -16,7 +16,8 @@ export function DocumentConfirmationStep({
 }) {
   const { setValue, watch, getValues } = useFormContext()
   const hasDocument = watch('hasDocument')
-  const currentAddress = getValues('address')
+  const currentAddress =
+    String(getValues('address') || '').trim() || String(getValues('addressHint') || '').trim()
 
   function handleSelect(value: boolean) {
     setValue('hasDocument', value, { shouldValidate: true })
@@ -44,7 +45,10 @@ export function DocumentConfirmationStep({
   return (
     <div className="relative flex-1 px-4">
       <div className="flex flex-col gap-4 pb-24 md:pb-0">
-        <SelectedAddressCard address={currentAddress} />
+        <SelectedAddressCard
+          address={currentAddress}
+          variant={String(getValues('address') || '').trim() ? 'selected' : 'hint'}
+        />
         <div className="flex flex-col gap-2 mb-2">
           <TextTitle className="text-dark">Você tem o documento do imóvel?</TextTitle>
           <TextSubtitle className="text-gray-500">Isso agiliza a análise do seu pedido</TextSubtitle>
