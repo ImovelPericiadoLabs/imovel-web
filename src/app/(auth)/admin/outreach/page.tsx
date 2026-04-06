@@ -27,6 +27,8 @@ import {
 
 type Step = 1 | 2 | 3 | 4 | 5
 
+type CampaignPreviewPayload = Awaited<ReturnType<typeof previewCampaign>>
+
 export default function AdminOutreachPage() {
   const queryClient = useQueryClient()
   const { data: me, isLoading: meLoading } = useQuery({ queryKey: ['me'], queryFn: getMe })
@@ -65,7 +67,7 @@ export default function AdminOutreachPage() {
   const [pixelBase, setPixelBase] = useState('')
   const [lgpdOk, setLgpdOk] = useState(false)
   const [pageError, setPageError] = useState<string | null>(null)
-  const [previewResult, setPreviewResult] = useState<unknown>(null)
+  const [previewResult, setPreviewResult] = useState<CampaignPreviewPayload | null>(null)
   const [syncSummary, setSyncSummary] = useState<string | null>(null)
 
   const registryMeta: RegistryTemplateMeta | undefined = useMemo(
@@ -415,40 +417,42 @@ export default function AdminOutreachPage() {
         </div>
       )}
 
-      {step === 4 && previewResult && (
-        <div className="bg-white border border-gray-100 rounded-2xl p-5 space-y-4 shadow-sm">
-          <p className="font-semibold text-gray-900">Resultado da pré-visualização</p>
-          <pre className="text-xs bg-gray-50 p-3 rounded-xl overflow-x-auto max-h-64 overflow-y-auto">
-            {JSON.stringify(previewResult, null, 2)}
-          </pre>
-          <label className="flex items-start gap-2 text-sm text-gray-700">
-            <input type="checkbox" checked={lgpdOk} onChange={(e) => setLgpdOk(e.target.checked)} />
-            Confirmo que a lista foi obtida com base legal (LGPD) e que os destinatários podem receber esta
-            comunicação.
-          </label>
-          <div>
-            <label className="text-sm text-gray-600">URL base do pixel (opcional, default API)</label>
-            <input
-              className="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm"
-              value={pixelBase}
-              onChange={(e) => setPixelBase(e.target.value)}
-              placeholder={apiBaseUrl.replace(/\/v1\/?$/, '')}
-            />
+      {step === 4 ? (
+        previewResult !== null ? (
+          <div className="bg-white border border-gray-100 rounded-2xl p-5 space-y-4 shadow-sm">
+            <p className="font-semibold text-gray-900">Resultado da pré-visualização</p>
+            <pre className="text-xs bg-gray-50 p-3 rounded-xl overflow-x-auto max-h-64 overflow-y-auto">
+              {JSON.stringify(previewResult, null, 2)}
+            </pre>
+            <label className="flex items-start gap-2 text-sm text-gray-700">
+              <input type="checkbox" checked={lgpdOk} onChange={(e) => setLgpdOk(e.target.checked)} />
+              Confirmo que a lista foi obtida com base legal (LGPD) e que os destinatários podem receber esta
+              comunicação.
+            </label>
+            <div>
+              <label className="text-sm text-gray-600">URL base do pixel (opcional, default API)</label>
+              <input
+                className="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm"
+                value={pixelBase}
+                onChange={(e) => setPixelBase(e.target.value)}
+                placeholder={apiBaseUrl.replace(/\/v1\/?$/, '')}
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" className="rounded-xl h-11" onClick={() => setStep(3)}>
+                Voltar
+              </Button>
+              <Button
+                className="rounded-xl h-11"
+                disabled={!lgpdOk || sendMut.isPending}
+                onClick={() => sendMut.mutate()}
+              >
+                {sendMut.isPending ? 'Enfileirando…' : 'Enviar campanha'}
+              </Button>
+            </div>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" className="rounded-xl h-11" onClick={() => setStep(3)}>
-              Voltar
-            </Button>
-            <Button
-              className="rounded-xl h-11"
-              disabled={!lgpdOk || sendMut.isPending}
-              onClick={() => sendMut.mutate()}
-            >
-              {sendMut.isPending ? 'Enfileirando…' : 'Enviar campanha'}
-            </Button>
-          </div>
-        </div>
-      )}
+        ) : null
+      ) : null}
 
       {step === 5 && (
         <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
