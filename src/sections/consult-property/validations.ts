@@ -14,6 +14,8 @@ export const validations = z
     complement: z.string().optional(),
     unknownRegistration: z.boolean().nullable().optional(),
     registrationNumber: z.string().optional().nullable(),
+    /** Nome do cartório quando o usuário não passou pelo mapa (fluxo matrícula + cartório). */
+    notaryName: z.string().max(100, 'Nome do cartório muito longo').default(''),
     placeId: z.string().default(''),
     addressHint: z.string().default(''),
     registry: z.object({
@@ -56,11 +58,14 @@ export const validations = z
       const pid = (data.placeId || '').trim()
       const hint = (data.addressHint || '').trim()
       const hasDoc = data.hasDocument === true && !!data.document?.id
-      return pid.length > 0 || hasDoc || hint.length >= 10
+      const reg = (data.registrationNumber || '').trim()
+      const cart = (data.notaryName || '').trim()
+      const hasMatriculaCartorio = reg.length >= 1 && cart.length >= 3
+      return pid.length > 0 || hasDoc || hint.length >= 10 || hasMatriculaCartorio
     },
     {
       message:
-        'Selecione um endereço na busca, descreva o local (mínimo 10 caracteres) ou envie um documento do imóvel.',
+        'Selecione um endereço na busca, descreva o local (mínimo 10 caracteres), informe matrícula e cartório, ou envie um documento do imóvel.',
       path: ['addressHint'],
     },
   )

@@ -42,6 +42,13 @@ vi.mock('@/sections/consult-property/steps', () => ({
       </button>
     </div>
   ),
+  RegistrationManualStep: ({ onNext }: any) => (
+    <div data-testid="registration-manual-step">
+      <button type="button" onClick={onNext}>
+        Next Reg Manual
+      </button>
+    </div>
+  ),
   AddressStep: ({ onNext }: any) => (
     <div data-testid="address-step"><button onClick={onNext}>Next Address</button></div>
   ),
