@@ -24,6 +24,24 @@ import { listPlans } from '@/services/orders/orders'
 import { ApiError } from '@/utils/api/errors'
 import { queryKey } from '@/constants/queries'
 import { validations, FormTypes } from './validations'
+import type { FormTypes as ConsultFormTypes } from '@/sections/consult-property/validations'
+
+function hasParentConsultContext(
+  parentForm: { getValues: (n: keyof ConsultFormTypes | string) => unknown } | null | undefined,
+  finalPlaceId: string,
+) {
+  if (String(finalPlaceId || '').trim().length > 0) return true
+  if (!parentForm?.getValues) return false
+  const hint = String(parentForm.getValues('addressHint') || '').trim()
+  const doc = parentForm.getValues('document') as { id?: string } | null | undefined
+  const hasDoc = Boolean(doc?.id)
+  const reg = String(parentForm.getValues('registrationNumber') || '').trim()
+  const notaryManual = String(parentForm.getValues('notaryName') || '').trim()
+  const registry = parentForm.getValues('registry') as { name?: string } | null | undefined
+  const registryName = String(registry?.name || '').trim()
+  const notary = (notaryManual || registryName).trim()
+  return hasDoc || hint.length >= 10 || (reg.length >= 1 && notary.length >= 3)
+}
 import { trackGtmEvent, buildConsultItem, DEFAULT_CURRENCY, CONSULT_PRODUCT_PRICE } from '@/utils/analytics/gtm'
 
 import { AuthCodePage } from './AuthCodePage/AuthCodePage'
@@ -85,7 +103,10 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
       const rawComplement = parentForm?.getValues('complement')
       const rawRegistrationNumber = parentForm?.getValues('registrationNumber')
       const uploadedDoc = parentForm?.getValues('document')
-      const notaryName = parentForm?.getValues('registry')?.name
+      const notaryName =
+        String(parentForm?.getValues('notaryName') || '').trim() ||
+        String(parentForm?.getValues('registry')?.name || '').trim() ||
+        undefined
       const rawAllotment = parentForm?.getValues('allotment')
       const rawBlock = parentForm?.getValues('block')
       const rawLot = parentForm?.getValues('lot')
@@ -93,7 +114,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
       return {
         complement: rawComplement?.trim() || undefined,
         registrationNumber: rawRegistrationNumber?.trim() || undefined,
-        notary: notaryName,
+        notary: notaryName || undefined,
         documentId: uploadedDoc?.id,
         allotment: rawAllotment?.trim() || undefined,
         block: rawBlock?.trim() || undefined,
@@ -143,6 +164,8 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
       'addressHint',
       'placeId',
       'registrationNumber',
+      'notaryName',
+      'registry',
       'allotment',
       'block',
       'lot',
@@ -358,11 +381,9 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
     }))
 
     const finalPlaceId = String(formData.placeId || placeId || '').trim()
-    const hint = String(parentForm?.getValues('addressHint') || '').trim()
-    const hasDoc = Boolean(parentForm?.getValues('document')?.id)
-    if (!finalPlaceId && !hasDoc && hint.length < 10) {
+    if (!hasParentConsultContext(parentForm, finalPlaceId)) {
       setServerError(
-        'Selecione o endereço na busca, descreva o local (mínimo 10 caracteres) ou envie o documento do imóvel.',
+        'Selecione o endereço na busca, descreva o local (mínimo 10 caracteres), informe matrícula e cartório ou envie o documento do imóvel.',
       )
       return
     }
@@ -480,11 +501,9 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
     }))
 
     const finalPlaceId = String(formData.placeId || placeId || '').trim()
-    const hint = String(parentForm?.getValues('addressHint') || '').trim()
-    const hasDoc = Boolean(parentForm?.getValues('document')?.id)
-    if (!finalPlaceId && !hasDoc && hint.length < 10) {
+    if (!hasParentConsultContext(parentForm, finalPlaceId)) {
       setServerError(
-        'Selecione o endereço na busca, descreva o local (mínimo 10 caracteres) ou envie o documento do imóvel.',
+        'Selecione o endereço na busca, descreva o local (mínimo 10 caracteres), informe matrícula e cartório ou envie o documento do imóvel.',
       )
       return
     }
@@ -590,11 +609,9 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
 
     const formData = getValues()
     const finalPlaceId = String(formData.placeId || placeId || '').trim()
-    const hint = String(parentForm?.getValues('addressHint') || '').trim()
-    const hasDoc = Boolean(parentForm?.getValues('document')?.id)
-    if (!finalPlaceId && !hasDoc && hint.length < 10) {
+    if (!hasParentConsultContext(parentForm, finalPlaceId)) {
       setServerError(
-        'Selecione o endereço na busca, descreva o local (mínimo 10 caracteres) ou envie o documento do imóvel.',
+        'Selecione o endereço na busca, descreva o local (mínimo 10 caracteres), informe matrícula e cartório ou envie o documento do imóvel.',
       )
       return
     }
@@ -938,8 +955,9 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
               </p>
 
               <AddressSummaryCard
-                address={getValues('address')}
+                address={String(getValues('address') || getValues('addressHint') || '').trim()}
                 registrationNumber={getValues('registrationNumber')}
+                notary={String(getValues('notaryName') || '').trim() || (parentForm?.getValues('registry') as { name?: string } | null | undefined)?.name?.trim() || undefined}
                 allotment={getValues('allotment')}
                 block={getValues('block')}
                 lot={getValues('lot')}

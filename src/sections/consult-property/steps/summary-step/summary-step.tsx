@@ -14,7 +14,7 @@ export function SummaryStep({ onNext }: { onNext: () => void }) {
   const values = watch()
 
   const summary = useMemo(() => {
-    const { address, addressHint, registry, registrationNumber, allotment, block, lot } = values
+    const { address, addressHint, registry, registrationNumber, notaryName, allotment, block, lot } = values
 
     const items: SummaryItems = []
 
@@ -28,13 +28,14 @@ export function SummaryStep({ onNext }: { onNext: () => void }) {
       })
     }
 
-    if (registry?.name) {
+    const cartorio = registry?.name || String(notaryName || '').trim()
+    if (cartorio) {
       items.push({
         key: 'registry',
         icon: Building,
         title: 'Cartório',
-        value: registry.name,
-        badge: 'Reconhecido automaticamente'
+        value: cartorio,
+        badge: registry?.name ? 'Reconhecido automaticamente' : 'Informado por você',
       })
     }
 

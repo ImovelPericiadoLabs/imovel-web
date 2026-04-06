@@ -4,6 +4,8 @@ export { ConsultEntryStep, type ConsultEntryChoice } from './consult-entry-step'
 
 export { AddressHintStep } from './address-hint-step'
 
+export { RegistrationManualStep } from './registration-manual-step'
+
 export { DocumentConfirmationStep } from './document-confirmation-step'
 
 export { DocumentTypeStep } from './document-type-step'
