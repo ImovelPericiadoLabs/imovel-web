@@ -4,7 +4,7 @@ const DocumentTypeEnum = z.enum(['agreement', 'registration', 'deed'])
 
 export const validations = z
   .object({
-    address: z.string().min(3, 'Digite um endereço válido').nonempty('O endereço é obrigatório'),
+    address: z.string().default(''),
     allotment: z.string().optional(),
     noAllotment: z.boolean().nullable().optional(),
     block: z.string().optional(),
@@ -14,7 +14,8 @@ export const validations = z
     complement: z.string().optional(),
     unknownRegistration: z.boolean().nullable().optional(),
     registrationNumber: z.string().optional().nullable(),
-    placeId: z.string(),
+    placeId: z.string().default(''),
+    addressHint: z.string().default(''),
     registry: z.object({
       id: z.string().uuid(),
       name: z.string(),
@@ -37,6 +38,32 @@ export const validations = z
     documentPreview: z.any().optional(),
     paymentMethod: z.enum(['pix', 'credit_card', 'debit_card', 'boleto']),
   })
+  .refine(
+    (data) => {
+      const pid = (data.placeId || '').trim()
+      if (pid.length > 0) {
+        return (data.address || '').trim().length >= 3
+      }
+      return true
+    },
+    {
+      message: 'Digite um endereço válido',
+      path: ['address'],
+    },
+  )
+  .refine(
+    (data) => {
+      const pid = (data.placeId || '').trim()
+      const hint = (data.addressHint || '').trim()
+      const hasDoc = data.hasDocument === true && !!data.document?.id
+      return pid.length > 0 || hasDoc || hint.length >= 10
+    },
+    {
+      message:
+        'Selecione um endereço na busca, descreva o local (mínimo 10 caracteres) ou envie um documento do imóvel.',
+      path: ['addressHint'],
+    },
+  )
   .refine(
     (data) => {
       if (data.hasDocument === true) {

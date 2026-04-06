@@ -14,16 +14,17 @@ export function SummaryStep({ onNext }: { onNext: () => void }) {
   const values = watch()
 
   const summary = useMemo(() => {
-    const { address, registry, registrationNumber, allotment, block, lot } = values
+    const { address, addressHint, registry, registrationNumber, allotment, block, lot } = values
 
     const items: SummaryItems = []
 
-    if (address) {
+    const loc = String(address || '').trim() || String(addressHint || '').trim()
+    if (loc) {
       items.push({
         key: 'address',
         icon: MapPin,
-        title: 'Endereço selecionado',
-        value: address,
+        title: String(address || '').trim() ? 'Endereço selecionado' : 'Local informado',
+        value: loc,
       })
     }
 

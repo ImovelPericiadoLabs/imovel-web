@@ -4,11 +4,19 @@ import { MapPin } from 'lucide-react'
 
 interface SelectedAddressCardProps {
   address: string
+  /** Quando o texto veio de descrição livre em vez do Google Places */
+  variant?: 'selected' | 'hint'
   className?: string
 }
 
-export default function SelectedAddressCard({ address, className = '' }: SelectedAddressCardProps) {
+export default function SelectedAddressCard({
+  address,
+  variant = 'selected',
+  className = '',
+}: SelectedAddressCardProps) {
   if (!address) return null
+
+  const label = variant === 'hint' ? 'Local informado' : 'Endereço selecionado'
 
   return (
     <div className={`bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex gap-4 items-start ${className}`}>
@@ -16,7 +24,7 @@ export default function SelectedAddressCard({ address, className = '' }: Selecte
         <MapPin className="size-5 text-primary shrink-0" />
       </div>
       <div className="flex flex-col gap-0.5">
-        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Endereço selecionado</p>
+        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{label}</p>
         <p className="text-sm font-semibold text-dark leading-snug">{address}</p>
       </div>
     </div>

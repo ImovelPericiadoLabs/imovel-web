@@ -3,16 +3,19 @@
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { memo, useState, useRef, ReactNode, useEffect, useCallback, useMemo, forwardRef, useImperativeHandle } from 'react'
-import { FormProvider, useForm } from 'react-hook-form'
+import { FormProvider, useForm, type Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { ChevronLeft, CircleQuestionMark } from 'lucide-react'
 import {
   AddressStep,
+  AddressHintStep,
+  ConsultEntryStep,
   DocumentConfirmationStep,
   DocumentTypeStep,
   SummaryStep,
   AddressComplementStep,
-  SuccessStep
+  SuccessStep,
+  type ConsultEntryChoice,
 } from '@/sections/consult-property/steps'
 import { PaymentConfirmationStep } from '@/sections/consult-property/steps/payment-step/payment-confirmation-step/payment-confirmation-step'
 import { SavedCardsPage } from '@/sections/consult-property/steps/payment-step/card/select'
@@ -23,6 +26,8 @@ import { validations, FormTypes } from '@/sections/consult-property/validations'
 import { trackGtmEvent } from '@/utils/analytics/gtm'
 
 type FlowState =
+  | 'entry'
+  | 'address-hint'
   | 'address'
   | 'address-complement'
   | 'doc-confirmation'
@@ -54,8 +59,9 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
   ref,
 ) {
   const router = useRouter()
-  const [flow, setFlow] = useState<FlowState>('address')
+  const [flow, setFlow] = useState<FlowState>('entry')
   const stack = useRef<FlowState[]>([])
+  const entryPathRef = useRef<ConsultEntryChoice | null>(null)
   const hasTrackedFlowStart = useRef(false)
   const [isInitialLoading, setIsInitialLoading] = useState(() => {
     if (typeof window === 'undefined') return true
@@ -63,7 +69,7 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
   })
 
   const methods = useForm<FormTypes>({
-    resolver: zodResolver(validations),
+    resolver: zodResolver(validations) as Resolver<FormTypes>,
     defaultValues: {
       paymentMethod: 'pix',
       allotment: '',
@@ -77,6 +83,9 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
       unknownRegistration: undefined,
       hasDocument: undefined,
       registry: null,
+      placeId: '',
+      address: '',
+      addressHint: '',
     },
     shouldUnregister: false,
     mode: 'onChange',
@@ -90,6 +99,14 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
       return addressStepRef.current?.focus() ?? false
     },
   }))
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('autoFocus') === 'true' || sessionStorage.getItem('autoFocusAddress')) {
+      setFlow((f) => (f === 'entry' ? 'address' : f))
+    }
+  }, [])
 
   useEffect(() => {
     if (!isActive) return
@@ -166,6 +183,11 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
       return
     }
 
+    if (flow === 'entry') {
+      router.push('/')
+      return
+    }
+
     if (flow === 'address-complement' && addressComplementRef.current) {
       addressComplementRef.current.handleBack()
       return
@@ -173,7 +195,7 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
 
     const previous = stack.current.pop()
 
-    if (!previous && flow === 'address') {
+    if (!previous && (flow === 'address' || flow === 'address-hint')) {
       router.push('/')
       return
     }
@@ -201,6 +223,8 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
   }, [flow, router, methods])
 
   const progressSteps: Record<FlowState, number> = useMemo(() => ({
+    entry: 0,
+    'address-hint': 1,
     address: 1,
     'address-complement': 1,
     'doc-confirmation': 2,
@@ -269,8 +293,9 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
         <div className="flex items-center justify-between py-4.5 mb-2">
           <ChevronLeft
             onClick={back}
-            className={`size-7 transition-opacity text-white ${flow === 'address' ? 'opacity-0 pointer-events-none' : 'cursor-pointer'
-              }`}
+            className={`size-7 transition-opacity text-white ${
+              flow === 'address' && stack.current.length === 0 ? 'opacity-0 pointer-events-none' : 'cursor-pointer'
+            }`}
             role="button"
           />
 
@@ -296,6 +321,37 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
 
       <FormProvider {...methods}>
         <main className="w-full mx-auto lg:max-w-lg pt-2 px-0 -mt-20">
+          <Activity isActive={flow === 'entry'}>
+            <ConsultEntryStep
+              onChoose={(choice) => {
+                entryPathRef.current = choice
+                if (choice === 'address') {
+                  go('address')
+                } else if (choice === 'document') {
+                  methods.setValue('hasDocument', true, { shouldValidate: true })
+                  go('doc-type')
+                } else {
+                  go('address-hint')
+                }
+              }}
+            />
+          </Activity>
+
+          <Activity isActive={flow === 'address-hint'}>
+            <AddressHintStep
+              afterDocument={entryPathRef.current === 'document'}
+              onBack={back}
+              onNext={() => {
+                const ep = entryPathRef.current
+                if (ep === 'document') {
+                  go('address-complement')
+                } else {
+                  go('address')
+                }
+              }}
+            />
+          </Activity>
+
           <Activity isActive={flow === 'address'}>
             <AddressStep ref={addressStepRef} onNext={() => go('address-complement')} />
           </Activity>
@@ -303,7 +359,13 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
           <Activity isActive={flow === 'address-complement'}>
             <AddressComplementStep 
               ref={addressComplementRef}
-              onNext={() => go('doc-confirmation')} 
+              onNext={() => {
+                if (entryPathRef.current === 'document') {
+                  go('summary')
+                } else {
+                  go('doc-confirmation')
+                }
+              }} 
               onBack={() => {
                 const previous = stack.current.pop()
                 if (previous) {
@@ -319,7 +381,15 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
           </Activity>
 
           <Activity isActive={flow === 'doc-type'}>
-            <DocumentTypeStep onNext={() => go('summary')} />
+            <DocumentTypeStep
+              onNext={() => {
+                if (entryPathRef.current === 'document') {
+                  go('address-hint')
+                } else {
+                  go('summary')
+                }
+              }}
+            />
           </Activity>
 
           <Activity isActive={flow === 'summary'}>

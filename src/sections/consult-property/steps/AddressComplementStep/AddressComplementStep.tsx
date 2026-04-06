@@ -256,8 +256,10 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
     }
   }), [handleBack])
 
-  const currentAddress = getValues('address')
-  
+  const addrLine = String(watch('address') || '').trim()
+  const hintLine = String(watch('addressHint') || '').trim()
+  const currentAddress = addrLine || hintLine
+
   const unknownRegistration = watch('unknownRegistration')
   const noAllotment = watch('noAllotment')
   const noBlock = watch('noBlock')
@@ -338,7 +340,7 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
   return (
     <div className="flex flex-col gap-4 min-h-[calc(100vh-7.5rem)] relative px-4 pb-8">
       <div className="flex-1 flex flex-col gap-4">
-        <SelectedAddressCard address={currentAddress} />
+        <SelectedAddressCard address={currentAddress} variant={addrLine ? 'selected' : 'hint'} />
 
         <div
           key={currentStepKey}

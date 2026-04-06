@@ -224,7 +224,10 @@ export function DocumentTypeStep({ onNext }: { onNext: () => void }) {
   return (
     <div className="relative flex-1 px-4 -mt-6 pb-32">
       <div className="flex flex-col gap-4 pt-6">
-        <SelectedAddressCard address={watch('address')} />
+        <SelectedAddressCard
+          address={String(watch('address') || '').trim() || String(watch('addressHint') || '').trim()}
+          variant={String(watch('address') || '').trim() ? 'selected' : 'hint'}
+        />
         <div className="flex flex-col gap-2 mb-2">
           <TextTitle className="text-dark">Qual documento você tem?</TextTitle>
           <TextSubtitle className="text-gray-500">Selecione uma das opções abaixo e envie o arquivo</TextSubtitle>
