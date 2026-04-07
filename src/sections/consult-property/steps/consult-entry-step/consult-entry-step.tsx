@@ -20,7 +20,7 @@ const cards: {
 }[] = [
   {
     id: 'address',
-    title: 'Sei o endereço do imóvel',
+    title: 'Tenho o endereço do imóvel',
     subtitle: 'Busca pelo Google: a forma mais rápida e precisa.',
     icon: MapPin,
   },
@@ -32,7 +32,7 @@ const cards: {
   },
   {
     id: 'unsure',
-    title: 'Não sei o endereço exato',
+    title: 'Não tenho o endereço exato',
     subtitle: 'Informe matrícula e cartório — o jeito mais preciso quando você não tem o endereço no mapa.',
     icon: HelpCircle,
   },
