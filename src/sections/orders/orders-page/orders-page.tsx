@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { ChevronRight, Inbox } from 'lucide-react'
 import { useInfiniteQuery } from '@tanstack/react-query'
 
+import { CONSULTAR_IMOVEL_INICIO_HREF } from '@/constants/consult-flow'
 import TextTitle from '@/components/text-title'
 import Badge from '@/components/badge'
 import LoadingOverlay from '@/components/loading-overlay'
@@ -65,7 +66,7 @@ export default function OrdersPage() {
       <p className="text-gray-400 text-sm mt-1 mb-6">
         Suas consultas aparecerão aqui.
       </p>
-      <Button href="/consultar-imovel" className="max-w-xs">
+      <Button href={CONSULTAR_IMOVEL_INICIO_HREF} className="max-w-xs">
         Consultar Imóvel
       </Button>
     </div>

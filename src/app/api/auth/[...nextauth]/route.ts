@@ -1,5 +1,6 @@
 import NextAuth, { NextAuthOptions } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
+import { CONSULTAR_IMOVEL_INICIO_HREF } from "@/constants/consult-flow"
 import { refreshToken, verifyAuth } from "@/services/account"
 
 const SESSION_MAX_AGE_SECONDS = 7 * 24 * 60 * 60 - 60 * 60
@@ -167,7 +168,7 @@ export const authOptions: NextAuthOptions = {
     }
   },
   pages: {
-    signIn: '/consultar-imovel', 
+    signIn: CONSULTAR_IMOVEL_INICIO_HREF,
   },
   session: {
     strategy: "jwt",

@@ -7,6 +7,7 @@ import { cn } from '@/utils/tailwind'
 import { FormTypes } from '@/sections/login/validations'
 import { startAuth } from '@/services/account'
 import Button from '@/components/button'
+import { CONSULTAR_IMOVEL_INICIO_HREF } from '@/constants/consult-flow'
 
 export function InsertStep({ onNext }: { onNext: () => void }) {
     const { register, watch, trigger, formState: { errors } } = useFormContext<FormTypes>()
@@ -105,7 +106,7 @@ export function InsertStep({ onNext }: { onNext: () => void }) {
 
             <Button
                 type="button"
-                href="/consultar-imovel"
+                href={CONSULTAR_IMOVEL_INICIO_HREF}
                 icon={<Search className="size-5" />}
                 className="bg-transparent text-primary border-2 border-primary hover:bg-primary/5 mt-2 shadow-none"
             >

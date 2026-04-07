@@ -4,8 +4,10 @@ import { render, screen, fireEvent, cleanup } from '@testing-library/react'
 import ConsultProperty from './consult-property'
 
 const mockPush = vi.fn()
+const mockReplace = vi.fn()
 vi.mock('next/navigation', () => ({
-  useRouter: () => ({ push: mockPush }),
+  useRouter: () => ({ push: mockPush, replace: mockReplace }),
+  useSearchParams: () => new URLSearchParams(),
 }))
 
 vi.mock('@hookform/resolvers/zod', () => ({
@@ -194,7 +196,7 @@ describe('ConsultProperty Flow', () => {
 
     fireEvent.click(screen.getByTestId('chevron-left'))
 
-    expect(mockLocation.href).toBe('/consultar-imovel')
+    expect(mockLocation.href).toBe('/consultar-imovel?inicio=1')
 
     vi.unstubAllGlobals();
   })

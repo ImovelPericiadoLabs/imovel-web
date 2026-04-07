@@ -126,7 +126,7 @@ describe('AppLayout', () => {
     await waitFor(() => {
       expect(mocks.mockSignOut).toHaveBeenCalledWith({
         redirect: true,
-        callbackUrl: '/consultar-imovel',
+        callbackUrl: '/consultar-imovel?inicio=1',
       })
     }, { timeout: 2500 })
   })
