@@ -140,7 +140,7 @@ describe('OrdersPage', () => {
 
     await waitFor(() => {
       expect(screen.getByText(/Nenhuma consulta encontrada/i)).toBeInTheDocument()
-      expect(screen.getByRole('link', { name: /consultar imóvel/i })).toHaveAttribute('href', '/consultar-imovel')
+      expect(screen.getByRole('link', { name: /consultar imóvel/i })).toHaveAttribute('href', '/consultar-imovel?inicio=1')
     })
   })
 

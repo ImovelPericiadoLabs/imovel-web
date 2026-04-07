@@ -1,9 +1,9 @@
 'use client'
 
-import { MapPin, FileText, HelpCircle } from 'lucide-react'
+import Link from 'next/link'
+import { MapPin, FileText, HelpCircle, LayoutList } from 'lucide-react'
 import TextTitle from '@/components/text-title'
 import TextSubtitle from '@/components/text-subtitle'
-import Button from '@/components/button'
 import { trackGtmEvent } from '@/utils/analytics/gtm'
 
 export type ConsultEntryChoice = 'address' | 'document' | 'unsure'
@@ -47,6 +47,21 @@ export function ConsultEntryStep({ onChoose }: ConsultEntryStepProps) {
           Escolha o que combina com você — todos os caminhos levam à mesma consulta completa.
         </TextSubtitle>
       </div>
+
+      <Link
+        href="/consultas"
+        onClick={() => {
+          trackGtmEvent('consult_entry_to_account', {
+            event_category: 'consult_flow',
+            event_label: 'minhas_consultas',
+            event_description: 'Usuário foi para minhas consultas/conta a partir da entrada.',
+          })
+        }}
+        className="mb-5 flex w-full items-center justify-center gap-2 rounded-2xl border border-primary/25 bg-white px-4 py-3.5 text-sm font-semibold text-primary shadow-sm transition-colors hover:bg-primary/[0.04] touch-manipulation"
+      >
+        <LayoutList className="size-5 shrink-0" aria-hidden />
+        Minhas consultas e conta
+      </Link>
 
       <div className="flex flex-col gap-3">
         {cards.map(({ id, title, subtitle, icon: Icon }) => (
