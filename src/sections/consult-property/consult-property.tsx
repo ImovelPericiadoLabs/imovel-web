@@ -1,7 +1,7 @@
 'use client'
 
 import Image from 'next/image'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { memo, useState, useRef, ReactNode, useEffect, useCallback, useMemo, forwardRef, useImperativeHandle } from 'react'
 import { FormProvider, useForm, type Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -23,8 +23,31 @@ import { SavedCardsPage } from '@/sections/consult-property/steps/payment-step/c
 import { CreditCardPage } from '@/sections/consult-property/steps/payment-step/card/register'
 import TrafficLightModal from '@/components/traffic-light-modal'
 import LoadingOverlay from '@/components/loading-overlay'
+import { CONSULT_FLUXO_INICIO_QUERY, CONSULTAR_IMOVEL_INICIO_HREF } from '@/constants/consult-flow'
 import { validations, FormTypes } from '@/sections/consult-property/validations'
 import { trackGtmEvent } from '@/utils/analytics/gtm'
+
+const CONSULT_PROPERTY_FORM_DEFAULTS: FormTypes = {
+  paymentMethod: 'pix',
+  allotment: '',
+  noAllotment: undefined,
+  block: '',
+  noBlock: undefined,
+  lot: '',
+  noLot: undefined,
+  complement: '',
+  registrationNumber: '',
+  unknownRegistration: undefined,
+  hasDocument: undefined,
+  documentType: undefined,
+  document: undefined,
+  documentPreview: undefined,
+  registry: null,
+  placeId: '',
+  address: '',
+  addressHint: '',
+  notaryName: '',
+}
 
 type FlowState =
   | 'entry'
@@ -61,6 +84,7 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
   ref,
 ) {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [flow, setFlow] = useState<FlowState>('entry')
   const stack = useRef<FlowState[]>([])
   const entryPathRef = useRef<ConsultEntryChoice | null>(null)
@@ -72,27 +96,11 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
 
   const methods = useForm<FormTypes>({
     resolver: zodResolver(validations) as Resolver<FormTypes>,
-    defaultValues: {
-      paymentMethod: 'pix',
-      allotment: '',
-      noAllotment: undefined,
-      block: '',
-      noBlock: undefined,
-      lot: '',
-      noLot: undefined,
-      complement: '',
-      registrationNumber: '',
-      unknownRegistration: undefined,
-      hasDocument: undefined,
-      registry: null,
-      placeId: '',
-      address: '',
-      addressHint: '',
-      notaryName: '',
-    },
+    defaultValues: CONSULT_PROPERTY_FORM_DEFAULTS,
     shouldUnregister: false,
     mode: 'onChange',
   })
+  const { reset: resetConsultForm } = methods
 
   const addressStepRef = useRef<{ focus: () => boolean }>(null)
   const addressComplementRef = useRef<{ handleBack: () => void }>(null)
@@ -102,6 +110,23 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
       return addressStepRef.current?.focus() ?? false
     },
   }))
+
+  useEffect(() => {
+    if (searchParams.get(CONSULT_FLUXO_INICIO_QUERY) !== '1') return
+
+    stack.current = []
+    entryPathRef.current = null
+    hasTrackedFlowStart.current = false
+    setFlow('entry')
+    resetConsultForm(CONSULT_PROPERTY_FORM_DEFAULTS)
+    sessionStorage.removeItem('autoFocusAddress')
+
+    const params = new URLSearchParams(searchParams.toString())
+    params.delete(CONSULT_FLUXO_INICIO_QUERY)
+    const qs = params.toString()
+    router.replace(qs ? `/consultar-imovel?${qs}` : '/consultar-imovel', { scroll: false })
+    window.scrollTo({ top: 0, behavior: 'auto' })
+  }, [searchParams, resetConsultForm, router])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -182,7 +207,7 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
 
   const back = useCallback(() => {
     if (flow === 'finished') {
-      window.location.href = '/consultar-imovel'
+      window.location.href = CONSULTAR_IMOVEL_INICIO_HREF
       return
     }
 
@@ -321,11 +346,14 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
         
       </header>
 
-      {/* Altura mínima maior no mobile: o conteúdo do passo de endereço sobrepõe esta faixa (-mt); título+subtítulo quebrados precisam de mais banda azul. */}
-      <div className="relative min-h-[9rem] sm:min-h-24 sm:h-24 -mt-1 transition-colors duration-500 bg-sky-200" />
+      {/* Faixa clara: alturas fixas; overlap = faixa − margem negativa (mesma lógica em mobile e sm). */}
+      <div
+        className="relative h-36 shrink-0 bg-sky-200 transition-colors duration-500 sm:h-32"
+        aria-hidden
+      />
 
       <FormProvider {...methods}>
-        <main className="w-full mx-auto lg:max-w-lg pt-2 px-0 -mt-[7rem] sm:-mt-20">
+        <main className="relative z-10 mx-auto w-full max-w-lg -mt-28 px-0 pt-2 pb-8 sm:-mt-24">
           <Activity isActive={flow === 'entry'}>
             <ConsultEntryStep
               onChoose={(choice) => {

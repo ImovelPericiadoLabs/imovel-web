@@ -13,6 +13,7 @@ import Modal from '@/components/modal'
 import useIsRouteMatch from '@/hooks/use-is-router-match'
 import { Providers } from '@/providers/'
 import { getMe, requestAccountDeletion, type MeResponse } from '@/services/account'
+import { CONSULTAR_IMOVEL_INICIO_HREF } from '@/constants/consult-flow'
 import { legalDocuments, getLegalRoute } from '@/constants/legal'
 
 function formatCredits(value: number) {
@@ -46,7 +47,7 @@ export default function AppLayout({ children }: PropsWithChildren) {
       setDeletionError(null)
       if (typeof window !== 'undefined') {
         window.setTimeout(() => {
-          void signOut({ redirect: true, callbackUrl: '/consultar-imovel' })
+          void signOut({ redirect: true, callbackUrl: CONSULTAR_IMOVEL_INICIO_HREF })
         }, 1200)
       }
       return response
@@ -62,7 +63,7 @@ export default function AppLayout({ children }: PropsWithChildren) {
 
   function handleGoBack() {
     const mapRoutes: Record<string, string> = {
-      '/consultas': '/consultar-imovel',
+      '/consultas': CONSULTAR_IMOVEL_INICIO_HREF,
       '/admin/outreach': '/consultas',
     }
     if (mapRoutes[pathname]) {
@@ -250,7 +251,7 @@ export default function AppLayout({ children }: PropsWithChildren) {
                 {/* Links úteis */}
                 <nav className="space-y-1 pt-2">
                   <Link
-                    href="/consultar-imovel"
+                    href={CONSULTAR_IMOVEL_INICIO_HREF}
                     onClick={() => setSidebarOpen(false)}
                     className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-gray-700 hover:bg-gray-100 font-medium touch-manipulation"
                   >

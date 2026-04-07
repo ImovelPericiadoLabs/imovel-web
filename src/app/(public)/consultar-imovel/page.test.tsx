@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import ConsultarImovelPage from './page'
 
 vi.mock('@/sections/consult-property', () => ({
@@ -8,8 +8,10 @@ vi.mock('@/sections/consult-property', () => ({
 }))
 
 describe('ConsultarImovelPage', () => {
-  it('should render ConsultProperty component', () => {
+  it('should render ConsultProperty component', async () => {
     render(<ConsultarImovelPage />)
-    expect(screen.getByTestId('consult-property')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByTestId('consult-property')).toBeInTheDocument()
+    })
   })
 })
