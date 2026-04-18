@@ -33,7 +33,7 @@ export async function fetchSessionJsonWithRetry(): Promise<Session | null> {
       const data = (await res.json()) as Record<string, unknown>
       if (!data || Object.keys(data).length === 0) return null
       if (!('user' in data) || data.user == null) return null
-      return data as Session
+      return data as unknown as Session
     } catch (e) {
       lastError = e
       await sleep(BASE_DELAY_MS * (attempt + 1))
