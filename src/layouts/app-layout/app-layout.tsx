@@ -11,10 +11,10 @@ import { signOut } from 'next-auth/react'
 import HeaderTitle from '@/components/header-title'
 import Modal from '@/components/modal'
 import useIsRouteMatch from '@/hooks/use-is-router-match'
-import { Providers } from '@/providers/'
 import { getMe, requestAccountDeletion, type MeResponse } from '@/services/account'
 import { CONSULTAR_IMOVEL_INICIO_HREF } from '@/constants/consult-flow'
 import { legalDocuments, getLegalRoute } from '@/constants/legal'
+import { clearAuthClientFlag } from '@/utils/auth-client-flag'
 
 function formatCredits(value: number) {
   return new Intl.NumberFormat('pt-BR', {
@@ -47,6 +47,7 @@ export default function AppLayout({ children }: PropsWithChildren) {
       setDeletionError(null)
       if (typeof window !== 'undefined') {
         window.setTimeout(() => {
+          clearAuthClientFlag()
           void signOut({ redirect: true, callbackUrl: CONSULTAR_IMOVEL_INICIO_HREF })
         }, 1200)
       }
@@ -76,6 +77,7 @@ export default function AppLayout({ children }: PropsWithChildren) {
 
   function handleLogout() {
     setSidebarOpen(false)
+    clearAuthClientFlag()
     signOut({ redirect: true, callbackUrl: '/consultas' })
   }
 
@@ -150,8 +152,7 @@ export default function AppLayout({ children }: PropsWithChildren) {
   }, [isMatch, pathname])
 
   return (
-    <Providers>
-      <section className="min-h-screen bg-white pb-6">
+    <section className="min-h-screen bg-white pb-6">
         <header className="flex flex-col pt-4 px-4 bg-primary relative z-40">
           <div className="flex items-center justify-between py-4.5 mb-6 relative">
             <div className="flex items-center gap-3.5 min-w-0 flex-1 justify-start">
@@ -419,7 +420,6 @@ export default function AppLayout({ children }: PropsWithChildren) {
             </div>
           }
         />
-      </section>
-    </Providers>
+    </section>
   )
 }
