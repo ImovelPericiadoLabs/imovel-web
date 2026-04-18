@@ -66,22 +66,42 @@ vi.mock('@/components/alert', () => ({
   default: ({ message }: any) => <div role="alert">{message}</div>
 }))
 
-vi.mock('lucide-react', () => ({ 
-  Check: () => <svg />, Clock: () => <svg />, CheckCircle: () => <svg />, Copy: () => <svg />,
+vi.mock('lucide-react', () => ({
+  Check: () => <svg />,
+  Clock: () => <svg />,
+  CheckCircle: () => <svg />,
+  Copy: () => <svg />,
   ChevronRight: () => <svg />,
-  MapPin: () => <svg />, Building: () => <svg />, Grid2X2: () => <svg />, RulerDimensionLineIcon: () => <svg />
+  MapPin: () => <svg />,
+  Building: () => <svg />,
+  Grid2X2: () => <svg />,
+  RulerDimensionLineIcon: () => <svg />,
+  IdCard: () => <svg />,
+  Mail: () => <svg />,
+  Phone: () => <svg />,
+  User: () => <svg />,
+  Wallet: () => <svg />,
+  ShieldCheck: () => <svg />,
+  Lock: () => <svg />,
+  MessageCircle: () => <svg />,
 }))
 
 vi.mock('next/image', () => ({ default: (props: any) => <img {...props} /> }))
 
 vi.mock('@/services/payments', () => ({ processPayment: vi.fn(), getPaymentStatus: vi.fn() }))
-vi.mock('@/services/account', () => ({ startAuth: vi.fn() }))
-vi.mock('@/utils/text', () => ({ formatMoney: (v: number) => `R$ ${v}` }))
+vi.mock('@/services/account', () => ({ startAuth: vi.fn(), getMe: vi.fn() }))
+vi.mock('@/services/orders/orders', () => ({ listPlans: vi.fn().mockResolvedValue([{ price: 59 }]) }))
+vi.mock('@/utils/text/text', () => ({ formatMoney: (v: number) => `R$ ${v},00` }))
+vi.mock('@/hooks/use-public-plan-price', () => ({
+  usePublicPlanPrice: () => ({ price: 59, isLoading: false }),
+}))
 
 import { PixPaymentPage } from './pix-payment-page'
 import { useSession, signOut } from 'next-auth/react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { startAuth } from '@/services/account'
+import { useFormContext } from 'react-hook-form'
+import { queryKey } from '@/constants/queries'
 
 describe('PixPaymentPage', () => {
   const mockOnCancel = vi.fn()
@@ -94,6 +114,26 @@ describe('PixPaymentPage', () => {
     localStorage.clear()
     Object.assign(navigator, { clipboard: { writeText: mockWriteText } })
     mockWriteText.mockResolvedValue(undefined)
+
+    const parentValues: Record<string, unknown> = {
+      address: 'Rua Teste',
+      addressHint: '',
+      placeId: 'p1',
+      document: { id: 'doc-1' },
+      registrationNumber: '',
+      notaryName: '',
+      registry: null,
+      complement: '',
+      allotment: '',
+      block: '',
+      lot: '',
+    }
+    vi.mocked(useFormContext).mockReturnValue({
+      getValues: (field?: string) => {
+        if (field === undefined) return parentValues as never
+        return parentValues[field] as never
+      },
+    } as ReturnType<typeof useFormContext>)
 
     ;(useSession as Mock).mockReturnValue({ data: null, status: 'unauthenticated' })
     ;(useMutation as Mock).mockReturnValue({ 
@@ -115,8 +155,8 @@ describe('PixPaymentPage', () => {
 
     render(<PixPaymentPage onCancel={mockOnCancel} onFinish={mockOnFinish} placeId="p1" />)
     
-    fireEvent.change(screen.getByTestId('input-name'), { target: { value: 'João' } })
-    fireEvent.click(screen.getByText(/Gerar código PIX/i))
+    fireEvent.change(screen.getByLabelText(/nome completo/i), { target: { value: 'João' } })
+    fireEvent.click(screen.getByText(/Pagar com PIX/i))
 
     await waitFor(() => {
       expect(signOut).toHaveBeenCalled()
@@ -141,8 +181,8 @@ describe('PixPaymentPage', () => {
 
     render(<PixPaymentPage onCancel={mockOnCancel} onFinish={mockOnFinish} placeId="p1" />)
     
-    fireEvent.change(screen.getByTestId('input-name'), { target: { value: 'João' } })
-    fireEvent.click(screen.getByText(/Gerar código PIX/i))
+    fireEvent.change(screen.getByLabelText(/nome completo/i), { target: { value: 'João' } })
+    fireEvent.click(screen.getByText(/Pagar com PIX/i))
 
     const copyBtn = await screen.findByText(/Copiar PIX/i)
     fireEvent.click(copyBtn)
@@ -154,7 +194,9 @@ describe('PixPaymentPage', () => {
   it('deve interromper o polling e chamar onFinish quando CONFIRMED', async () => {
     let capturedOptions: any
     ;(useQuery as Mock).mockImplementation((options) => {
-      capturedOptions = options
+      if (options.queryKey?.[0] === queryKey.paymentStatus) {
+        capturedOptions = options
+      }
       return { data: null }
     })
 

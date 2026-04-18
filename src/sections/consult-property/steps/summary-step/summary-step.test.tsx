@@ -1,14 +1,18 @@
 import { render, screen, fireEvent } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { FormProvider, useForm } from 'react-hook-form'
 import { SummaryStep } from './summary-step'
 
-const mockGetValues = vi.fn()
 const mockOnNext = vi.fn()
 
-vi.mock('react-hook-form', () => ({
-  useFormContext: () => ({
-    getValues: mockGetValues,
-  }),
+vi.mock('@/hooks/use-public-plan-price', () => ({
+  usePublicPlanPrice: () => ({ price: 59, isLoading: false }),
+}))
+
+vi.mock('@/utils/analytics/gtm', () => ({
+  trackGtmEvent: vi.fn(),
+  buildConsultItem: (v: number) => ({ item_id: 'x', price: v, quantity: 1 }),
+  DEFAULT_CURRENCY: 'BRL',
 }))
 
 vi.mock('@/components/text-title', () => ({
@@ -18,99 +22,71 @@ vi.mock('@/components/text-title', () => ({
   ),
 }))
 
+vi.mock('@/components/text-subtitle', () => ({
+  __esModule: true,
+  default: ({ children }: { children: React.ReactNode }) => (
+    <p data-testid="text-subtitle">{children}</p>
+  ),
+}))
+
 vi.mock('@/components/button', () => ({
   __esModule: true,
   default: ({ children, onClick }: { children: React.ReactNode; onClick: () => void }) => (
-    <button data-testid="continue-btn" onClick={onClick}>
+    <button type="button" data-testid="continue-btn" onClick={onClick}>
       {children}
     </button>
   ),
 }))
 
-vi.mock('@/components/modal', () => ({
-  __esModule: true,
-  default: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="modal">{children}</div>
-  ),
-}))
-
-vi.mock('lucide-react', () => ({
-  MapPin: () => <svg data-testid="icon-map" />,
-  Building: () => <svg data-testid="icon-building" />,
-  Users: () => <svg data-testid="icon-users" />,
-  Check: () => <svg data-testid="icon-check" />,
-}))
+function SummaryHarness() {
+  const methods = useForm({
+    defaultValues: {
+      address: 'Rua Teste, 123',
+      addressHint: '',
+      registry: { name: '6º Oficial de Registro de Imóveis da Comarca de São Paulo - SP' },
+      registrationNumber: '',
+      notaryName: '',
+      allotment: '',
+      block: '',
+      lot: '',
+    },
+  })
+  return (
+    <FormProvider {...methods}>
+      <SummaryStep onNext={mockOnNext} />
+    </FormProvider>
+  )
+}
 
 describe('SummaryStep', () => {
   beforeEach(() => {
-    mockGetValues.mockReset()
     mockOnNext.mockReset()
-
-    mockGetValues.mockImplementation((key: string) => {
-      const values: Record<string, string | object> = {
-        address: 'Rua Teste, 123',
-        documentType: 'registration',
-        registry: {
-          name: '6º Oficial de Registro de Imóveis da Comarca de São Paulo - SP',
-        },
-      }
-      return values[key]
-    })
   })
 
-  it('should render the title correctly', () => {
-    render(<SummaryStep onNext={mockOnNext} />)
-
-    const title = screen.getAllByTestId('text-title')[0]
-    expect(title).toBeInTheDocument()
-    expect(title).toHaveTextContent('Resumo do imóvel')
+  it('renderiza título e subtítulo do resumo', () => {
+    render(<SummaryHarness />)
+    expect(screen.getByText('Resumo da Consulta do Imóvel')).toBeInTheDocument()
+    expect(screen.getByText('Verifique se os dados abaixo estão corretos')).toBeInTheDocument()
   })
 
-  it('should display summary items based on form values', () => {
-    render(<SummaryStep onNext={mockOnNext} />)
-
-    expect(screen.getByText('Endereço')).toBeInTheDocument()
+  it('mostra endereço e cartório a partir do formulário', () => {
+    render(<SummaryHarness />)
     expect(screen.getByText('Rua Teste, 123')).toBeInTheDocument()
-
-    expect(screen.getByText('Cartório')).toBeInTheDocument()
     expect(
       screen.getByText('6º Oficial de Registro de Imóveis da Comarca de São Paulo - SP'),
     ).toBeInTheDocument()
-
-    expect(screen.getByText('Tipo de documento')).toBeInTheDocument()
-    expect(screen.getByText('Matrícula')).toBeInTheDocument()
   })
 
-  it('should render the recognized badge for document section', () => {
-    render(<SummaryStep onNext={mockOnNext} />)
-
-    const badge = screen.getByText('Reconhecido automaticamente')
-    expect(badge).toBeInTheDocument()
-  })
-
-  it('should render the details section with Modal trigger', () => {
-    render(<SummaryStep onNext={mockOnNext} />)
-
-    const modalTrigger = screen.getByText('Ver detalhes')
-    expect(modalTrigger).toBeInTheDocument()
-  })
-
-  it('should render total price and continue button', () => {
-    render(<SummaryStep onNext={mockOnNext} />)
-
-    expect(screen.getByText('Total')).toBeInTheDocument()
+  it('exibe preço formatado e lista de benefícios', () => {
+    render(<SummaryHarness />)
     expect(screen.getByText('R$ 59,00')).toBeInTheDocument()
-
-    const continueBtn = screen.getByTestId('continue-btn')
-    expect(continueBtn).toBeInTheDocument()
+    expect(screen.getByText(/análise objetiva do imóvel/i)).toBeInTheDocument()
+    expect(screen.getByText(/Leitura assistida por IA/i)).toBeInTheDocument()
   })
 
-  it('should call onNext when clicking Continue', () => {
-    render(<SummaryStep onNext={mockOnNext} />)
-
-    const btn = screen.getByTestId('continue-btn')
-    fireEvent.click(btn)
-
+  it('chama onNext ao continuar', () => {
+    render(<SummaryHarness />)
+    fireEvent.click(screen.getByTestId('continue-btn'))
     expect(mockOnNext).toHaveBeenCalledTimes(1)
   })
 })

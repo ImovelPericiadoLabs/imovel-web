@@ -3,7 +3,7 @@
 import { PropsWithChildren, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { ChevronLeft, Menu, X, LogOut, Wallet, Mail, Search, List, FileText, Trash2, AlertTriangle, LoaderCircle, Megaphone } from 'lucide-react'
+import { ChevronLeft, Menu, X, LogOut, Wallet, Mail, Search, List, FileText, Trash2, AlertTriangle, LoaderCircle, Megaphone, MessageSquare } from 'lucide-react'
 import Link from 'next/link'
 import { useSession } from 'next-auth/react'
 import { useMutation, useQuery } from '@tanstack/react-query'
@@ -65,6 +65,7 @@ export default function AppLayout({ children }: PropsWithChildren) {
     const mapRoutes: Record<string, string> = {
       '/consultas': CONSULTAR_IMOVEL_INICIO_HREF,
       '/admin/outreach': '/consultas',
+      '/admin/chat': '/admin/outreach',
     }
     if (mapRoutes[pathname]) {
       push(mapRoutes[pathname])
@@ -141,6 +142,9 @@ export default function AppLayout({ children }: PropsWithChildren) {
     }
     if (pathname.startsWith('/admin/outreach')) {
       return <HeaderTitle>Divulgação</HeaderTitle>
+    }
+    if (pathname.startsWith('/admin/chat')) {
+      return <HeaderTitle>Chat</HeaderTitle>
     }
     return <></>
   }, [isMatch, pathname])
@@ -267,14 +271,24 @@ export default function AppLayout({ children }: PropsWithChildren) {
                     Minhas consultas
                   </Link>
                   {me?.is_superuser && (
-                    <Link
-                      href="/admin/outreach"
-                      onClick={() => setSidebarOpen(false)}
-                      className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-gray-700 hover:bg-gray-100 font-medium touch-manipulation"
-                    >
-                      <Megaphone className="size-5 text-primary shrink-0" />
-                      Divulgação (admin)
-                    </Link>
+                    <>
+                      <Link
+                        href="/admin/outreach"
+                        onClick={() => setSidebarOpen(false)}
+                        className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-gray-700 hover:bg-gray-100 font-medium touch-manipulation"
+                      >
+                        <Megaphone className="size-5 text-primary shrink-0" />
+                        Divulgação (admin)
+                      </Link>
+                      <Link
+                        href="/admin/chat"
+                        onClick={() => setSidebarOpen(false)}
+                        className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-gray-700 hover:bg-gray-100 font-medium touch-manipulation"
+                      >
+                        <MessageSquare className="size-5 text-primary shrink-0" />
+                        Chat (admin)
+                      </Link>
+                    </>
                   )}
                 </nav>
 

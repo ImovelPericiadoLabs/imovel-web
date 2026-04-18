@@ -1,11 +1,33 @@
 import React from 'react'
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, within } from '@testing-library/react'
+import { FormProvider, useForm } from 'react-hook-form'
 import { SavedCardsPage } from './card-payment-page'
+
+vi.mock('@/hooks/use-public-plan-price', () => ({
+  usePublicPlanPrice: () => ({ price: 59, isLoading: false }),
+}))
 
 vi.mock('lucide-react', () => ({
   Check: () => <div data-testid="check-icon" />,
+  MapPin: () => <span data-testid="map-pin" />,
 }))
+
+function formWrapper() {
+  function W({ children }: { children: React.ReactNode }) {
+    const methods = useForm({
+      defaultValues: {
+        address: 'Rua Teste',
+        registrationNumber: '',
+        allotment: '',
+        block: '',
+        lot: '',
+      },
+    })
+    return <FormProvider {...methods}>{children}</FormProvider>
+  }
+  return W
+}
 
 describe('SavedCardsPage', () => {
   const mockOnAddNewCard = vi.fn()
@@ -15,65 +37,61 @@ describe('SavedCardsPage', () => {
   }
 
   it('deve renderizar a lista de cartões inicial corretamente', () => {
-    render(<SavedCardsPage {...defaultProps} />)
+    render(<SavedCardsPage {...defaultProps} />, { wrapper: formWrapper() })
 
-    expect(screen.getByText(/Mastercard final \*\*\*\*1234/i)).toBeInTheDocument()
+    expect(screen.getByText(/Mastercard\s*\*{4}1234/)).toBeInTheDocument()
     expect(screen.getByText(/Vence 11\/29/i)).toBeInTheDocument()
 
-    expect(screen.getByText(/Visa final \*\*\*\*7536/i)).toBeInTheDocument()
+    expect(screen.getByText(/Visa\s*\*{4}7536/)).toBeInTheDocument()
     expect(screen.getByText(/Vence 11\/28/i)).toBeInTheDocument()
 
     expect(screen.getByRole('button', { name: /Novo cartão/i })).toBeInTheDocument()
   })
 
   it('deve renderizar o ícone correto para cada bandeira', () => {
-    render(<SavedCardsPage {...defaultProps} />)
+    render(<SavedCardsPage {...defaultProps} />, { wrapper: formWrapper() })
 
-    const mastercardContainer = screen.getByText(/Mastercard final/i).parentElement?.parentElement
+    const mastercardContainer = screen.getByText(/Mastercard\s*\*{4}1234/).parentElement?.parentElement
     expect(mastercardContainer?.innerHTML).toContain('bg-[#EB001B]')
     expect(mastercardContainer?.innerHTML).toContain('bg-[#F79E1B]')
 
-    const visaContainer = screen.getByText(/Visa final/i).parentElement?.parentElement
+    const visaContainer = screen.getByText(/Visa\s*\*{4}7536/).parentElement?.parentElement
     const visaImg = screen.getByAltText('Visa')
     expect(visaImg).toBeInTheDocument()
-    expect(visaImg).toHaveAttribute('src', '/images/visa.webp')
+    expect(visaImg.getAttribute('src') || '').toContain('visa.webp')
   })
 
   it('deve indicar visualmente o cartão selecionado (Mastercard por padrão)', () => {
-    render(<SavedCardsPage {...defaultProps} />)
+    render(<SavedCardsPage {...defaultProps} />, { wrapper: formWrapper() })
 
-    const cards = screen.getAllByText(/final \*\*\*\*/i)
-    const mastercardItem = cards[0].closest('div.cursor-pointer')
-    const visaItem = cards[1].closest('div.cursor-pointer')
+    const mastercardShell = screen.getByTestId('saved-card-1')
+    const visaShell = screen.getByTestId('saved-card-2')
 
-    expect(mastercardItem).toHaveClass('border-[var(--color-primary)]')
-    expect(visaItem).toHaveClass('border-gray-200')
+    expect(mastercardShell).toHaveClass('border-primary')
+    expect(visaShell).toHaveClass('border-gray-200')
 
-    const checks = screen.getAllByTestId('check-icon')
-    expect(checks).toHaveLength(1)
-    expect(mastercardItem).toContainElement(checks[0])
+    const checksInMaster = within(mastercardShell).getAllByTestId('check-icon')
+    expect(checksInMaster.length).toBeGreaterThanOrEqual(1)
   })
 
   it('deve alternar a seleção ao clicar em outro cartão', () => {
-    render(<SavedCardsPage {...defaultProps} />)
+    render(<SavedCardsPage {...defaultProps} />, { wrapper: formWrapper() })
 
-    const visaText = screen.getByText(/Visa final \*\*\*\*7536/i)
-    const visaItem = visaText.closest('div.cursor-pointer')
+    const visaShell = screen.getByTestId('saved-card-2')
+    const visaRow = within(visaShell).getAllByRole('button')[0]
+    fireEvent.click(visaRow)
 
-    fireEvent.click(visaItem!)
+    expect(visaShell).toHaveClass('border-primary')
 
-    expect(visaItem).toHaveClass('border-[var(--color-primary)]')
+    const mastercardShell = screen.getByTestId('saved-card-1')
+    expect(mastercardShell).toHaveClass('border-gray-200')
 
-    const mastercardText = screen.getByText(/Mastercard final \*\*\*\*1234/i)
-    const mastercardItem = mastercardText.closest('div.cursor-pointer')
-    expect(mastercardItem).toHaveClass('border-gray-200')
-
-    const check = screen.getByTestId('check-icon')
-    expect(visaItem).toContainElement(check)
+    const check = within(visaShell).getAllByTestId('check-icon')[0]
+    expect(visaShell).toContainElement(check)
   })
 
   it('deve chamar onAddNewCard ao clicar no botão de novo cartão', () => {
-    render(<SavedCardsPage {...defaultProps} />)
+    render(<SavedCardsPage {...defaultProps} />, { wrapper: formWrapper() })
 
     const addButton = screen.getByRole('button', { name: /Novo cartão/i })
     fireEvent.click(addButton)

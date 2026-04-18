@@ -32,6 +32,12 @@ export default function VslPage() {
   const [isConsultActive, setIsConsultActive] = useState(false)
   const [isVideoReady, setIsVideoReady] = useState(false)
   const [ctaTheme, setCtaTheme] = useState<'default' | 'yellow'>('default')
+  /** Evita mismatch de hidratação no `<video>` (classes/atributos podem divergir entre RSC e cliente). */
+  const [isVideoClientMounted, setIsVideoClientMounted] = useState(false)
+
+  useEffect(() => {
+    setIsVideoClientMounted(true)
+  }, [])
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -128,6 +134,11 @@ export default function VslPage() {
   useEffect(() => {
     attemptAutoplay()
   }, [attemptAutoplay])
+
+  useEffect(() => {
+    if (!isVideoClientMounted) return
+    attemptAutoplay()
+  }, [isVideoClientMounted, attemptAutoplay])
 
   const handleTimeUpdate = (e: React.SyntheticEvent<HTMLVideoElement>) => {
     const video = e.currentTarget
@@ -256,35 +267,42 @@ export default function VslPage() {
               - autoPlay + muted + playsInline (obrigatórios para iniciar sem clique)
               - preload="auto" (ajuda a carregar o buffer mais rápido)
           */}
-          <video
-            ref={videoRef}
-            src="/vsl.mp4"
-            className="absolute inset-0 w-full h-full object-cover lg:object-contain cursor-pointer"
-            playsInline
-            autoPlay
-            muted
-            preload="metadata"
-            poster="/images/logo.png"
-            onTimeUpdate={handleTimeUpdate}
-            onLoadedMetadata={handleLoadedMetadata}
-            onError={handleVideoError}
-            onCanPlay={() => {
-              attemptAutoplay()
-            }}
-            onCanPlayThrough={() => {
-              attemptAutoplay()
-            }}
-            onPlay={() => {
-              setIsPlaying(true)
-            }}
-            onPause={() => setIsPlaying(false)}
-            loop
-            onEnded={() => {
-              if (!requiresLock) return
-              setIsUnlocked(true)
-              localStorage.setItem('vsl-unlocked', 'true')
-            }}
-          />
+          {isVideoClientMounted ? (
+            <video
+              ref={videoRef}
+              src="/vsl.mp4"
+              className="absolute inset-0 w-full h-full object-cover lg:object-contain cursor-pointer"
+              playsInline
+              autoPlay
+              muted
+              preload="metadata"
+              poster="/images/logo.png"
+              onTimeUpdate={handleTimeUpdate}
+              onLoadedMetadata={handleLoadedMetadata}
+              onError={handleVideoError}
+              onCanPlay={() => {
+                attemptAutoplay()
+              }}
+              onCanPlayThrough={() => {
+                attemptAutoplay()
+              }}
+              onPlay={() => {
+                setIsPlaying(true)
+              }}
+              onPause={() => setIsPlaying(false)}
+              loop
+              onEnded={() => {
+                if (!requiresLock) return
+                setIsUnlocked(true)
+                localStorage.setItem('vsl-unlocked', 'true')
+              }}
+            />
+          ) : (
+            <div
+              className="absolute inset-0 w-full h-full bg-black"
+              aria-hidden
+            />
+          )}
 
           {/* Camadas de Overlay */}
           <div className="absolute inset-0 bg-black/20 pointer-events-none" />

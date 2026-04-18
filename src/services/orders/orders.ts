@@ -250,3 +250,20 @@ export async function listPlans() {
     return []
   })
 }
+
+/** GET /plans/ sem autenticação (mesmo payload que `listPlans` autenticado). */
+export async function listPlansPublic(): Promise<Array<{ id?: string; price?: number; name?: string }>> {
+  try {
+    const response = (await api.get(endpoint.plans)) as unknown
+    if (Array.isArray(response)) {
+      return response as Array<{ id?: string; price?: number; name?: string }>
+    }
+    if (response && typeof response === 'object' && 'plans' in response) {
+      const plans = (response as { plans?: unknown }).plans
+      return Array.isArray(plans) ? (plans as Array<{ id?: string; price?: number; name?: string }>) : []
+    }
+    return []
+  } catch {
+    return []
+  }
+}

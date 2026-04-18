@@ -1,6 +1,7 @@
 export {
   listOrders,
   listPlans,
+  listPlansPublic,
   getOrder,
   orderQueryKey,
   rerequestOrder,

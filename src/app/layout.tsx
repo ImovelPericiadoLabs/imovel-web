@@ -22,11 +22,21 @@ export const viewport: Viewport = {
   maximumScale: 5,
   userScalable: true,
   interactiveWidget: 'resizes-content',
+  themeColor: '#0b1b3a',
 }
 
 export const metadata: Metadata = {
   title: 'Imóvel Periciado',
   description: 'Imóvel Periciado',
+  applicationName: 'Imóvel Periciado',
+  appleWebApp: {
+    capable: true,
+    title: 'Imóvel Periciado',
+    statusBarStyle: 'black-translucent',
+  },
+  formatDetection: {
+    telephone: false,
+  },
 }
 
 export default function RootLayout({

@@ -6,7 +6,9 @@ import { useFormContext } from 'react-hook-form'
 import TextTitle from '@/components/text-title'
 import TextSubtitle from '@/components/text-subtitle'
 import AddressSummaryCard from '@/components/address-summary-card'
-import { trackGtmEvent, DEFAULT_CURRENCY, CONSULT_PRODUCT_PRICE, buildConsultItem } from '@/utils/analytics/gtm'
+import { trackGtmEvent, DEFAULT_CURRENCY, buildConsultItem } from '@/utils/analytics/gtm'
+import { formatMoney } from '@/utils/text/text'
+import { usePublicPlanPrice } from '@/hooks/use-public-plan-price'
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
     label?: string
@@ -46,6 +48,7 @@ export function CreditCardPage({
 }: {
     onSave: () => void
 }) {
+    const { price: consultPrice } = usePublicPlanPrice()
     const [saveCard, setSaveCard] = useState(false)
 
     const [form, setForm] = useState({
@@ -93,8 +96,8 @@ export function CreditCardPage({
             event_description: 'Dados do cartão preenchidos para pagamento.',
             payment_type: 'credit_card',
             currency: DEFAULT_CURRENCY,
-            value: CONSULT_PRODUCT_PRICE,
-            items: [buildConsultItem(CONSULT_PRODUCT_PRICE)],
+            value: consultPrice,
+            items: [buildConsultItem(consultPrice)],
             save_card: saveCard,
             has_name: Boolean(form.name),
             has_cpf: Boolean(form.cpf),
@@ -132,7 +135,7 @@ export function CreditCardPage({
     }, [saveCard])
 
     return (
-        <form className="flex flex-col relative w-full z-50 -mt-15 px-6 pb-20">
+        <form className="relative z-50 -mt-15 flex w-full flex-col px-6 pb-20 md:px-8 lg:-mt-10 lg:px-10 xl:px-12">
             
             <div className="flex flex-col gap-2 mb-6 px-1">
                 <TextTitle className="text-dark">Novo cartão</TextTitle>
@@ -141,7 +144,7 @@ export function CreditCardPage({
 
             <div className="mb-8 relative z-50 w-full flex flex-col gap-5">
                 <p className="text-center text-dark leading-snug font-normal px-4">
-                    Realize o pagamento do valor <span className="font-bold">R$ 59,00</span> para começar a consulta dos dados do endereço
+                    Realize o pagamento de <span className="font-bold">{formatMoney(consultPrice)}</span> para iniciar a consulta do imóvel.
                 </p>
 
                 <AddressSummaryCard
