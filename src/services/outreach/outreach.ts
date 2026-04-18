@@ -63,6 +63,50 @@ export type OutreachCampaign = {
   whatsapp_spec: string | null
   header_media_url: string
   pixel_base_url: string
+  created?: string
+  modified?: string
+}
+
+export type OutreachRecipientLog = {
+  id: string
+  row_index: number
+  email: string
+  phone: string
+  email_status: string
+  email_opened_at: string | null
+  whatsapp_msg_id: string
+  whatsapp_status: string
+  whatsapp_delivered_at: string | null
+  whatsapp_read_at: string | null
+  error_message: string
+  rendered_summary: Record<string, unknown>
+}
+
+export type CampaignListParams = {
+  status?: string
+  channel?: string
+  search?: string
+  ordering?: 'created' | '-created'
+  limit?: number
+  offset?: number
+}
+
+export type CampaignListResponse = {
+  results: OutreachCampaign[]
+  total: number
+  limit: number
+  offset: number
+  status_counts: Record<string, number>
+}
+
+function outreachQueryString(params: Record<string, string | number | undefined>): string {
+  const sp = new URLSearchParams()
+  for (const [k, v] of Object.entries(params)) {
+    if (v === undefined || v === '') continue
+    sp.set(k, String(v))
+  }
+  const q = sp.toString()
+  return q ? `?${q}` : ''
 }
 
 export async function listRegistryTemplates(): Promise<{ templates: RegistryTemplateMeta[] }> {
@@ -138,6 +182,38 @@ export async function sendCampaign(id: string, pixelBaseUrl?: string): Promise<u
   )
 }
 
-export async function listCampaigns(): Promise<OutreachCampaign[]> {
-  return guard((token) => api.get(endpoint.outreach.campaigns, token) as Promise<OutreachCampaign[]>)
+export async function listCampaigns(params?: CampaignListParams): Promise<CampaignListResponse> {
+  const q = outreachQueryString({
+    status: params?.status,
+    channel: params?.channel,
+    search: params?.search,
+    ordering: params?.ordering,
+    limit: params?.limit,
+    offset: params?.offset,
+  })
+  return guard((token) => api.get(`${endpoint.outreach.campaigns}${q}`, token) as Promise<CampaignListResponse>)
+}
+
+export async function getCampaign(id: string): Promise<OutreachCampaign> {
+  return guard((token) => api.get(endpoint.outreach.campaign(id), token) as Promise<OutreachCampaign>)
+}
+
+export type CampaignRecipientsResponse = {
+  results: OutreachRecipientLog[]
+  total: number
+  limit: number
+  offset: number
+}
+
+export async function listCampaignRecipients(
+  id: string,
+  params?: { limit?: number; offset?: number },
+): Promise<CampaignRecipientsResponse> {
+  const q = outreachQueryString({
+    limit: params?.limit,
+    offset: params?.offset,
+  })
+  return guard(
+    (token) => api.get(`${endpoint.outreach.campaignRecipients(id)}${q}`, token) as Promise<CampaignRecipientsResponse>,
+  )
 }

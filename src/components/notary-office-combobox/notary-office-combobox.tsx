@@ -21,10 +21,26 @@ function rowHaystack(row: NotaryOfficeRow): string {
   return normalizeSearch(`${uf} ${city} ${num} ${label}`)
 }
 
-/** Texto enviado ao backend: número reconhecível por extract_number + nome oficial. */
+/**
+ * Texto enviado ao backend / exibido no resumo.
+ * O `label` costuma ser o nome ONR já com o grau (ex.: "12º OFICIAL...").
+ * O terceiro campo da linha compacta nem sempre é esse mesmo grau (ex.: São Paulo),
+ * então não prefixar `numº` quando o label já abre com ordinal — evita "4º 12º ...".
+ */
 export function formatNotaryForOrder(row: NotaryOfficeRow): string {
   const [, , num, label] = row
-  return `${num}º ${label}`
+  const t = String(label ?? '').trim()
+  if (!t) return ''
+
+  if (/^\d+[°º]\s*/i.test(t)) {
+    return t
+  }
+
+  const n = typeof num === 'number' && Number.isFinite(num) ? num : Number(num)
+  if (!n || n < 1 || Number.isNaN(n)) {
+    return t
+  }
+  return `${n}º ${t}`.replace(/\s+/g, ' ').trim()
 }
 
 type NotaryOfficeComboboxProps = {

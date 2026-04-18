@@ -31,4 +31,18 @@ export const endpoint = {
     campaignSend: (id: string) => `/admin/outreach/campaigns/${id}/send/`,
     campaignRecipients: (id: string) => `/admin/outreach/campaigns/${id}/recipients/`,
   },
+  chat: {
+    campaigns: '/admin/chat/campaigns/',
+    campaign: (id: string) => `/admin/chat/campaigns/${id}/`,
+    conversations: '/admin/chat/conversations/',
+    conversation: (id: string) => `/admin/chat/conversations/${id}/`,
+    conversationMessages: (id: string) => `/admin/chat/conversations/${id}/messages/`,
+    conversationHandoff: (id: string) => `/admin/chat/conversations/${id}/handoff/`,
+    conversationToggleAi: (id: string) => `/admin/chat/conversations/${id}/toggle-ai/`,
+    conversationReplayAi: (id: string) => `/admin/chat/conversations/${id}/replay-ai/`,
+    leads: '/admin/chat/leads/',
+    lead: (id: string) => `/admin/chat/leads/${id}/`,
+    scheduled: '/admin/chat/scheduled/',
+    scheduledCancel: (id: string) => `/admin/chat/scheduled/${id}/cancel/`,
+  },
 }
