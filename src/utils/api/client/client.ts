@@ -1,6 +1,7 @@
 import { signOut } from 'next-auth/react'
 import { url } from '@/constants/api'
 import { ApiError } from '@/utils/api/errors'
+import { clearAuthClientFlag } from '@/utils/auth-client-flag'
 
 const apiUrl = url
 const INTERNAL_API_HEADER_NAME = process.env.INTERNAL_API_HEADER_NAME || 'x-internal-auth'
@@ -42,6 +43,7 @@ function appendInternalApiHeader(
 
 async function handleUnauthorized() {
   if (typeof window === 'undefined') return
+  clearAuthClientFlag()
   window.dispatchEvent(new Event('auth:unauthorized'))
   await signOut({ redirect: false })
 }

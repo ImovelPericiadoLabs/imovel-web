@@ -14,8 +14,9 @@ async function guard<T>(callback: (token: string) => Promise<T>): Promise<T> {
   const token = session?.accessToken
 
   if (!token) {
-    await handleUnauthorized()
-    throw new Error('Sessão inválida ou expirada.')
+    throw new Error(
+      'Não foi possível obter a sessão. Verifique sua conexão ou entre novamente.',
+    )
   }
 
   return callback(token)
