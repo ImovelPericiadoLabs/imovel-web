@@ -912,23 +912,27 @@ export default function AdminChatPage() {
                     </div>
                   </div>
                   <div className="border-t border-slate-100 bg-white px-4 py-3">
-                    <div className="flex gap-2">
+                    <div className="flex min-w-0 flex-nowrap items-end gap-3">
                       <textarea
                         value={composer}
                         onChange={(e) => setComposer(e.target.value)}
                         rows={2}
-                        className="min-h-[2.75rem] flex-1 resize-none rounded-xl border border-slate-200/90 bg-[#f7f8fa] px-3 py-2 text-sm outline-none transition focus:border-[#1f3a8a] focus:bg-white focus:ring-2 focus:ring-[#1f3a8a]/15"
+                        className="min-h-[2.75rem] min-w-0 flex-1 resize-y rounded-xl border border-slate-200/90 bg-[#f7f8fa] px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-[#1f3a8a] focus:bg-white focus:ring-2 focus:ring-[#1f3a8a]/15"
                         placeholder="Mensagem ao cliente (WhatsApp)…"
                       />
-                      <Button
+                      <button
                         type="button"
-                        className="h-10 shrink-0 self-end rounded-xl bg-[#1f3a8a] px-4 hover:bg-[#1a326f]"
                         onClick={() => sendMut.mutate()}
                         disabled={sendMut.isPending || !composer.trim()}
-                        icon={sendMut.isPending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+                        className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-[#1f3a8a] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[#1a326f] disabled:pointer-events-none disabled:opacity-50"
                       >
+                        {sendMut.isPending ? (
+                          <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
+                        ) : (
+                          <Send className="size-4 shrink-0" aria-hidden />
+                        )}
                         Enviar
-                      </Button>
+                      </button>
                     </div>
                     <p className="mt-2 flex items-center gap-1 text-[11px] text-[#6b7280]">
                       <ShieldAlert className="size-3.5 shrink-0" />
