@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState, type DragEvent } from 'react'
 import Link from 'next/link'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query'
 import {
   Megaphone,
   RefreshCw,
@@ -71,7 +71,15 @@ type Step = 1 | 2 | 3 | 4 | 5
 
 type CampaignPreviewPayload = Awaited<ReturnType<typeof previewCampaign>>
 
-const LIST_PAGE_SIZE = 100
+/** Máximo suportado pela API de listagem de campanhas. */
+const CAMPAIGN_PAGE_LIMIT = 200
+
+const EMAIL_STATUS_LABELS: Record<string, string> = {
+  pending: 'Pendente',
+  sent: 'Enviado',
+  failed: 'Falhou',
+  skipped: 'Ignorado',
+}
 
 const STATUS_LABELS: Record<string, string> = {
   draft: 'Rascunho',
@@ -94,6 +102,22 @@ const STEPS: { n: Step; label: string; short: string }[] = [
   { n: 4, label: 'Prévia', short: '4' },
   { n: 5, label: 'Envio', short: '5' },
 ]
+
+function formatCampaignDate(iso?: string) {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  return d.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
+}
+
+function aggregateEmailStatuses(rows: { email_status: string }[]) {
+  const m: Record<string, number> = {}
+  for (const r of rows) {
+    const k = (r.email_status || 'pending').toLowerCase()
+    m[k] = (m[k] ?? 0) + 1
+  }
+  return m
+}
 
 function statusBadgeClass(status: string) {
   const s = status.toLowerCase()
@@ -273,6 +297,7 @@ export default function AdminOutreachPage() {
   const [listSearch, setListSearch] = useState('')
   const [selectedPanelId, setSelectedPanelId] = useState<string | null>(null)
   const [recipientsOffset, setRecipientsOffset] = useState(0)
+  const [recipientPageSize, setRecipientPageSize] = useState(200)
   const [panelTab, setPanelTab] = useState<'resumo' | 'destinatarios'>('resumo')
 
   useEffect(() => {
@@ -285,6 +310,10 @@ export default function AdminOutreachPage() {
   }, [selectedPanelId])
 
   useEffect(() => {
+    setRecipientsOffset(0)
+  }, [recipientPageSize])
+
+  useEffect(() => {
     setJsonBatchRowsState(getOutreachJsonBatchRows())
   }, [])
 
@@ -294,25 +323,35 @@ export default function AdminOutreachPage() {
     setJsonBatchRowsState(v)
   }, [])
 
-  const { data: campaignListData, isFetching: campaignsLoading } = useQuery({
+  const {
+    data: campaignPages,
+    isFetching: campaignsLoading,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
     queryKey: ['outreach-campaigns', listStatus, listChannel, listSearch, listIncludeInactive],
-    queryFn: () =>
+    initialPageParam: 0,
+    queryFn: ({ pageParam }) =>
       listCampaigns({
         status: listStatus || undefined,
         channel: listChannel || undefined,
         search: listSearch || undefined,
         include_inactive: listIncludeInactive || undefined,
-        limit: LIST_PAGE_SIZE,
-        offset: 0,
+        limit: CAMPAIGN_PAGE_LIMIT,
+        offset: pageParam as number,
       }),
+    getNextPageParam: (lastPage, allPages) => {
+      const loaded = allPages.reduce((acc, p) => acc + p.results.length, 0)
+      return loaded < lastPage.total ? loaded : undefined
+    },
     enabled: Boolean(me?.is_superuser),
   })
 
-  const campaigns = campaignListData?.results ?? []
-  const campaignTotal = campaignListData?.total ?? 0
-  const statusCounts = campaignListData?.status_counts ?? {}
+  const campaigns = useMemo(() => campaignPages?.pages.flatMap((p) => p.results) ?? [], [campaignPages])
+  const campaignTotal = campaignPages?.pages[0]?.total ?? 0
+  const statusCounts = campaignPages?.pages[0]?.status_counts ?? {}
 
-  const RECIP_PAGE = 40
   const { data: panelCampaign, isFetching: panelCampaignLoading } = useQuery({
     queryKey: ['outreach-campaign', selectedPanelId],
     queryFn: () => getCampaign(selectedPanelId!),
@@ -320,10 +359,32 @@ export default function AdminOutreachPage() {
   })
 
   const { data: recipientsData, isFetching: recipientsLoading } = useQuery({
-    queryKey: ['outreach-recipients', selectedPanelId, recipientsOffset],
-    queryFn: () => listCampaignRecipients(selectedPanelId!, { limit: RECIP_PAGE, offset: recipientsOffset }),
+    queryKey: ['outreach-recipients', selectedPanelId, recipientsOffset, recipientPageSize],
+    queryFn: () =>
+      listCampaignRecipients(selectedPanelId!, {
+        limit: recipientPageSize,
+        offset: recipientsOffset,
+      }),
     enabled: Boolean(me?.is_superuser && selectedPanelId),
   })
+
+  /** Amostra até 500 linhas para painel de contagem no resumo (evita N pedidos). */
+  const { data: recipientsSample, isFetching: recipientsSampleLoading } = useQuery({
+    queryKey: ['outreach-recipients-sample', selectedPanelId],
+    queryFn: () => listCampaignRecipients(selectedPanelId!, { limit: 500, offset: 0 }),
+    enabled: Boolean(
+      me?.is_superuser &&
+        selectedPanelId &&
+        panelCampaign &&
+        !['draft'].includes(panelCampaign.status),
+    ),
+    staleTime: 20_000,
+  })
+
+  const emailStatusBreakdown = useMemo(() => {
+    if (!recipientsSample?.results.length) return null
+    return aggregateEmailStatuses(recipientsSample.results)
+  }, [recipientsSample])
 
   const [step, setStep] = useState<Step>(1)
   const [channels, setChannels] = useState<string[]>(['email'])
@@ -1308,37 +1369,55 @@ export default function AdminOutreachPage() {
 
         {/* Painel operacional: métricas, filtros e auditoria (API autenticada) */}
         <aside className="min-w-0 space-y-5 lg:sticky lg:top-4 lg:max-h-[calc(100vh-1.5rem)] lg:overflow-y-auto lg:pr-1 xl:top-6">
-          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-            <div className="rounded-xl border border-slate-200/90 bg-gradient-to-b from-white to-slate-50/80 p-3 shadow-sm">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+            <div className="rounded-xl border border-slate-200/90 bg-gradient-to-b from-white to-slate-50/80 p-2.5 shadow-sm sm:p-3">
               <div className="flex items-center justify-between gap-1 text-[10px] font-bold uppercase tracking-wide text-slate-500">
                 <span>Com filtro</span>
                 <LayoutGrid className="size-3.5 shrink-0 text-slate-400" aria-hidden />
               </div>
-              <p className="mt-1 text-xl font-bold tabular-nums text-slate-900">{campaignTotal}</p>
+              <p className="mt-0.5 text-lg font-bold tabular-nums text-slate-900 sm:text-xl">{campaignTotal}</p>
+              <p className="text-[9px] text-slate-400">campanhas</p>
             </div>
-            <div className="rounded-xl border border-slate-200/90 bg-gradient-to-b from-white to-slate-50/80 p-3 shadow-sm">
+            <div className="rounded-xl border border-slate-200/90 bg-gradient-to-b from-white to-slate-50/80 p-2.5 shadow-sm sm:p-3">
               <div className="flex items-center justify-between gap-1 text-[10px] font-bold uppercase tracking-wide text-slate-500">
-                <span>Rascunhos</span>
+                <span>Rascunho</span>
                 <BarChart3 className="size-3.5 shrink-0 text-slate-400" aria-hidden />
               </div>
-              <p className="mt-1 text-xl font-bold tabular-nums text-slate-900">{statusCounts.draft ?? 0}</p>
-              <p className="text-[10px] text-slate-400">total no projeto</p>
+              <p className="mt-0.5 text-lg font-bold tabular-nums text-slate-900 sm:text-xl">{statusCounts.draft ?? 0}</p>
             </div>
-            <div className="rounded-xl border border-slate-200/90 bg-gradient-to-b from-white to-slate-50/80 p-3 shadow-sm">
+            <div className="rounded-xl border border-slate-200/90 bg-gradient-to-b from-white to-slate-50/80 p-2.5 shadow-sm sm:p-3">
               <div className="flex items-center justify-between gap-1 text-[10px] font-bold uppercase tracking-wide text-slate-500">
-                <span>Em envio</span>
+                <span>Prévia OK</span>
+                <Eye className="size-3.5 shrink-0 text-slate-400" aria-hidden />
+              </div>
+              <p className="mt-0.5 text-lg font-bold tabular-nums text-slate-900 sm:text-xl">
+                {statusCounts.preview_ready ?? 0}
+              </p>
+            </div>
+            <div className="rounded-xl border border-slate-200/90 bg-gradient-to-b from-white to-slate-50/80 p-2.5 shadow-sm sm:p-3">
+              <div className="flex items-center justify-between gap-1 text-[10px] font-bold uppercase tracking-wide text-slate-500">
+                <span>Enviando</span>
                 <RefreshCw className="size-3.5 shrink-0 text-slate-400" aria-hidden />
               </div>
-              <p className="mt-1 text-xl font-bold tabular-nums text-slate-900">{statusCounts.sending ?? 0}</p>
-              <p className="text-[10px] text-slate-400">total no projeto</p>
+              <p className="mt-0.5 text-lg font-bold tabular-nums text-amber-900 sm:text-xl">
+                {statusCounts.sending ?? 0}
+              </p>
             </div>
-            <div className="rounded-xl border border-slate-200/90 bg-gradient-to-b from-white to-slate-50/80 p-3 shadow-sm">
+            <div className="rounded-xl border border-slate-200/90 bg-gradient-to-b from-white to-slate-50/80 p-2.5 shadow-sm sm:p-3">
               <div className="flex items-center justify-between gap-1 text-[10px] font-bold uppercase tracking-wide text-slate-500">
-                <span>Concluídas</span>
+                <span>Concluído</span>
                 <Check className="size-3.5 shrink-0 text-slate-400" aria-hidden />
               </div>
-              <p className="mt-1 text-xl font-bold tabular-nums text-slate-900">{statusCounts.completed ?? 0}</p>
-              <p className="text-[10px] text-slate-400">total no projeto</p>
+              <p className="mt-0.5 text-lg font-bold tabular-nums text-emerald-900 sm:text-xl">
+                {statusCounts.completed ?? 0}
+              </p>
+            </div>
+            <div className="rounded-xl border border-slate-200/90 bg-gradient-to-b from-white to-slate-50/80 p-2.5 shadow-sm sm:p-3">
+              <div className="flex items-center justify-between gap-1 text-[10px] font-bold uppercase tracking-wide text-slate-500">
+                <span>Falhou</span>
+                <AlertTriangle className="size-3.5 shrink-0 text-slate-400" aria-hidden />
+              </div>
+              <p className="mt-0.5 text-lg font-bold tabular-nums text-red-900 sm:text-xl">{statusCounts.failed ?? 0}</p>
             </div>
           </div>
 
@@ -1374,6 +1453,7 @@ export default function AdminOutreachPage() {
                     if (selectedPanelId) {
                       void queryClient.invalidateQueries({ queryKey: ['outreach-campaign', selectedPanelId] })
                       void queryClient.invalidateQueries({ queryKey: ['outreach-recipients', selectedPanelId] })
+                      void queryClient.invalidateQueries({ queryKey: ['outreach-recipients-sample', selectedPanelId] })
                     }
                   }}
                   icon={<RefreshCw className="size-3.5" />}
@@ -1427,9 +1507,10 @@ export default function AdminOutreachPage() {
             </div>
 
             {campaigns.length > 0 ? (
-              <ul className="max-h-[min(22rem,42vh)] space-y-2 overflow-y-auto pr-0.5 xl:max-h-[min(26rem,46vh)]">
+              <ul className="max-h-[min(28rem,52vh)] space-y-2 overflow-y-auto pr-0.5 lg:max-h-[min(32rem,58vh)]">
                 {campaigns.map((c) => {
                   const selected = selectedPanelId === c.id
+                  const createdLbl = formatCampaignDate(c.created)
                   return (
                     <li key={c.id}>
                       <div
@@ -1451,6 +1532,9 @@ export default function AdminOutreachPage() {
                           <code className="block truncate font-mono text-[11px] font-medium text-slate-800">
                             {c.id.slice(0, 10)}…
                           </code>
+                          {createdLbl ? (
+                            <p className="mt-0.5 text-[10px] text-slate-500">Criada {createdLbl}</p>
+                          ) : null}
                           <div className="mt-2 flex flex-wrap items-center gap-1.5">
                             <span
                               className={cn(
@@ -1495,10 +1579,21 @@ export default function AdminOutreachPage() {
               <p className="text-sm text-slate-500">Nenhuma campanha neste filtro.</p>
             )}
 
-            {campaignTotal > LIST_PAGE_SIZE ? (
-              <p className="mt-3 border-t border-slate-100 pt-3 text-center text-[11px] text-amber-800">
-                Há mais de {LIST_PAGE_SIZE} campanhas neste critério. Refine a busca ou o filtro de status.
-              </p>
+            {hasNextPage ? (
+              <div className="mt-3 border-t border-slate-100 pt-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-9 w-full rounded-xl text-xs"
+                  disabled={isFetchingNextPage}
+                  onClick={() => void fetchNextPage()}
+                  icon={isFetchingNextPage ? <Loader2 className="size-3.5 animate-spin" /> : undefined}
+                >
+                  {isFetchingNextPage
+                    ? 'A carregar…'
+                    : `Carregar mais (${campaigns.length} de ${campaignTotal})`}
+                </Button>
+              </div>
             ) : null}
           </div>
 
@@ -1571,7 +1666,81 @@ export default function AdminOutreachPage() {
                               : '—'}
                           </dd>
                         </div>
+                        <div className="rounded-lg bg-slate-50 px-3 py-2 ring-1 ring-slate-100 sm:col-span-2">
+                          <dt className="text-[10px] font-bold uppercase text-slate-500">Datas</dt>
+                          <dd className="mt-0.5 space-y-0.5 text-[11px] text-slate-800">
+                            <span className="block">
+                              Criada:{' '}
+                              <span className="font-medium">{formatCampaignDate(panelCampaign.created) || '—'}</span>
+                            </span>
+                            <span className="block">
+                              Atualizada:{' '}
+                              <span className="font-medium">{formatCampaignDate(panelCampaign.modified) || '—'}</span>
+                            </span>
+                          </dd>
+                        </div>
                       </dl>
+
+                      {['sending', 'completed', 'failed', 'preview_ready'].includes(panelCampaign.status) ? (
+                        <div className="rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-3 ring-1 ring-slate-200/70">
+                          <div className="mb-2 flex items-center justify-between gap-2">
+                            <p className="text-[11px] font-bold uppercase tracking-wide text-slate-600">
+                              Logs de envio (e-mail)
+                            </p>
+                            {recipientsSampleLoading ? (
+                              <Loader2 className="size-3.5 animate-spin text-slate-400" aria-hidden />
+                            ) : null}
+                          </div>
+                          {recipientsSample && recipientsSample.total > 0 ? (
+                            <>
+                              <p className="mb-2 text-[11px] text-slate-600">
+                                <span className="font-semibold tabular-nums">{recipientsSample.total}</span> registo(s)
+                                na API
+                                {recipientsSample.total > panelCampaign.row_count ? (
+                                  <span className="text-amber-800"> · acima do row_count (revisar)</span>
+                                ) : null}
+                                {recipientsSample.total < panelCampaign.row_count &&
+                                ['sending', 'completed'].includes(panelCampaign.status) ? (
+                                  <span className="block text-slate-500">
+                                    Dataset: {panelCampaign.row_count} linhas — ainda a processar ou falhou a meio.
+                                  </span>
+                                ) : null}
+                              </p>
+                              {emailStatusBreakdown && Object.keys(emailStatusBreakdown).length > 0 ? (
+                                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                                  {Object.entries(emailStatusBreakdown).map(([k, n]) => (
+                                    <div
+                                      key={k}
+                                      className="rounded-lg bg-white px-2 py-2 text-center ring-1 ring-slate-200/80"
+                                    >
+                                      <p className="text-[9px] font-bold uppercase text-slate-500">
+                                        {EMAIL_STATUS_LABELS[k] ?? k}
+                                      </p>
+                                      <p className="text-lg font-bold tabular-nums text-slate-900">{n}</p>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : null}
+                              {recipientsSample.total > recipientsSample.results.length ? (
+                                <p className="mt-2 text-[10px] leading-relaxed text-slate-500">
+                                  Contagens de estado: primeiras {recipientsSample.results.length} linhas. Use o
+                                  separador Destinatários para percorrer toda a lista (até 500 por pedido).
+                                </p>
+                              ) : (
+                                <p className="mt-2 text-[10px] text-slate-500">
+                                  Contagens exactas (≤500 linhas nesta campanha).
+                                </p>
+                              )}
+                            </>
+                          ) : (
+                            <p className="text-[11px] leading-relaxed text-slate-600">
+                              Sem logs de destinatários ainda. Se o status é «Enviando» há muito tempo, confira Celery /
+                              fila ou reenfileire o envio no servidor.
+                            </p>
+                          )}
+                        </div>
+                      ) : null}
+
                       <Button
                         type="button"
                         variant="outline"
@@ -1669,50 +1838,123 @@ export default function AdminOutreachPage() {
                     </div>
                   ) : recipientsData && recipientsData.results.length > 0 ? (
                     <>
-                      <p className="text-[11px] text-slate-500">
-                        Mostrando {recipientsData.offset + 1}–
-                        {recipientsData.offset + recipientsData.results.length} de {recipientsData.total}
-                      </p>
-                      <div className="max-h-[min(20rem,38vh)] overflow-auto rounded-xl border border-slate-200">
-                        <table className="w-full min-w-[240px] text-left text-[11px]">
-                          <thead className="sticky top-0 bg-slate-100 font-bold uppercase tracking-wide text-slate-600">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+                        <p className="text-[11px] text-slate-600">
+                          <span className="font-semibold tabular-nums text-slate-900">
+                            {recipientsData.offset + 1}–{recipientsData.offset + recipientsData.results.length}
+                          </span>{' '}
+                          de <span className="font-semibold tabular-nums">{recipientsData.total}</span> · página{' '}
+                          <span className="tabular-nums">
+                            {Math.floor(recipientsOffset / recipientPageSize) + 1}
+                          </span>{' '}
+                          /{' '}
+                          <span className="tabular-nums">
+                            {Math.max(1, Math.ceil(recipientsData.total / recipientPageSize))}
+                          </span>
+                        </p>
+                        <label className="flex items-center gap-2 text-[11px] font-medium text-slate-600">
+                          <span className="shrink-0">Linhas por página</span>
+                          <SelectShell
+                            className="h-9 w-[4.5rem] rounded-lg text-[11px]"
+                            value={String(recipientPageSize)}
+                            onChange={(e) => setRecipientPageSize(Number(e.target.value))}
+                          >
+                            <option value="100">100</option>
+                            <option value="200">200</option>
+                            <option value="500">500</option>
+                          </SelectShell>
+                        </label>
+                      </div>
+                      <div className="max-h-[min(70vh,36rem)] overflow-auto rounded-xl border border-slate-200 shadow-inner">
+                        <table className="w-full min-w-[640px] text-left text-[11px]">
+                          <thead className="sticky top-0 z-10 border-b border-slate-200 bg-slate-100 font-bold uppercase tracking-wide text-slate-600">
                             <tr>
-                              <th className="px-2 py-2">#</th>
-                              <th className="px-2 py-2">E-mail</th>
-                              <th className="px-2 py-2">WA</th>
+                              <th className="whitespace-nowrap px-2 py-2.5">#</th>
+                              <th className="min-w-[140px] px-2 py-2.5">E-mail</th>
+                              <th className="min-w-[100px] px-2 py-2.5">Telefone</th>
+                              <th className="whitespace-nowrap px-2 py-2.5">E-mail (estado)</th>
+                              <th className="min-w-[90px] px-2 py-2.5">WhatsApp</th>
+                              <th className="min-w-[160px] px-2 py-2.5">Erro</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-slate-100 bg-white">
                             {recipientsData.results.map((r) => (
-                              <tr key={r.id} className="text-slate-800">
-                                <td className="px-2 py-1.5 font-mono">{r.row_index}</td>
-                                <td className="max-w-[100px] truncate px-2 py-1.5" title={r.email ?? ''}>
-                                  {r.email ?? '—'}
+                              <tr key={r.id} className="align-top text-slate-800">
+                                <td className="whitespace-nowrap px-2 py-2 font-mono tabular-nums">{r.row_index}</td>
+                                <td className="max-w-[220px] break-all px-2 py-2 font-mono text-[10px]" title={r.email}>
+                                  {r.email || '—'}
                                 </td>
-                                <td className="max-w-[80px] truncate px-2 py-1.5" title={r.phone ?? ''}>
+                                <td className="max-w-[120px] break-all px-2 py-2 font-mono text-[10px]" title={r.phone}>
+                                  {r.phone || '—'}
+                                </td>
+                                <td className="whitespace-nowrap px-2 py-2">
+                                  <span
+                                    className={cn(
+                                      'inline-flex rounded-md px-1.5 py-0.5 text-[10px] font-bold ring-1',
+                                      (r.email_status || '').toLowerCase() === 'sent' &&
+                                        'bg-emerald-50 text-emerald-900 ring-emerald-200',
+                                      (r.email_status || '').toLowerCase() === 'failed' &&
+                                        'bg-red-50 text-red-900 ring-red-200',
+                                      (r.email_status || '').toLowerCase() === 'skipped' &&
+                                        'bg-slate-100 text-slate-700 ring-slate-200',
+                                      (!(r.email_status || '').toLowerCase() ||
+                                        (r.email_status || '').toLowerCase() === 'pending') &&
+                                        'bg-amber-50 text-amber-950 ring-amber-200/80',
+                                    )}
+                                  >
+                                    {EMAIL_STATUS_LABELS[(r.email_status || 'pending').toLowerCase()] ??
+                                      r.email_status ??
+                                      '—'}
+                                  </span>
+                                </td>
+                                <td
+                                  className="max-w-[120px] break-words px-2 py-2 text-[10px]"
+                                  title={r.whatsapp_msg_id || r.whatsapp_status || ''}
+                                >
                                   {r.whatsapp_status || '—'}
+                                </td>
+                                <td className="max-w-[280px] px-2 py-2 text-[10px] text-red-900" title={r.error_message}>
+                                  {r.error_message ? (
+                                    <span className="line-clamp-4 whitespace-pre-wrap">{r.error_message}</span>
+                                  ) : (
+                                    '—'
+                                  )}
                                 </td>
                               </tr>
                             ))}
                           </tbody>
                         </table>
                       </div>
-                      {recipientsData.offset + recipientsData.results.length < recipientsData.total ? (
+                      <div className="flex flex-col gap-2 sm:flex-row sm:justify-between">
                         <Button
                           type="button"
                           variant="outline"
-                          className="h-9 w-full rounded-xl text-xs"
-                          disabled={recipientsLoading}
-                          onClick={() => setRecipientsOffset((o) => o + RECIP_PAGE)}
+                          className="h-9 rounded-xl text-xs sm:min-w-[8rem]"
+                          disabled={recipientsLoading || recipientsOffset <= 0}
+                          onClick={() => setRecipientsOffset((o) => Math.max(0, o - recipientPageSize))}
                         >
-                          Mais destinatários
+                          Anterior
                         </Button>
-                      ) : null}
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="h-9 rounded-xl text-xs sm:min-w-[8rem]"
+                          disabled={
+                            recipientsLoading ||
+                            recipientsOffset + recipientPageSize >= recipientsData.total
+                          }
+                          onClick={() => setRecipientsOffset((o) => o + recipientPageSize)}
+                        >
+                          Seguinte
+                        </Button>
+                      </div>
                     </>
-                  ) : (
-                    <p className="text-xs text-slate-500">
-                      Sem registros de destinatários (campanha ainda não enviada ou sem logs).
+                  ) : recipientsData && recipientsData.total === 0 ? (
+                    <p className="text-xs leading-relaxed text-slate-500">
+                      Sem registos de destinatários (envio ainda não criou logs ou campanha só em pré-visualização).
                     </p>
+                  ) : (
+                    <p className="text-xs text-slate-500">A carregar lista…</p>
                   )}
                 </div>
               )}

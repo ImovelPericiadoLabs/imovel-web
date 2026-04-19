@@ -106,7 +106,9 @@ export type OutreachCampaign = {
   whatsapp_spec: string | null
   header_media_url: string
   pixel_base_url: string
+  /** ISO8601 da API (listagem e detalhe). */
   created?: string
+  /** ISO8601 da API (listagem e detalhe). */
   modified?: string
 }
 
