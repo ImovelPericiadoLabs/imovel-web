@@ -56,6 +56,16 @@ import { getSessionDeduplicated } from '@/utils/session'
 
 type Tab = 'campaigns' | 'inbox' | 'leads' | 'scheduled'
 
+/** Evita martelar a API após 429 / throttle; erros de rede ainda retentam poucas vezes. */
+function chatQueryRetry(failureCount: number, error: unknown): boolean {
+  if (failureCount >= 2) return false
+  const msg = error instanceof Error ? error.message : String(error)
+  if (/throttl|too many requests|429|rate limit/i.test(msg)) return false
+  return true
+}
+
+const chatRetryDelay = (attemptIndex: number) => Math.min(40_000, 1500 * 2 ** attemptIndex)
+
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return <label className="text-xs font-bold uppercase tracking-wide text-slate-500">{children}</label>
 }
@@ -237,6 +247,9 @@ export default function AdminChatPage() {
     queryKey: ['chat-campaigns'],
     queryFn: listChatCampaigns,
     enabled: Boolean(me?.is_superuser),
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    select: (d) => (Array.isArray(d) ? d : []),
   })
 
   const { data: conversations = [], isFetching: convLoading } = useQuery({
@@ -247,26 +260,57 @@ export default function AdminChatPage() {
         limit: 80,
       }),
     enabled: Boolean(me?.is_superuser),
-    refetchInterval: tab === 'inbox' ? 5000 : false,
+    staleTime: 15_000,
+    refetchOnWindowFocus: false,
+    refetchInterval: () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return false
+      if (tab !== 'inbox') return false
+      return 28_000
+    },
+    placeholderData: (previousData) => previousData,
+    retry: chatQueryRetry,
+    retryDelay: chatRetryDelay,
+    select: (d) => (Array.isArray(d) ? d : []),
   })
 
-  const { data: messages = [], isFetching: msgLoading } = useQuery({
+  const {
+    data: messages = [],
+    isFetching: msgLoading,
+    isError: messagesQueryError,
+    error: messagesQueryErr,
+  } = useQuery({
     queryKey: ['chat-messages', selectedConvId],
     queryFn: () => listChatMessages(selectedConvId!, { limit: 80 }),
     enabled: Boolean(me?.is_superuser && selectedConvId),
-    refetchInterval: tab === 'inbox' && selectedConvId ? 3500 : false,
+    staleTime: 10_000,
+    refetchOnWindowFocus: false,
+    refetchInterval: (query) => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return false
+      if (tab !== 'inbox' || !query.queryKey[1]) return false
+      return 22_000
+    },
+    placeholderData: (previousData) => previousData,
+    retry: chatQueryRetry,
+    retryDelay: chatRetryDelay,
+    select: (d) => (Array.isArray(d) ? d : []),
   })
 
   const { data: leads = [], isFetching: leadsLoading } = useQuery({
     queryKey: ['chat-leads'],
     queryFn: () => listChatLeads(),
     enabled: Boolean(me?.is_superuser) && tab === 'leads',
+    staleTime: 20_000,
+    refetchOnWindowFocus: false,
+    select: (d) => (Array.isArray(d) ? d : []),
   })
 
   const { data: scheduled = [], isFetching: schedLoading } = useQuery({
     queryKey: ['chat-scheduled', campaignFilter],
     queryFn: () => listChatScheduled({ campaign: campaignFilter || undefined }),
     enabled: Boolean(me?.is_superuser) && tab === 'scheduled',
+    staleTime: 20_000,
+    refetchOnWindowFocus: false,
+    select: (d) => (Array.isArray(d) ? d : []),
   })
 
   const selectedConv = useMemo(
@@ -721,6 +765,15 @@ export default function AdminChatPage() {
                 </div>
               ) : (
                 <>
+                  {messagesQueryError ? (
+                    <div className="border-b border-amber-200/80 bg-amber-50/95 px-4 py-2 text-center text-xs text-amber-950 sm:text-sm">
+                      Não foi possível atualizar as mensagens em segundo plano.
+                      {messagesQueryErr instanceof Error && messagesQueryErr.message
+                        ? ` ${messagesQueryErr.message}`
+                        : null}{' '}
+                      A última lista carregada mantém-se visível (rede instável ou limite da API).
+                    </div>
+                  ) : null}
                   <div className="border-b border-slate-100 px-5 py-4">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">

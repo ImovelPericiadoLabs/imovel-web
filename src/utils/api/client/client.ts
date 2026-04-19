@@ -65,11 +65,39 @@ const api = {
       method: 'GET',
     })
 
-    const result = await response.json()
+    const responseText = await response.text()
+    let result: unknown = {}
+    if (responseText) {
+      try {
+        result = JSON.parse(responseText) as unknown
+      } catch {
+        if (!response.ok) {
+          throw new Error(`Resposta inválida da API (${response.status}).`)
+        }
+        throw new Error('Resposta inválida da API')
+      }
+    }
 
     if (response.status === 401) {
       await handleUnauthorized()
       throw result
+    }
+
+    if (response.status === 400 || response.status === 403 || response.status === 429 || response.status === 502) {
+      const body = result && typeof result === 'object' ? (result as Record<string, unknown>) : {}
+      const err = body.error as { code?: string; message?: string } | undefined
+      if (err && typeof err.code === 'string' && typeof err.message === 'string') {
+        throw new ApiError(err.code, err.message)
+      }
+      const detail = body.detail
+      if (typeof detail === 'string') {
+        throw new Error(detail)
+      }
+      throw new Error(typeof body.message === 'string' ? body.message : 'Erro na requisição')
+    }
+
+    if (!response.ok) {
+      throw new Error(`Erro ${response.status}`)
     }
 
     return result

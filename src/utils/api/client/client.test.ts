@@ -52,6 +52,12 @@ describe('api.get', () => {
     await expect(api.get('/unauth')).rejects.toEqual({ error: 'Unauthorized' })
     expect(signOut).toHaveBeenCalled()
   })
+
+  it('deve lançar em GET 429 em vez de devolver o corpo como sucesso', async () => {
+    mockFetch.mockResolvedValue(mockJsonResponse({ detail: 'Request was throttled.' }, 429))
+
+    await expect(api.get('/limited')).rejects.toThrow('Request was throttled.')
+  })
 })
 
 describe('api.post', () => {
