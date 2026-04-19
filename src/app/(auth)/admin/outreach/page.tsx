@@ -29,6 +29,8 @@ import {
   Trash2,
   Ban,
   Undo2,
+  PencilLine,
+  Maximize2,
 } from 'lucide-react'
 import { cn } from '@/utils/tailwind'
 import TextTitle from '@/components/text-title'
@@ -74,6 +76,7 @@ import {
   recipientRulesToApiPayload,
 } from '@/utils/recipientRules'
 import { RecipientRulesEditor } from './_components/RecipientRulesEditor'
+import { DatasetQualityColumnBars, DatasetQualityTemplateBars } from './_components/dataset-quality-charts'
 
 type Step = 1 | 2 | 3 | 4 | 5
 
@@ -95,6 +98,14 @@ const STATUS_LABELS: Record<string, string> = {
   sending: 'Enviando',
   completed: 'Concluído',
   failed: 'Falhou',
+}
+
+/** Alinhado à API: PATCH de mapeamento / recipient_rules permitido nestes estados. */
+const CAMPAIGN_WIZARD_EDITABLE_STATUSES = new Set(['draft', 'preview_ready', 'failed'])
+
+function outreachCampaignAllowsWizardEdit(c: OutreachCampaign) {
+  if (!c.is_active) return false
+  return CAMPAIGN_WIZARD_EDITABLE_STATUSES.has(c.status)
 }
 
 const STEPS: { n: Step; label: string; short: string }[] = [
@@ -148,7 +159,6 @@ function FieldLabel({ children, hint }: { children: React.ReactNode; hint?: stri
 }
 
 function DatasetQualityPanel({ dq }: { dq: DatasetQuality }) {
-  const colEntries = Object.entries(dq.columns ?? {})
   return (
     <div className="space-y-4 rounded-xl border border-slate-200 bg-slate-50/90 p-4 ring-1 ring-slate-200/60">
       <div className="flex flex-wrap items-center gap-2">
@@ -197,58 +207,11 @@ function DatasetQualityPanel({ dq }: { dq: DatasetQuality }) {
         </div>
       ) : null}
 
-      {(dq.template_variables?.whatsapp?.length ?? 0) > 0 || (dq.template_variables?.email?.length ?? 0) > 0 ? (
-        <div className="rounded-lg border border-slate-200 bg-white p-3 text-xs">
-          <p className="mb-2 font-bold text-slate-900">Variáveis do template (vazias após mapeamento + regras)</p>
-          {dq.template_variables.whatsapp?.length ? (
-            <ul className="mb-2 list-inside list-disc text-slate-700">
-              {dq.template_variables.whatsapp.map((w) => (
-                <li key={w.variable}>
-                  <span className="font-mono">{w.variable}</span>: {w.empty_rows} vazias ({w.empty_pct}%)
-                  {w.mapped_csv_column ? (
-                    <span className="text-slate-500"> · coluna {w.mapped_csv_column}</span>
-                  ) : null}
-                </li>
-              ))}
-            </ul>
-          ) : null}
-          {dq.template_variables.email?.length ? (
-            <ul className="list-inside list-disc text-slate-700">
-              {dq.template_variables.email.map((w) => (
-                <li key={w.variable}>
-                  <span className="font-mono">{w.variable}</span>: {w.empty_rows} vazias ({w.empty_pct}%)
-                </li>
-              ))}
-            </ul>
-          ) : null}
-        </div>
-      ) : null}
+      <DatasetQualityTemplateBars dq={dq} />
 
-      {colEntries.length > 0 ? (
-        <div className="max-h-48 overflow-auto rounded-lg border border-slate-200 bg-white p-2">
-          <p className="mb-2 px-1 text-[10px] font-bold uppercase tracking-wide text-slate-500">Colunas CSV · % vazio</p>
-          <table className="w-full text-left text-[11px]">
-            <thead className="text-slate-500">
-              <tr>
-                <th className="px-2 py-1">Coluna</th>
-                <th className="px-2 py-1">Vazias</th>
-                <th className="px-2 py-1">Preenchidas</th>
-                <th className="px-2 py-1">%</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 text-slate-800">
-              {colEntries.map(([name, st]) => (
-                <tr key={name}>
-                  <td className="px-2 py-1 font-mono">{name}</td>
-                  <td className="px-2 py-1 tabular-nums">{st.empty}</td>
-                  <td className="px-2 py-1 tabular-nums">{st.non_empty}</td>
-                  <td className="px-2 py-1 tabular-nums">{st.empty_pct}%</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : null}
+      <div className="max-h-56 overflow-auto">
+        <DatasetQualityColumnBars dq={dq} />
+      </div>
 
       {dq.sample_problem_row_indices?.length ? (
         <p className="text-[11px] text-slate-600">
@@ -298,8 +261,13 @@ export default function AdminOutreachPage() {
   const [searchDraft, setSearchDraft] = useState('')
   const [listSearch, setListSearch] = useState('')
   const [selectedPanelId, setSelectedPanelId] = useState<string | null>(null)
-  const [recipientsOffset, setRecipientsOffset] = useState(0)
+  /** Paginação por cursor (`after_row_index` na API); `stack` guarda o estado para «Anterior». */
+  const [recipientsCursor, setRecipientsCursor] = useState<{
+    afterRowIndex: number | null
+    stack: (number | null)[]
+  }>({ afterRowIndex: null, stack: [] })
   const [recipientPageSize, setRecipientPageSize] = useState(200)
+  const [recipientsTotalKnown, setRecipientsTotalKnown] = useState<number | null>(null)
   const [panelTab, setPanelTab] = useState<'resumo' | 'destinatarios'>('resumo')
 
   useEffect(() => {
@@ -308,11 +276,12 @@ export default function AdminOutreachPage() {
   }, [searchDraft])
 
   useEffect(() => {
-    setRecipientsOffset(0)
+    setRecipientsCursor({ afterRowIndex: null, stack: [] })
+    setRecipientsTotalKnown(null)
   }, [selectedPanelId])
 
   useEffect(() => {
-    setRecipientsOffset(0)
+    setRecipientsCursor({ afterRowIndex: null, stack: [] })
   }, [recipientPageSize])
 
   useEffect(() => {
@@ -361,14 +330,20 @@ export default function AdminOutreachPage() {
   })
 
   const { data: recipientsData, isFetching: recipientsLoading } = useQuery({
-    queryKey: ['outreach-recipients', selectedPanelId, recipientsOffset, recipientPageSize],
+    queryKey: ['outreach-recipients', selectedPanelId, recipientsCursor.afterRowIndex, recipientPageSize],
     queryFn: () =>
       listCampaignRecipients(selectedPanelId!, {
         limit: recipientPageSize,
-        offset: recipientsOffset,
+        after_row_index:
+          recipientsCursor.afterRowIndex === null ? undefined : recipientsCursor.afterRowIndex,
+        include_total: recipientsCursor.afterRowIndex === null,
       }),
     enabled: Boolean(me?.is_superuser && selectedPanelId),
   })
+
+  useEffect(() => {
+    if (recipientsData?.total != null) setRecipientsTotalKnown(recipientsData.total)
+  }, [recipientsData?.total])
 
   /** Amostra até 500 linhas para painel de contagem no resumo (evita N pedidos). */
   const { data: recipientsSample, isFetching: recipientsSampleLoading } = useQuery({
@@ -387,6 +362,17 @@ export default function AdminOutreachPage() {
     if (!recipientsSample?.results.length) return null
     return aggregateEmailStatuses(recipientsSample.results)
   }, [recipientsSample])
+
+  const recipientsNavSummary = useMemo(() => {
+    if (!recipientsData?.results.length) return null
+    const lo = recipientsData.results[0].row_index
+    const hi = recipientsData.results[recipientsData.results.length - 1].row_index
+    const total = recipientsData.total ?? recipientsTotalKnown
+    const pageIdx = recipientsCursor.stack.length + 1
+    const pageMax =
+      total != null && recipientPageSize > 0 ? Math.max(1, Math.ceil(total / recipientPageSize)) : null
+    return { lo, hi, total, pageIdx, pageMax }
+  }, [recipientsData, recipientsTotalKnown, recipientsCursor.stack.length, recipientPageSize])
 
   const [step, setStep] = useState<Step>(1)
   const [channels, setChannels] = useState<string[]>(['email'])
@@ -473,6 +459,33 @@ export default function AdminOutreachPage() {
     setListStatus('')
     setListChannel('')
     setPanelTab('resumo')
+  }, [])
+
+  /** Carrega uma campanha existente da API no assistente (passo 3) para mapeamento, regras e skip_rows. */
+  const loadPanelIntoWizard = useCallback((c: OutreachCampaign) => {
+    setPageError(null)
+    setCampaign(c)
+    setChannels(Array.isArray(c.channels) && c.channels.length > 0 ? c.channels : ['email'])
+    setRegistryTemplateId((c.registry_template_id || '').trim())
+    setEmailTemplateId(c.email_template || '')
+    setWhatsappSpecId(c.whatsapp_spec || '')
+    setEmailColumn(c.email_column || '')
+    setPhoneColumn(c.phone_column || '')
+    setColumnMapping(
+      c.column_mapping && typeof c.column_mapping === 'object' && !Array.isArray(c.column_mapping)
+        ? { ...c.column_mapping }
+        : {},
+    )
+    setRecipientRules(normalizeRecipientRules(c.recipient_rules))
+    setPixelBase((c.pixel_base_url || '').trim())
+    setPreviewResult(null)
+    setLgpdOk(false)
+    setParsedSheet(null)
+    setSampleRows([])
+    setStep(3)
+    window.requestAnimationFrame(() => {
+      document.getElementById('outreach-main-wizard')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
   }, [])
 
   const autoMapColumns = useCallback(() => {
@@ -773,7 +786,7 @@ export default function AdminOutreachPage() {
       </div>
 
       <div className="mx-auto grid max-w-[1600px] gap-8 px-4 py-8 md:px-8 lg:grid-cols-[minmax(0,1fr)_minmax(17rem,22rem)] lg:items-start lg:gap-10 lg:px-10 xl:grid-cols-[minmax(0,56rem)_minmax(20rem,26rem)] 2xl:grid-cols-[minmax(0,58rem)_minmax(22rem,28rem)]">
-        <div className="min-w-0 space-y-6 xl:space-y-8">
+        <div id="outreach-main-wizard" className="min-w-0 space-y-6 xl:space-y-8">
           {/* Stepper */}
           <nav aria-label="Etapas da campanha" className="overflow-x-auto pb-1">
             <ol className="flex min-w-max items-center gap-1 sm:gap-2 md:min-w-0 md:flex-wrap">
@@ -1078,6 +1091,12 @@ export default function AdminOutreachPage() {
                   <Loader2 className="size-10 animate-spin text-primary" />
                   <p className="text-sm font-semibold text-gray-700">Gerando pré-visualização…</p>
                 </div>
+              ) : null}
+              {campaign.status === 'failed' ? (
+                <Alert
+                  variant="warning"
+                  message="Esta campanha está com estado «falhou». Ajuste colunas, regras ou linhas a ignorar (skip_rows), grave com «Pré-visualizar» e só depois volte a enviar."
+                />
               ) : null}
               <div className="flex flex-col gap-3 border-b border-gray-100 pb-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
@@ -1559,14 +1578,24 @@ export default function AdminOutreachPage() {
                             ))}
                           </div>
                         </button>
-                        <button
-                          type="button"
-                          className="shrink-0 border-l border-slate-200/80 px-2.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900"
-                          title="Copiar ID"
-                          onClick={() => void copyText(c.id, c.id)}
-                        >
-                          {copiedId === c.id ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
-                        </button>
+                        <div className="flex shrink-0 flex-col border-l border-slate-200/80">
+                          <Link
+                            href={`/admin/outreach/campaigns/${c.id}`}
+                            className="flex flex-1 items-center justify-center px-2.5 py-2 text-primary hover:bg-primary/[0.06]"
+                            title="Editor completo (ecrã largo)"
+                            scroll={false}
+                          >
+                            <Maximize2 className="size-3.5" aria-hidden />
+                          </Link>
+                          <button
+                            type="button"
+                            className="border-t border-slate-200/80 px-2.5 py-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+                            title="Copiar ID"
+                            onClick={() => void copyText(c.id, c.id)}
+                          >
+                            {copiedId === c.id ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+                          </button>
+                        </div>
                       </div>
                     </li>
                   )
@@ -1674,6 +1703,37 @@ export default function AdminOutreachPage() {
                         </div>
                       </dl>
 
+                      {outreachCampaignAllowsWizardEdit(panelCampaign) ? (
+                        <div className="flex flex-col gap-2">
+                          <Link
+                            href={`/admin/outreach/campaigns/${panelCampaign.id}`}
+                            className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary px-3 text-sm font-bold text-white shadow-sm transition hover:bg-primary/90"
+                            scroll={false}
+                          >
+                            <Maximize2 className="size-4 shrink-0" aria-hidden />
+                            Editor em ecrã completo
+                          </Link>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="h-9 w-full rounded-xl text-xs font-semibold text-slate-700"
+                            onClick={() => loadPanelIntoWizard(panelCampaign)}
+                            icon={<PencilLine className="size-3.5" aria-hidden />}
+                          >
+                            Carregar no assistente (coluna esquerda)
+                          </Button>
+                        </div>
+                      ) : panelCampaign.is_active === false ? (
+                        <p className="rounded-lg bg-amber-50 px-3 py-2 text-[11px] leading-relaxed text-amber-950 ring-1 ring-amber-200/80">
+                          Reative a campanha (botão abaixo) para poder alterar mapeamento e regras no assistente.
+                        </p>
+                      ) : !CAMPAIGN_WIZARD_EDITABLE_STATUSES.has(panelCampaign.status) ? (
+                        <p className="rounded-lg bg-slate-50 px-3 py-2 text-[11px] leading-relaxed text-slate-700 ring-1 ring-slate-200/80">
+                          Só é possível abrir no assistente campanhas em rascunho, com pré-visualização ou que falharam.
+                          Durante o envio ou após conclusão use exportação e logs.
+                        </p>
+                      ) : null}
+
                       {['sending', 'completed', 'failed', 'preview_ready'].includes(panelCampaign.status) ? (
                         <div className="rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-3 ring-1 ring-slate-200/70">
                           <div className="mb-2 flex items-center justify-between gap-2">
@@ -1684,15 +1744,18 @@ export default function AdminOutreachPage() {
                               <Loader2 className="size-3.5 animate-spin text-slate-400" aria-hidden />
                             ) : null}
                           </div>
-                          {recipientsSample && recipientsSample.total > 0 ? (
+                          {recipientsSample && (recipientsSample.total ?? 0) > 0 ? (
                             <>
                               <p className="mb-2 text-[11px] text-slate-600">
-                                <span className="font-semibold tabular-nums">{recipientsSample.total}</span> registo(s)
+                                <span className="font-semibold tabular-nums">
+                                  {recipientsSample.total ?? 0}
+                                </span>{' '}
+                                registo(s)
                                 na API
-                                {recipientsSample.total > panelCampaign.row_count ? (
+                                {(recipientsSample.total ?? 0) > panelCampaign.row_count ? (
                                   <span className="text-amber-800"> · acima do row_count (revisar)</span>
                                 ) : null}
-                                {recipientsSample.total < panelCampaign.row_count &&
+                                {(recipientsSample.total ?? 0) < panelCampaign.row_count &&
                                 ['sending', 'completed'].includes(panelCampaign.status) ? (
                                   <span className="block text-slate-500">
                                     Dataset: {panelCampaign.row_count} linhas — ainda a processar ou falhou a meio.
@@ -1714,7 +1777,7 @@ export default function AdminOutreachPage() {
                                   ))}
                                 </div>
                               ) : null}
-                              {recipientsSample.total > recipientsSample.results.length ? (
+                              {(recipientsSample.total ?? 0) > recipientsSample.results.length ? (
                                 <p className="mt-2 text-[10px] leading-relaxed text-slate-500">
                                   Contagens de estado: primeiras {recipientsSample.results.length} linhas. Use o
                                   separador Destinatários para percorrer toda a lista (até 500 por pedido).
@@ -1843,17 +1906,33 @@ export default function AdminOutreachPage() {
                     <>
                       <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
                         <p className="text-[11px] text-slate-600">
-                          <span className="font-semibold tabular-nums text-slate-900">
-                            {recipientsData.offset + 1}–{recipientsData.offset + recipientsData.results.length}
-                          </span>{' '}
-                          de <span className="font-semibold tabular-nums">{recipientsData.total}</span> · página{' '}
-                          <span className="tabular-nums">
-                            {Math.floor(recipientsOffset / recipientPageSize) + 1}
-                          </span>{' '}
-                          /{' '}
-                          <span className="tabular-nums">
-                            {Math.max(1, Math.ceil(recipientsData.total / recipientPageSize))}
-                          </span>
+                          {recipientsNavSummary ? (
+                            <>
+                              Linhas{' '}
+                              <span className="font-semibold tabular-nums text-slate-900">
+                                {recipientsNavSummary.lo}
+                              </span>
+                              –
+                              <span className="font-semibold tabular-nums text-slate-900">
+                                {recipientsNavSummary.hi}
+                              </span>
+                              {recipientsNavSummary.total != null ? (
+                                <>
+                                  {' '}
+                                  de{' '}
+                                  <span className="font-semibold tabular-nums">{recipientsNavSummary.total}</span>
+                                </>
+                              ) : null}
+                              {' '}
+                              · página <span className="tabular-nums">{recipientsNavSummary.pageIdx}</span>
+                              {recipientsNavSummary.pageMax != null ? (
+                                <>
+                                  {' '}
+                                  / <span className="tabular-nums">{recipientsNavSummary.pageMax}</span>
+                                </>
+                              ) : null}
+                            </>
+                          ) : null}
                         </p>
                         <label className="flex items-center gap-2 text-[11px] font-medium text-slate-600">
                           <span className="shrink-0">Linhas por página</span>
@@ -1933,8 +2012,15 @@ export default function AdminOutreachPage() {
                           type="button"
                           variant="outline"
                           className="h-9 rounded-xl text-xs sm:min-w-[8rem]"
-                          disabled={recipientsLoading || recipientsOffset <= 0}
-                          onClick={() => setRecipientsOffset((o) => Math.max(0, o - recipientPageSize))}
+                          disabled={recipientsLoading || recipientsCursor.stack.length === 0}
+                          onClick={() =>
+                            setRecipientsCursor((c) => {
+                              if (c.stack.length === 0) return c
+                              const stack = [...c.stack]
+                              const prev = stack.pop() ?? null
+                              return { stack, afterRowIndex: prev }
+                            })
+                          }
                         >
                           Anterior
                         </Button>
@@ -1942,17 +2028,25 @@ export default function AdminOutreachPage() {
                           type="button"
                           variant="outline"
                           className="h-9 rounded-xl text-xs sm:min-w-[8rem]"
-                          disabled={
-                            recipientsLoading ||
-                            recipientsOffset + recipientPageSize >= recipientsData.total
-                          }
-                          onClick={() => setRecipientsOffset((o) => o + recipientPageSize)}
+                          disabled={recipientsLoading || !recipientsData.has_more}
+                          onClick={() => {
+                            const next = recipientsData.next_after_row_index
+                            if (next == null) return
+                            setRecipientsCursor((c) => ({
+                              stack: [...c.stack, c.afterRowIndex],
+                              afterRowIndex: next,
+                            }))
+                          }}
                         >
                           Seguinte
                         </Button>
                       </div>
                     </>
-                  ) : recipientsData && recipientsData.total === 0 ? (
+                  ) : recipientsData &&
+                    !recipientsData.results.length &&
+                    !recipientsData.has_more &&
+                    recipientsCursor.afterRowIndex === null &&
+                    (recipientsData.total === 0 || recipientsTotalKnown === 0) ? (
                     <p className="text-xs leading-relaxed text-slate-500">
                       Sem registos de destinatários (envio ainda não criou logs ou campanha só em pré-visualização).
                     </p>

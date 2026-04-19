@@ -106,6 +106,17 @@ export type OutreachCampaign = {
   whatsapp_spec: string | null
   header_media_url: string
   pixel_base_url: string
+  targeting_audience_mode?: string
+  targeting_test_column?: string
+  targeting_test_values?: string[]
+  targeting_require_columns_present?: string[]
+  targeting_require_columns_absent?: string[]
+  targeting_column_predicates?: unknown[]
+  send_pacing_max_recipients?: number | null
+  send_pacing_interval_hours?: number | null
+  send_pacing_wave_attempts?: number
+  outreach_max_rows?: number
+  outreach_max_rows_per_request?: number
   /** ISO8601 da API (listagem e detalhe). */
   created?: string
   /** ISO8601 da API (listagem e detalhe). */
@@ -279,18 +290,32 @@ export async function getCampaign(id: string): Promise<OutreachCampaign> {
 
 export type CampaignRecipientsResponse = {
   results: OutreachRecipientLog[]
-  total: number
+  total: number | null
   limit: number
-  offset: number
+  offset: number | null
+  after_row_index?: number | null
+  next_after_row_index?: number | null
+  has_more?: boolean
 }
 
 export async function listCampaignRecipients(
   id: string,
-  params?: { limit?: number; offset?: number },
+  params?: {
+    limit?: number
+    /** Paginação clássica (só usada se `after_row_index` não for enviado). */
+    offset?: number
+    /** Cursor: último `row_index` da página anterior (API devolve `next_after_row_index`). */
+    after_row_index?: number
+    skip_total?: boolean
+    include_total?: boolean
+  },
 ): Promise<CampaignRecipientsResponse> {
   const q = outreachQueryString({
     limit: params?.limit,
-    offset: params?.offset,
+    offset: params?.after_row_index != null ? undefined : params?.offset,
+    after_row_index: params?.after_row_index,
+    skip_total: params?.skip_total ? 1 : undefined,
+    include_total: params?.include_total ? 1 : undefined,
   })
   return guard(
     (token) => api.get(`${endpoint.outreach.campaignRecipients(id)}${q}`, token) as Promise<CampaignRecipientsResponse>,

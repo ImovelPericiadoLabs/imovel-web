@@ -63,6 +63,10 @@ export default function AppLayout({ children }: PropsWithChildren) {
   const currentEmail = me?.email ?? session?.user?.email ?? ''
 
   function handleGoBack() {
+    if (pathname.startsWith('/admin/outreach/campaigns/')) {
+      push('/admin/outreach')
+      return
+    }
     const mapRoutes: Record<string, string> = {
       '/consultas': CONSULTAR_IMOVEL_INICIO_HREF,
       '/admin/outreach': '/consultas',
