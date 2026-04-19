@@ -26,6 +26,8 @@ export const endpoint = {
     metaWaSync: '/admin/outreach/templates/whatsapp-db/sync-from-meta/',
     campaigns: '/admin/outreach/campaigns/',
     campaignsCreate: '/admin/outreach/campaigns/create/',
+    campaignsCreateFromRows: '/admin/outreach/campaigns/create-from-rows/',
+    campaignAppendRows: (id: string) => `/admin/outreach/campaigns/${id}/append-rows/`,
     campaign: (id: string) => `/admin/outreach/campaigns/${id}/`,
     campaignPreview: (id: string) => `/admin/outreach/campaigns/${id}/preview/`,
     campaignSend: (id: string) => `/admin/outreach/campaigns/${id}/send/`,

@@ -828,7 +828,7 @@ export default function AdminOutreachPage() {
               </div>
 
               <div className="space-y-2">
-                <FieldLabel hint="CSV UTF-8 ou Excel (.xlsx / .xls): a conversão para CSV é feita no seu navegador (primeira folha), sem enviar o binário Excel ao servidor.">
+                <FieldLabel hint="CSV/Excel: conversão no navegador (primeira folha). O servidor aceita ficheiros grandes (limite configurável; 0 = sem limite na API). Para listas muito grandes ou integrações, use a API JSON POST …/campaigns/create-from-rows/ (até 5000 linhas por pedido) e …/campaigns/{id}/append-rows/ para lotes seguintes.">
                   Arquivo de destinatários
                 </FieldLabel>
                 <div
