@@ -1783,10 +1783,18 @@ export default function AdminOutreachPage() {
                             type="button"
                             variant="outline"
                             className="h-9 w-full rounded-xl border-amber-200 text-xs text-amber-900 hover:bg-amber-50"
-                            disabled={
-                              panelDeactivateMut.isPending || panelCampaign.status === 'sending'
-                            }
-                            onClick={() => void panelDeactivateMut.mutate()}
+                            disabled={panelDeactivateMut.isPending}
+                            onClick={() => {
+                              if (
+                                panelCampaign.status === 'sending' &&
+                                !window.confirm(
+                                  'A campanha está a enviar. Desativar interrompe o processamento (estado «falhou» na API) e oculta da lista. Continuar?',
+                                )
+                              ) {
+                                return
+                              }
+                              void panelDeactivateMut.mutate()
+                            }}
                             icon={
                               panelDeactivateMut.isPending ? (
                                 <Loader2 className="size-3.5 animate-spin" />
@@ -1795,7 +1803,9 @@ export default function AdminOutreachPage() {
                               )
                             }
                           >
-                            Desativar (oculta da lista)
+                            {panelCampaign.status === 'sending'
+                              ? 'Desativar e parar envio'
+                              : 'Desativar (oculta da lista)'}
                           </Button>
                         )}
                         {(panelCampaign.status === 'draft' || panelCampaign.status === 'preview_ready') && (
