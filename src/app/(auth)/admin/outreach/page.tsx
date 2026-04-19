@@ -26,6 +26,9 @@ import {
   LayoutGrid,
   Download,
   Users,
+  Trash2,
+  Ban,
+  Undo2,
 } from 'lucide-react'
 import { cn } from '@/utils/tailwind'
 import TextTitle from '@/components/text-title'
@@ -36,7 +39,8 @@ import Skeleton from '@/components/skeleton'
 import { getMe } from '@/services/account'
 import { url as apiBaseUrl } from '@/constants/api'
 import {
-  createCampaignMultipart,
+  appendCampaignRows,
+  createCampaignFromRows,
   listCampaigns,
   listEmailTemplates,
   listRegistryTemplates,
@@ -47,12 +51,16 @@ import {
   syncMetaTemplates,
   getCampaign,
   listCampaignRecipients,
+  deleteCampaign,
   type DatasetQuality,
   type OutreachCampaign,
   type RegistryTemplateMeta,
   type WhatsAppSpec,
 } from '@/services/outreach'
-import { spreadsheetFileToCsvFile } from '@/utils/outreachXlsx'
+import {
+  OUTREACH_JSON_BATCH_ROWS,
+  spreadsheetFileToColumnsAndRows,
+} from '@/utils/outreachXlsx'
 
 type Step = 1 | 2 | 3 | 4 | 5
 
@@ -254,6 +262,7 @@ export default function AdminOutreachPage() {
     enabled: Boolean(me?.is_superuser),
   })
   const [listStatus, setListStatus] = useState('')
+  const [listIncludeInactive, setListIncludeInactive] = useState(false)
   const [listChannel, setListChannel] = useState('')
   const [searchDraft, setSearchDraft] = useState('')
   const [listSearch, setListSearch] = useState('')
@@ -271,12 +280,13 @@ export default function AdminOutreachPage() {
   }, [selectedPanelId])
 
   const { data: campaignListData, isFetching: campaignsLoading } = useQuery({
-    queryKey: ['outreach-campaigns', listStatus, listChannel, listSearch],
+    queryKey: ['outreach-campaigns', listStatus, listChannel, listSearch, listIncludeInactive],
     queryFn: () =>
       listCampaigns({
         status: listStatus || undefined,
         channel: listChannel || undefined,
         search: listSearch || undefined,
+        include_inactive: listIncludeInactive || undefined,
         limit: LIST_PAGE_SIZE,
         offset: 0,
       }),
@@ -305,7 +315,8 @@ export default function AdminOutreachPage() {
   const [registryTemplateId, setRegistryTemplateId] = useState('')
   const [emailTemplateId, setEmailTemplateId] = useState('')
   const [whatsappSpecId, setWhatsappSpecId] = useState('')
-  const [csvFile, setCsvFile] = useState<File | null>(null)
+  type ParsedSheet = { fileName: string; columns: string[]; rows: Record<string, string>[] }
+  const [parsedSheet, setParsedSheet] = useState<ParsedSheet | null>(null)
   const [csvDragOver, setCsvDragOver] = useState(false)
   const [csvConverting, setCsvConverting] = useState(false)
   const [recipientRulesText, setRecipientRulesText] = useState(DEFAULT_RECIPIENT_RULES_JSON)
@@ -359,7 +370,7 @@ export default function AdminOutreachPage() {
     setRegistryTemplateId('')
     setEmailTemplateId('')
     setWhatsappSpecId('')
-    setCsvFile(null)
+    setParsedSheet(null)
     setCampaign(null)
     setSampleRows([])
     setEmailColumn('')
@@ -431,24 +442,33 @@ export default function AdminOutreachPage() {
 
   const ingestSpreadsheetOrCsv = useCallback(async (f: File | null) => {
     if (!f) {
-      setCsvFile(null)
+      setParsedSheet(null)
       return
     }
     setPageError(null)
     const lower = f.name.toLowerCase()
-    const isExcel = lower.endsWith('.xlsx') || lower.endsWith('.xls')
+    const okExt =
+      lower.endsWith('.csv') ||
+      lower.endsWith('.xlsx') ||
+      lower.endsWith('.xls') ||
+      f.type === 'text/csv' ||
+      f.type === 'application/vnd.ms-excel'
+    if (!okExt) {
+      setPageError('Formato não suportado. Use .csv, .xlsx ou .xls.')
+      return
+    }
     try {
-      if (isExcel) {
-        setCsvConverting(true)
-        const csv = await spreadsheetFileToCsvFile(f)
-        setCsvFile(csv)
-      } else if (lower.endsWith('.csv') || f.type === 'text/csv' || f.type === 'application/vnd.ms-excel') {
-        setCsvFile(f)
-      } else {
-        setPageError('Formato não suportado. Use .csv, .xlsx ou .xls.')
+      setCsvConverting(true)
+      const { columns, rows } = await spreadsheetFileToColumnsAndRows(f)
+      if (!rows.length) {
+        setPageError('O ficheiro não tem linhas de dados (só cabeçalho ou vazio).')
+        setParsedSheet(null)
+        return
       }
+      setParsedSheet({ fileName: f.name, columns, rows })
     } catch (err) {
-      setPageError(err instanceof Error ? err.message : 'Não foi possível ler o Excel.')
+      setPageError(err instanceof Error ? err.message : 'Não foi possível ler o ficheiro.')
+      setParsedSheet(null)
     } finally {
       setCsvConverting(false)
     }
@@ -466,15 +486,34 @@ export default function AdminOutreachPage() {
 
   const createMut = useMutation({
     mutationFn: async () => {
-      if (!csvFile) throw new Error('Selecione um CSV.')
-      const fd = new FormData()
-      fd.append('csv_file', csvFile)
-      fd.append('channels', JSON.stringify(channels))
-      fd.append('dry_run_sample_limit', '10')
-      if (registryTemplateId) fd.append('registry_template_id', registryTemplateId)
-      if (emailTemplateId) fd.append('email_template_id', emailTemplateId)
-      if (whatsappSpecId) fd.append('whatsapp_spec_id', whatsappSpecId)
-      return createCampaignMultipart(fd)
+      if (!parsedSheet?.rows.length) throw new Error('Selecione e processe um ficheiro com dados.')
+      const { columns, rows } = parsedSheet
+      const base = {
+        channels,
+        dry_run_sample_limit: 10,
+        registry_template_id: registryTemplateId || undefined,
+        email_template_id: emailTemplateId || null,
+        whatsapp_spec_id: whatsappSpecId || null,
+        email_column: '',
+        phone_column: '',
+        header_media_url: '',
+        pixel_base_url: '',
+      }
+      const batch = OUTREACH_JSON_BATCH_ROWS
+      const first = rows.slice(0, batch)
+      const rest = rows.slice(batch)
+      const firstRes = await createCampaignFromRows({
+        ...base,
+        columns,
+        rows: first,
+      })
+      let campaign = firstRes.campaign
+      const sampleRows = firstRes.sample_rows
+      for (let i = 0; i < rest.length; i += batch) {
+        const chunk = rest.slice(i, i + batch)
+        campaign = await appendCampaignRows(campaign.id, chunk)
+      }
+      return { campaign, sample_rows: sampleRows }
     },
     onSuccess: (data) => {
       setCampaign(data.campaign)
@@ -540,6 +579,48 @@ export default function AdminOutreachPage() {
       setStep(5)
       setPageError(null)
       void queryClient.invalidateQueries({ queryKey: ['outreach-campaigns'] })
+    },
+    onError: (e: Error) => setPageError(e.message),
+  })
+
+  const panelDeactivateMut = useMutation({
+    mutationFn: async () => {
+      if (!selectedPanelId) throw new Error('Sem campanha selecionada.')
+      return patchCampaign(selectedPanelId, { is_active: false })
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['outreach-campaigns'] })
+      void queryClient.invalidateQueries({ queryKey: ['outreach-campaign', selectedPanelId] })
+      setPageError(null)
+    },
+    onError: (e: Error) => setPageError(e.message),
+  })
+
+  const panelReactivateMut = useMutation({
+    mutationFn: async () => {
+      if (!selectedPanelId) throw new Error('Sem campanha selecionada.')
+      return patchCampaign(selectedPanelId, { is_active: true })
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['outreach-campaigns'] })
+      void queryClient.invalidateQueries({ queryKey: ['outreach-campaign', selectedPanelId] })
+      setPageError(null)
+    },
+    onError: (e: Error) => setPageError(e.message),
+  })
+
+  const panelDeleteMut = useMutation({
+    mutationFn: async () => {
+      const id = selectedPanelId
+      if (!id) throw new Error('Sem campanha selecionada.')
+      await deleteCampaign(id)
+      return id
+    },
+    onSuccess: (deletedId) => {
+      void queryClient.invalidateQueries({ queryKey: ['outreach-campaigns'] })
+      queryClient.removeQueries({ queryKey: ['outreach-campaign', deletedId] })
+      setSelectedPanelId(null)
+      setPageError(null)
     },
     onError: (e: Error) => setPageError(e.message),
   })
@@ -828,7 +909,7 @@ export default function AdminOutreachPage() {
               </div>
 
               <div className="space-y-2">
-                <FieldLabel hint="CSV/Excel: conversão no navegador (primeira folha). O servidor aceita ficheiros grandes (limite configurável; 0 = sem limite na API). Para listas muito grandes ou integrações, use a API JSON POST …/campaigns/create-from-rows/ (até 5000 linhas por pedido) e …/campaigns/{id}/append-rows/ para lotes seguintes.">
+                <FieldLabel hint="O ficheiro é lido só no navegador (primeira folha). Os dados seguem para a API em JSON em pequenos lotes (evita limites de upload tipo Cloudflare); não é enviado multipart/ficheiro ao servidor.">
                   Arquivo de destinatários
                 </FieldLabel>
                 <div
@@ -855,13 +936,13 @@ export default function AdminOutreachPage() {
                   <FileSpreadsheet className="mb-3 size-10 text-gray-400" />
                   <p className="text-sm font-semibold text-gray-800">
                     {csvConverting
-                      ? 'A converter Excel para CSV…'
-                      : csvFile
-                        ? csvFile.name
+                      ? 'A ler ficheiro…'
+                      : parsedSheet
+                        ? `${parsedSheet.fileName} · ${parsedSheet.rows.length} linha(s)`
                         : 'Arraste CSV ou Excel aqui ou clique para escolher'}
                   </p>
                   <p className="mt-1 text-xs text-gray-500">
-                    .csv, .xlsx ou .xls · conversão local · cabeçalho na primeira linha
+                    .csv, .xlsx ou .xls · processamento local · envio JSON em lotes de {OUTREACH_JSON_BATCH_ROWS} linhas
                   </p>
                   <input
                     id="outreach-csv-input"
@@ -879,13 +960,17 @@ export default function AdminOutreachPage() {
                 </Button>
                 <Button
                   className="h-11 rounded-xl sm:min-w-[11rem]"
-                  disabled={!csvFile || createMut.isPending || csvConverting}
+                  disabled={!parsedSheet || createMut.isPending || csvConverting}
                   onClick={() => createMut.mutate()}
                   icon={
                     createMut.isPending || csvConverting ? <Loader2 className="size-4 animate-spin" /> : undefined
                   }
                 >
-                  {csvConverting ? 'A processar…' : createMut.isPending ? 'Carregando…' : 'Carregar ficheiro'}
+                  {csvConverting
+                    ? 'A processar…'
+                    : createMut.isPending
+                      ? 'A enviar lotes…'
+                      : 'Criar campanha (JSON)'}
                 </Button>
               </div>
             </section>
@@ -1227,6 +1312,7 @@ export default function AdminOutreachPage() {
               <li>• Use pré-visualização: métricas de nulos e regras JSON antes do envio.</li>
               <li>• Confirme LGPD e origem da lista.</li>
               <li>• Use colunas claras no CSV (sem espaços estranhos).</li>
+              <li>• Desative campanhas antigas ou elimine rascunhos no painel à direita.</li>
             </ul>
           </div>
 
@@ -1288,6 +1374,15 @@ export default function AdminOutreachPage() {
                 <option value="email">E-mail</option>
                 <option value="whatsapp">WhatsApp</option>
               </SelectShell>
+              <label className="flex cursor-pointer items-center gap-2 text-xs font-medium text-slate-600 sm:col-span-2">
+                <input
+                  type="checkbox"
+                  className="size-4 rounded border-slate-300 text-primary focus:ring-primary/30"
+                  checked={listIncludeInactive}
+                  onChange={(e) => setListIncludeInactive(e.target.checked)}
+                />
+                Mostrar campanhas desativadas
+              </label>
             </div>
 
             {campaigns.length > 0 ? (
@@ -1324,6 +1419,11 @@ export default function AdminOutreachPage() {
                             >
                               {STATUS_LABELS[c.status] ?? c.status}
                             </span>
+                            {c.is_active === false ? (
+                              <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-bold uppercase text-slate-600">
+                                Desativada
+                              </span>
+                            ) : null}
                             <span className="text-[10px] font-medium text-slate-500">{c.row_count} linhas</span>
                           </div>
                           <div className="mt-1.5 flex flex-wrap gap-1">
@@ -1405,6 +1505,9 @@ export default function AdminOutreachPage() {
                           <dt className="text-[10px] font-bold uppercase text-slate-500">Status</dt>
                           <dd className="mt-0.5 font-semibold text-slate-900">
                             {STATUS_LABELS[panelCampaign.status] ?? panelCampaign.status}
+                            {panelCampaign.is_active === false ? (
+                              <span className="ml-2 text-amber-700">· desativada</span>
+                            ) : null}
                           </dd>
                         </div>
                         <div className="rounded-lg bg-slate-50 px-3 py-2 ring-1 ring-slate-100">
@@ -1447,6 +1550,71 @@ export default function AdminOutreachPage() {
                       >
                         Exportar JSON (snapshot)
                       </Button>
+                      <div className="flex flex-col gap-2 border-t border-slate-100 pt-3">
+                        {panelCampaign.is_active === false ? (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="h-9 w-full rounded-xl text-xs"
+                            disabled={panelReactivateMut.isPending}
+                            onClick={() => void panelReactivateMut.mutate()}
+                            icon={
+                              panelReactivateMut.isPending ? (
+                                <Loader2 className="size-3.5 animate-spin" />
+                              ) : (
+                                <Undo2 className="size-3.5" />
+                              )
+                            }
+                          >
+                            Reativar campanha
+                          </Button>
+                        ) : (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="h-9 w-full rounded-xl border-amber-200 text-xs text-amber-900 hover:bg-amber-50"
+                            disabled={
+                              panelDeactivateMut.isPending || panelCampaign.status === 'sending'
+                            }
+                            onClick={() => void panelDeactivateMut.mutate()}
+                            icon={
+                              panelDeactivateMut.isPending ? (
+                                <Loader2 className="size-3.5 animate-spin" />
+                              ) : (
+                                <Ban className="size-3.5" />
+                              )
+                            }
+                          >
+                            Desativar (oculta da lista)
+                          </Button>
+                        )}
+                        {(panelCampaign.status === 'draft' || panelCampaign.status === 'preview_ready') && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="h-9 w-full rounded-xl border-red-200 text-xs text-red-800 hover:bg-red-50"
+                            disabled={panelDeleteMut.isPending}
+                            onClick={() => {
+                              if (
+                                !window.confirm(
+                                  'Eliminar esta campanha de forma permanente? Só é permitido para rascunho ou pré-visualização.',
+                                )
+                              )
+                                return
+                              void panelDeleteMut.mutate()
+                            }}
+                            icon={
+                              panelDeleteMut.isPending ? (
+                                <Loader2 className="size-3.5 animate-spin" />
+                              ) : (
+                                <Trash2 className="size-3.5" />
+                              )
+                            }
+                          >
+                            Eliminar rascunho
+                          </Button>
+                        )}
+                      </div>
                     </>
                   ) : (
                     <p className="text-slate-500">Não foi possível carregar a campanha.</p>

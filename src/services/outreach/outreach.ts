@@ -92,6 +92,7 @@ export type DatasetQuality = {
 export type OutreachCampaign = {
   id: string
   status: string
+  is_active: boolean
   channels: string[]
   column_mapping: Record<string, string>
   recipient_rules?: RecipientRules
@@ -131,6 +132,8 @@ export type CampaignListParams = {
   ordering?: 'created' | '-created'
   limit?: number
   offset?: number
+  /** Inclui campanhas com is_active=false (desativadas). */
+  include_inactive?: boolean
 }
 
 export type CampaignListResponse = {
@@ -179,18 +182,6 @@ export async function syncMetaTemplates(category?: string): Promise<{
   )
 }
 
-export async function createCampaignMultipart(form: FormData): Promise<{
-  campaign: OutreachCampaign
-  sample_rows: Record<string, string>[]
-}> {
-  return guard((token) =>
-    api.post(endpoint.outreach.campaignsCreate, form, token) as Promise<{
-      campaign: OutreachCampaign
-      sample_rows: Record<string, string>[]
-    }>,
-  )
-}
-
 export type CreateCampaignFromRowsBody = {
   channels: string[]
   columns: string[]
@@ -235,6 +226,10 @@ export async function patchCampaign(
   return guard((token) => api.patch(endpoint.outreach.campaign(id), body, token) as Promise<OutreachCampaign>)
 }
 
+export async function deleteCampaign(id: string): Promise<void> {
+  return guard((token) => api.delete(endpoint.outreach.campaign(id), token) as Promise<void>)
+}
+
 export async function previewCampaign(id: string): Promise<{
   previews: Array<{
     row_index: number
@@ -265,6 +260,7 @@ export async function sendCampaign(id: string, pixelBaseUrl?: string): Promise<u
 
 export async function listCampaigns(params?: CampaignListParams): Promise<CampaignListResponse> {
   const q = outreachQueryString({
+    include_inactive: params?.include_inactive ? 1 : undefined,
     status: params?.status,
     channel: params?.channel,
     search: params?.search,
