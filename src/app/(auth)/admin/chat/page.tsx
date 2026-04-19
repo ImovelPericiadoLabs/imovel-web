@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import Link from 'next/link'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
@@ -17,6 +17,8 @@ import {
   Sparkles,
   CheckCircle2,
   XCircle,
+  MoreVertical,
+  Zap,
 } from 'lucide-react'
 import { cn } from '@/utils/tailwind'
 import TextTitle from '@/components/text-title'
@@ -62,6 +64,55 @@ function conversationTitle(c: ChatConversation) {
   const name = (c.customer_display_name || '').trim()
   return name || c.customer_wa_id
 }
+
+function initialsFromTitle(title: string): string {
+  const w = title.trim().split(/\s+/).filter(Boolean)
+  if (w.length >= 2) {
+    const a = (w[0]?.[0] || '').toUpperCase()
+    const b = (w[1]?.[0] || '').toUpperCase()
+    return (a + b) || '?'
+  }
+  const s = title.trim()
+  if (s.length >= 2) return s.slice(0, 2).toUpperCase()
+  return s.slice(0, 1).toUpperCase() || '?'
+}
+
+function formatShortClock(iso: string | null | undefined): string {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  const now = new Date()
+  const sameDay = d.toDateString() === now.toDateString()
+  return sameDay
+    ? d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+    : d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
+}
+
+function conversationListTimestamp(c: ChatConversation): string {
+  return formatShortClock(c.last_message_at || c.last_inbound_at || c.last_outbound_at)
+}
+
+function conversationPreviewLine(c: ChatConversation): string {
+  const raw = (c.last_message_preview || '').replace(/\s+/g, ' ').trim()
+  if (raw) return raw.length > 80 ? `${raw.slice(0, 77)}…` : raw
+  return 'Sem mensagens ainda'
+}
+
+function systemFriendlyLine(body: string): string | null {
+  if (body === 'handoff:operator') return 'Conversa transferida para o atendente.'
+  if (body === 'ia_draft:discarded') return 'Rascunho da IA descartado pelo operador.'
+  if (body.startsWith('handoff:')) return 'Conversa em handoff (atendimento humano).'
+  return null
+}
+
+function messageChannelLabel(m: ChatMessage): string {
+  if (m.direction === 'system') return 'Sistema'
+  if (m.direction === 'in') return 'Cliente'
+  if (!m.sender) return 'IA'
+  return 'Operador'
+}
+
+type BubbleTone = 'in' | 'outDark' | 'outLight' | 'system'
 
 function ChatWaImagePreview({ mediaId }: { mediaId: string }) {
   const [blobUrl, setBlobUrl] = useState<string | null>(null)
@@ -127,15 +178,15 @@ function ChatWaImagePreview({ mediaId }: { mediaId: string }) {
   )
 }
 
-function ChatMessageBody({ m }: { m: ChatMessage }): ReactNode {
+function ChatMessageBody({ m, tone }: { m: ChatMessage; tone: BubbleTone }): ReactNode {
   const mediaId = useMemo(() => extractWaMediaIdFromChatMessage(m), [m])
   const typ = (m.wa_message_type || '').toLowerCase()
   const showImage = typ === 'image' && Boolean(mediaId)
   const showTypePill = Boolean(typ && typ !== 'text' && !(typ === 'image' && showImage))
   const pillClass =
-    m.direction === 'out'
+    tone === 'outDark'
       ? 'bg-white/15 text-white/95 ring-white/25'
-      : 'bg-black/5 text-slate-600 ring-black/10'
+      : 'bg-black/[0.06] text-slate-600 ring-black/10'
 
   return (
     <>
@@ -178,6 +229,9 @@ export default function AdminChatPage() {
   /** Texto editável antes de aprovar envio da resposta IA. */
   const [aiApproveDraft, setAiApproveDraft] = useState('')
   const [pageError, setPageError] = useState<string | null>(null)
+  const [actionMenuOpen, setActionMenuOpen] = useState(false)
+  const actionsMenuRef = useRef<HTMLDivElement>(null)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const { data: campaigns = [], isFetching: campaignsLoading } = useQuery({
     queryKey: ['chat-campaigns'],
@@ -334,6 +388,23 @@ export default function AdminChatPage() {
     setPageError(null)
   }, [tab])
 
+  useEffect(() => {
+    setActionMenuOpen(false)
+  }, [selectedConvId])
+
+  useEffect(() => {
+    if (!actionMenuOpen) return
+    const onDown = (e: MouseEvent) => {
+      if (actionsMenuRef.current && !actionsMenuRef.current.contains(e.target as Node)) setActionMenuOpen(false)
+    }
+    document.addEventListener('mousedown', onDown)
+    return () => document.removeEventListener('mousedown', onDown)
+  }, [actionMenuOpen])
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [selectedConvId, messages])
+
   const onCreateCampaign = useCallback(() => {
     if (!newName.trim()) {
       setPageError('Informe o nome da campanha.')
@@ -390,11 +461,11 @@ export default function AdminChatPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(ellipse_100%_60%_at_50%_-10%,rgba(11,27,58,0.07),transparent)] pb-24">
-      <div className="border-b border-slate-800/10 bg-[#0b1b3a] py-1.5 text-center text-[11px] font-medium text-slate-300">
+    <div className="min-h-screen bg-[#f7f8fa] pb-24">
+      <div className="border-b border-slate-200/80 bg-white py-2 text-center text-[11px] font-medium text-[#6b7280]">
         Chat comercial · Meta WhatsApp + operadores (superusuário)
       </div>
-      <header className="border-b border-slate-200/90 bg-white shadow-sm">
+      <header className="border-b border-slate-200/70 bg-white shadow-sm shadow-slate-200/40">
         <div className="mx-auto flex max-w-[1600px] flex-col gap-4 px-4 py-6 md:flex-row md:items-center md:justify-between md:px-8 lg:px-10">
           <div className="flex min-w-0 items-start gap-4">
             <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/15 to-primary/5 ring-1 ring-primary/10">
@@ -442,8 +513,10 @@ export default function AdminChatPage() {
               type="button"
               onClick={() => setTab(id)}
               className={cn(
-                'inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold transition',
-                tab === id ? 'bg-primary text-white shadow-md shadow-primary/25' : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50',
+                'inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition',
+                tab === id
+                  ? 'bg-[#1f3a8a] text-white shadow-md shadow-[#1f3a8a]/20'
+                  : 'bg-white text-[#6b7280] shadow-sm shadow-slate-200/50 hover:bg-slate-50 hover:text-slate-800',
               )}
             >
               <Icon className="size-4" aria-hidden />
@@ -540,13 +613,13 @@ export default function AdminChatPage() {
         ) : null}
 
         {tab === 'inbox' ? (
-          <div className="grid gap-4 lg:grid-cols-[minmax(0,18rem)_minmax(0,1fr)] xl:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
-            <aside className="space-y-3 rounded-2xl border border-slate-200/90 bg-white p-4 shadow-sm">
+          <div className="grid gap-5 lg:grid-cols-[minmax(280px,320px)_minmax(0,1fr)]">
+            <aside className="flex flex-col overflow-hidden rounded-xl bg-white p-4 shadow-md shadow-slate-200/50">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase text-slate-500">Filtro campanha</span>
+                <span className="text-[11px] font-semibold uppercase tracking-wide text-[#6b7280]">Campanha</span>
                 <button
                   type="button"
-                  className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100"
+                  className="rounded-lg p-1.5 text-[#6b7280] transition hover:bg-slate-100 hover:text-slate-800"
                   onClick={() => void qc.invalidateQueries({ queryKey: ['chat-conversations'] })}
                   aria-label="Atualizar"
                 >
@@ -554,6 +627,7 @@ export default function AdminChatPage() {
                 </button>
               </div>
               <SelectShell
+                className="mt-2"
                 value={campaignFilter}
                 onChange={(e) => {
                   setCampaignFilter(e.target.value)
@@ -567,121 +641,187 @@ export default function AdminChatPage() {
                   </option>
                 ))}
               </SelectShell>
-              <div className="max-h-[min(32rem,55vh)] space-y-1 overflow-y-auto pt-2">
+              <div className="mt-3 max-h-[min(36rem,60vh)] flex-1 space-y-0.5 overflow-y-auto scroll-smooth pr-0.5">
                 {convLoading ? (
                   <Loader2 className="mx-auto size-6 animate-spin text-slate-300" />
                 ) : (
-                  conversations.map((c) => (
-                    <button
-                      key={c.id}
-                      type="button"
-                      onClick={() => setSelectedConvId(c.id)}
-                      className={cn(
-                        'flex w-full flex-col rounded-xl border px-3 py-2.5 text-left text-xs transition',
-                        selectedConvId === c.id
-                          ? 'border-primary bg-primary/[0.06] ring-2 ring-primary/20'
-                          : 'border-transparent hover:bg-slate-50',
-                      )}
-                    >
-                      <span className="line-clamp-2 text-left text-[12px] font-semibold leading-tight text-slate-900">
-                        {conversationTitle(c)}
-                      </span>
-                      <span className="mt-0.5 font-mono text-[10px] text-slate-500">{c.customer_wa_id}</span>
-                      <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                        <span className="text-[10px] font-bold uppercase text-slate-500">{c.state}</span>
-                        {(c.ai_pending_reply_body || '').trim() ? (
-                          <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] font-bold uppercase text-amber-900 ring-1 ring-amber-200">
-                            Rascunho IA
-                          </span>
-                        ) : null}
-                      </div>
-                    </button>
-                  ))
+                  conversations.map((c) => {
+                    const title = conversationTitle(c)
+                    const selected = selectedConvId === c.id
+                    return (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => setSelectedConvId(c.id)}
+                        className={cn(
+                          'flex w-full gap-3 border-l-[3px] rounded-xl px-2.5 py-2.5 text-left transition',
+                          selected
+                            ? 'border-l-[#1f3a8a] bg-[#eceffb] shadow-sm shadow-slate-200/40 ring-1 ring-[#1f3a8a]/15'
+                            : 'border-l-transparent hover:bg-slate-50',
+                        )}
+                      >
+                        <div
+                          className={cn(
+                            'flex size-10 shrink-0 items-center justify-center rounded-full text-xs font-bold ring-1',
+                            selected
+                              ? 'bg-white text-[#1f3a8a] ring-[#1f3a8a]/20'
+                              : 'bg-gradient-to-br from-slate-100 to-slate-50 text-slate-600 ring-slate-200/80',
+                          )}
+                          aria-hidden
+                        >
+                          {initialsFromTitle(title)}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-start justify-between gap-2">
+                            <span className="truncate text-[13px] font-semibold text-slate-900">{title}</span>
+                            <span className="shrink-0 tabular-nums text-[11px] text-[#6b7280]">
+                              {conversationListTimestamp(c)}
+                            </span>
+                          </div>
+                          <p className="mt-0.5 line-clamp-2 text-[12px] leading-snug text-[#6b7280]">
+                            {conversationPreviewLine(c)}
+                          </p>
+                          <div className="mt-1.5 flex flex-wrap items-center gap-1">
+                            {c.state === 'handoff' ? (
+                              <span className="rounded-md bg-amber-50 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-amber-900">
+                                Handoff
+                              </span>
+                            ) : c.state === 'open' ? (
+                              <span className="rounded-md bg-emerald-50 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-emerald-800">
+                                Aberta
+                              </span>
+                            ) : (
+                              <span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-slate-600">
+                                {c.state}
+                              </span>
+                            )}
+                            {c.ai_active ? (
+                              <span className="rounded-md bg-[#1f3a8a]/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#1f3a8a]">
+                                IA
+                              </span>
+                            ) : null}
+                            {(c.ai_pending_reply_body || '').trim() ? (
+                              <span className="rounded-md bg-amber-100/90 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-amber-950">
+                                Rascunho
+                              </span>
+                            ) : null}
+                          </div>
+                        </div>
+                      </button>
+                    )
+                  })
                 )}
               </div>
             </aside>
-            <section className="flex min-h-[28rem] flex-col rounded-2xl border border-slate-200/90 bg-white shadow-sm">
+            <section className="flex min-h-[min(32rem,70vh)] flex-col overflow-hidden rounded-xl bg-white shadow-md shadow-slate-200/50">
               {!selectedConvId ? (
-                <div className="flex flex-1 flex-col items-center justify-center gap-2 p-8 text-center text-sm text-slate-500">
-                  <MessageSquare className="size-10 text-slate-300" />
-                  Selecione uma conversa
+                <div className="flex flex-1 flex-col items-center justify-center gap-3 p-10 text-center text-sm text-[#6b7280]">
+                  <MessageSquare className="size-12 text-slate-300" aria-hidden />
+                  <p className="max-w-xs">Escolha uma conversa na lista para ver as mensagens e responder.</p>
                 </div>
               ) : (
                 <>
-                  <div className="border-b border-slate-100 px-4 py-3">
-                    <div className="flex flex-wrap items-start justify-between gap-2">
-                      <div>
-                        <p className="text-sm font-bold text-slate-900">
-                          {selectedConv ? conversationTitle(selectedConv) : '—'}
-                        </p>
-                        <p className="font-mono text-xs text-slate-600">{selectedConv?.customer_wa_id}</p>
-                        <p className="text-xs text-slate-500">{selectedConv?.campaign_name}</p>
+                  <div className="border-b border-slate-100 px-5 py-4">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="truncate text-base font-semibold text-slate-900">
+                            {selectedConv ? conversationTitle(selectedConv) : '—'}
+                          </p>
+                          {selectedConv?.state === 'open' ? (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-800">
+                              <span className="size-1.5 rounded-full bg-emerald-500" aria-hidden />
+                              Ativa
+                            </span>
+                          ) : selectedConv?.state === 'handoff' ? (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-900">
+                              Handoff
+                            </span>
+                          ) : null}
+                        </div>
+                        <p className="mt-0.5 font-mono text-[13px] text-[#6b7280]">{selectedConv?.customer_wa_id}</p>
+                        {selectedConv?.campaign_name ? (
+                          <p className="mt-1 text-xs text-[#6b7280]">{selectedConv.campaign_name}</p>
+                        ) : null}
                       </div>
-                      <div className="flex flex-wrap gap-2">
-                        <Button
+                      <div className="relative shrink-0" ref={actionsMenuRef}>
+                        <button
                           type="button"
-                          variant="outline"
-                          className="h-9 rounded-lg text-xs"
-                          onClick={() => handoffMut.mutate()}
-                          disabled={handoffMut.isPending}
-                          icon={<UserRoundCog className="size-3.5" />}
+                          onClick={() => setActionMenuOpen((o) => !o)}
+                          className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-slate-50 px-3 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-100"
                         >
-                          Handoff
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="h-9 rounded-lg text-xs"
-                          onClick={() => toggleAiMut.mutate(!selectedConv?.ai_active)}
-                          disabled={toggleAiMut.isPending}
-                          icon={<Bot className="size-3.5" />}
-                        >
-                          {selectedConv?.ai_active ? 'Desligar IA nesta conversa' : 'Ligar IA nesta conversa'}
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="h-9 rounded-lg text-xs"
-                          onClick={() => replayAiMut.mutate()}
-                          disabled={replayAiMut.isPending}
-                          icon={<Sparkles className="size-3.5" />}
-                        >
-                          Pedir resposta IA
-                        </Button>
+                          <Zap className="size-3.5" aria-hidden />
+                          Ações
+                          <MoreVertical className="size-3.5 opacity-60" aria-hidden />
+                        </button>
+                        {actionMenuOpen ? (
+                          <div
+                            className="absolute right-0 z-20 mt-1 min-w-[12.5rem] rounded-xl bg-white py-1 shadow-lg shadow-slate-300/40 ring-1 ring-slate-200/80"
+                            role="menu"
+                          >
+                            <button
+                              type="button"
+                              role="menuitem"
+                              className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50"
+                              disabled={handoffMut.isPending}
+                              onClick={() => {
+                                setActionMenuOpen(false)
+                                handoffMut.mutate()
+                              }}
+                            >
+                              <UserRoundCog className="size-3.5 shrink-0 text-slate-500" />
+                              Handoff
+                            </button>
+                            <button
+                              type="button"
+                              role="menuitem"
+                              className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50"
+                              disabled={toggleAiMut.isPending}
+                              onClick={() => {
+                                setActionMenuOpen(false)
+                                toggleAiMut.mutate(!selectedConv?.ai_active)
+                              }}
+                            >
+                              <Bot className="size-3.5 shrink-0 text-slate-500" />
+                              {selectedConv?.ai_active ? 'Desligar IA' : 'Ligar IA'}
+                            </button>
+                            <button
+                              type="button"
+                              role="menuitem"
+                              className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50"
+                              disabled={replayAiMut.isPending}
+                              onClick={() => {
+                                setActionMenuOpen(false)
+                                replayAiMut.mutate()
+                              }}
+                            >
+                              <Sparkles className="size-3.5 shrink-0 text-slate-500" />
+                              Pedir resposta IA
+                            </button>
+                          </div>
+                        ) : null}
                       </div>
                     </div>
-                    <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
-                      <span
-                        className={cn(
-                          'inline-flex items-center gap-1 rounded-full px-2.5 py-1 font-semibold ring-1',
-                          selectedConv?.state === 'open'
-                            ? 'bg-emerald-50 text-emerald-900 ring-emerald-200'
-                            : 'bg-slate-100 text-slate-700 ring-slate-200',
-                        )}
-                      >
-                        Estado: {selectedConv?.state ?? '—'}
+                    <div className="mt-3 flex flex-wrap gap-1.5 text-[11px] text-[#6b7280]">
+                      <span className="rounded-lg bg-slate-50 px-2 py-1 font-medium text-slate-600">
+                        IA conversa: {selectedConv?.ai_active ? 'ligada' : 'desligada'}
                       </span>
-                      <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 font-semibold text-slate-800 ring-1 ring-slate-200">
-                        IA nesta conversa: {selectedConv?.ai_active ? 'ligada' : 'desligada'}
-                      </span>
-                      <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 font-semibold text-slate-800 ring-1 ring-slate-200">
-                        IA na campanha: {selectedCampaign?.ai_enabled ? 'sim' : 'não'}
+                      <span className="rounded-lg bg-slate-50 px-2 py-1 font-medium text-slate-600">
+                        IA campanha: {selectedCampaign?.ai_enabled ? 'sim' : 'não'}
                       </span>
                       {selectedCampaign?.ai_send_requires_approval ? (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-violet-50 px-2.5 py-1 font-semibold text-violet-900 ring-1 ring-violet-200">
-                          Envio IA com aprovação
+                        <span className="rounded-lg bg-violet-50 px-2 py-1 font-medium text-violet-900">
+                          Aprovação obrigatória
                         </span>
                       ) : null}
                       {(selectedConv?.ai_pending_reply_body || '').trim() ? (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 font-semibold text-amber-950 ring-1 ring-amber-200">
-                          Rascunho pendente
-                        </span>
+                        <span className="rounded-lg bg-amber-50 px-2 py-1 font-medium text-amber-950">Rascunho pendente</span>
                       ) : null}
                     </div>
                   </div>
                   {(selectedConv?.ai_pending_reply_body || '').trim() ? (
-                    <div className="border-b border-amber-200 bg-amber-50/90 px-4 py-3">
-                      <p className="text-xs font-bold uppercase tracking-wide text-amber-900">
+                    <div className="border-b border-amber-100/90 bg-gradient-to-b from-amber-50/80 to-amber-50/40 px-5 py-4 shadow-inner">
+                      <p className="text-[11px] font-bold uppercase tracking-wide text-amber-900">
                         Aprovar antes de enviar ao WhatsApp
                       </p>
                       {selectedConv?.ai_pending_request_handoff ? (
@@ -693,12 +833,12 @@ export default function AdminChatPage() {
                         value={aiApproveDraft}
                         onChange={(e) => setAiApproveDraft(e.target.value)}
                         rows={4}
-                        className="mt-2 w-full resize-y rounded-xl border border-amber-200/80 bg-white px-3 py-2 text-sm text-slate-900 shadow-inner outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-200/60"
+                        className="mt-2 w-full resize-y rounded-xl border border-amber-200/60 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-200/50"
                       />
-                      <div className="mt-2 flex flex-wrap gap-2">
+                      <div className="mt-3 flex flex-wrap gap-2">
                         <Button
                           type="button"
-                          className="h-9 rounded-lg bg-emerald-700 text-white hover:bg-emerald-800"
+                          className="h-9 rounded-xl bg-emerald-700 text-white hover:bg-emerald-800"
                           disabled={approveAiMut.isPending || !aiApproveDraft.trim()}
                           onClick={() => approveAiMut.mutate()}
                           icon={
@@ -714,7 +854,7 @@ export default function AdminChatPage() {
                         <Button
                           type="button"
                           variant="outline"
-                          className="h-9 rounded-lg border-amber-300 text-amber-950 hover:bg-amber-100"
+                          className="h-9 rounded-xl border-amber-200 text-amber-950 hover:bg-amber-50/80"
                           disabled={rejectAiMut.isPending}
                           onClick={() => rejectAiMut.mutate()}
                           icon={rejectAiMut.isPending ? <Loader2 className="size-4 animate-spin" /> : <XCircle className="size-4" />}
@@ -724,39 +864,65 @@ export default function AdminChatPage() {
                       </div>
                     </div>
                   ) : null}
-                  <div className="flex-1 space-y-2 overflow-y-auto bg-slate-50/50 p-4">
-                    {msgLoading ? <Loader2 className="mx-auto size-6 animate-spin text-slate-300" /> : null}
-                    {messages.map((m: ChatMessage) => (
-                      <div
-                        key={m.id}
-                        className={cn(
-                          'max-w-[92%] rounded-2xl px-3 py-2 text-sm shadow-sm',
-                          m.direction === 'in' && 'ml-0 bg-white text-slate-900 ring-1 ring-slate-200',
-                          m.direction === 'out' && 'ml-auto bg-primary text-white',
-                          m.direction === 'system' && 'mx-auto bg-amber-50 text-amber-950 ring-1 ring-amber-200/80',
-                        )}
-                      >
-                        {m.direction === 'system' && m.body === 'ia_draft:discarded' ? (
-                          <p className="text-sm">Rascunho da IA descartado pelo operador.</p>
-                        ) : (
-                          <ChatMessageBody m={m} />
-                        )}
-                        <p className="mt-1 text-[10px] opacity-70">{m.direction}</p>
-                      </div>
-                    ))}
+                  <div className="flex flex-1 flex-col overflow-hidden bg-[#f7f8fa]">
+                    <div className="min-h-0 flex-1 space-y-3 overflow-y-auto scroll-smooth px-4 py-4">
+                      {msgLoading ? <Loader2 className="mx-auto size-6 animate-spin text-slate-300" /> : null}
+                      {messages.map((m: ChatMessage) => {
+                        const friendly = m.direction === 'system' ? systemFriendlyLine(m.body) : null
+                        const isAiOut = m.direction === 'out' && !m.sender
+                        const tone: BubbleTone =
+                          m.direction === 'in'
+                            ? 'in'
+                            : m.direction === 'system'
+                              ? 'system'
+                              : isAiOut
+                                ? 'outLight'
+                                : 'outDark'
+                        return (
+                          <div
+                            key={m.id}
+                            className={cn(
+                              'max-w-[min(85%,28rem)] text-[13px] leading-snug shadow-sm',
+                              m.direction === 'in' && 'ml-0 rounded-2xl rounded-tl-md bg-white px-3 py-2 text-slate-900 shadow-slate-200/60',
+                              m.direction === 'out' &&
+                                isAiOut &&
+                                'ml-auto rounded-2xl rounded-tr-md bg-[#dbe4ff] px-3 py-2 text-slate-900 shadow-slate-300/30',
+                              m.direction === 'out' &&
+                                !isAiOut &&
+                                'ml-auto rounded-2xl rounded-tr-md bg-[#1f3a8a] px-3 py-2 text-white shadow-[#1f3a8a]/25',
+                              m.direction === 'system' &&
+                                'mx-auto max-w-[min(92%,32rem)] rounded-xl bg-amber-50/95 px-3 py-2 text-center text-amber-950 shadow-sm',
+                            )}
+                          >
+                            {friendly ? (
+                              <p className="whitespace-pre-wrap break-words">{friendly}</p>
+                            ) : (
+                              <ChatMessageBody m={m} tone={tone} />
+                            )}
+                            <p className="mt-1 text-[10px] text-[#6b7280]">
+                              {messageChannelLabel(m)}
+                              {m.created
+                                ? ` · ${new Date(m.created).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`
+                                : null}
+                            </p>
+                          </div>
+                        )
+                      })}
+                      <div ref={messagesEndRef} aria-hidden className="h-1 shrink-0" />
+                    </div>
                   </div>
-                  <div className="border-t border-slate-100 p-3">
+                  <div className="border-t border-slate-100 bg-white px-4 py-3">
                     <div className="flex gap-2">
                       <textarea
                         value={composer}
                         onChange={(e) => setComposer(e.target.value)}
                         rows={2}
-                        className="min-h-[2.75rem] flex-1 resize-none rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
+                        className="min-h-[2.75rem] flex-1 resize-none rounded-xl border border-slate-200/90 bg-[#f7f8fa] px-3 py-2 text-sm outline-none transition focus:border-[#1f3a8a] focus:bg-white focus:ring-2 focus:ring-[#1f3a8a]/15"
                         placeholder="Mensagem ao cliente (WhatsApp)…"
                       />
                       <Button
                         type="button"
-                        className="h-11 shrink-0 self-end rounded-xl px-4"
+                        className="h-10 shrink-0 self-end rounded-xl bg-[#1f3a8a] px-4 hover:bg-[#1a326f]"
                         onClick={() => sendMut.mutate()}
                         disabled={sendMut.isPending || !composer.trim()}
                         icon={sendMut.isPending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
@@ -764,9 +930,9 @@ export default function AdminChatPage() {
                         Enviar
                       </Button>
                     </div>
-                    <p className="mt-2 flex items-center gap-1 text-[11px] text-slate-500">
+                    <p className="mt-2 flex items-center gap-1 text-[11px] text-[#6b7280]">
                       <ShieldAlert className="size-3.5 shrink-0" />
-                      Mensagens reais via Cloud API; respeite janela de 24h e políticas Meta.
+                      Cloud API Meta; respeite a janela de 24h e as políticas da plataforma.
                     </p>
                   </div>
                 </>

@@ -60,6 +60,9 @@ export type ChatConversation = {
   assigned_to: string | null
   last_inbound_at: string | null
   last_outbound_at: string | null
+  /** Pré-visualização da última mensagem (lista de conversas). */
+  last_message_preview?: string
+  last_message_at?: string | null
 }
 
 export type ChatMessage = {
