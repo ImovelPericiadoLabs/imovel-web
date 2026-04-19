@@ -49,11 +49,52 @@ export type EmailTemplate = {
   is_active: boolean
 }
 
+export type RecipientRules = {
+  empty_fill?: Record<string, string>
+  by_row?: Record<string, Record<string, string>>
+  skip_rows?: number[]
+}
+
+export type DatasetQualityColumnStat = {
+  empty: number
+  non_empty: number
+  empty_pct: number
+}
+
+export type DatasetQuality = {
+  row_count: number
+  columns: Record<string, DatasetQualityColumnStat>
+  channel_gaps: Record<string, unknown>
+  template_variables: {
+    whatsapp: Array<{
+      variable: string
+      empty_rows: number
+      empty_pct: number
+      mapped_csv_column: string | null
+    }>
+    email: Array<{
+      variable: string
+      empty_rows: number
+      empty_pct: number
+      mapped_csv_column: string | null
+    }>
+    whatsapp_error?: string
+    email_error?: string
+  }
+  rows_with_any_issue: number
+  rows_with_any_issue_pct: number
+  sample_problem_row_indices: number[]
+  skip_rows_count?: number
+  skip_row_indices_sample?: number[]
+  estimated_rows_to_process?: number
+}
+
 export type OutreachCampaign = {
   id: string
   status: string
   channels: string[]
   column_mapping: Record<string, string>
+  recipient_rules?: RecipientRules
   email_column: string
   phone_column: string
   csv_columns: string[]
@@ -165,6 +206,7 @@ export async function previewCampaign(id: string): Promise<{
     errors: string[]
   }>
   mapping_errors: string[]
+  dataset_quality?: DatasetQuality
 }> {
   return guard((token) => api.post(endpoint.outreach.campaignPreview(id), {}, token) as Promise<{
     previews: Array<{
@@ -174,6 +216,7 @@ export async function previewCampaign(id: string): Promise<{
       errors: string[]
     }>
     mapping_errors: string[]
+    dataset_quality?: DatasetQuality
   }>)
 }
 

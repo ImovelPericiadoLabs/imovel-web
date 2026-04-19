@@ -47,10 +47,12 @@ import {
   syncMetaTemplates,
   getCampaign,
   listCampaignRecipients,
+  type DatasetQuality,
   type OutreachCampaign,
   type RegistryTemplateMeta,
   type WhatsAppSpec,
 } from '@/services/outreach'
+import { spreadsheetFileToCsvFile } from '@/utils/outreachXlsx'
 
 type Step = 1 | 2 | 3 | 4 | 5
 
@@ -65,6 +67,12 @@ const STATUS_LABELS: Record<string, string> = {
   completed: 'Concluído',
   failed: 'Falhou',
 }
+
+const DEFAULT_RECIPIENT_RULES_JSON = `{
+  "empty_fill": {},
+  "by_row": {},
+  "skip_rows": []
+}`
 
 const STEPS: { n: Step; label: string; short: string }[] = [
   { n: 1, label: 'Canais', short: '1' },
@@ -96,6 +104,119 @@ function FieldLabel({ children, hint }: { children: React.ReactNode; hint?: stri
     <div className="space-y-1">
       <label className="text-sm font-semibold text-gray-800">{children}</label>
       {hint ? <p className="text-xs leading-relaxed text-gray-500">{hint}</p> : null}
+    </div>
+  )
+}
+
+function DatasetQualityPanel({ dq }: { dq: DatasetQuality }) {
+  const colEntries = Object.entries(dq.columns ?? {})
+  return (
+    <div className="space-y-4 rounded-xl border border-slate-200 bg-slate-50/90 p-4 ring-1 ring-slate-200/60">
+      <div className="flex flex-wrap items-center gap-2">
+        <BarChart3 className="size-5 shrink-0 text-primary" aria-hidden />
+        <h3 className="text-sm font-bold text-gray-900">Métricas do ficheiro (dataset completo)</h3>
+      </div>
+      <p className="text-xs leading-relaxed text-gray-600">
+        Contagem de células vazias por coluna, canais (e-mail / WhatsApp) e variáveis do template. As regras JSON
+        (empty_fill, by_row) já entram neste cálculo após gravar no passo anterior.
+      </p>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="rounded-lg bg-white p-3 ring-1 ring-slate-200/80">
+          <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Linhas no CSV</p>
+          <p className="mt-1 text-2xl font-bold tabular-nums text-slate-900">{dq.row_count}</p>
+        </div>
+        <div className="rounded-lg bg-white p-3 ring-1 ring-slate-200/80">
+          <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Com algum problema</p>
+          <p className="mt-1 text-2xl font-bold tabular-nums text-amber-800">{dq.rows_with_any_issue}</p>
+          <p className="text-[10px] text-slate-500">{dq.rows_with_any_issue_pct}%</p>
+        </div>
+        {typeof dq.skip_rows_count === 'number' ? (
+          <div className="rounded-lg bg-white p-3 ring-1 ring-slate-200/80">
+            <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Ignorar no envio</p>
+            <p className="mt-1 text-2xl font-bold tabular-nums text-slate-800">{dq.skip_rows_count}</p>
+            <p className="text-[10px] text-slate-500">skip_rows</p>
+          </div>
+        ) : null}
+        {typeof dq.estimated_rows_to_process === 'number' ? (
+          <div className="rounded-lg bg-white p-3 ring-1 ring-slate-200/80">
+            <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Estimativa a processar</p>
+            <p className="mt-1 text-2xl font-bold tabular-nums text-emerald-900">{dq.estimated_rows_to_process}</p>
+          </div>
+        ) : null}
+      </div>
+
+      {dq.channel_gaps && Object.keys(dq.channel_gaps).length > 0 ? (
+        <div className="rounded-lg border border-slate-200 bg-white p-3 text-xs text-slate-800">
+          <p className="mb-2 font-bold text-slate-900">Canais</p>
+          <ul className="space-y-2">
+            {Object.entries(dq.channel_gaps).map(([k, v]) => (
+              <li key={k} className="font-mono text-[11px] leading-relaxed">
+                <span className="font-semibold text-primary">{k}</span>: {JSON.stringify(v)}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {(dq.template_variables?.whatsapp?.length ?? 0) > 0 || (dq.template_variables?.email?.length ?? 0) > 0 ? (
+        <div className="rounded-lg border border-slate-200 bg-white p-3 text-xs">
+          <p className="mb-2 font-bold text-slate-900">Variáveis do template (vazias após mapeamento + regras)</p>
+          {dq.template_variables.whatsapp?.length ? (
+            <ul className="mb-2 list-inside list-disc text-slate-700">
+              {dq.template_variables.whatsapp.map((w) => (
+                <li key={w.variable}>
+                  <span className="font-mono">{w.variable}</span>: {w.empty_rows} vazias ({w.empty_pct}%)
+                  {w.mapped_csv_column ? (
+                    <span className="text-slate-500"> · coluna {w.mapped_csv_column}</span>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          {dq.template_variables.email?.length ? (
+            <ul className="list-inside list-disc text-slate-700">
+              {dq.template_variables.email.map((w) => (
+                <li key={w.variable}>
+                  <span className="font-mono">{w.variable}</span>: {w.empty_rows} vazias ({w.empty_pct}%)
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      ) : null}
+
+      {colEntries.length > 0 ? (
+        <div className="max-h-48 overflow-auto rounded-lg border border-slate-200 bg-white p-2">
+          <p className="mb-2 px-1 text-[10px] font-bold uppercase tracking-wide text-slate-500">Colunas CSV · % vazio</p>
+          <table className="w-full text-left text-[11px]">
+            <thead className="text-slate-500">
+              <tr>
+                <th className="px-2 py-1">Coluna</th>
+                <th className="px-2 py-1">Vazias</th>
+                <th className="px-2 py-1">Preenchidas</th>
+                <th className="px-2 py-1">%</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 text-slate-800">
+              {colEntries.map(([name, st]) => (
+                <tr key={name}>
+                  <td className="px-2 py-1 font-mono">{name}</td>
+                  <td className="px-2 py-1 tabular-nums">{st.empty}</td>
+                  <td className="px-2 py-1 tabular-nums">{st.non_empty}</td>
+                  <td className="px-2 py-1 tabular-nums">{st.empty_pct}%</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : null}
+
+      {dq.sample_problem_row_indices?.length ? (
+        <p className="text-[11px] text-slate-600">
+          <span className="font-semibold">Amostra de linhas com problema (índice 0-based):</span>{' '}
+          {dq.sample_problem_row_indices.join(', ')}
+        </p>
+      ) : null}
     </div>
   )
 }
@@ -186,6 +307,8 @@ export default function AdminOutreachPage() {
   const [whatsappSpecId, setWhatsappSpecId] = useState('')
   const [csvFile, setCsvFile] = useState<File | null>(null)
   const [csvDragOver, setCsvDragOver] = useState(false)
+  const [csvConverting, setCsvConverting] = useState(false)
+  const [recipientRulesText, setRecipientRulesText] = useState(DEFAULT_RECIPIENT_RULES_JSON)
   const [campaign, setCampaign] = useState<OutreachCampaign | null>(null)
   const [, setSampleRows] = useState<Record<string, string>[]>([])
   const [emailColumn, setEmailColumn] = useState('')
@@ -242,9 +365,11 @@ export default function AdminOutreachPage() {
     setEmailColumn('')
     setPhoneColumn('')
     setColumnMapping({})
+    setRecipientRulesText(DEFAULT_RECIPIENT_RULES_JSON)
     setPixelBase('')
     setLgpdOk(false)
     setPreviewResult(null)
+    setCsvConverting(false)
     setPageError(null)
     setSyncSummary(null)
     setSelectedPanelId(null)
@@ -279,12 +404,21 @@ export default function AdminOutreachPage() {
 
   const exportWizardMapping = useCallback(() => {
     if (!campaign) return
+    let recipient_rules: Record<string, unknown> = {}
+    try {
+      recipient_rules = recipientRulesText.trim()
+        ? (JSON.parse(recipientRulesText) as Record<string, unknown>)
+        : {}
+    } catch {
+      recipient_rules = { _error: 'JSON de regras inválido no export' }
+    }
     const payload = {
       campaign_id: campaign.id,
       email_column: emailColumn,
       phone_column: phoneColumn,
       column_mapping: columnMapping,
       channels,
+      recipient_rules,
     }
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
@@ -293,16 +427,42 @@ export default function AdminOutreachPage() {
     a.download = `outreach-mapeamento-${campaign.id.slice(0, 8)}.json`
     a.click()
     URL.revokeObjectURL(url)
-  }, [campaign, emailColumn, phoneColumn, columnMapping, channels])
+  }, [campaign, emailColumn, phoneColumn, columnMapping, channels, recipientRulesText])
 
-  const onCsvDrop = useCallback((e: DragEvent) => {
-    e.preventDefault()
-    setCsvDragOver(false)
-    const f = e.dataTransfer.files?.[0]
-    if (f && (f.name.toLowerCase().endsWith('.csv') || f.type === 'text/csv')) {
-      setCsvFile(f)
+  const ingestSpreadsheetOrCsv = useCallback(async (f: File | null) => {
+    if (!f) {
+      setCsvFile(null)
+      return
+    }
+    setPageError(null)
+    const lower = f.name.toLowerCase()
+    const isExcel = lower.endsWith('.xlsx') || lower.endsWith('.xls')
+    try {
+      if (isExcel) {
+        setCsvConverting(true)
+        const csv = await spreadsheetFileToCsvFile(f)
+        setCsvFile(csv)
+      } else if (lower.endsWith('.csv') || f.type === 'text/csv' || f.type === 'application/vnd.ms-excel') {
+        setCsvFile(f)
+      } else {
+        setPageError('Formato não suportado. Use .csv, .xlsx ou .xls.')
+      }
+    } catch (err) {
+      setPageError(err instanceof Error ? err.message : 'Não foi possível ler o Excel.')
+    } finally {
+      setCsvConverting(false)
     }
   }, [])
+
+  const onCsvDrop = useCallback(
+    (e: DragEvent) => {
+      e.preventDefault()
+      setCsvDragOver(false)
+      const f = e.dataTransfer.files?.[0]
+      if (f) void ingestSpreadsheetOrCsv(f)
+    },
+    [ingestSpreadsheetOrCsv],
+  )
 
   const createMut = useMutation({
     mutationFn: async () => {
@@ -319,6 +479,7 @@ export default function AdminOutreachPage() {
     onSuccess: (data) => {
       setCampaign(data.campaign)
       setSampleRows(data.sample_rows)
+      setRecipientRulesText(DEFAULT_RECIPIENT_RULES_JSON)
       setStep(3)
       setPageError(null)
       void queryClient.invalidateQueries({ queryKey: ['outreach-campaigns'] })
@@ -329,6 +490,14 @@ export default function AdminOutreachPage() {
   const patchMut = useMutation({
     mutationFn: async () => {
       if (!campaign) throw new Error('Sem campanha.')
+      let recipient_rules: Record<string, unknown> = {}
+      try {
+        recipient_rules = recipientRulesText.trim()
+          ? (JSON.parse(recipientRulesText) as Record<string, unknown>)
+          : {}
+      } catch {
+        throw new Error('JSON inválido em "Regras por destinatário". Corrija antes de continuar.')
+      }
       return patchCampaign(campaign.id, {
         email_column: emailColumn,
         phone_column: phoneColumn,
@@ -337,6 +506,7 @@ export default function AdminOutreachPage() {
         registry_template_id: registryTemplateId.trim(),
         email_template: emailTemplateId || null,
         whatsapp_spec: whatsappSpecId || null,
+        recipient_rules,
       })
     },
     onSuccess: (c) => {
@@ -658,7 +828,9 @@ export default function AdminOutreachPage() {
               </div>
 
               <div className="space-y-2">
-                <FieldLabel hint="Arquivo .csv com cabeçalho na primeira linha.">Arquivo CSV</FieldLabel>
+                <FieldLabel hint="CSV UTF-8 ou Excel (.xlsx / .xls): a conversão para CSV é feita no seu navegador (primeira folha), sem enviar o binário Excel ao servidor.">
+                  Arquivo de destinatários
+                </FieldLabel>
                 <div
                   role="button"
                   tabIndex={0}
@@ -682,15 +854,21 @@ export default function AdminOutreachPage() {
                 >
                   <FileSpreadsheet className="mb-3 size-10 text-gray-400" />
                   <p className="text-sm font-semibold text-gray-800">
-                    {csvFile ? csvFile.name : 'Arraste o CSV aqui ou clique para escolher'}
+                    {csvConverting
+                      ? 'A converter Excel para CSV…'
+                      : csvFile
+                        ? csvFile.name
+                        : 'Arraste CSV ou Excel aqui ou clique para escolher'}
                   </p>
-                  <p className="mt-1 text-xs text-gray-500">Apenas .csv · máx. recomendado conforme política interna</p>
+                  <p className="mt-1 text-xs text-gray-500">
+                    .csv, .xlsx ou .xls · conversão local · cabeçalho na primeira linha
+                  </p>
                   <input
                     id="outreach-csv-input"
                     type="file"
-                    accept=".csv,text/csv"
+                    accept=".csv,.xlsx,.xls,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                     className="sr-only"
-                    onChange={(e) => setCsvFile(e.target.files?.[0] ?? null)}
+                    onChange={(e) => void ingestSpreadsheetOrCsv(e.target.files?.[0] ?? null)}
                   />
                 </div>
               </div>
@@ -701,11 +879,13 @@ export default function AdminOutreachPage() {
                 </Button>
                 <Button
                   className="h-11 rounded-xl sm:min-w-[11rem]"
-                  disabled={!csvFile || createMut.isPending}
+                  disabled={!csvFile || createMut.isPending || csvConverting}
                   onClick={() => createMut.mutate()}
-                  icon={createMut.isPending ? <Loader2 className="size-4 animate-spin" /> : undefined}
+                  icon={
+                    createMut.isPending || csvConverting ? <Loader2 className="size-4 animate-spin" /> : undefined
+                  }
                 >
-                  {createMut.isPending ? 'Carregando…' : 'Carregar CSV'}
+                  {csvConverting ? 'A processar…' : createMut.isPending ? 'Carregando…' : 'Carregar ficheiro'}
                 </Button>
               </div>
             </section>
@@ -824,6 +1004,19 @@ export default function AdminOutreachPage() {
                 </div>
               ) : null}
 
+              <div className="space-y-2 rounded-xl border border-indigo-200/80 bg-indigo-50/40 p-4 ring-1 ring-indigo-100">
+                <FieldLabel hint='JSON: "empty_fill" preenche variáveis vazias em todas as linhas; "by_row" usa índice da linha (0 = primeira linha de dados); "skip_rows" lista índices a não enviar. Chaves de variáveis coincidem com o mapeamento (e "email" / "phone" para canais).'>
+                  Regras por destinatário (opcional)
+                </FieldLabel>
+                <textarea
+                  className="min-h-[11rem] w-full resize-y rounded-xl border border-indigo-200/90 bg-white px-3 py-2.5 font-mono text-xs leading-relaxed text-slate-900 shadow-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10"
+                  spellCheck={false}
+                  value={recipientRulesText}
+                  onChange={(e) => setRecipientRulesText(e.target.value)}
+                  aria-label="Regras JSON por destinatário"
+                />
+              </div>
+
               <div className="flex flex-col-reverse gap-3 border-t border-gray-100 pt-6 sm:flex-row sm:flex-wrap sm:items-stretch sm:justify-between sm:gap-3">
                 <Button variant="outline" className="h-11 w-full shrink-0 rounded-xl sm:w-auto sm:min-w-[8rem]" onClick={() => setStep(2)}>
                   Voltar
@@ -839,7 +1032,7 @@ export default function AdminOutreachPage() {
                     Exportar mapeamento (JSON)
                   </Button>
                   <Button
-                    className="h-11 w-full shrink-0 rounded-xl sm:w-auto sm:min-w-[12rem]" 
+                    className="h-11 w-full shrink-0 rounded-xl sm:w-auto sm:min-w-[12rem]"
                     disabled={previewMut.isPending}
                     onClick={() => previewMut.mutate()}
                     icon={previewMut.isPending ? <Loader2 className="size-4 animate-spin" /> : <Eye className="size-4" />}
@@ -875,6 +1068,14 @@ export default function AdminOutreachPage() {
                   </div>
                 </div>
               ) : null}
+
+              {previewResult.dataset_quality ? (
+                <DatasetQualityPanel dq={previewResult.dataset_quality} />
+              ) : (
+                <p className="text-xs text-gray-500">
+                  Métricas completas do dataset não estão disponíveis nesta versão da API.
+                </p>
+              )}
 
               <div className="overflow-x-auto rounded-xl border border-gray-200">
                 <table className="w-full min-w-[520px] text-left text-sm">
@@ -1022,7 +1223,8 @@ export default function AdminOutreachPage() {
             </div>
             <ul className="mt-3 space-y-2 text-xs leading-relaxed text-slate-700 md:text-sm">
               <li>• Sincronize templates após mudanças na Meta.</li>
-              <li>• Sempre rode pré-visualização antes do envio real.</li>
+              <li>• Excel é convertido no navegador para CSV; o servidor só recebe texto.</li>
+              <li>• Use pré-visualização: métricas de nulos e regras JSON antes do envio.</li>
               <li>• Confirme LGPD e origem da lista.</li>
               <li>• Use colunas claras no CSV (sem espaços estranhos).</li>
             </ul>
@@ -1215,6 +1417,16 @@ export default function AdminOutreachPage() {
                             {panelCampaign.registry_template_id || '—'}
                           </dd>
                         </div>
+                        <div className="rounded-lg bg-slate-50 px-3 py-2 ring-1 ring-slate-100 sm:col-span-2">
+                          <dt className="text-[10px] font-bold uppercase text-slate-500">Regras (recipient_rules)</dt>
+                          <dd className="mt-0.5 text-[11px] text-slate-800">
+                            {panelCampaign.recipient_rules &&
+                            typeof panelCampaign.recipient_rules === 'object' &&
+                            Object.keys(panelCampaign.recipient_rules).length > 0
+                              ? `${Object.keys(panelCampaign.recipient_rules).join(', ')} · ver export JSON`
+                              : '—'}
+                          </dd>
+                        </div>
                       </dl>
                       <Button
                         type="button"
@@ -1266,7 +1478,7 @@ export default function AdminOutreachPage() {
                               <tr key={r.id} className="text-slate-800">
                                 <td className="px-2 py-1.5 font-mono">{r.row_index}</td>
                                 <td className="max-w-[100px] truncate px-2 py-1.5" title={r.email ?? ''}>
-                                  {r.email || '—'}
+                                  {r.email ?? '—'}
                                 </td>
                                 <td className="max-w-[80px] truncate px-2 py-1.5" title={r.phone ?? ''}>
                                   {r.whatsapp_status || '—'}
