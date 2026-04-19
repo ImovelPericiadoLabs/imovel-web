@@ -58,7 +58,12 @@ import {
   type WhatsAppSpec,
 } from '@/services/outreach'
 import {
-  OUTREACH_JSON_BATCH_ROWS,
+  OUTREACH_JSON_BATCH_ROWS_DEFAULT,
+  OUTREACH_JSON_BATCH_ROWS_MAX,
+  OUTREACH_JSON_BATCH_ROWS_MIN,
+  clampOutreachJsonBatchRows,
+  getOutreachJsonBatchRows,
+  setOutreachJsonBatchRows,
   spreadsheetFileToColumnsAndRows,
 } from '@/utils/outreachXlsx'
 
@@ -279,6 +284,16 @@ export default function AdminOutreachPage() {
     setRecipientsOffset(0)
   }, [selectedPanelId])
 
+  useEffect(() => {
+    setJsonBatchRowsState(getOutreachJsonBatchRows())
+  }, [])
+
+  const setJsonBatchRows = useCallback((n: number) => {
+    const v = clampOutreachJsonBatchRows(n)
+    setOutreachJsonBatchRows(v)
+    setJsonBatchRowsState(v)
+  }, [])
+
   const { data: campaignListData, isFetching: campaignsLoading } = useQuery({
     queryKey: ['outreach-campaigns', listStatus, listChannel, listSearch, listIncludeInactive],
     queryFn: () =>
@@ -319,6 +334,7 @@ export default function AdminOutreachPage() {
   const [parsedSheet, setParsedSheet] = useState<ParsedSheet | null>(null)
   const [csvDragOver, setCsvDragOver] = useState(false)
   const [csvConverting, setCsvConverting] = useState(false)
+  const [jsonBatchRows, setJsonBatchRowsState] = useState(OUTREACH_JSON_BATCH_ROWS_DEFAULT)
   const [recipientRulesText, setRecipientRulesText] = useState(DEFAULT_RECIPIENT_RULES_JSON)
   const [campaign, setCampaign] = useState<OutreachCampaign | null>(null)
   const [, setSampleRows] = useState<Record<string, string>[]>([])
@@ -499,7 +515,7 @@ export default function AdminOutreachPage() {
         header_media_url: '',
         pixel_base_url: '',
       }
-      const batch = OUTREACH_JSON_BATCH_ROWS
+      const batch = jsonBatchRows
       const first = rows.slice(0, batch)
       const rest = rows.slice(batch)
       const firstRes = await createCampaignFromRows({
@@ -909,7 +925,31 @@ export default function AdminOutreachPage() {
               </div>
 
               <div className="space-y-2">
-                <FieldLabel hint="O ficheiro é lido só no navegador (primeira folha). Os dados seguem para a API em JSON em pequenos lotes (evita limites de upload tipo Cloudflare); não é enviado multipart/ficheiro ao servidor.">
+                <FieldLabel
+                  hint={`Cada pedido leva no máximo ${OUTREACH_JSON_BATCH_ROWS_MAX} linhas (teto da API). Valores menores reduzem risco de 500 por timeout ou limite de corpo. Entre ${OUTREACH_JSON_BATCH_ROWS_MIN} e ${OUTREACH_JSON_BATCH_ROWS_MAX}; guardado neste browser.`}
+                >
+                  Linhas por lote (JSON)
+                </FieldLabel>
+                <div className="flex flex-wrap items-center gap-3 rounded-xl border border-gray-100 bg-white px-3 py-2.5 shadow-sm">
+                  <input
+                    type="range"
+                    aria-label="Linhas por pedido JSON"
+                    min={OUTREACH_JSON_BATCH_ROWS_MIN}
+                    max={OUTREACH_JSON_BATCH_ROWS_MAX}
+                    step={25}
+                    value={jsonBatchRows}
+                    onChange={(e) => setJsonBatchRows(Number(e.target.value))}
+                    className="h-2 min-w-[140px] flex-1 cursor-pointer accent-primary sm:max-w-md"
+                  />
+                  <span className="min-w-[3.25rem] text-sm font-semibold tabular-nums text-gray-900">{jsonBatchRows}</span>
+                  <span className="text-xs text-gray-500">
+                    {OUTREACH_JSON_BATCH_ROWS_MIN}–{OUTREACH_JSON_BATCH_ROWS_MAX}
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <FieldLabel hint="O ficheiro é lido só no navegador (primeira folha). Os dados seguem para a API em JSON em lotes (evita limites de upload tipo Cloudflare); não é enviado multipart/ficheiro ao servidor.">
                   Arquivo de destinatários
                 </FieldLabel>
                 <div
@@ -942,7 +982,8 @@ export default function AdminOutreachPage() {
                         : 'Arraste CSV ou Excel aqui ou clique para escolher'}
                   </p>
                   <p className="mt-1 text-xs text-gray-500">
-                    .csv, .xlsx ou .xls · processamento local · envio JSON em lotes de {OUTREACH_JSON_BATCH_ROWS} linhas
+                    .csv, .xlsx ou .xls · processamento local · envio em lotes de {jsonBatchRows} linhas (máx.{' '}
+                    {OUTREACH_JSON_BATCH_ROWS_MAX})
                   </p>
                   <input
                     id="outreach-csv-input"
