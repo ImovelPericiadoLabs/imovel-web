@@ -62,15 +62,20 @@ export default function Button({ children, className, href, variant = 'primary',
 
   const resolvedIcon = icon ?? getAutoIcon(children)
 
+  const depthShadow =
+    variant === 'primary'
+      ? '!shadow-[0_6px_0_rgba(11,27,58,0.8)] active:translate-y-1 active:!shadow-[0_2px_0_rgba(11,27,58,0.8)]'
+      : 'shadow-sm shadow-slate-900/10 active:translate-y-px active:shadow-none'
+
   const baseClasses = cn(
     `
       cursor-pointer w-full 
       text-base leading-6 font-semibold px-11 py-3 rounded-xl 
       disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:bg-gray-300 disabled:shadow-none
       flex items-center justify-center text-center decoration-0
-      !shadow-[0_6px_0_rgba(11,27,58,0.8)] active:translate-y-1 active:!shadow-[0_2px_0_rgba(11,27,58,0.8)]
       touch-manipulation
     `,
+    depthShadow,
     variants[variant],
     className
   )
