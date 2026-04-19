@@ -334,7 +334,7 @@ export default function AdminOutreachPage() {
         phone_column: phoneColumn,
         column_mapping: columnMapping,
         channels,
-        registry_template_id: registryTemplateId || null,
+        registry_template_id: registryTemplateId.trim(),
         email_template: emailTemplateId || null,
         whatsapp_spec: whatsappSpecId || null,
       })
@@ -570,23 +570,25 @@ export default function AdminOutreachPage() {
 
           {step === 2 && (
             <section className="space-y-6 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm ring-1 ring-black/[0.02] md:p-8">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                <div>
+              <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start sm:gap-6">
+                <div className="min-w-0">
                   <h2 className="text-lg font-bold text-gray-900">Modelos e arquivo</h2>
                   <p className="mt-1 max-w-2xl text-sm text-gray-600">
                     Sincronize templates da Meta quando necessário, escolha modelos e envie o CSV com destinatários.
                   </p>
                 </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="h-10 shrink-0 rounded-xl text-sm"
-                  disabled={syncMut.isPending}
-                  onClick={() => syncMut.mutate()}
-                  icon={<RefreshCw className={cn('size-4', syncMut.isPending && 'animate-spin')} />}
-                >
-                  Sincronizar Meta
-                </Button>
+                <div className="shrink-0 justify-self-start sm:justify-self-end sm:pt-0.5">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-10 w-auto min-w-[10.5rem] rounded-xl px-4 text-sm"
+                    disabled={syncMut.isPending}
+                    onClick={() => syncMut.mutate()}
+                    icon={<RefreshCw className={cn('size-4', syncMut.isPending && 'animate-spin')} />}
+                  >
+                    Sincronizar Meta
+                  </Button>
+                </div>
               </div>
               {syncSummary ? (
                 <p className="rounded-xl bg-slate-50 px-3 py-2 text-sm text-gray-700 ring-1 ring-slate-200/80">
@@ -822,22 +824,22 @@ export default function AdminOutreachPage() {
                 </div>
               ) : null}
 
-              <div className="flex flex-col-reverse gap-2 border-t border-gray-100 pt-6 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-3">
-                <Button variant="outline" className="h-11 rounded-xl" onClick={() => setStep(2)}>
+              <div className="flex flex-col-reverse gap-3 border-t border-gray-100 pt-6 sm:flex-row sm:flex-wrap sm:items-stretch sm:justify-between sm:gap-3">
+                <Button variant="outline" className="h-11 w-full shrink-0 rounded-xl sm:w-auto sm:min-w-[8rem]" onClick={() => setStep(2)}>
                   Voltar
                 </Button>
-                <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+                <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:justify-end">
                   <Button
                     type="button"
                     variant="outline"
-                    className="h-11 rounded-xl border-slate-200 text-slate-700"
+                    className="h-auto min-h-11 w-full whitespace-normal rounded-xl border-slate-200 px-4 py-2.5 text-center text-sm leading-snug text-slate-700 sm:max-w-[14rem] sm:py-2.5"
                     onClick={exportWizardMapping}
-                    icon={<Download className="size-4" />}
+                    icon={<Download className="size-4 shrink-0" />}
                   >
                     Exportar mapeamento (JSON)
                   </Button>
                   <Button
-                    className="h-11 rounded-xl sm:min-w-[12rem]"
+                    className="h-11 w-full shrink-0 rounded-xl sm:w-auto sm:min-w-[12rem]" 
                     disabled={previewMut.isPending}
                     onClick={() => previewMut.mutate()}
                     icon={previewMut.isPending ? <Loader2 className="size-4 animate-spin" /> : <Eye className="size-4" />}
@@ -1263,10 +1265,10 @@ export default function AdminOutreachPage() {
                             {recipientsData.results.map((r) => (
                               <tr key={r.id} className="text-slate-800">
                                 <td className="px-2 py-1.5 font-mono">{r.row_index}</td>
-                                <td className="max-w-[100px] truncate px-2 py-1.5" title={r.email}>
-                                  {r.email_status}
+                                <td className="max-w-[100px] truncate px-2 py-1.5" title={r.email ?? ''}>
+                                  {r.email || '—'}
                                 </td>
-                                <td className="max-w-[80px] truncate px-2 py-1.5" title={r.whatsapp_status}>
+                                <td className="max-w-[80px] truncate px-2 py-1.5" title={r.phone ?? ''}>
                                   {r.whatsapp_status || '—'}
                                 </td>
                               </tr>
