@@ -191,6 +191,43 @@ export async function createCampaignMultipart(form: FormData): Promise<{
   )
 }
 
+export type CreateCampaignFromRowsBody = {
+  channels: string[]
+  columns: string[]
+  rows: Record<string, unknown>[]
+  dry_run_sample_limit?: number
+  registry_template_id?: string
+  email_template_id?: string | null
+  whatsapp_spec_id?: string | null
+  email_column?: string
+  phone_column?: string
+  header_media_url?: string
+  pixel_base_url?: string
+}
+
+/** Cria campanha sem multipart: até OUTREACH_MAX_ROWS linhas por pedido (ex.: 5000). */
+export async function createCampaignFromRows(body: CreateCampaignFromRowsBody): Promise<{
+  campaign: OutreachCampaign
+  sample_rows: Record<string, string>[]
+}> {
+  return guard((token) =>
+    api.post(endpoint.outreach.campaignsCreateFromRows, body, token) as Promise<{
+      campaign: OutreachCampaign
+      sample_rows: Record<string, string>[]
+    }>,
+  )
+}
+
+/** Acrescenta linhas ao CSV existente (lotes), respeitando o limite total da campanha. */
+export async function appendCampaignRows(
+  id: string,
+  rows: Record<string, unknown>[],
+): Promise<OutreachCampaign> {
+  return guard((token) =>
+    api.post(endpoint.outreach.campaignAppendRows(id), { rows }, token) as Promise<OutreachCampaign>,
+  )
+}
+
 export async function patchCampaign(
   id: string,
   body: Record<string, unknown>,
