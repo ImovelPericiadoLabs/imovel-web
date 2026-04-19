@@ -196,7 +196,7 @@ export type CreateCampaignFromRowsBody = {
   pixel_base_url?: string
 }
 
-/** Cria campanha sem multipart: até OUTREACH_MAX_ROWS linhas por pedido (ex.: 5000). */
+/** Cria campanha sem multipart; cada pedido transporta um lote de linhas (o front fragmenta para evitar limites de proxy). */
 export async function createCampaignFromRows(body: CreateCampaignFromRowsBody): Promise<{
   campaign: OutreachCampaign
   sample_rows: Record<string, string>[]

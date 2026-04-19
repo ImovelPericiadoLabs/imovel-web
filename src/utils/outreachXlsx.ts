@@ -1,10 +1,10 @@
 import * as XLSX from 'xlsx'
 
-/** Máximo de linhas de dados por campanha (alinhado à API por omissão). */
-export const OUTREACH_MAX_DATA_ROWS = 5000
+/** Máximo de linhas de dados por campanha no browser (alinhado à API por omissão). */
+export const OUTREACH_MAX_DATA_ROWS = 40000
 
-/** Linhas por pedido JSON (create / append) — reduz risco de limite de corpo (ex.: Cloudflare). */
-export const OUTREACH_JSON_BATCH_ROWS = 400
+/** Linhas por pedido JSON (create / append); alinhar com OUTREACH_MAX_ROWS_PER_REQUEST na API. */
+export const OUTREACH_JSON_BATCH_ROWS = 5000
 
 /**
  * Lê CSV ou Excel no browser e devolve cabeçalho + linhas como objetos (primeira folha).
