@@ -54,6 +54,7 @@ import {
   deleteCampaign,
   type DatasetQuality,
   type OutreachCampaign,
+  type RecipientRules,
   type RegistryTemplateMeta,
   type WhatsAppSpec,
 } from '@/services/outreach'
@@ -66,6 +67,13 @@ import {
   setOutreachJsonBatchRows,
   spreadsheetFileToColumnsAndRows,
 } from '@/utils/outreachXlsx'
+import {
+  emptyRecipientRules,
+  formatRecipientRulesSummary,
+  normalizeRecipientRules,
+  recipientRulesToApiPayload,
+} from '@/utils/recipientRules'
+import { RecipientRulesEditor } from './_components/RecipientRulesEditor'
 
 type Step = 1 | 2 | 3 | 4 | 5
 
@@ -88,12 +96,6 @@ const STATUS_LABELS: Record<string, string> = {
   completed: 'Concluído',
   failed: 'Falhou',
 }
-
-const DEFAULT_RECIPIENT_RULES_JSON = `{
-  "empty_fill": {},
-  "by_row": {},
-  "skip_rows": []
-}`
 
 const STEPS: { n: Step; label: string; short: string }[] = [
   { n: 1, label: 'Canais', short: '1' },
@@ -396,7 +398,7 @@ export default function AdminOutreachPage() {
   const [csvDragOver, setCsvDragOver] = useState(false)
   const [csvConverting, setCsvConverting] = useState(false)
   const [jsonBatchRows, setJsonBatchRowsState] = useState(OUTREACH_JSON_BATCH_ROWS_DEFAULT)
-  const [recipientRulesText, setRecipientRulesText] = useState(DEFAULT_RECIPIENT_RULES_JSON)
+  const [recipientRules, setRecipientRules] = useState<RecipientRules>(() => emptyRecipientRules())
   const [campaign, setCampaign] = useState<OutreachCampaign | null>(null)
   const [, setSampleRows] = useState<Record<string, string>[]>([])
   const [emailColumn, setEmailColumn] = useState('')
@@ -408,6 +410,11 @@ export default function AdminOutreachPage() {
   const [previewResult, setPreviewResult] = useState<CampaignPreviewPayload | null>(null)
   const [syncSummary, setSyncSummary] = useState<string | null>(null)
   const [copiedId, setCopiedId] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!campaign) return
+    setRecipientRules(normalizeRecipientRules(campaign.recipient_rules))
+  }, [campaign])
 
   const registryMeta: RegistryTemplateMeta | undefined = useMemo(
     () => registry?.templates.find((t) => t.id === registryTemplateId),
@@ -453,7 +460,7 @@ export default function AdminOutreachPage() {
     setEmailColumn('')
     setPhoneColumn('')
     setColumnMapping({})
-    setRecipientRulesText(DEFAULT_RECIPIENT_RULES_JSON)
+    setRecipientRules(emptyRecipientRules())
     setPixelBase('')
     setLgpdOk(false)
     setPreviewResult(null)
@@ -492,14 +499,7 @@ export default function AdminOutreachPage() {
 
   const exportWizardMapping = useCallback(() => {
     if (!campaign) return
-    let recipient_rules: Record<string, unknown> = {}
-    try {
-      recipient_rules = recipientRulesText.trim()
-        ? (JSON.parse(recipientRulesText) as Record<string, unknown>)
-        : {}
-    } catch {
-      recipient_rules = { _error: 'JSON de regras inválido no export' }
-    }
+    const recipient_rules = recipientRulesToApiPayload(recipientRules)
     const payload = {
       campaign_id: campaign.id,
       email_column: emailColumn,
@@ -515,7 +515,7 @@ export default function AdminOutreachPage() {
     a.download = `outreach-mapeamento-${campaign.id.slice(0, 8)}.json`
     a.click()
     URL.revokeObjectURL(url)
-  }, [campaign, emailColumn, phoneColumn, columnMapping, channels, recipientRulesText])
+  }, [campaign, emailColumn, phoneColumn, columnMapping, channels, recipientRules])
 
   const ingestSpreadsheetOrCsv = useCallback(async (f: File | null) => {
     if (!f) {
@@ -595,7 +595,7 @@ export default function AdminOutreachPage() {
     onSuccess: (data) => {
       setCampaign(data.campaign)
       setSampleRows(data.sample_rows)
-      setRecipientRulesText(DEFAULT_RECIPIENT_RULES_JSON)
+      setRecipientRules(emptyRecipientRules())
       setStep(3)
       setPageError(null)
       void queryClient.invalidateQueries({ queryKey: ['outreach-campaigns'] })
@@ -606,14 +606,7 @@ export default function AdminOutreachPage() {
   const patchMut = useMutation({
     mutationFn: async () => {
       if (!campaign) throw new Error('Sem campanha.')
-      let recipient_rules: Record<string, unknown> = {}
-      try {
-        recipient_rules = recipientRulesText.trim()
-          ? (JSON.parse(recipientRulesText) as Record<string, unknown>)
-          : {}
-      } catch {
-        throw new Error('JSON inválido em "Regras por destinatário". Corrija antes de continuar.')
-      }
+      const recipient_rules = recipientRulesToApiPayload(recipientRules)
       return patchCampaign(campaign.id, {
         email_column: emailColumn,
         phone_column: phoneColumn,
@@ -1191,16 +1184,20 @@ export default function AdminOutreachPage() {
                 </div>
               ) : null}
 
-              <div className="space-y-2 rounded-xl border border-indigo-200/80 bg-indigo-50/40 p-4 ring-1 ring-indigo-100">
-                <FieldLabel hint='JSON: "empty_fill" preenche variáveis vazias em todas as linhas; "by_row" usa índice da linha (0 = primeira linha de dados); "skip_rows" lista índices a não enviar. Chaves de variáveis coincidem com o mapeamento (e "email" / "phone" para canais).'>
-                  Regras por destinatário (opcional)
-                </FieldLabel>
-                <textarea
-                  className="min-h-[11rem] w-full resize-y rounded-xl border border-indigo-200/90 bg-white px-3 py-2.5 font-mono text-xs leading-relaxed text-slate-900 shadow-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/10"
-                  spellCheck={false}
-                  value={recipientRulesText}
-                  onChange={(e) => setRecipientRulesText(e.target.value)}
-                  aria-label="Regras JSON por destinatário"
+              <div className="space-y-3">
+                <div>
+                  <FieldLabel hint="Regras opcionais aplicadas antes da pré-visualização e do envio. O JSON bruto só aparece em «Avançado» no bloco abaixo.">
+                    Regras por destinatário (opcional)
+                  </FieldLabel>
+                  <p className="mt-1 text-xs leading-relaxed text-slate-600">
+                    Interface guiada: preenchimentos globais, correcções por linha de dados e exclusões de índice — o
+                    mesmo contrato da API, sem editar JSON manualmente.
+                  </p>
+                </div>
+                <RecipientRulesEditor
+                  value={recipientRules}
+                  onChange={setRecipientRules}
+                  variableSuggestions={Array.from(new Set([...varsToMap, ...columns]))}
                 />
               </div>
 
@@ -1659,11 +1656,7 @@ export default function AdminOutreachPage() {
                         <div className="rounded-lg bg-slate-50 px-3 py-2 ring-1 ring-slate-100 sm:col-span-2">
                           <dt className="text-[10px] font-bold uppercase text-slate-500">Regras (recipient_rules)</dt>
                           <dd className="mt-0.5 text-[11px] text-slate-800">
-                            {panelCampaign.recipient_rules &&
-                            typeof panelCampaign.recipient_rules === 'object' &&
-                            Object.keys(panelCampaign.recipient_rules).length > 0
-                              ? `${Object.keys(panelCampaign.recipient_rules).join(', ')} · ver export JSON`
-                              : '—'}
+                            {formatRecipientRulesSummary(panelCampaign.recipient_rules)}
                           </dd>
                         </div>
                         <div className="rounded-lg bg-slate-50 px-3 py-2 ring-1 ring-slate-100 sm:col-span-2">
