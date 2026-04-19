@@ -3,8 +3,43 @@ import * as XLSX from 'xlsx'
 /** Máximo de linhas de dados por campanha no browser (alinhado à API por omissão). */
 export const OUTREACH_MAX_DATA_ROWS = 40000
 
-/** Linhas por pedido JSON (create / append); alinhar com OUTREACH_MAX_ROWS_PER_REQUEST na API. */
-export const OUTREACH_JSON_BATCH_ROWS = 5000
+const OUTREACH_JSON_BATCH_STORAGE_KEY = 'imovel_outreach_json_batch_rows'
+
+/** Limite inferior (linhas por POST); persistido no browser entre sessões. */
+export const OUTREACH_JSON_BATCH_ROWS_MIN = 50
+/** Limite superior (alinhar com OUTREACH_MAX_ROWS_PER_REQUEST na API). */
+export const OUTREACH_JSON_BATCH_ROWS_MAX = 1000
+/** Valor por omissão antes de hidratar \`localStorage\` (mais seguro para proxies e RAM no servidor). */
+export const OUTREACH_JSON_BATCH_ROWS_DEFAULT = 500
+
+/** @deprecated Preferir getOutreachJsonBatchRows() no fluxo de envio; alias ao default. */
+export const OUTREACH_JSON_BATCH_ROWS = OUTREACH_JSON_BATCH_ROWS_DEFAULT
+
+export function clampOutreachJsonBatchRows(n: number): number {
+  const x = Math.floor(Number(n))
+  if (!Number.isFinite(x)) return OUTREACH_JSON_BATCH_ROWS_DEFAULT
+  return Math.min(OUTREACH_JSON_BATCH_ROWS_MAX, Math.max(OUTREACH_JSON_BATCH_ROWS_MIN, x))
+}
+
+export function getOutreachJsonBatchRows(): number {
+  if (typeof window === 'undefined') return OUTREACH_JSON_BATCH_ROWS_DEFAULT
+  try {
+    const raw = window.localStorage.getItem(OUTREACH_JSON_BATCH_STORAGE_KEY)
+    if (raw == null || raw === '') return OUTREACH_JSON_BATCH_ROWS_DEFAULT
+    return clampOutreachJsonBatchRows(parseInt(raw, 10))
+  } catch {
+    return OUTREACH_JSON_BATCH_ROWS_DEFAULT
+  }
+}
+
+export function setOutreachJsonBatchRows(n: number): void {
+  if (typeof window === 'undefined') return
+  try {
+    window.localStorage.setItem(OUTREACH_JSON_BATCH_STORAGE_KEY, String(clampOutreachJsonBatchRows(n)))
+  } catch {
+    /* ignore quota / private mode */
+  }
+}
 
 /**
  * Lê CSV ou Excel no browser e devolve cabeçalho + linhas como objetos (primeira folha).
