@@ -34,6 +34,8 @@ export type ChatCampaign = {
   name: string
   status: string
   ai_enabled: boolean
+  /** Se true, a IA só envia WhatsApp após o operador aprovar no painel. */
+  ai_send_requires_approval?: boolean
   system_prompt: string
   playbook: Record<string, unknown>
   disclosure_prefix: string
@@ -51,6 +53,10 @@ export type ChatConversation = {
   state: string
   ai_active: boolean
   ai_disclosure_sent: boolean
+  ai_pending_reply_body?: string
+  ai_pending_reply_raw?: Record<string, unknown>
+  ai_pending_created_at?: string | null
+  ai_pending_request_handoff?: boolean
   assigned_to: string | null
   last_inbound_at: string | null
   last_outbound_at: string | null
@@ -168,6 +174,23 @@ export async function postChatToggleAi(conversationId: string, aiActive: boolean
 
 export async function postChatReplayAi(conversationId: string): Promise<{ detail: string }> {
   return guard((token) => api.post(endpoint.chat.conversationReplayAi(conversationId), {}, token) as Promise<{ detail: string }>)
+}
+
+export async function postChatAiPendingApprove(
+  conversationId: string,
+  body?: string,
+): Promise<ChatMessage> {
+  return guard(
+    (token) =>
+      api.post(endpoint.chat.conversationAiPendingApprove(conversationId), { body: body ?? '' }, token) as Promise<ChatMessage>,
+  )
+}
+
+export async function postChatAiPendingReject(conversationId: string): Promise<ChatConversation> {
+  return guard(
+    (token) =>
+      api.post(endpoint.chat.conversationAiPendingReject(conversationId), {}, token) as Promise<ChatConversation>,
+  )
 }
 
 export async function listChatLeads(params?: { status?: string }): Promise<ChatLead[]> {

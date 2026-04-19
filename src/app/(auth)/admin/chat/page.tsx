@@ -15,6 +15,8 @@ import {
   Bot,
   ShieldAlert,
   Sparkles,
+  CheckCircle2,
+  XCircle,
 } from 'lucide-react'
 import { cn } from '@/utils/tailwind'
 import TextTitle from '@/components/text-title'
@@ -33,6 +35,8 @@ import {
   postChatHandoff,
   postChatToggleAi,
   postChatReplayAi,
+  postChatAiPendingApprove,
+  postChatAiPendingReject,
   listChatLeads,
   patchChatLead,
   listChatScheduled,
@@ -171,6 +175,8 @@ export default function AdminChatPage() {
   const [campaignFilter, setCampaignFilter] = useState('')
   const [selectedConvId, setSelectedConvId] = useState<string | null>(null)
   const [composer, setComposer] = useState('')
+  /** Texto editável antes de aprovar envio da resposta IA. */
+  const [aiApproveDraft, setAiApproveDraft] = useState('')
   const [pageError, setPageError] = useState<string | null>(null)
 
   const { data: campaigns = [], isFetching: campaignsLoading } = useQuery({
@@ -213,6 +219,15 @@ export default function AdminChatPage() {
     () => conversations.find((c) => c.id === selectedConvId) ?? null,
     [conversations, selectedConvId],
   )
+
+  const selectedCampaign = useMemo(
+    () => campaigns.find((c) => c.id === selectedConv?.campaign) ?? null,
+    [campaigns, selectedConv?.campaign],
+  )
+
+  useEffect(() => {
+    setAiApproveDraft((selectedConv?.ai_pending_reply_body || '').trim())
+  }, [selectedConv?.id, selectedConv?.ai_pending_reply_body])
 
   const createCampaignMut = useMutation({
     mutationFn: (payload: Partial<ChatCampaign>) => createChatCampaign(payload),
@@ -264,7 +279,32 @@ export default function AdminChatPage() {
   const replayAiMut = useMutation({
     mutationFn: () =>
       selectedConvId ? postChatReplayAi(selectedConvId) : Promise.reject(new Error('Selecione')),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ['chat-messages', selectedConvId] }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['chat-messages', selectedConvId] })
+      void qc.invalidateQueries({ queryKey: ['chat-conversations'] })
+    },
+    onError: (e: Error) => setPageError(e.message),
+  })
+
+  const approveAiMut = useMutation({
+    mutationFn: () =>
+      selectedConvId
+        ? postChatAiPendingApprove(selectedConvId, aiApproveDraft.trim() || undefined)
+        : Promise.reject(new Error('Selecione')),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['chat-messages', selectedConvId] })
+      void qc.invalidateQueries({ queryKey: ['chat-conversations'] })
+    },
+    onError: (e: Error) => setPageError(e.message),
+  })
+
+  const rejectAiMut = useMutation({
+    mutationFn: () =>
+      selectedConvId ? postChatAiPendingReject(selectedConvId) : Promise.reject(new Error('Selecione')),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['chat-messages', selectedConvId] })
+      void qc.invalidateQueries({ queryKey: ['chat-conversations'] })
+    },
     onError: (e: Error) => setPageError(e.message),
   })
 
@@ -363,8 +403,8 @@ export default function AdminChatPage() {
             <div className="min-w-0">
               <TextTitle className="text-xl text-slate-900 md:text-2xl">Chat</TextTitle>
               <TextSubtitle className="mt-1 max-w-2xl text-sm text-slate-600 md:text-[15px]">
-                Campanhas ativas recebem mensagens do webhook WhatsApp; operadores respondem aqui. IA opcional por
-                campanha.
+                Campanhas de chat (não confundir com outreach) recebem WhatsApp; pode exigir aprovação antes da IA
+                enviar ao cliente. O estado da IA e rascunhos ficam visíveis na caixa.
               </TextSubtitle>
             </div>
           </div>
@@ -456,6 +496,22 @@ export default function AdminChatPage() {
                       </span>
                     </div>
                     <p className="mt-2 text-xs text-slate-500">IA: {c.ai_enabled ? 'sim' : 'não'}</p>
+                    <label className="mt-2 flex cursor-pointer items-start gap-2 text-xs text-slate-700">
+                      <input
+                        type="checkbox"
+                        className="mt-0.5 size-4 shrink-0 rounded border-slate-300"
+                        checked={Boolean(c.ai_send_requires_approval)}
+                        onChange={(e) =>
+                          patchCampaignMut.mutate({ id: c.id, body: { ai_send_requires_approval: e.target.checked } })
+                        }
+                      />
+                      <span>
+                        <span className="font-semibold text-slate-900">Aprovar IA antes de enviar</span>
+                        <span className="block text-[11px] font-normal text-slate-500">
+                          A resposta da IA fica em rascunho até o operador enviar no painel.
+                        </span>
+                      </span>
+                    </label>
                     <div className="mt-3 flex flex-wrap gap-2">
                       <SelectShell
                         className="h-9 max-w-[11rem] text-xs"
@@ -531,7 +587,14 @@ export default function AdminChatPage() {
                         {conversationTitle(c)}
                       </span>
                       <span className="mt-0.5 font-mono text-[10px] text-slate-500">{c.customer_wa_id}</span>
-                      <span className="mt-1 text-[10px] font-bold uppercase text-slate-500">{c.state}</span>
+                      <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                        <span className="text-[10px] font-bold uppercase text-slate-500">{c.state}</span>
+                        {(c.ai_pending_reply_body || '').trim() ? (
+                          <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] font-bold uppercase text-amber-900 ring-1 ring-amber-200">
+                            Rascunho IA
+                          </span>
+                        ) : null}
+                      </div>
                     </button>
                   ))
                 )}
@@ -545,47 +608,122 @@ export default function AdminChatPage() {
                 </div>
               ) : (
                 <>
-                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-4 py-3">
-                    <div>
-                      <p className="text-sm font-bold text-slate-900">
-                        {selectedConv ? conversationTitle(selectedConv) : '—'}
-                      </p>
-                      <p className="font-mono text-xs text-slate-600">{selectedConv?.customer_wa_id}</p>
-                      <p className="text-xs text-slate-500">{selectedConv?.campaign_name}</p>
+                  <div className="border-b border-slate-100 px-4 py-3">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <div>
+                        <p className="text-sm font-bold text-slate-900">
+                          {selectedConv ? conversationTitle(selectedConv) : '—'}
+                        </p>
+                        <p className="font-mono text-xs text-slate-600">{selectedConv?.customer_wa_id}</p>
+                        <p className="text-xs text-slate-500">{selectedConv?.campaign_name}</p>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="h-9 rounded-lg text-xs"
+                          onClick={() => handoffMut.mutate()}
+                          disabled={handoffMut.isPending}
+                          icon={<UserRoundCog className="size-3.5" />}
+                        >
+                          Handoff
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="h-9 rounded-lg text-xs"
+                          onClick={() => toggleAiMut.mutate(!selectedConv?.ai_active)}
+                          disabled={toggleAiMut.isPending}
+                          icon={<Bot className="size-3.5" />}
+                        >
+                          {selectedConv?.ai_active ? 'Desligar IA nesta conversa' : 'Ligar IA nesta conversa'}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="h-9 rounded-lg text-xs"
+                          onClick={() => replayAiMut.mutate()}
+                          disabled={replayAiMut.isPending}
+                          icon={<Sparkles className="size-3.5" />}
+                        >
+                          Pedir resposta IA
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="h-9 rounded-lg text-xs"
-                        onClick={() => handoffMut.mutate()}
-                        disabled={handoffMut.isPending}
-                        icon={<UserRoundCog className="size-3.5" />}
+                    <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
+                      <span
+                        className={cn(
+                          'inline-flex items-center gap-1 rounded-full px-2.5 py-1 font-semibold ring-1',
+                          selectedConv?.state === 'open'
+                            ? 'bg-emerald-50 text-emerald-900 ring-emerald-200'
+                            : 'bg-slate-100 text-slate-700 ring-slate-200',
+                        )}
                       >
-                        Handoff
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="h-9 rounded-lg text-xs"
-                        onClick={() => toggleAiMut.mutate(!selectedConv?.ai_active)}
-                        disabled={toggleAiMut.isPending}
-                        icon={<Bot className="size-3.5" />}
-                      >
-                        IA {selectedConv?.ai_active ? 'off' : 'on'}
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="h-9 rounded-lg text-xs"
-                        onClick={() => replayAiMut.mutate()}
-                        disabled={replayAiMut.isPending}
-                        icon={<Sparkles className="size-3.5" />}
-                      >
-                        Fila IA
-                      </Button>
+                        Estado: {selectedConv?.state ?? '—'}
+                      </span>
+                      <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 font-semibold text-slate-800 ring-1 ring-slate-200">
+                        IA nesta conversa: {selectedConv?.ai_active ? 'ligada' : 'desligada'}
+                      </span>
+                      <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 font-semibold text-slate-800 ring-1 ring-slate-200">
+                        IA na campanha: {selectedCampaign?.ai_enabled ? 'sim' : 'não'}
+                      </span>
+                      {selectedCampaign?.ai_send_requires_approval ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-violet-50 px-2.5 py-1 font-semibold text-violet-900 ring-1 ring-violet-200">
+                          Envio IA com aprovação
+                        </span>
+                      ) : null}
+                      {(selectedConv?.ai_pending_reply_body || '').trim() ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 font-semibold text-amber-950 ring-1 ring-amber-200">
+                          Rascunho pendente
+                        </span>
+                      ) : null}
                     </div>
                   </div>
+                  {(selectedConv?.ai_pending_reply_body || '').trim() ? (
+                    <div className="border-b border-amber-200 bg-amber-50/90 px-4 py-3">
+                      <p className="text-xs font-bold uppercase tracking-wide text-amber-900">
+                        Aprovar antes de enviar ao WhatsApp
+                      </p>
+                      {selectedConv?.ai_pending_request_handoff ? (
+                        <p className="mt-1 text-[11px] font-medium text-amber-950">
+                          A IA pediu handoff após envio: ao aprovar, a conversa passa para handoff após a mensagem.
+                        </p>
+                      ) : null}
+                      <textarea
+                        value={aiApproveDraft}
+                        onChange={(e) => setAiApproveDraft(e.target.value)}
+                        rows={4}
+                        className="mt-2 w-full resize-y rounded-xl border border-amber-200/80 bg-white px-3 py-2 text-sm text-slate-900 shadow-inner outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-200/60"
+                      />
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        <Button
+                          type="button"
+                          className="h-9 rounded-lg bg-emerald-700 text-white hover:bg-emerald-800"
+                          disabled={approveAiMut.isPending || !aiApproveDraft.trim()}
+                          onClick={() => approveAiMut.mutate()}
+                          icon={
+                            approveAiMut.isPending ? (
+                              <Loader2 className="size-4 animate-spin" />
+                            ) : (
+                              <CheckCircle2 className="size-4" />
+                            )
+                          }
+                        >
+                          Aprovar e enviar
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="h-9 rounded-lg border-amber-300 text-amber-950 hover:bg-amber-100"
+                          disabled={rejectAiMut.isPending}
+                          onClick={() => rejectAiMut.mutate()}
+                          icon={rejectAiMut.isPending ? <Loader2 className="size-4 animate-spin" /> : <XCircle className="size-4" />}
+                        >
+                          Descartar rascunho
+                        </Button>
+                      </div>
+                    </div>
+                  ) : null}
                   <div className="flex-1 space-y-2 overflow-y-auto bg-slate-50/50 p-4">
                     {msgLoading ? <Loader2 className="mx-auto size-6 animate-spin text-slate-300" /> : null}
                     {messages.map((m: ChatMessage) => (
@@ -598,7 +736,11 @@ export default function AdminChatPage() {
                           m.direction === 'system' && 'mx-auto bg-amber-50 text-amber-950 ring-1 ring-amber-200/80',
                         )}
                       >
-                        <ChatMessageBody m={m} />
+                        {m.direction === 'system' && m.body === 'ia_draft:discarded' ? (
+                          <p className="text-sm">Rascunho da IA descartado pelo operador.</p>
+                        ) : (
+                          <ChatMessageBody m={m} />
+                        )}
                         <p className="mt-1 text-[10px] opacity-70">{m.direction}</p>
                       </div>
                     ))}

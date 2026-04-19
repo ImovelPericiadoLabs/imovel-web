@@ -41,6 +41,8 @@ export const endpoint = {
     conversationHandoff: (id: string) => `/admin/chat/conversations/${id}/handoff/`,
     conversationToggleAi: (id: string) => `/admin/chat/conversations/${id}/toggle-ai/`,
     conversationReplayAi: (id: string) => `/admin/chat/conversations/${id}/replay-ai/`,
+    conversationAiPendingApprove: (id: string) => `/admin/chat/conversations/${id}/ai-pending/approve/`,
+    conversationAiPendingReject: (id: string) => `/admin/chat/conversations/${id}/ai-pending/reject/`,
     waMedia: (mediaId: string) => `/admin/chat/wa-media/${encodeURIComponent(mediaId)}/`,
     leads: '/admin/chat/leads/',
     lead: (id: string) => `/admin/chat/leads/${id}/`,
