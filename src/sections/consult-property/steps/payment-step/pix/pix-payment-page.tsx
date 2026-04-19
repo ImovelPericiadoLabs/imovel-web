@@ -328,8 +328,8 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
     queryKey: [queryKey.paymentStatus, paymentId],
     queryFn: () => getPaymentStatus(paymentId as string),
     enabled: !!paymentId,
-    refetchInterval: (queryData) => {
-      if (queryData?.state?.data?.status === 'CONFIRMED') {
+    refetchInterval: (query) => {
+      if (query.state.data?.status === 'CONFIRMED') {
         if (!hasTrackedPaymentConfirmed.current) {
           hasTrackedPaymentConfirmed.current = true
           trackGtmEvent('payment_confirmed', {

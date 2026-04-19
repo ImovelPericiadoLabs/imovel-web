@@ -43,9 +43,13 @@ export async function processPayment(
   return api.post(endpoint.payments.process, data, token, extraHeaders) as Promise<ProcessPaymentResult>
 }
 
-export async function getPaymentStatus(paymentId: string) {
+export type PaymentStatusResponse = {
+  status: string
+}
+
+export async function getPaymentStatus(paymentId: string): Promise<PaymentStatusResponse> {
   const session = await getSessionDeduplicated()
   const token = session?.accessToken
 
-  return api.get(`${endpoint.payments.status}/${paymentId}/`, token)
+  return api.get(`${endpoint.payments.status}/${paymentId}/`, token) as Promise<PaymentStatusResponse>
 }
