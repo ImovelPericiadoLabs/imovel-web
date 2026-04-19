@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import Link from 'next/link'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
@@ -43,12 +43,112 @@ import {
   type ChatMessage,
   type ChatLead,
   type ChatScheduledMessage,
+  extractWaMediaIdFromChatMessage,
 } from '@/services/chat'
+import { endpoint, url } from '@/constants/api'
+import { getSessionDeduplicated } from '@/utils/session'
 
 type Tab = 'campaigns' | 'inbox' | 'leads' | 'scheduled'
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return <label className="text-xs font-bold uppercase tracking-wide text-slate-500">{children}</label>
+}
+
+function conversationTitle(c: ChatConversation) {
+  const name = (c.customer_display_name || '').trim()
+  return name || c.customer_wa_id
+}
+
+function ChatWaImagePreview({ mediaId }: { mediaId: string }) {
+  const [blobUrl, setBlobUrl] = useState<string | null>(null)
+  const [phase, setPhase] = useState<'loading' | 'ready' | 'error'>('loading')
+
+  useEffect(() => {
+    let cancelled = false
+    let created: string | null = null
+    setBlobUrl(null)
+    setPhase('loading')
+    ;(async () => {
+      try {
+        const session = await getSessionDeduplicated()
+        const token = session?.accessToken
+        if (!token || cancelled) {
+          setPhase('error')
+          return
+        }
+        const res = await fetch(`${url}${endpoint.chat.waMedia(mediaId)}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        if (cancelled) return
+        if (!res.ok) {
+          setPhase('error')
+          return
+        }
+        const blob = await res.blob()
+        if (cancelled) return
+        const u = URL.createObjectURL(blob)
+        if (cancelled) {
+          URL.revokeObjectURL(u)
+          return
+        }
+        created = u
+        setBlobUrl(u)
+        setPhase('ready')
+      } catch {
+        if (!cancelled) setPhase('error')
+      }
+    })()
+    return () => {
+      cancelled = true
+      if (created) URL.revokeObjectURL(created)
+    }
+  }, [mediaId])
+
+  if (phase === 'loading') {
+    return (
+      <div className="mt-2 flex items-center gap-2 text-[11px] text-slate-500">
+        <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
+        A carregar imagem…
+      </div>
+    )
+  }
+  if (phase === 'error' || !blobUrl) {
+    return <p className="mt-2 text-[11px] text-red-600">Não foi possível carregar a imagem (Meta / sessão).</p>
+  }
+  return (
+    <div className="mt-2 overflow-hidden rounded-xl ring-1 ring-black/10">
+      {/* eslint-disable-next-line @next/next/no-img-element -- blob URL da API com Bearer */}
+      <img src={blobUrl} alt="Anexo WhatsApp" className="max-h-52 w-full max-w-md object-contain" loading="lazy" />
+    </div>
+  )
+}
+
+function ChatMessageBody({ m }: { m: ChatMessage }): ReactNode {
+  const mediaId = useMemo(() => extractWaMediaIdFromChatMessage(m), [m])
+  const typ = (m.wa_message_type || '').toLowerCase()
+  const showImage = typ === 'image' && Boolean(mediaId)
+  const showTypePill = Boolean(typ && typ !== 'text' && !(typ === 'image' && showImage))
+  const pillClass =
+    m.direction === 'out'
+      ? 'bg-white/15 text-white/95 ring-white/25'
+      : 'bg-black/5 text-slate-600 ring-black/10'
+
+  return (
+    <>
+      {m.body ? <p className="whitespace-pre-wrap break-words">{m.body}</p> : null}
+      {showImage ? <ChatWaImagePreview mediaId={mediaId!} /> : null}
+      {showTypePill ? (
+        <span
+          className={cn(
+            'mt-1 inline-block rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ring-1',
+            pillClass,
+          )}
+        >
+          {typ}
+        </span>
+      ) : null}
+    </>
+  )
 }
 
 function SelectShell({ className, ...props }: React.ComponentProps<'select'>) {
@@ -427,7 +527,10 @@ export default function AdminChatPage() {
                           : 'border-transparent hover:bg-slate-50',
                       )}
                     >
-                      <span className="font-mono text-[11px] text-slate-800">{c.customer_wa_id}</span>
+                      <span className="line-clamp-2 text-left text-[12px] font-semibold leading-tight text-slate-900">
+                        {conversationTitle(c)}
+                      </span>
+                      <span className="mt-0.5 font-mono text-[10px] text-slate-500">{c.customer_wa_id}</span>
                       <span className="mt-1 text-[10px] font-bold uppercase text-slate-500">{c.state}</span>
                     </button>
                   ))
@@ -444,7 +547,10 @@ export default function AdminChatPage() {
                 <>
                   <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-4 py-3">
                     <div>
-                      <p className="font-mono text-sm font-semibold text-slate-900">{selectedConv?.customer_wa_id}</p>
+                      <p className="text-sm font-bold text-slate-900">
+                        {selectedConv ? conversationTitle(selectedConv) : '—'}
+                      </p>
+                      <p className="font-mono text-xs text-slate-600">{selectedConv?.customer_wa_id}</p>
                       <p className="text-xs text-slate-500">{selectedConv?.campaign_name}</p>
                     </div>
                     <div className="flex flex-wrap gap-2">
@@ -492,7 +598,7 @@ export default function AdminChatPage() {
                           m.direction === 'system' && 'mx-auto bg-amber-50 text-amber-950 ring-1 ring-amber-200/80',
                         )}
                       >
-                        <p className="whitespace-pre-wrap break-words">{m.body}</p>
+                        <ChatMessageBody m={m} />
                         <p className="mt-1 text-[10px] opacity-70">{m.direction}</p>
                       </div>
                     ))}

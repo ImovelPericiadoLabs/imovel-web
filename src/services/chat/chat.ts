@@ -47,6 +47,7 @@ export type ChatConversation = {
   campaign: string
   campaign_name?: string
   customer_wa_id: string
+  customer_display_name?: string
   state: string
   ai_active: boolean
   ai_disclosure_sent: boolean
@@ -60,10 +61,29 @@ export type ChatMessage = {
   conversation: string
   direction: string
   body: string
+  wa_message_type?: string
   provider_msg_id: string | null
   raw: Record<string, unknown>
   sender: string | null
   created?: string
+}
+
+/** media_id Graph (imagem/vídeo/áudio/documento) a partir do payload ou do texto gerado pelo backend. */
+export function extractWaMediaIdFromChatMessage(msg: ChatMessage): string | null {
+  const fromBody = msg.body.match(/\(media_id=([^)]+)\)/)
+  if (fromBody?.[1]) {
+    const id = fromBody[1].trim()
+    if (id) return id
+  }
+  const raw = msg.raw
+  if (!raw || typeof raw !== 'object') return null
+  const typ = (msg.wa_message_type || String((raw as { type?: string }).type || '')).toLowerCase()
+  const key = ['image', 'video', 'audio', 'document', 'sticker'].find((k) => k === typ)
+  if (!key) return null
+  const block = (raw as Record<string, unknown>)[key]
+  if (!block || typeof block !== 'object') return null
+  const id = (block as { id?: string }).id
+  return typeof id === 'string' && id.trim() ? id.trim() : null
 }
 
 export type ChatLead = {
