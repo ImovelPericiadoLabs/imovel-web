@@ -50,7 +50,7 @@ describe('order-journey', () => {
   })
 
   it('isOrderPaymentConfirmed reads CONFIRMED', () => {
-    expect(isOrderPaymentConfirmed({ value: 'CONFIRMED', label: 'x' })).toBe(
+    expect(isOrderPaymentConfirmed({ value: 'CONFIRMED' })).toBe(
       true,
     )
     expect(isOrderPaymentConfirmed(undefined)).toBe(false)
