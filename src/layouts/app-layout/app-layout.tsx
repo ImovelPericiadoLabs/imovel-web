@@ -3,7 +3,7 @@
 import { PropsWithChildren, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { ChevronLeft, Menu, X, LogOut, Wallet, Mail, Search, List, FileText, Trash2, AlertTriangle, LoaderCircle, Megaphone, MessageSquare } from 'lucide-react'
+import { ChevronLeft, Menu, X, LogOut, Wallet, Mail, Search, List, FileText, Trash2, AlertTriangle, LoaderCircle, Megaphone, MessageSquare, ClipboardList } from 'lucide-react'
 import Link from 'next/link'
 import { useSession } from 'next-auth/react'
 import { useMutation, useQuery } from '@tanstack/react-query'
@@ -69,6 +69,7 @@ export default function AppLayout({ children }: PropsWithChildren) {
     }
     const mapRoutes: Record<string, string> = {
       '/consultas': CONSULTAR_IMOVEL_INICIO_HREF,
+      '/admin/manual-review': '/consultas',
       '/admin/outreach': '/consultas',
       '/admin/chat': '/admin/outreach',
     }
@@ -146,6 +147,9 @@ export default function AppLayout({ children }: PropsWithChildren) {
     if (isMatch('/consultas/:id/opcoes/proprietarios')) {
       return <HeaderTitle>Proprietários</HeaderTitle>
     }
+    if (pathname.startsWith('/admin/manual-review')) {
+      return <HeaderTitle>Fila manual</HeaderTitle>
+    }
     if (pathname.startsWith('/admin/outreach')) {
       return <HeaderTitle>Divulgação</HeaderTitle>
     }
@@ -158,14 +162,17 @@ export default function AppLayout({ children }: PropsWithChildren) {
   return (
     <section className="min-h-screen bg-white pb-6">
         <header className="flex flex-col pt-4 px-4 bg-primary relative z-40">
-          <div className="flex items-center justify-between py-4.5 mb-6 relative">
-            <div className="flex items-center gap-3.5 min-w-0 flex-1 justify-start">
+          <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2 py-4.5 mb-6 relative">
+            <div className="flex items-center justify-start shrink-0">
               <ChevronLeft
                 onClick={handleGoBack}
-                className="size-7 text-white cursor-pointer shrink-0 touch-manipulation"
+                className="size-7 text-white cursor-pointer touch-manipulation"
                 role="button"
                 aria-label="Voltar"
               />
+            </div>
+
+            <div className="min-w-0 flex justify-center items-center px-1">
               {headerTitle}
             </div>
 
@@ -182,16 +189,18 @@ export default function AppLayout({ children }: PropsWithChildren) {
               </div>
             )}
 
-            <div className="flex items-center min-w-0 flex-1 justify-end">
-              {(isConsultas || isAdminArea) && (
+            <div className="flex items-center justify-end shrink-0">
+              {(isConsultas || isAdminArea) ? (
                 <button
                   type="button"
                   onClick={() => setSidebarOpen(true)}
-                  className="p-1 text-white hover:opacity-80 shrink-0 touch-manipulation"
+                  className="p-1 text-white hover:opacity-80 touch-manipulation"
                   aria-label="Abrir configurações"
                 >
                   <Menu className="size-7" />
                 </button>
+              ) : (
+                <span className="size-7 inline-block shrink-0" aria-hidden />
               )}
             </div>
           </div>
@@ -275,6 +284,16 @@ export default function AppLayout({ children }: PropsWithChildren) {
                     <List className="size-5 text-primary shrink-0" />
                     Minhas consultas
                   </Link>
+                  {(me?.is_staff || me?.is_superuser) && (
+                    <Link
+                      href="/admin/manual-review"
+                      onClick={() => setSidebarOpen(false)}
+                      className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-gray-700 hover:bg-gray-100 font-medium touch-manipulation"
+                    >
+                      <ClipboardList className="size-5 text-primary shrink-0" />
+                      Fila manual (equipe)
+                    </Link>
+                  )}
                   {me?.is_superuser && (
                     <>
                       <Link

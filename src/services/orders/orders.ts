@@ -46,6 +46,9 @@ export type Order = {
   id: string
   code: number
   status: GenericStatus
+  /** Confirmado = pagamento ou créditos já cobertos; útil quando ``status`` analítico ainda é PENDING (re-solicitação / fila). */
+  payment_status?: GenericStatus
+  gateway?: string
   amount: string
   documents: Document[]
   place_id: string
@@ -105,6 +108,14 @@ export type OrderAnalysisDetail = {
   status: AnalysisStatusDetail
   reason: string
   documents: AnalysisDocument | null
+}
+
+export type OrderEvent = {
+  id: string
+  type: string
+  payload: Record<string, unknown>
+  source: string
+  created_at: string
 }
 
 export type OrdersApiResponse = {
@@ -172,12 +183,24 @@ export async function listOrders(params: ListOrdersRequest = {}) {
 /** Query key para React Query: uso compartilhado entre OrderHeader, OrderOptionsPage, etc. */
 export const orderQueryKey = (orderId: string) => ['order', orderId] as const
 
+export const orderEventsQueryKey = (orderId: string) =>
+  ['order-events', orderId] as const
+
 export async function getOrder(orderId: string) {
   return guard(async (token) => {
     const baseUrl = endpoint.orders.replace(/\/$/, '')
     const url = `${baseUrl}/${orderId}/`
 
     return api.get(url, token) as Promise<Order>
+  })
+}
+
+/** GET /orders/:id/events/ — pipeline activity (append-only). */
+export async function getOrderEvents(orderId: string) {
+  return guard(async (token) => {
+    const base = endpoint.orders.replace(/\/$/, '')
+    const url = `${base}/${orderId}/events/`
+    return api.get(url, token) as Promise<OrderEvent[]>
   })
 }
 

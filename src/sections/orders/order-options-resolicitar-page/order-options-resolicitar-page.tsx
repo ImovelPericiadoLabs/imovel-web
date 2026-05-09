@@ -1,9 +1,8 @@
 'use client'
 
 import { useParams, useRouter } from 'next/navigation'
-import { useQuery } from '@tanstack/react-query'
 import OrderHeader from '@/sections/orders/order-header'
-import { getOrder, orderQueryKey } from '@/services/orders'
+import { useOrderDetailQuery } from '@/hooks/use-order-detail-query'
 import ReRequestForm from '@/sections/orders/order-options-page/re-request-form'
 
 export default function OrderOptionsResolicitarPage() {
@@ -11,11 +10,7 @@ export default function OrderOptionsResolicitarPage() {
   const router = useRouter()
   const orderId = id as string
 
-  const { data: order, isLoading } = useQuery({
-    queryKey: orderQueryKey(orderId),
-    queryFn: () => getOrder(orderId),
-    enabled: !!orderId
-  })
+  const { data: order, isLoading } = useOrderDetailQuery(orderId)
 
   if (isLoading) {
     return (

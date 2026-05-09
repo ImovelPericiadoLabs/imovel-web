@@ -3,22 +3,18 @@
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { ChevronRight, FileText, Files, Users, Info, RotateCcw } from 'lucide-react'
-import { useQuery } from '@tanstack/react-query'
 import OrderHeader from '@/sections/orders/order-header'
 import { cn } from '@/utils/tailwind'
 
-import { getOrder, orderQueryKey } from '@/services/orders'
+import { useOrderDetailQuery } from '@/hooks/use-order-detail-query'
+import { isOrderPaymentConfirmed } from '@/domain/order-journey'
 import { REREQUESTABLE_STATUS_VALUES } from '@/sections/orders/constants'
 
 export default function OrderOptionsPage() {
   const { id } = useParams()
   const orderId = id as string
 
-  const { data: order, isLoading } = useQuery({
-    queryKey: orderQueryKey(orderId),
-    queryFn: () => getOrder(orderId),
-    enabled: !!orderId
-  })
+  const { data: order, isLoading } = useOrderDetailQuery(orderId)
 
   const buttons = [
     {
@@ -49,6 +45,7 @@ export default function OrderOptionsPage() {
   const inProgress =
     statusValue === 'SEARCHING_DOCUMENT' || statusValue === 'IN_PROGRESS'
   const showRerequest = order?.can_rerequest === true
+  const paymentConfirmed = isOrderPaymentConfirmed(order?.payment_status)
   const isFinalWithRerequest =
     statusValue != null &&
     REREQUESTABLE_STATUS_VALUES.includes(
@@ -122,13 +119,26 @@ export default function OrderOptionsPage() {
             </div>
           </div>
         ) : statusValue === 'PENDING' ? (
-          <div className="flex flex-col items-center justify-center p-6 border border-gray-200 rounded-2xl bg-gray-50/80 text-center gap-4 shadow-sm">
-            <h3 className="text-sm font-semibold text-gray-900">Pendente</h3>
-            <p className="text-xs text-gray-600 leading-relaxed">
-              Sua solicitação foi recebida. O processamento será iniciado em
-              breve.
-            </p>
-          </div>
+          paymentConfirmed ? (
+            <div className="flex flex-col items-center justify-center p-6 border border-blue-100 rounded-2xl bg-blue-50/60 text-center gap-4 shadow-sm">
+              <h3 className="text-sm font-semibold text-blue-900">
+                Consulta em retomada
+              </h3>
+              <p className="text-xs text-blue-700 leading-relaxed">
+                O pagamento já está confirmado. Estamos iniciando ou retomando o
+                processamento — volte à página principal da consulta para ver o
+                andamento em tempo real.
+              </p>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center p-6 border border-gray-200 rounded-2xl bg-gray-50/80 text-center gap-4 shadow-sm">
+              <h3 className="text-sm font-semibold text-gray-900">Pendente</h3>
+              <p className="text-xs text-gray-600 leading-relaxed">
+                Sua solicitação foi recebida. Finalize o pagamento para
+                iniciarmos a consulta.
+              </p>
+            </div>
+          )
         ) : statusValue === 'FINISHED' ? (
           renderOptionCards()
         ) : isFinalWithRerequest ? (

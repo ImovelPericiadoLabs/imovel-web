@@ -2,27 +2,26 @@
 
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { Info } from 'lucide-react'
-import { useQuery } from '@tanstack/react-query'
+import { Files, Lock } from 'lucide-react'
+import { useOrderDetailQuery } from '@/hooks/use-order-detail-query'
+import { useOrderEventsQuery } from '@/hooks/use-order-events-query'
 
 import { cn } from '@/utils/tailwind'
 import Badge from '@/components/badge'
+import Button from '@/components/button'
 import OrderHeader from '@/sections/orders/order-header'
+import { OrderJourneyPanel } from '@/components/order-journey'
 
 import { STATUS_THEME } from '@/sections/orders/constants'
-import { getOrder, orderQueryKey } from '@/services/orders'
 import type { SemaphoreStatus } from '@/services/orders/orders'
 
 export default function OrderPage() {
   const { id } = useParams()
   const orderId = id as string
 
-  const { data: order } = useQuery({
-    queryKey: orderQueryKey(orderId),
-    queryFn: () => getOrder(orderId),
-    enabled: !!orderId
-  })
-
+  const { data: order } = useOrderDetailQuery(orderId)
+  const { data: orderEvents = [], isFetching: eventsFetching } =
+    useOrderEventsQuery(orderId, order?.status?.value)
 
   const SEMAPHORE_STATUS_THEME_MAP: Record<
     SemaphoreStatus,
@@ -35,35 +34,70 @@ export default function OrderPage() {
     gray: 'info'
   }
 
+  const showJourney = order && order.status?.value !== 'FINISHED'
+  const isAnalysisComplete = order?.status?.value === 'FINISHED'
 
   return (
     <div className="flex flex-col gap-3 pb-10">
       <OrderHeader />
 
       <div className="flex flex-col gap-2 px-3 lg:px-0 w-full mx-auto lg:max-w-lg">
-        {order && (!order.analysis || order.analysis.length === 0) && (
-          <div className="flex flex-col gap-2 px-3 lg:px-0 w-full mx-auto lg:max-w-lg">
-            <div className="flex flex-col items-center justify-center p-6 border border-blue-100 rounded-2xl bg-blue-50/60 text-center gap-4 shadow-sm">
-              <div className="bg-blue-100 p-3 rounded-full">
-                <Info className="size-8 text-blue-600" />
-              </div>
+        {showJourney && (
+          <OrderJourneyPanel
+            order={order}
+            orderId={orderId}
+            events={orderEvents}
+            eventsFetching={eventsFetching}
+          />
+        )}
 
-              <div className="flex flex-col gap-1">
-                <h3 className="text-sm font-semibold text-blue-900">
-                  Consulta em Análise
-                </h3>
-                <p className="text-xs text-blue-700 leading-relaxed">
-                  Esta consulta ainda está sendo processada pela nossa equipe.
-                  <br />
-                  As opções de visualização serão liberadas em breve.
+        {order && (
+          <section
+            className={cn(
+              'flex flex-col gap-3 p-4 rounded-xl border transition-colors',
+              isAnalysisComplete
+                ? 'border-primary/30 bg-primary/[0.04] shadow-sm'
+                : 'border-dashed border-gray-200 bg-gray-50/90'
+            )}
+            aria-label="Acesso a documentos e dados da consulta"
+          >
+            <div className="flex items-start gap-3">
+              {isAnalysisComplete ? (
+                <Files
+                  className="size-6 text-primary shrink-0 mt-0.5"
+                  aria-hidden
+                />
+              ) : (
+                <Lock
+                  className="size-6 text-gray-400 shrink-0 mt-0.5"
+                  aria-hidden
+                />
+              )}
+              <div className="flex flex-col gap-1 min-w-0">
+                <p className="text-sm font-semibold text-gray-900 leading-[130%]">
+                  Dados da consulta
+                </p>
+                <p className="text-xs text-gray-500 leading-[140%]">
+                  {isAnalysisComplete
+                    ? 'Acesse resultado completo, documentos e proprietários.'
+                    : 'Disponível quando a análise for concluída. Acompanhe o andamento acima.'}
                 </p>
               </div>
             </div>
-          </div>
+            {isAnalysisComplete ? (
+              <Button
+                href={`/consultas/${orderId}/opcoes`}
+                variant="primary"
+                className="!mt-1"
+                icon={<Files className="size-5" />}
+              >
+                Abrir documentos e dados
+              </Button>
+            ) : null}
+          </section>
         )}
-        
+
         {order?.analysis?.map(item => {
-          // const config = ITEM_STATUS_CONFIG[item.status.value]
           const themekey = SEMAPHORE_STATUS_THEME_MAP[item.status.value]
           const theme = STATUS_THEME[themekey]
 
