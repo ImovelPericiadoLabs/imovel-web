@@ -1,7 +1,6 @@
 'use client'
 
 import { useParams } from 'next/navigation'
-import { useQuery } from '@tanstack/react-query'
 import { MapPin, Hash, Box, Layout, Package } from 'lucide-react'
 
 import TrafficLight from '@/components/traffic-light'
@@ -11,7 +10,8 @@ import { formatDateWithTime } from '@/utils/date'
 import { cn } from '@/utils/tailwind'
 import { SummaryItemsList, type SummaryItems } from '@/components/summary-items-list'
 
-import { getOrder, orderQueryKey, type Order } from '@/services/orders'
+import type { Order } from '@/services/orders'
+import { useOrderDetailQuery } from '@/hooks/use-order-detail-query'
 import {
   resolveOrderTheme,
   resolveBadgeLabel
@@ -25,11 +25,7 @@ export default function OrderHeader({ Badge: ExtraBadge }: Props) {
   const { id } = useParams()
   const orderId = id as string
 
-  const { data: order, isLoading } = useQuery({
-    queryKey: orderQueryKey(orderId),
-    queryFn: () => getOrder(orderId),
-    enabled: !!orderId
-  })
+  const { data: order, isLoading } = useOrderDetailQuery(orderId)
 
   if (isLoading) {
     return (

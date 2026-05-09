@@ -3,15 +3,13 @@
 import { useState } from 'react'
 import { Download, Info, FileText } from 'lucide-react'
 import { useParams } from 'next/navigation'
-import { useQuery } from '@tanstack/react-query'
 import OrderHeader from '@/sections/orders/order-header'
 import {
-  getOrder,
-  orderQueryKey,
   getAnalysisPdfBlob,
   getDocumentBlob,
   type Document
 } from '@/services/orders'
+import { useOrderDetailQuery } from '@/hooks/use-order-detail-query'
 
 function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob)
@@ -38,11 +36,7 @@ export default function OrderOptionsDocumentsPage() {
   const [loadingReport, setLoadingReport] = useState(false)
   const [loadingDocId, setLoadingDocId] = useState<string | null>(null)
 
-  const { data: order } = useQuery({
-    queryKey: orderQueryKey(orderId),
-    queryFn: () => getOrder(orderId),
-    enabled: !!orderId
-  })
+  const { data: order } = useOrderDetailQuery(orderId)
 
   const isFinished = order?.status?.value === 'FINISHED'
   const hasReport = Boolean(isFinished && orderId)

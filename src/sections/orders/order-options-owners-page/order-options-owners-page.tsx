@@ -2,20 +2,15 @@
 
 import { Info, User } from 'lucide-react'
 import { useParams } from 'next/navigation'
-import { useQuery } from '@tanstack/react-query'
 import OrderHeader from '@/sections/orders/order-header'
 import BadgeComponent from '@/components/badge'
-import { getOrder, orderQueryKey } from '@/services/orders'
+import { useOrderDetailQuery } from '@/hooks/use-order-detail-query'
 
 export default function OrderOptionsOwnersPage() {
   const { id } = useParams()
   const orderId = id as string
 
-  const { data: order, isLoading } = useQuery({
-    queryKey: orderQueryKey(orderId),
-    queryFn: () => getOrder(orderId),
-    enabled: !!orderId
-  })
+  const { data: order, isLoading } = useOrderDetailQuery(orderId)
 
   if (isLoading) {
     return (

@@ -32,6 +32,13 @@ export const endpoint = {
     campaignSend: (id: string) => `/admin/outreach/campaigns/${id}/send/`,
     campaignRecipients: (id: string) => `/admin/outreach/campaigns/${id}/recipients/`,
   },
+  staff: {
+    manualReviewOrders: '/admin/staff/manual-review/orders/',
+    manualReviewOrder: (id: string) => `/admin/staff/manual-review/orders/${id}/`,
+    manualReviewUpload: (id: string) => `/admin/staff/manual-review/orders/${id}/registration-upload/`,
+    manualReviewEnqueue: (id: string) => `/admin/staff/manual-review/orders/${id}/enqueue-analysis/`,
+    manualReviewResolve: (id: string) => `/admin/staff/manual-review/orders/${id}/resolve/`,
+  },
   chat: {
     campaigns: '/admin/chat/campaigns/',
     campaign: (id: string) => `/admin/chat/campaigns/${id}/`,

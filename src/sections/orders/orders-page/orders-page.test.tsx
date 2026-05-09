@@ -1,10 +1,27 @@
 'use client'
 
+import { type ReactElement } from 'react'
 import { vi, describe, it, expect, beforeEach } from 'vitest'
 import { render, screen, waitFor, act } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import OrdersPage from './orders-page'
 import { listOrders } from '@/services/orders'
 import type { Order } from '@/services/orders'
+
+function createTestQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+    },
+  })
+}
+
+function renderWithProviders(ui: ReactElement) {
+  const client = createTestQueryClient()
+  return render(
+    <QueryClientProvider client={client}>{ui}</QueryClientProvider>,
+  )
+}
 
 vi.mock('@/services/orders', () => ({
   listOrders: vi.fn(),
@@ -36,6 +53,8 @@ vi.mock('@/components/text-title', () => ({
 vi.mock('lucide-react', () => ({
   ChevronRight: () => <div data-testid="chevron-right" />,
   Inbox: () => <div data-testid="inbox-icon" />,
+  /** Usado por ``Button`` no CTA "Consultar Imóvel" (estado vazio). */
+  Search: () => <div data-testid="search-icon" />,
 }))
 
 const mockObserve = vi.fn()
@@ -70,18 +89,18 @@ describe('OrdersPage', () => {
   })
 
   it('deve exibir o loading global no primeiro carregamento', () => {
-    vi.mocked(listOrders).mockReturnValue(new Promise(() => { }))
-    render(<OrdersPage />)
+    vi.mocked(listOrders).mockReturnValue(new Promise(() => {}))
+    renderWithProviders(<OrdersPage />)
     expect(screen.getByTestId('loading-overlay')).toBeInTheDocument()
   })
 
   it('deve renderizar a lista de consultas e aplicar as cores e labels do semaphore', async () => {
     vi.mocked(listOrders).mockResolvedValue({
       items: [mockOrderData],
-      meta: { has_next: false },
+      meta: { has_next: false, page: 1 },
     } as any)
 
-    render(<OrdersPage />)
+    renderWithProviders(<OrdersPage />)
 
     await waitFor(() => {
       expect(screen.getByText(/Consulta #12345/i)).toBeInTheDocument()
@@ -99,10 +118,10 @@ describe('OrdersPage', () => {
         status: { value: 'REJECTED', label: 'Reprovado' },
         semaphore: 'yellow' 
       }],
-      meta: { has_next: false },
+      meta: { has_next: false, page: 1 },
     } as any)
 
-    const { container } = render(<OrdersPage />)
+    const { container } = renderWithProviders(<OrdersPage />)
 
     await waitFor(() => {
       const dot = container.querySelector('.bg-primary')
@@ -118,10 +137,10 @@ describe('OrdersPage', () => {
         status: { value: 'PENDING', label: 'Pendente' },
         semaphore: null
       }],
-      meta: { has_next: false },
+      meta: { has_next: false, page: 1 },
     } as any)
 
-    const { container } = render(<OrdersPage />)
+    const { container } = renderWithProviders(<OrdersPage />)
 
     await waitFor(() => {
       const dot = container.querySelector('.bg-primary')
@@ -130,13 +149,36 @@ describe('OrdersPage', () => {
     })
   })
 
+  it('deve exibir Em processamento quando PENDING com pagamento confirmado', async () => {
+    vi.mocked(listOrders).mockResolvedValue({
+      items: [
+        {
+          ...mockOrderData,
+          status: { value: 'PENDING', label: 'Pendente' },
+          payment_status: { value: 'CONFIRMED', label: 'Confirmado' },
+          semaphore: null,
+        },
+      ],
+      meta: { has_next: false, page: 1 },
+    } as any)
+
+    const { container } = renderWithProviders(<OrdersPage />)
+
+    await waitFor(() => {
+      const dot = container.querySelector('.bg-primary')
+      expect(dot).toBeInTheDocument()
+      expect(screen.getByText('Em processamento')).toBeInTheDocument()
+    })
+    expect(screen.queryByText('Pendente')).not.toBeInTheDocument()
+  })
+
   it('deve exibir o estado vazio corretamente', async () => {
     vi.mocked(listOrders).mockResolvedValue({
       items: [],
-      meta: { has_next: false },
+      meta: { has_next: false, page: 1 },
     } as any)
 
-    render(<OrdersPage />)
+    renderWithProviders(<OrdersPage />)
 
     await waitFor(() => {
       expect(screen.getByText(/Nenhuma consulta encontrada/i)).toBeInTheDocument()
@@ -147,15 +189,15 @@ describe('OrdersPage', () => {
   it('deve carregar mais itens ao acionar o scroll infinito', async () => {
     vi.mocked(listOrders).mockResolvedValueOnce({
       items: [mockOrderData],
-      meta: { has_next: true },
+      meta: { has_next: true, page: 1 },
     } as any)
 
     vi.mocked(listOrders).mockResolvedValueOnce({
       items: [{ ...mockOrderData, id: 'order-2', code: 67890 }],
-      meta: { has_next: false },
+      meta: { has_next: false, page: 2 },
     } as any)
 
-    render(<OrdersPage />)
+    renderWithProviders(<OrdersPage />)
 
     await waitFor(() => expect(screen.getByText(/Consulta #12345/i)).toBeInTheDocument())
 
