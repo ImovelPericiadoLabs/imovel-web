@@ -316,10 +316,11 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
   return (
     <section className="min-h-screen bg-background">
       <header
-        className={`flex flex-col pt-4 px-4 relative z-40 transition-colors duration-500 ${isFinished ? 'bg-emerald-600' : 'bg-primary'
-          }`}
+        className={`relative z-40 flex w-full flex-col pt-4 transition-colors duration-500 ${
+          isFinished ? 'bg-emerald-600' : 'bg-primary'
+        }`}
       >
-        <div className="flex items-center justify-between py-4.5 mb-2">
+        <div className="mx-auto mb-2 flex w-full max-w-lg items-center justify-between px-4 py-4.5 md:max-w-2xl md:px-6 xl:max-w-3xl xl:px-8 2xl:max-w-[52rem] 2xl:px-10">
           <ChevronLeft
             onClick={back}
             className={`size-7 transition-opacity text-white ${
@@ -339,21 +340,19 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
           </div>
 
           <TrafficLightModal>
-            <CircleQuestionMark className="cursor-pointer size-7 text-white" />
+            <CircleQuestionMark className="size-7 cursor-pointer text-white" />
           </TrafficLightModal>
         </div>
-
-        
       </header>
 
-      {/* Faixa clara: alturas fixas; overlap = faixa − margem negativa (mesma lógica em mobile e sm). */}
+      {/* Faixa clara: altura um pouco maior em desktop para respiro com o overlap do main */}
       <div
-        className="relative h-36 shrink-0 bg-sky-200 transition-colors duration-500 sm:h-32"
+        className="relative h-36 shrink-0 bg-sky-200 transition-colors duration-500 sm:h-32 md:h-36 lg:h-40"
         aria-hidden
       />
 
       <FormProvider {...methods}>
-        <main className="relative z-10 mx-auto w-full max-w-lg -mt-28 px-0 pt-2 pb-8 sm:-mt-24">
+        <main className="relative z-10 mx-auto w-full max-w-lg -mt-28 px-0 pt-2 pb-8 sm:-mt-24 md:max-w-2xl md:pb-10 xl:max-w-3xl xl:pb-12 2xl:max-w-[52rem]">
           <Activity isActive={flow === 'entry'}>
             <ConsultEntryStep
               onChoose={(choice) => {

@@ -1,5 +1,4 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import type { ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import AppLayout from './app-layout'
 
@@ -55,10 +54,6 @@ vi.mock('@tanstack/react-query', () => ({
       return response
     },
   }),
-}))
-
-vi.mock('@/providers', () => ({
-  Providers: ({ children }: { children: ReactNode }) => <>{children}</>,
 }))
 
 vi.mock('@/hooks/use-is-router-match', () => ({

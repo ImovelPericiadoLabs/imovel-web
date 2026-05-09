@@ -8,6 +8,7 @@ import {
   rerequestOrder,
   listPlans,
   orderQueryKey,
+  orderEventsQueryKey,
   type ReRequestOrderBody,
   type PlaceResponse
 } from '@/services/orders'
@@ -217,6 +218,7 @@ export default function ReRequestForm({ orderId, order, onClose }: Props) {
     mutationFn: (body: ReRequestOrderBody) => rerequestOrder(orderId, body),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: orderQueryKey(orderId) })
+      queryClient.invalidateQueries({ queryKey: orderEventsQueryKey(orderId) })
       queryClient.invalidateQueries({ queryKey: ORDERS_QUERY_KEY })
       onClose()
     },

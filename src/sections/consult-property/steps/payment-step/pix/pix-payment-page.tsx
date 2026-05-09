@@ -5,7 +5,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useForm, FormProvider, useFormContext } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Check, Clock, Copy, IdCard, Mail, Phone, User, Wallet } from 'lucide-react'
+import { Check, Clock, Copy, IdCard, Lock, Mail, MessageCircle, Phone, ShieldCheck, User, Wallet } from 'lucide-react'
 import { useSession, signOut } from 'next-auth/react'
 
 import TextTitle from '@/components/text-title'
@@ -43,6 +43,8 @@ function hasParentConsultContext(
   return hasDoc || hint.length >= 10 || (reg.length >= 1 && notary.length >= 3)
 }
 import { trackGtmEvent, buildConsultItem, DEFAULT_CURRENCY, CONSULT_PRODUCT_PRICE } from '@/utils/analytics/gtm'
+import { formatMoney } from '@/utils/text/text'
+import { usePublicPlanPrice } from '@/hooks/use-public-plan-price'
 
 import { AuthCodePage } from './AuthCodePage/AuthCodePage'
 
@@ -90,6 +92,7 @@ function applyMask(value: string, mask?: MaskType): string {
 export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPageProps) {
   const { data: session, status } = useSession()
   const parentForm = useFormContext()
+  const { price: planPriceFromApi } = usePublicPlanPrice()
 
   const {
       complement,
@@ -213,18 +216,6 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
     enabled: status === 'authenticated',
   })
 
-  const { data: plansSnapshot } = useQuery({
-    queryKey: ['plans'],
-    queryFn: listPlans,
-    enabled: status === 'authenticated',
-  })
-
-  const planPriceFromApi = useMemo(() => {
-    const arr = Array.isArray(plansSnapshot) ? plansSnapshot : []
-    const p = arr[0]?.price
-    return typeof p === 'number' ? p : CONSULT_PRODUCT_PRICE
-  }, [plansSnapshot])
-
   const creditsForUi = Number(meSnapshot?.credits_balance ?? 0)
   const showCreditsOption =
     status !== 'loading' &&
@@ -319,7 +310,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
         payment_method: 'pix',
         payment_id: payment?.id,
         currency: DEFAULT_CURRENCY,
-        value: CONSULT_PRODUCT_PRICE,
+        value: planPriceFromApi,
       })
       trackGtmEvent('generate_lead', {
         event_category: 'payment',
@@ -328,7 +319,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
         payment_method: 'pix',
         payment_id: payment?.id,
         currency: DEFAULT_CURRENCY,
-        value: CONSULT_PRODUCT_PRICE,
+        value: planPriceFromApi,
       })
     },
   })
@@ -337,8 +328,8 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
     queryKey: [queryKey.paymentStatus, paymentId],
     queryFn: () => getPaymentStatus(paymentId as string),
     enabled: !!paymentId,
-    refetchInterval: (queryData) => {
-      if (queryData?.state?.data?.status === 'CONFIRMED') {
+    refetchInterval: (query) => {
+      if (query.state.data?.status === 'CONFIRMED') {
         if (!hasTrackedPaymentConfirmed.current) {
           hasTrackedPaymentConfirmed.current = true
           trackGtmEvent('payment_confirmed', {
@@ -355,8 +346,8 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
             payment_method: 'pix',
             payment_id: paymentId,
             currency: DEFAULT_CURRENCY,
-            value: CONSULT_PRODUCT_PRICE,
-            items: [buildConsultItem(CONSULT_PRODUCT_PRICE)],
+            value: planPriceFromApi,
+            items: [buildConsultItem(planPriceFromApi)],
           })
         }
         onFinish()
@@ -516,8 +507,8 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
       place_id: finalPlaceId || undefined,
       has_document: Boolean(documentId),
       currency: DEFAULT_CURRENCY,
-      value: CONSULT_PRODUCT_PRICE,
-      items: [buildConsultItem(CONSULT_PRODUCT_PRICE)],
+      value: planPriceFromApi,
+      items: [buildConsultItem(planPriceFromApi)],
     })
 
     clearServerError()
@@ -596,6 +587,8 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
     generatePix,
     buildPaymentPayload,
     parentForm,
+    planPriceFromApi,
+    documentId,
   ])
 
   const handleAuthSuccess = useCallback(async (code: string) => {
@@ -747,11 +740,31 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
                   <TextSubtitle className="text-sm text-gray-500 leading-snug">
                     {showCreditsOption
                       ? status === 'authenticated'
-                        ? `Preencha os dados e escolha pagar com saldo ou PIX (R$ ${planPriceFromApi.toFixed(2).replace('.', ',')})`
+                        ? `Preencha os dados e escolha pagar com saldo ou PIX (${formatMoney(planPriceFromApi)})`
                         : 'Preencha os dados: você pode usar o saldo da sua conta após confirmar o e-mail ou pagar com PIX'
-                      : `Preencha seus dados para gerar o PIX de ${planPriceFromApi.toFixed(2).replace('.', ',')}`}
+                      : `Preencha seus dados para gerar o PIX de ${formatMoney(planPriceFromApi)}`}
                   </TextSubtitle>
                 </div>
+              </div>
+
+              <div className="rounded-2xl border border-gray-100 bg-gray-50/90 px-3.5 py-3 flex flex-col gap-2.5">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+                  Antes de preencher
+                </p>
+                <ul className="flex flex-col gap-2 text-xs text-gray-600 leading-snug">
+                  <li className="flex gap-2 items-start">
+                    <ShieldCheck className="size-4 shrink-0 text-primary mt-0.5" aria-hidden />
+                    <span>PIX processado por parceiro de pagamentos; a confirmação costuma levar poucos minutos.</span>
+                  </li>
+                  <li className="flex gap-2 items-start">
+                    <Lock className="size-4 shrink-0 text-primary mt-0.5" aria-hidden />
+                    <span>Seus dados são usados para esta consulta e contato sobre o pedido, conforme a política de privacidade.</span>
+                  </li>
+                  <li className="flex gap-2 items-start">
+                    <MessageCircle className="size-4 shrink-0 text-primary mt-0.5" aria-hidden />
+                    <span>WhatsApp informado para avisos do pedido — não enviamos spam.</span>
+                  </li>
+                </ul>
               </div>
 
               <form onSubmit={(e) => e.preventDefault()} className="flex flex-col gap-4">
@@ -951,7 +964,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
           <div className="flex flex-col items-center pt-10 -mt-20">
             <div className="mb-8 pt-4 text-black px-1 text-left relative z-10 w-full text-center flex flex-col gap-5">
               <p className="text-center leading-snug font-normal text-black/80">
-                Realize o pagamento do valor <span className="font-bold text-black">R$ 59,00</span> para começar a consulta dos dados do endereço
+                Realize o pagamento de <span className="font-bold text-black">{formatMoney(planPriceFromApi)}</span> para iniciar a consulta do imóvel.
               </p>
 
               <AddressSummaryCard

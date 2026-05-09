@@ -46,6 +46,9 @@ export type Order = {
   id: string
   code: number
   status: GenericStatus
+  /** Confirmado = pagamento ou créditos já cobertos; útil quando ``status`` analítico ainda é PENDING (re-solicitação / fila). */
+  payment_status?: GenericStatus
+  gateway?: string
   amount: string
   documents: Document[]
   place_id: string
@@ -107,6 +110,14 @@ export type OrderAnalysisDetail = {
   documents: AnalysisDocument | null
 }
 
+export type OrderEvent = {
+  id: string
+  type: string
+  payload: Record<string, unknown>
+  source: string
+  created_at: string
+}
+
 export type OrdersApiResponse = {
   meta: {
     total_items: number
@@ -128,8 +139,9 @@ async function guard<T>(callback: (token: string) => Promise<T>): Promise<T> {
   const token = session?.accessToken
 
   if (!token) {
-    await handleUnauthorized()
-    throw new Error('Sessão inválida ou expirada.')
+    throw new Error(
+      'Não foi possível obter a sessão. Verifique sua conexão ou entre novamente.',
+    )
   }
 
   try {
@@ -171,12 +183,24 @@ export async function listOrders(params: ListOrdersRequest = {}) {
 /** Query key para React Query: uso compartilhado entre OrderHeader, OrderOptionsPage, etc. */
 export const orderQueryKey = (orderId: string) => ['order', orderId] as const
 
+export const orderEventsQueryKey = (orderId: string) =>
+  ['order-events', orderId] as const
+
 export async function getOrder(orderId: string) {
   return guard(async (token) => {
     const baseUrl = endpoint.orders.replace(/\/$/, '')
     const url = `${baseUrl}/${orderId}/`
 
     return api.get(url, token) as Promise<Order>
+  })
+}
+
+/** GET /orders/:id/events/ — pipeline activity (append-only). */
+export async function getOrderEvents(orderId: string) {
+  return guard(async (token) => {
+    const base = endpoint.orders.replace(/\/$/, '')
+    const url = `${base}/${orderId}/events/`
+    return api.get(url, token) as Promise<OrderEvent[]>
   })
 }
 
@@ -249,4 +273,21 @@ export async function listPlans() {
     }
     return []
   })
+}
+
+/** GET /plans/ sem autenticação (mesmo payload que `listPlans` autenticado). */
+export async function listPlansPublic(): Promise<Array<{ id?: string; price?: number; name?: string }>> {
+  try {
+    const response = (await api.get(endpoint.plans)) as unknown
+    if (Array.isArray(response)) {
+      return response as Array<{ id?: string; price?: number; name?: string }>
+    }
+    if (response && typeof response === 'object' && 'plans' in response) {
+      const plans = (response as { plans?: unknown }).plans
+      return Array.isArray(plans) ? (plans as Array<{ id?: string; price?: number; name?: string }>) : []
+    }
+    return []
+  } catch {
+    return []
+  }
 }

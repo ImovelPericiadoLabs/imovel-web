@@ -1,17 +1,26 @@
 'use client'
 
 import { useMemo } from 'react'
-import { MapPin, Building, ChevronRight, Hash, Box, Layout, Package } from 'lucide-react'
+import { MapPin, Building, ChevronRight, Hash, Box, Layout, Package, Check } from 'lucide-react'
 import { useFormContext } from 'react-hook-form'
 import TextTitle from '@/components/text-title'
 import TextSubtitle from '@/components/text-subtitle'
 import Button from '@/components/button'
 import { SummaryItemsList, type SummaryItems } from '@/components/summary-items-list'
-import { trackGtmEvent, buildConsultItem, DEFAULT_CURRENCY, CONSULT_PRODUCT_PRICE } from '@/utils/analytics/gtm'
+import { trackGtmEvent, buildConsultItem, DEFAULT_CURRENCY } from '@/utils/analytics/gtm'
+import { formatMoney } from '@/utils/text/text'
+import { usePublicPlanPrice } from '@/hooks/use-public-plan-price'
+
+const VALUE_BULLETS = [
+  'Leitura assistida por IA da matrícula e dos documentos enviados',
+  'Sinais de risco, pendências e pontos que merecem atenção antes de negociar',
+  'Relatório em linguagem clara para apoiar sua decisão com segurança',
+] as const
 
 export function SummaryStep({ onNext }: { onNext: () => void }) {
   const { watch } = useFormContext()
   const values = watch()
+  const { price: consultPrice } = usePublicPlanPrice()
 
   const summary = useMemo(() => {
     const { address, addressHint, registry, registrationNumber, notaryName, allotment, block, lot } = values
@@ -100,11 +109,13 @@ export function SummaryStep({ onNext }: { onNext: () => void }) {
   }, [values])
 
   return (
-    <div className="flex flex-col gap-4 min-h-[calc(100vh-7.5rem)] relative pb-32">
-      <div className="px-4 flex flex-col gap-4">
-        <div className="flex flex-col gap-2 mb-6">
-          <TextTitle className="text-black">Resumo da Consulta do Imóvel</TextTitle>
-          <TextSubtitle className="text-black/70">Verifique se os dados abaixo estão corretos</TextSubtitle>
+    <div className="relative flex min-h-[calc(100vh-7.5rem)] flex-col gap-4 pb-32 lg:min-h-[calc(100vh-6rem)] lg:pb-28">
+      <div className="flex flex-col gap-4 px-4 md:px-6 xl:px-8">
+        <div className="mb-6 flex flex-col gap-2 lg:mx-auto lg:max-w-3xl lg:text-center">
+          <TextTitle className="text-black md:text-xl lg:text-2xl">Resumo da Consulta do Imóvel</TextTitle>
+          <TextSubtitle className="text-black/70 md:text-[15px] lg:mx-auto lg:max-w-xl lg:text-base">
+            Verifique se os dados abaixo estão corretos
+          </TextSubtitle>
         </div>
 
         {summary.length > 0 && (
@@ -113,36 +124,48 @@ export function SummaryStep({ onNext }: { onNext: () => void }) {
           </div>
         )}
 
-        <div className="flex flex-col gap-3">
-          <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
-            <div className="p-5 bg-white border-b border-gray-200 flex justify-between items-center">
+        <div className="flex flex-col gap-3 lg:mx-auto lg:max-w-3xl">
+          <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm lg:shadow-md">
+            <div className="flex flex-col gap-3 border-b border-gray-200 bg-white p-5 sm:flex-row sm:items-center sm:justify-between sm:gap-4 lg:p-6">
               <div className="flex flex-col gap-1">
-                <h2 className="font-bold text-base text-gray-900">Consulta Completa</h2>
-                <p className="text-xs text-gray-500 font-medium">Consulte o histórico do imóvel</p>
+                <h2 className="text-base font-bold text-gray-900 lg:text-lg">Consulta Completa</h2>
+                <p className="text-xs font-medium text-gray-500 lg:text-sm">Consulte o histórico do imóvel</p>
               </div>
-              <p className="text-lg font-bold text-primary">R$ 59,00</p>
+              <p className="text-lg font-bold text-primary tabular-nums sm:shrink-0 lg:text-xl">
+                {formatMoney(consultPrice)}
+              </p>
             </div>
 
-            <div className="p-6 bg-white">
+            <div className="flex flex-col gap-4 bg-white p-6 lg:p-8">
               <p className="text-[13px] text-gray-600 leading-relaxed font-medium text-left">
-                Nossa Inteligência Artificial realiza uma análise técnica e inteligente da matrícula do seu imóvel em segundos. Esqueça a burocracia e a insegurança: identificamos automaticamente pendências, riscos jurídicos e restrições ocultas que podem travar sua venda ou financiamento. Tenha em mãos um diagnóstico claro e comercial para garantir uma transação segura, protegendo seu patrimônio com a precisão tecnológica que você precisa para decidir com total confiança.
+                Você recebe uma análise objetiva do imóvel com base nos dados que informou — ideal antes de comprar, vender ou financiar.
               </p>
+              <ul className="flex flex-col gap-2.5">
+                {VALUE_BULLETS.map((line) => (
+                  <li key={line} className="flex gap-2.5 items-start text-[13px] text-gray-700 leading-snug">
+                    <span className="mt-0.5 shrink-0 rounded-full bg-primary/10 p-0.5 text-primary">
+                      <Check className="size-3.5" strokeWidth={2.5} aria-hidden />
+                    </span>
+                    <span>{line}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 px-4 pt-5 pb-7 bg-white mt-auto border-t border-gray-200 z-10">
+      <div className="fixed bottom-0 left-0 right-0 z-10 mt-auto border-t border-gray-200 bg-white px-4 pb-7 pt-5 md:px-6 lg:left-1/2 lg:right-auto lg:w-full lg:max-w-2xl lg:-translate-x-1/2 lg:rounded-t-2xl lg:border-x lg:px-8 lg:pb-8 lg:pt-6 lg:shadow-[0_-8px_30px_-12px_rgba(0,0,0,0.12)] xl:max-w-3xl">
         <Button 
-          className="w-full h-12 text-base rounded-xl" 
+          className="h-12 w-full rounded-xl text-base lg:h-11 lg:max-w-md lg:mx-auto" 
           onClick={() => {
             trackGtmEvent('begin_checkout', {
               event_category: 'checkout',
               event_label: 'summary_continue',
               event_description: 'Usuário avançou do resumo para o pagamento.',
               currency: DEFAULT_CURRENCY,
-              value: CONSULT_PRODUCT_PRICE,
-              items: [buildConsultItem(CONSULT_PRODUCT_PRICE)],
+              value: consultPrice,
+              items: [buildConsultItem(consultPrice)],
               checkout_step: 'summary',
             })
             trackGtmEvent('summary_continue', {

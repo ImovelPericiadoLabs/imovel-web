@@ -1,1 +1,1 @@
-export { formatDateWithTime } from './date'
+export { formatDateWithTime, formatRelativePastShort } from './date'

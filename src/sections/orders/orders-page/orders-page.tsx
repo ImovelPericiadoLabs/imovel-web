@@ -92,7 +92,7 @@ export default function OrdersPage() {
             return (
               <div key={order.id} ref={isLast ? lastOrderElementRef : null} className="flex flex-col gap-2">
                 <Link
-                  href={`/consultas/${order.id}/opcoes`}
+                  href={`/consultas/${order.id}`}
                   className={cn(
                     'group p-4 bg-white border rounded-xl transition-all duration-200 block shadow-sm hover:shadow-md',
                     theme.border

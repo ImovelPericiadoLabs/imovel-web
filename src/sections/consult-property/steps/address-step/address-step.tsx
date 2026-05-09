@@ -196,22 +196,23 @@ export const AddressStep = forwardRef<{ focus: () => boolean }, { onNext: () => 
   }, [isError, queryError])
 
   return (
-    <div className="flex flex-col h-full w-full px-4 relative pb-32">
+    <div className="relative flex h-full w-full flex-col px-4 pb-32 md:px-6 xl:px-8">
       <div className="flex-1 flex flex-col gap-4">
-        <div className="flex flex-col gap-2 mb-6 pb-1 max-w-[100%]">
-          <TextTitle className="text-black text-balance leading-snug sm:leading-6">
+        <div className="mb-6 flex max-w-[100%] flex-col gap-2 pb-1 lg:mx-auto lg:max-w-2xl lg:text-center">
+          <TextTitle className="text-balance text-black leading-snug sm:leading-6 md:text-xl lg:text-2xl">
             Digite o endereço do imóvel para começar
           </TextTitle>
-          <TextSubtitle className="text-black/70 text-pretty leading-snug sm:leading-4">
+          <TextSubtitle className="text-pretty text-black/70 leading-snug sm:leading-4 md:text-[15px] lg:mx-auto lg:max-w-xl lg:text-base">
             Escreva rua, número e bairro para avançar com segurança
           </TextSubtitle>
         </div>
 
         <div className="relative">
-          <button 
+          {/* div (não button): o autocomplete inclui BottomSheets com <Button>, e <button> não pode aninhar <button> */}
+          <div
             onClick={handleFocusClick}
             onTouchStart={handleFocusClick}
-            className="w-full text-left outline-none"
+            className="w-full text-left outline-none cursor-text"
           >
             <AutoCompleteAddressInput
               ref={inputRef}
@@ -226,7 +227,7 @@ export const AddressStep = forwardRef<{ focus: () => boolean }, { onNext: () => 
               isDirty={isEnabled}
               onClear={handleClearAddress}
             />
-          </button>
+          </div>
 
           {!address?.length && (
             <button 

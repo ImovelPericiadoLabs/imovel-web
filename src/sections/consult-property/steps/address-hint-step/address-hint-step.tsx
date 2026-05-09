@@ -22,12 +22,12 @@ export function AddressHintStep({ onNext, onBack, afterDocument }: AddressHintSt
   const hintErr = formState.errors.addressHint?.message
 
   return (
-    <div className="relative flex-1 px-4 pb-28">
-      <div className="flex flex-col gap-2 mb-4">
-        <TextTitle className="text-dark">
+    <div className="relative flex-1 px-4 pb-28 md:px-6 lg:pb-16 xl:px-8">
+      <div className="mb-4 flex flex-col gap-2 lg:mx-auto lg:max-w-2xl lg:text-center">
+        <TextTitle className="text-dark md:text-xl lg:text-2xl">
           {afterDocument ? 'Onde fica o imóvel?' : 'O que você sabe sobre o local?'}
         </TextTitle>
-        <TextSubtitle className="text-gray-500">
+        <TextSubtitle className="text-gray-500 md:text-[15px] lg:mx-auto lg:max-w-xl lg:text-base">
           {afterDocument
             ? 'Mesmo com o documento, um endereço ou referência (bairro, cidade, condomínio) ajuda a geolocalizar e agilizar o pedido. Nossa IA também lê o arquivo quando possível.'
             : 'Escreva bairro, cidade, condomínio ou trechos do endereço. Se preferir, pule e busque pelo mapa na próxima tela.'}

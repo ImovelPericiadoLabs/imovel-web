@@ -1,6 +1,7 @@
 import { signOut } from 'next-auth/react'
 import { url } from '@/constants/api'
 import { ApiError } from '@/utils/api/errors'
+import { clearAuthClientFlag } from '@/utils/auth-client-flag'
 
 const apiUrl = url
 const INTERNAL_API_HEADER_NAME = process.env.INTERNAL_API_HEADER_NAME || 'x-internal-auth'
@@ -42,6 +43,7 @@ function appendInternalApiHeader(
 
 async function handleUnauthorized() {
   if (typeof window === 'undefined') return
+  clearAuthClientFlag()
   window.dispatchEvent(new Event('auth:unauthorized'))
   await signOut({ redirect: false })
 }
@@ -63,11 +65,39 @@ const api = {
       method: 'GET',
     })
 
-    const result = await response.json()
+    const responseText = await response.text()
+    let result: unknown = {}
+    if (responseText) {
+      try {
+        result = JSON.parse(responseText) as unknown
+      } catch {
+        if (!response.ok) {
+          throw new Error(`Resposta inválida da API (${response.status}).`)
+        }
+        throw new Error('Resposta inválida da API')
+      }
+    }
 
     if (response.status === 401) {
       await handleUnauthorized()
       throw result
+    }
+
+    if (response.status === 400 || response.status === 403 || response.status === 429 || response.status === 502) {
+      const body = result && typeof result === 'object' ? (result as Record<string, unknown>) : {}
+      const err = body.error as { code?: string; message?: string } | undefined
+      if (err && typeof err.code === 'string' && typeof err.message === 'string') {
+        throw new ApiError(err.code, err.message)
+      }
+      const detail = body.detail
+      if (typeof detail === 'string') {
+        throw new Error(detail)
+      }
+      throw new Error(typeof body.message === 'string' ? body.message : 'Erro na requisição')
+    }
+
+    if (!response.ok) {
+      throw new Error(`Erro ${response.status}`)
     }
 
     return result
@@ -227,26 +257,59 @@ const api = {
     return result
   },
 
-  async delete(url: string) {
+  async delete(url: string, token?: string) {
     const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
+      Accept: 'application/json',
     }
 
     appendInternalApiHeader(headers, 'DELETE', url)
+
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
 
     const response = await fetch(`${apiUrl}${url}`, {
       headers,
       method: 'DELETE',
     })
 
-    const result = await response.text()
+    const responseText = await response.text()
 
     if (response.status === 401) {
       await handleUnauthorized()
-      throw result
+      throw responseText
     }
 
-    return result
+    if (response.status === 400 || response.status === 403) {
+      let result: { error?: { code?: string; message?: string }; detail?: string }
+      try {
+        result = responseText ? JSON.parse(responseText) : {}
+      } catch {
+        throw new Error('Resposta inválida da API')
+      }
+      const err = result?.error
+      if (err && typeof err.code === 'string' && typeof err.message === 'string') {
+        throw new ApiError(err.code, err.message)
+      }
+      const detail = result?.detail
+      if (typeof detail === 'string') {
+        throw new Error(detail)
+      }
+      throw new Error('Erro na requisição')
+    }
+
+    if (!response.ok) {
+      throw new Error(`Erro ${response.status}`)
+    }
+
+    if (response.status === 204 || !responseText) {
+      return {}
+    }
+    try {
+      return JSON.parse(responseText)
+    } catch {
+      return {}
+    }
   },
 
   async upload(url: string, documentType: string, file: File, onProgress: (percent: number) => void) {

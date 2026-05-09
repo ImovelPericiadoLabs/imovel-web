@@ -93,6 +93,10 @@ export interface OrderLike {
     value?: string
     label?: string
   }
+  payment_status?: {
+    value?: string
+    label?: string
+  }
   semaphore?: unknown
 }
 
@@ -128,6 +132,10 @@ export function resolveOrderTheme(order: OrderLike) {
 export function resolveBadgeLabel(order: OrderLike) {
   const status = order.status?.value
 
+  if (status === 'PENDING' && order.payment_status?.value === 'CONFIRMED') {
+    return 'Em processamento'
+  }
+
   if (status === 'FINISHED' && isSemaphore(order.semaphore)) {
     return SEMAPHORE_CONFIG[order.semaphore].label
   }
@@ -142,6 +150,11 @@ export function resolveBadgeLabel(order: OrderLike) {
 }
 
 export function resolveListBadgeLabel(order: OrderLike) {
+  const statusEarly = order.status?.value
+  if (statusEarly === 'PENDING' && order.payment_status?.value === 'CONFIRMED') {
+    return 'Em processamento'
+  }
+
   if (order.status?.label) {
     return order.status.label
   }
@@ -168,6 +181,10 @@ export function resolveListBadgeLabel(order: OrderLike) {
 
 export function resolveDetailBadgeLabel(order: OrderLike) {
   const status = order.status?.value
+
+  if (status === 'PENDING' && order.payment_status?.value === 'CONFIRMED') {
+    return 'Em processamento'
+  }
 
   if (status === 'FINISHED' && isSemaphore(order.semaphore)) {
     return SEMAPHORE_CONFIG[order.semaphore].label
