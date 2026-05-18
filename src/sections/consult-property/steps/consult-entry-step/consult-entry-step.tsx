@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { MapPin, FileText, HelpCircle, LayoutList } from 'lucide-react'
+import { MapPin, FileText, Hash, LayoutList } from 'lucide-react'
 import TextTitle from '@/components/text-title'
 import TextSubtitle from '@/components/text-subtitle'
 import { trackGtmEvent } from '@/utils/analytics/gtm'
@@ -22,21 +22,21 @@ const cards: {
 }[] = [
   {
     id: 'address',
-    title: 'Tenho o endereço do imóvel',
-    subtitle: 'Busca pelo Google: a forma mais rápida e precisa.',
+    title: 'Tenho Endereço',
+    subtitle: 'Busque no mapa — o jeito mais rápido de começar sua consulta.',
     icon: MapPin,
   },
   {
     id: 'document',
-    title: 'Tenho documento (foto ou PDF)',
-    subtitle: 'Matrícula, contrato ou escritura — depois você pode complementar o local.',
+    title: 'Tenho Documento do Imóvel',
+    subtitle: 'Envie foto ou PDF da matrícula, contrato ou escritura.',
     icon: FileText,
   },
   {
     id: 'unsure',
-    title: 'Não tenho o endereço exato',
-    subtitle: 'Informe matrícula e cartório — o jeito mais preciso quando você não tem o endereço no mapa.',
-    icon: HelpCircle,
+    title: 'Tenho a Matrícula',
+    subtitle: 'Informe o número e o cartório — perfeito se ainda não tem o endereço no mapa.',
+    icon: Hash,
   },
 ]
 
@@ -103,8 +103,8 @@ export function ConsultEntryStep({ onChoose }: ConsultEntryStepProps) {
       </Link>
 
       <p className="mt-6 px-1 text-[11px] leading-relaxed text-gray-400 lg:mx-auto lg:mt-8 lg:max-w-2xl lg:text-center lg:text-xs">
-        Se você já tiver matrícula ou contrato em mãos, enviar o arquivo agiliza a análise. Sem endereço no mapa,
-        use matrícula e cartório. Com endereço, também podemos buscar a matrícula para você.
+        Com endereço, buscamos a matrícula para você. Com documento em mãos, a análise fica mais rápida.
+        Só tem a matrícula? Informe número e cartório.
       </p>
     </div>
   )

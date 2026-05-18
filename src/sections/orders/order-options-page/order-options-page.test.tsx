@@ -57,7 +57,7 @@ describe('OrderOptionsPage', () => {
     expect(screen.getByTestId('order-header')).toBeInTheDocument()
 
     const links = screen.getAllByRole('link')
-    expect(links[0]).toHaveAttribute('href', `/consultas/${mockId}`)
+    expect(links[0]).toHaveAttribute('href', `/consultas/${mockId}/visualizar`)
     expect(links[1]).toHaveAttribute('href', `/consultas/${mockId}/opcoes/documentos`)
     expect(links[2]).toHaveAttribute('href', `/consultas/${mockId}/opcoes/proprietarios`)
   })

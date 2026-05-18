@@ -133,6 +133,9 @@ export default function AppLayout({ children }: PropsWithChildren) {
 
   const headerTitle = useMemo(() => {
     if (isMatch('/consultas/:id')) {
+      return <HeaderTitle>Sua consulta</HeaderTitle>
+    }
+    if (isMatch('/consultas/:id/visualizar')) {
       return <HeaderTitle>Resultado da consulta</HeaderTitle>
     }
     if (isMatch('/consultas/:id/opcoes')) {

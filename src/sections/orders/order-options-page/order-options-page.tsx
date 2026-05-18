@@ -21,7 +21,7 @@ export default function OrderOptionsPage() {
       icon: FileText,
       title: 'Resultado',
       subtitle: 'Visualizar resultado completo',
-      href: `/consultas/${id}`,
+      href: `/consultas/${id}/visualizar`,
     },
     {
       icon: Files,
