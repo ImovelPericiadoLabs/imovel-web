@@ -3,7 +3,7 @@
 import { PropsWithChildren, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { ChevronLeft, Menu, X, LogOut, Wallet, Mail, Search, List, FileText, Trash2, AlertTriangle, LoaderCircle, Megaphone, MessageSquare, ClipboardList } from 'lucide-react'
+import { ChevronLeft, Menu, X, LogOut, Wallet, Mail, Search, List, FileText, Trash2, AlertTriangle, LoaderCircle, Megaphone, MessageSquare, ClipboardList, UserPlus } from 'lucide-react'
 import Link from 'next/link'
 import { useSession } from 'next-auth/react'
 import { useMutation, useQuery } from '@tanstack/react-query'
@@ -70,6 +70,10 @@ export default function AppLayout({ children }: PropsWithChildren) {
     const mapRoutes: Record<string, string> = {
       '/consultas': CONSULTAR_IMOVEL_INICIO_HREF,
       '/admin/manual-review': '/consultas',
+<<<<<<< feat/partner-test-accounts
+      '/admin/partner-accounts': '/consultas',
+=======
+>>>>>>> main
       '/admin/outreach': '/consultas',
       '/admin/chat': '/admin/outreach',
     }
@@ -153,6 +157,12 @@ export default function AppLayout({ children }: PropsWithChildren) {
     if (pathname.startsWith('/admin/manual-review')) {
       return <HeaderTitle>Fila manual</HeaderTitle>
     }
+<<<<<<< feat/partner-test-accounts
+    if (pathname.startsWith('/admin/partner-accounts')) {
+      return <HeaderTitle>Contas de teste</HeaderTitle>
+    }
+=======
+>>>>>>> main
     if (pathname.startsWith('/admin/outreach')) {
       return <HeaderTitle>Divulgação</HeaderTitle>
     }
@@ -288,6 +298,26 @@ export default function AppLayout({ children }: PropsWithChildren) {
                     Minhas consultas
                   </Link>
                   {(me?.is_staff || me?.is_superuser) && (
+<<<<<<< feat/partner-test-accounts
+                    <>
+                      <Link
+                        href="/admin/manual-review"
+                        onClick={() => setSidebarOpen(false)}
+                        className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-gray-700 hover:bg-gray-100 font-medium touch-manipulation"
+                      >
+                        <ClipboardList className="size-5 text-primary shrink-0" />
+                        Fila manual (equipe)
+                      </Link>
+                      <Link
+                        href="/admin/partner-accounts"
+                        onClick={() => setSidebarOpen(false)}
+                        className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-gray-700 hover:bg-gray-100 font-medium touch-manipulation"
+                      >
+                        <UserPlus className="size-5 text-primary shrink-0" />
+                        Contas de teste (parceiros)
+                      </Link>
+                    </>
+=======
                     <Link
                       href="/admin/manual-review"
                       onClick={() => setSidebarOpen(false)}
@@ -296,6 +326,7 @@ export default function AppLayout({ children }: PropsWithChildren) {
                       <ClipboardList className="size-5 text-primary shrink-0" />
                       Fila manual (equipe)
                     </Link>
+>>>>>>> main
                   )}
                   {me?.is_superuser && (
                     <>
