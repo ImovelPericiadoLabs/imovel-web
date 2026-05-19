@@ -38,9 +38,12 @@ export const endpoint = {
     manualReviewUpload: (id: string) => `/admin/staff/manual-review/orders/${id}/registration-upload/`,
     manualReviewEnqueue: (id: string) => `/admin/staff/manual-review/orders/${id}/enqueue-analysis/`,
     manualReviewResolve: (id: string) => `/admin/staff/manual-review/orders/${id}/resolve/`,
+<<<<<<< feat/partner-test-accounts
     partnerAccounts: '/admin/staff/partner-accounts/',
     partnerAccount: (id: string) => `/admin/staff/partner-accounts/${id}/`,
     partnerAccountCredits: (id: string) => `/admin/staff/partner-accounts/${id}/credits/`,
+=======
+>>>>>>> main
   },
   chat: {
     campaigns: '/admin/chat/campaigns/',
