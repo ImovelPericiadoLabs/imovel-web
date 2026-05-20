@@ -2,10 +2,6 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import DocumentUpload from './document-upload'
 
-vi.mock('lucide-react', () => ({
-  CloudUpload: () => <div data-testid="cloud-icon" />,
-}))
-
 describe('DocumentUpload', () => {
   const mockOnFileSelect = vi.fn()
 
@@ -29,7 +25,7 @@ describe('DocumentUpload', () => {
   it('should render the component with initial text and icon', () => {
     render(<DocumentUpload onFileSelect={mockOnFileSelect} />)
 
-    expect(screen.getByTestId('cloud-icon')).toBeInTheDocument()
+    expect(screen.getByTestId('icon-CloudUpload')).toBeInTheDocument()
     expect(screen.getByText('Carregue o documento')).toBeInTheDocument()
     expect(screen.getByText(/Aceitamos \(PDF, imagem ou word, até 250 MB\)\./)).toBeInTheDocument()
 

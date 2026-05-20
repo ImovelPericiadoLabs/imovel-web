@@ -2,18 +2,6 @@ import { vi, describe, it, expect, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import React from 'react'
 
-vi.mock('lucide-react', () => ({
-  Search: () => <div data-testid="icon-search" />,
-  X: ({ onClick }: any) => <div data-testid="icon-clear" onClick={onClick} />,
-  MapPin: () => <div data-testid="icon-map-pin" />,
-  CircleAlert: () => <div data-testid="icon-alert" />,
-  MapPinX: () => <div data-testid="icon-map-pin-x" />,
-}))
-
-vi.mock('@/utils/tailwind', () => ({
-  cn: (...inputs: any[]) => inputs.filter(Boolean).join(' '),
-}))
-
 vi.mock('@/components/button', () => ({
   default: ({ children, onClick }: any) => <button onClick={onClick}>{children}</button>,
 }))
@@ -69,7 +57,7 @@ describe('AutoCompleteInput', () => {
     render(<AutoCompleteInput {...defaultProps} />)
     const input = screen.getByTestId('base-input')
     fireEvent.change(input, { target: { value: 'Texto' } })
-    fireEvent.click(screen.getByTestId('icon-clear'))
+    fireEvent.click(screen.getByTestId('icon-X'))
     expect(input).toHaveValue('')
     expect(input).toHaveFocus()
   })
@@ -83,11 +71,17 @@ describe('AutoCompleteInput', () => {
 
     await waitFor(() => expect(screen.getByText('Confirmar este endereço?')).toBeInTheDocument())
     fireEvent.click(screen.getByText('Confirmar'))
-    expect(defaultProps.onConfirm).toHaveBeenCalledWith('Rua Teste, 123')
+    expect(defaultProps.onConfirm).toHaveBeenCalledWith(
+      expect.objectContaining({ address: 'Rua Teste, 123', addressNumber: '123' }),
+    )
   })
 
-  it('deve mostrar modal de consentimento quando endereço não tem número e permitir continuar', async () => {
-    const mockNoNumber = vi.fn().mockResolvedValue({ address: 'Rua S/N', addressNumber: null })
+  it('deve exigir número ou checkbox antes de confirmar endereço sem número do Google', async () => {
+    const mockNoNumber = vi.fn().mockResolvedValue({
+      address: 'Rua S/N',
+      addressNumber: null,
+      place_response: { route: 'Rua S/N', state: 'RS' },
+    })
     render(<AutoCompleteInput {...defaultProps} onSelectAddress={mockNoNumber} options={[{ primary: 'Rua A', placeId: '1' }]} />)
 
     fireEvent.change(screen.getByTestId('base-input'), { target: { value: 'Rua' } })
@@ -96,10 +90,18 @@ describe('AutoCompleteInput', () => {
     const modalConsent = await screen.findByText('Endereço sem número')
     const parentSheet = modalConsent.closest('[data-testid="bottom-sheet"]') as HTMLElement
 
-    const btnContinuar = within(parentSheet).getByText('Continuar assim mesmo')
-    fireEvent.click(btnContinuar)
+    const btnConfirmar = within(parentSheet).getByText('Confirmar endereço')
+    expect(btnConfirmar).toBeDisabled()
 
-    expect(defaultProps.onConfirm).toHaveBeenCalledWith('Rua S/N')
+    fireEvent.click(within(parentSheet).getByRole('checkbox'))
+    fireEvent.click(btnConfirmar)
+
+    expect(defaultProps.onConfirm).toHaveBeenCalledWith(
+      expect.objectContaining({
+        address: 'Rua S/N',
+        place_response: expect.objectContaining({ address_has_number: false }),
+      }),
+    )
   })
 
   it('deve permitir fechar o modal de consentimento ao clicar em Corrigir endereço', async () => {

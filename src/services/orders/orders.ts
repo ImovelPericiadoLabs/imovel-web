@@ -31,6 +31,7 @@ export type OrderAnalysisResult = {
 export type PlaceResponse = {
   formatted_address?: string
   street_number?: string
+  address_has_number?: boolean
   route?: string
   neighborhood?: string
   sublocality?: string

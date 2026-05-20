@@ -18,13 +18,6 @@ vi.mock('@/components/progress-bar', () => ({
   default: ({ value }: { value: number }) => <div data-testid="progress-bar" data-value={value} />,
 }))
 
-vi.mock('lucide-react', () => ({
-  ChevronLeft: ({ onClick, className }: any) => (
-    <div data-testid="chevron-left" onClick={onClick} className={className} role="button" />
-  ),
-  CircleQuestionMark: () => <div data-testid="circle-question-mark" />,
-}))
-
 vi.mock('@/components/traffic-light-modal', () => ({
   default: ({ children }: { children: React.ReactNode }) => <div>{children}</div>
 }))
@@ -136,7 +129,7 @@ describe('ConsultProperty Flow', () => {
 
   it('na entrada, voltar envia para a home', () => {
     render(<ConsultProperty />)
-    const backBtn = screen.getByTestId('chevron-left')
+    const backBtn = screen.getByTestId('icon-ChevronLeft')
     fireEvent.click(backBtn)
     expect(mockPush).toHaveBeenCalledWith('/')
   })
@@ -148,13 +141,13 @@ describe('ConsultProperty Flow', () => {
     fireEvent.click(screen.getByText('Next Address'))
     fireEvent.click(screen.getByText('Next Complement'))
 
-    fireEvent.click(screen.getByTestId('chevron-left'))
+    fireEvent.click(screen.getByTestId('icon-ChevronLeft'))
     expect(screen.getByTestId('address-complement-step')).toBeVisible()
 
-    fireEvent.click(screen.getByTestId('chevron-left'))
+    fireEvent.click(screen.getByTestId('icon-ChevronLeft'))
     expect(screen.getByTestId('address-step')).toBeVisible()
 
-    fireEvent.click(screen.getByTestId('chevron-left'))
+    fireEvent.click(screen.getByTestId('icon-ChevronLeft'))
     expect(screen.getByTestId('entry-step')).toBeVisible()
   })
 
@@ -172,11 +165,11 @@ describe('ConsultProperty Flow', () => {
     fireEvent.click(screen.getByText('Next DocConfirm'))
     
     // Voltando de DocType para DocConfirmation
-    fireEvent.click(screen.getByTestId('chevron-left'))
+    fireEvent.click(screen.getByTestId('icon-ChevronLeft'))
     expect(screen.getByTestId('document-confirmation-step')).toBeVisible()
 
     // Voltando de DocConfirmation para AddressComplement
-    fireEvent.click(screen.getByTestId('chevron-left'))
+    fireEvent.click(screen.getByTestId('icon-ChevronLeft'))
     expect(screen.getByTestId('address-complement-step')).toBeVisible()
   })
 
@@ -194,7 +187,7 @@ describe('ConsultProperty Flow', () => {
     fireEvent.click(screen.getByText('Next Summary'))
     fireEvent.click(screen.getByText('Finish Payment'))
 
-    fireEvent.click(screen.getByTestId('chevron-left'))
+    fireEvent.click(screen.getByTestId('icon-ChevronLeft'))
 
     expect(mockLocation.href).toBe('/consultar-imovel?inicio=1')
 

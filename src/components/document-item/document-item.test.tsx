@@ -2,16 +2,6 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
 import DocumentItem from './document-item'
 
-vi.mock('lucide-react', () => ({
-  Image: ({ className }: { className: string }) => (
-    <svg data-testid="image-icon" className={className} />
-  ),
-  File: ({ className }: { className: string }) => (
-    <svg data-testid="file-icon" className={className} />
-  ),
-  Trash: () => <svg data-testid="trash-icon" />,
-}))
-
 const mockDocumentImage = {
   id: '1',
   name: 'foto.png',
@@ -37,15 +27,15 @@ describe('DocumentItem', () => {
   it('should render the image icon when document is an image', () => {
     render(<DocumentItem document={mockDocumentImage} onRemove={() => {}} />)
 
-    expect(screen.getByTestId('image-icon')).toBeInTheDocument()
-    expect(screen.queryByTestId('file-icon')).not.toBeInTheDocument()
+    expect(screen.getByTestId('icon-Image')).toBeInTheDocument()
+    expect(screen.queryByTestId('icon-File')).not.toBeInTheDocument()
   })
 
   it('should render the file icon when document is not an image', () => {
     render(<DocumentItem document={mockDocumentFile} onRemove={() => {}} />)
 
-    expect(screen.getByTestId('file-icon')).toBeInTheDocument()
-    expect(screen.queryByTestId('image-icon')).not.toBeInTheDocument()
+    expect(screen.getByTestId('icon-File')).toBeInTheDocument()
+    expect(screen.queryByTestId('icon-Image')).not.toBeInTheDocument()
   })
 
   it('should call onRemove when clicking the trash button', () => {
@@ -62,6 +52,6 @@ describe('DocumentItem', () => {
   it('should render the trash icon', () => {
     render(<DocumentItem document={mockDocumentImage} onRemove={() => {}} />)
 
-    expect(screen.getByTestId('trash-icon')).toBeInTheDocument()
+    expect(screen.getByTestId('icon-Trash')).toBeInTheDocument()
   })
 })

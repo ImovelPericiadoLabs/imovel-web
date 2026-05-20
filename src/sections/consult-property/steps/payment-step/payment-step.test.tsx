@@ -27,13 +27,6 @@ vi.mock('@/components/switch', () => ({
   ),
 }))
 
-vi.mock('lucide-react', () => ({
-  QrCode: () => <svg data-testid="icon-qrcode" />,
-  CreditCard: () => <svg data-testid="icon-credit-card" />,
-  Barcode: () => <svg data-testid="icon-barcode" />,
-  DollarSign: () => <svg data-testid="icon-dollar" />,
-}))
-
 const mockSetValue = vi.fn()
 const mockWatch = vi.fn()
 const mockOnPix = vi.fn()

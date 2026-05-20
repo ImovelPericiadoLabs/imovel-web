@@ -8,6 +8,7 @@ import TextTitle from '@/components/text-title'
 import Skeleton from '@/components/skeleton'
 import BottomSheet from '@/components/bottom-sheet'
 import Input from '@/components/input'
+import type { AddressConfirmPayload, PlaceResponseFromApi } from '@/services/addresses/addresses'
 
 type Option = {
   primary?: string
@@ -19,9 +20,9 @@ type Option = {
 interface Props extends React.InputHTMLAttributes<HTMLInputElement> {
   options?: Option[]
   isLoading?: boolean
-  onConfirm: (address: string) => void
+  onConfirm: (payload: AddressConfirmPayload) => void
   isLoadingAddress?: boolean
-  onSelectAddress: (value: string) => Promise<{ address: string; addressNumber: string | null }>
+  onSelectAddress: (value: string) => Promise<AddressConfirmPayload>
   error?: {
     title: string
     subtitle: string
@@ -34,6 +35,30 @@ interface Props extends React.InputHTMLAttributes<HTMLInputElement> {
 const loadingOptions = Array.from({ length: 5 }, (_, i) => ({
   value: i,
 }))
+
+function buildConfirmPayload(
+  address: string,
+  placeResponse: PlaceResponseFromApi | undefined,
+  streetNumber: string | null,
+  noStreetNumber: boolean,
+): AddressConfirmPayload {
+  const trimmed = streetNumber?.trim() || ''
+  const hasNumber = !noStreetNumber && Boolean(trimmed)
+
+  const place_response: PlaceResponseFromApi = {
+    ...placeResponse,
+    formatted_address: placeResponse?.formatted_address || address,
+    street_number: hasNumber ? trimmed : undefined,
+    address_has_number: hasNumber,
+  }
+
+  return {
+    address,
+    addressNumber: hasNumber ? trimmed : null,
+    postalCode: placeResponse?.postal_code,
+    place_response,
+  }
+}
 
 const AutoCompleteInput = forwardRef<HTMLInputElement, Props>(({
   options,
@@ -53,10 +78,16 @@ const AutoCompleteInput = forwardRef<HTMLInputElement, Props>(({
   const [isOpenNotFoundAddressSheet, setIsOpenNotFoundAddressSheet] = useState(false)
   const [isOpenConsentSheet, setIsOpenConsentSheet] = useState(false)
   const [addressError, setAddressError] = useState<{ title: string; subtitle: string } | null>(null)
+  const [pendingPlace, setPendingPlace] = useState<AddressConfirmPayload | null>(null)
+  const [manualNumber, setManualNumber] = useState('')
+  const [noStreetNumber, setNoStreetNumber] = useState(false)
 
   const internalInputRef = useRef<HTMLInputElement>(null)
 
   useImperativeHandle(ref, () => internalInputRef.current as HTMLInputElement)
+
+  const canConfirmWithoutNumber =
+    manualNumber.trim().length > 0 || noStreetNumber
 
   function handleFocusInput() {
     const el = internalInputRef?.current
@@ -89,6 +120,9 @@ const AutoCompleteInput = forwardRef<HTMLInputElement, Props>(({
       onClear()
     }
     setValue('')
+    setPendingPlace(null)
+    setManualNumber('')
+    setNoStreetNumber(false)
     internalInputRef.current?.focus()
   }
 
@@ -98,6 +132,9 @@ const AutoCompleteInput = forwardRef<HTMLInputElement, Props>(({
     const result = await onSelectAddress(placeId as string)
 
     if (!result.addressNumber) {
+      setPendingPlace(result)
+      setManualNumber('')
+      setNoStreetNumber(false)
       setIsOpenConsentSheet(true)
       handleCloseAddressSheet()
       setValue(result.address)
@@ -105,11 +142,37 @@ const AutoCompleteInput = forwardRef<HTMLInputElement, Props>(({
     }
 
     setValue(result.address)
+    setPendingPlace(result)
   }
 
-  function handleContinueWithoutNumber() {
+  function handleConfirmWithNumber() {
+    if (!pendingPlace) return
+
+    const payload = buildConfirmPayload(
+      pendingPlace.address,
+      pendingPlace.place_response,
+      manualNumber,
+      noStreetNumber,
+    )
+
     setIsOpenConsentSheet(false)
-    onConfirm(value)
+    onConfirm(payload)
+    setPendingPlace(null)
+    setManualNumber('')
+    setNoStreetNumber(false)
+  }
+
+  function handleConfirmAddressSheet() {
+    if (!pendingPlace?.addressNumber) return
+
+    onConfirm(
+      buildConfirmPayload(
+        value,
+        pendingPlace.place_response,
+        pendingPlace.addressNumber,
+        false,
+      ),
+    )
   }
 
   function handleOpenAddressSheet() {
@@ -132,6 +195,9 @@ const AutoCompleteInput = forwardRef<HTMLInputElement, Props>(({
     setIsOpenConsentSheet(false)
 
     setAddressError(null)
+    setPendingPlace(null)
+    setManualNumber('')
+    setNoStreetNumber(false)
   }
 
   useEffect(() => {
@@ -296,9 +362,7 @@ const AutoCompleteInput = forwardRef<HTMLInputElement, Props>(({
 
           {!isLoadingAddress ? (
             <Button 
-              onClick={() => {
-                onConfirm(value)
-              }} 
+              onClick={handleConfirmAddressSheet}
               className="h-12 rounded-xl" 
               icon={<Check className="size-5" />}
             >
@@ -321,17 +385,57 @@ const AutoCompleteInput = forwardRef<HTMLInputElement, Props>(({
             </div>
             
             <p className="text-lg font-semibold leading-tight text-gray-700">
-              O endereço selecionado não possui um número.
+              O Google não retornou o número deste imóvel.
             </p>
             
-            <p className="text-sm text-gray-500 leading-relaxed">
-              Deseja continuar assim mesmo ou prefere corrigir?
+            <p className="text-sm text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 leading-relaxed">
+              Endereços sem número podem reduzir a precisão da busca registral.
             </p>
+
+            <div className="flex flex-col gap-2">
+              <label htmlFor="property-number" className="text-sm font-semibold text-gray-700">
+                Número do imóvel
+              </label>
+              <Input
+                id="property-number"
+                placeholder="Ex.: 123"
+                value={manualNumber}
+                disabled={noStreetNumber}
+                onChange={(e) => {
+                  setManualNumber(e.target.value)
+                  if (e.target.value.trim()) {
+                    setNoStreetNumber(false)
+                  }
+                }}
+              />
+            </div>
+
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                className="mt-1 size-4 rounded border-gray-300"
+                checked={noStreetNumber}
+                onChange={(e) => {
+                  setNoStreetNumber(e.target.checked)
+                  if (e.target.checked) {
+                    setManualNumber('')
+                  }
+                }}
+              />
+              <span className="text-sm text-gray-700 leading-snug">
+                Imóvel sem número
+              </span>
+            </label>
           </div>
 
           <div className="flex flex-col w-full gap-3">
-            <Button onClick={handleContinueWithoutNumber} className="h-12 rounded-xl" icon={<Check className="size-5" />}>
-              Continuar assim mesmo
+            <Button
+              onClick={handleConfirmWithNumber}
+              disabled={!canConfirmWithoutNumber}
+              className="h-12 rounded-xl"
+              icon={<Check className="size-5" />}
+            >
+              Confirmar endereço
             </Button>
             <Button 
               variant="outline" 

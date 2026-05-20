@@ -145,7 +145,7 @@ describe('api.upload', () => {
     const file = new File(['data'], 'test.png')
     const onProgress = vi.fn()
 
-    const promise = api.upload('/upload', file, onProgress)
+    const promise = api.upload('/upload', 'REGISTRATION', file, onProgress)
     const xhr = MockXHR.instance
 
     xhr.upload.onprogress({ lengthComputable: true, loaded: 50, total: 100 })
@@ -160,7 +160,7 @@ describe('api.upload', () => {
 
   it('deve rejeitar upload com 401 e chamar signOut', async () => {
     const file = new File([''], 'empty.txt')
-    const promise = api.upload('/fail', file, vi.fn())
+    const promise = api.upload('/fail', 'REGISTRATION', file, vi.fn())
     
     const xhr = MockXHR.instance
     xhr.status = 401
@@ -173,7 +173,7 @@ describe('api.upload', () => {
 
   it('deve falhar se o progresso não for computável', async () => {
     const onProgress = vi.fn()
-    api.upload('/up', new File([], 'f'), onProgress)
+    api.upload('/up', 'REGISTRATION', new File([], 'f'), onProgress)
     MockXHR.instance.upload.onprogress({ lengthComputable: false })
     expect(onProgress).not.toHaveBeenCalled()
   })

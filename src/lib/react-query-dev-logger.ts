@@ -70,7 +70,8 @@ export function attachReactQueryDevLogger(queryClient: QueryClient): void {
     const actionType = event.action?.type
 
     if (actionType === 'fetch' && query.state.fetchStatus === 'fetching') {
-      const reason = String(event.action?.meta?.reason ?? actionType)
+      const fetchMore = event.action?.meta?.fetchMore?.direction
+      const reason = fetchMore ? `fetchMore:${fetchMore}` : String(actionType ?? 'fetch')
       recordFetch(query.queryKey, reason)
     }
 

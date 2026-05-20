@@ -4,5 +4,6 @@ export {
   listAddress,
   type Registry,
   type PlaceResponseFromApi,
-  type FormattedAddressResult
+  type AddressConfirmPayload,
+  type FormattedAddressResult,
 } from './addresses'

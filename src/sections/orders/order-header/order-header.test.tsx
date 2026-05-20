@@ -31,10 +31,6 @@ vi.mock('@/utils/date', () => ({
   formatDateWithTime: vi.fn((date) => `formatado: ${date}`),
 }))
 
-vi.mock('lucide-react', () => ({
-  MapPin: () => <div data-testid="map-pin-icon" />,
-}))
-
 vi.mock('@/components/traffic-light', () => ({
   default: ({ red, green, yellow }: any) => (
     <div data-testid="traffic-light" data-red={String(red)} data-green={String(green)} data-yellow={String(yellow)} />
@@ -100,9 +96,7 @@ describe('OrderHeader', () => {
     render(<OrderHeader />, { wrapper })
 
     await waitFor(() => {
-      // Status desconhecido (APPROVED não está em OrderStatus) usa fallback "—"
-      expect(screen.getByText('—')).toBeInTheDocument()
-      // E não deve mostrar o semáforo
+      expect(screen.getByText('Aprovado')).toBeInTheDocument()
       expect(screen.queryByTestId('traffic-light')).not.toBeInTheDocument()
     })
   })

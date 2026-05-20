@@ -43,7 +43,7 @@ describe('InsertStep', () => {
   })
 
   it('should render the heading and description correctly', () => {
-    expect(screen.getByText('Acessar ou cadastrar')).toBeVisible()
+    expect(screen.getByText('Acessar')).toBeVisible()
     expect(screen.getByText(/Insira seu e-mail/)).toBeVisible()
   })
 
@@ -134,7 +134,7 @@ describe('InsertStep', () => {
   })
 
   it('should display default error message when API fails without detail', async () => {
-    vi.mocked(startAuth).mockRejectedValue(new Error('Network error'))
+    vi.mocked(startAuth).mockRejectedValue({})
 
     const input = screen.getByPlaceholderText('Seu e-mail')
     const button = screen.getByRole('button', { name: /Continuar/i })

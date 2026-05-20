@@ -28,13 +28,6 @@ vi.mock('@/services/orders', () => ({
   orderQueryKey: (id: string) => ['order', id],
 }))
 
-vi.mock('lucide-react', () => ({
-  ChevronRight: () => <div data-testid="chevron-right" />,
-  FileText: () => <div data-testid="icon-file-text" />,
-  Files: () => <div data-testid="icon-files" />,
-  Users: () => <div data-testid="icon-users" />,
-}))
-
 vi.mock('@/sections/orders/order-header', () => ({
   default: () => <div data-testid="order-header" />,
 }))
@@ -81,11 +74,11 @@ describe('OrderOptionsPage', () => {
     render(<OrderOptionsPage />, { wrapper })
 
     await waitFor(() => {
-      expect(screen.getByTestId('icon-file-text')).toBeInTheDocument()
+      expect(screen.getByTestId('icon-FileText')).toBeInTheDocument()
     })
-    expect(screen.getByTestId('icon-files')).toBeInTheDocument()
-    expect(screen.getByTestId('icon-users')).toBeInTheDocument()
-    expect(screen.getAllByTestId('chevron-right')).toHaveLength(3)
+    expect(screen.getByTestId('icon-Files')).toBeInTheDocument()
+    expect(screen.getByTestId('icon-Users')).toBeInTheDocument()
+    expect(screen.getAllByTestId('icon-ChevronRight')).toHaveLength(3)
   })
 
   it('deve aplicar as classes de hover e borda nos cartões', async () => {

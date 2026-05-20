@@ -43,7 +43,18 @@ vi.mock('@/components/auto-complete-address-input', () => ({
   default: ({ onChange, onConfirm, onSelectAddress, onClear, isLoading, error }: any) => (
     <div>
       <input data-testid="address-input" onChange={onChange} />
-      <button data-testid="confirm-btn" onClick={() => onConfirm('mocked-address')}>Confirm</button>
+      <button
+        data-testid="confirm-btn"
+        onClick={() =>
+          onConfirm({
+            address: 'mocked-address',
+            addressNumber: '10',
+            place_response: { address_has_number: true, street_number: '10' },
+          })
+        }
+      >
+        Confirm
+      </button>
       <button data-testid="select-btn" onClick={() => onSelectAddress('place-123')}>Select</button>
       <button data-testid="clear-btn" onClick={onClear}>Clear</button>
       {isLoading && <span data-testid="loading-search">Loading...</span>}

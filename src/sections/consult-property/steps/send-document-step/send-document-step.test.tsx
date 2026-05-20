@@ -105,6 +105,7 @@ describe('SendDocumentStep', () => {
 
     mockUseFormContext.mockReturnValue({
       setValue: mockSetValue,
+      getValues: vi.fn((name: string) => (name === 'documentType' ? 'matricula' : undefined)),
       watch: mockWatch,
       formState: { errors: {} },
       trigger: mockTrigger,
@@ -166,6 +167,7 @@ describe('SendDocumentStep', () => {
 
     mockUseFormContext.mockReturnValue({
       setValue: mockSetValue,
+      getValues: vi.fn((name: string) => (name === 'documentType' ? 'matricula' : undefined)),
       watch: vi.fn().mockReturnValue(mockDocument),
       formState: { errors: { document: { message: errorMessage } } },
       trigger: mockTrigger,
@@ -256,9 +258,10 @@ describe('SendDocumentStep', () => {
       expect(mockUploadDocument).toHaveBeenCalledTimes(1)
     })
 
-    const [calledFile, progressFn] = mockUploadDocument.mock.calls[0]
+    const [calledFile, documentType, progressFn] = mockUploadDocument.mock.calls[0]
 
     expect(calledFile).toBeInstanceOf(File)
+    expect(documentType).toBe('matricula')
     expect(typeof progressFn).toBe('function')
   })
 })
