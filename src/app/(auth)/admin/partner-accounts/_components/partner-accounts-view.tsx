@@ -66,12 +66,16 @@ export default function PartnerAccountsView() {
   const listQuery = useQuery({
     queryKey: ['partner-accounts', page, searchDebounced],
     queryFn: () => listPartnerAccounts(page, searchDebounced),
+    staleTime: 20_000,
+    refetchOnWindowFocus: false,
   })
 
   const detailQuery = useQuery({
     queryKey: ['partner-account-detail', selectedId],
     queryFn: () => getPartnerAccount(selectedId as string),
     enabled: Boolean(selectedId),
+    staleTime: 15_000,
+    refetchOnWindowFocus: false,
   })
 
   const deleteMutation = useMutation({

@@ -37,6 +37,8 @@ export default function OrdersPage() {
     queryFn: ({ pageParam }) =>
       listOrders({ limit: PAGE_SIZE, p: pageParam }),
     initialPageParam: 1,
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
     getNextPageParam: lastPage =>
       lastPage.meta.has_next ? lastPage.meta.page + 1 : undefined
   })

@@ -73,12 +73,16 @@ export default function ManualReviewAdminPage() {
     queryKey: ['staff-manual-review', page],
     queryFn: () => listManualReviewOrders(page),
     enabled: canAccess,
+    staleTime: 20_000,
+    refetchOnWindowFocus: false,
   })
 
   const detailQuery = useQuery({
     queryKey: ['staff-manual-review-detail', selectedId],
     queryFn: () => getManualReviewOrder(selectedId as string),
     enabled: Boolean(canAccess && selectedId),
+    staleTime: 15_000,
+    refetchOnWindowFocus: false,
   })
 
   useEffect(() => {

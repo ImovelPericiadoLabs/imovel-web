@@ -17,6 +17,9 @@ export function useOrderDetailQuery(orderId: string | undefined) {
     queryKey: orderQueryKey(orderId ?? ''),
     queryFn: () => getOrder(orderId!),
     enabled: !!orderId,
+    staleTime: 10_000,
+    refetchOnWindowFocus: false,
+    retry: 1,
     refetchInterval: (q) =>
       getOrderRefetchIntervalMs(q.state.data?.status?.value, {
         paymentConfirmed: isOrderPaymentConfirmed(q.state.data?.payment_status),

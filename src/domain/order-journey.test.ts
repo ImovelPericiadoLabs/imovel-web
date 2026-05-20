@@ -18,9 +18,17 @@ describe('order-journey', () => {
     expect(getOrderRefetchIntervalMs('FINISHED')).toBe(false)
   })
 
-  it('getOrderRefetchIntervalMs polls faster while searching', () => {
-    expect(getOrderRefetchIntervalMs('SEARCHING_DOCUMENT')).toBe(12_000)
-    expect(getOrderRefetchIntervalMs('IN_PROGRESS')).toBe(8_000)
+  it('getOrderRefetchIntervalMs polls while pipeline is active', () => {
+    expect(getOrderRefetchIntervalMs('SEARCHING_DOCUMENT')).toBe(15_000)
+    expect(getOrderRefetchIntervalMs('IN_PROGRESS')).toBe(10_000)
+  })
+
+  it('getOrderRefetchIntervalMs stops on manual review queue', () => {
+    expect(getOrderRefetchIntervalMs('MANUAL_REVIEW_PENDING')).toBe(false)
+  })
+
+  it('getOrderRefetchIntervalMs stops on unknown status', () => {
+    expect(getOrderRefetchIntervalMs(undefined)).toBe(false)
   })
 
   it('getOrderTimelineRows marks search as current when searching', () => {
@@ -42,11 +50,11 @@ describe('order-journey', () => {
     expect(rows[1]!.state).toBe('current')
   })
 
-  it('getOrderRefetchIntervalMs polls faster for PENDING when payment confirmed', () => {
+  it('getOrderRefetchIntervalMs polls for PENDING when payment confirmed', () => {
     expect(
       getOrderRefetchIntervalMs('PENDING', { paymentConfirmed: true }),
-    ).toBe(12_000)
-    expect(getOrderRefetchIntervalMs('PENDING', {})).toBe(30_000)
+    ).toBe(15_000)
+    expect(getOrderRefetchIntervalMs('PENDING', {})).toBe(45_000)
   })
 
   it('isOrderPaymentConfirmed reads CONFIRMED', () => {

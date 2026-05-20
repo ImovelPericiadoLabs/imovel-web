@@ -2,6 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query'
 
+import { isOrderPipelineActive } from '@/domain/order-journey'
 import {
   getOrderEvents,
   orderEventsQueryKey,
@@ -13,9 +14,12 @@ function eventsPollMs(statusValue: string | undefined): number | false {
     statusValue === 'REJECTED_DATA' ||
     statusValue === 'RETURNED_BY_NOTARY'
   ) {
-    return 60_000
+    return 90_000
   }
-  return 15_000
+  if (isOrderPipelineActive(statusValue)) {
+    return 12_000
+  }
+  return false
 }
 
 /**
@@ -29,6 +33,9 @@ export function useOrderEventsQuery(
     queryKey: orderEventsQueryKey(orderId ?? ''),
     queryFn: () => getOrderEvents(orderId!),
     enabled: !!orderId,
+    staleTime: 10_000,
+    refetchOnWindowFocus: false,
+    retry: 1,
     refetchInterval: () => eventsPollMs(statusValue),
   })
 }
