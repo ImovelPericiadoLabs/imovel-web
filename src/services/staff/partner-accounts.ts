@@ -96,3 +96,8 @@ export async function topUpPartnerCredits(
     api.post(endpoint.staff.partnerAccountCredits(id), body, token),
   ) as Promise<PartnerAccountDetail>
 }
+
+/** Desativa conta de parceiro (soft delete no backend). */
+export async function deletePartnerAccount(id: string): Promise<void> {
+  await withToken((token) => api.delete(endpoint.staff.partnerAccount(id), token))
+}

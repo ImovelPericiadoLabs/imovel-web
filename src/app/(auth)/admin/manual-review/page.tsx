@@ -11,14 +11,12 @@ import {
   Loader2,
   RefreshCw,
   Send,
-  ShieldAlert,
   User,
   X,
 } from 'lucide-react'
 import { cn } from '@/utils/tailwind'
-import TextTitle from '@/components/text-title'
-import TextSubtitle from '@/components/text-subtitle'
 import Button from '@/components/button'
+import { AdminPageShell, AdminStaffGate } from '@/components/admin'
 import Alert from '@/components/alert'
 import Skeleton from '@/components/skeleton'
 import { getMe } from '@/services/account'
@@ -135,48 +133,28 @@ export default function ManualReviewAdminPage() {
     [uploadMutation],
   )
 
-  if (!me) {
-    return (
-      <div className="px-4 py-8">
-        <Skeleton className="h-40 w-full rounded-2xl" />
-      </div>
-    )
-  }
-
-  if (!canAccess) {
-    return (
-      <div className="px-4 py-8 max-w-lg mx-auto">
-        <Alert
-          variant="warning"
-          icon={<ShieldAlert className="size-5 shrink-0" />}
-          message="Esta área é restrita à equipe (conta staff). Solicite permissão a um administrador."
-        />
-      </div>
-    )
-  }
-
   return (
-    <div className="px-4 pb-10 space-y-6">
-      <div className="space-y-1 pt-2">
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div>
-            <TextTitle>Fila manual</TextTitle>
-            <TextSubtitle className="mt-1">
-              Pedidos aguardando matrícula ou dados complementares. Prazo típico de resolução: 24h (SLA — ver prazo no card).
-            </TextSubtitle>
-          </div>
+    <AdminStaffGate>
+      <AdminPageShell
+        title="Fila manual"
+        description="Pedidos aguardando matrícula ou dados complementares. Prazo típico de resolução: 24h (SLA no card)."
+        actions={
           <Button
             type="button"
             variant="outline"
             className="shrink-0 gap-2 !w-auto px-6"
             onClick={() => listQuery.refetch()}
-            disabled={listQuery.isFetching}
+            disabled={!canAccess || listQuery.isFetching}
           >
-            {listQuery.isFetching ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
+            {listQuery.isFetching ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <RefreshCw className="size-4" />
+            )}
             Atualizar
           </Button>
-        </div>
-      </div>
+        }
+      >
 
       {listQuery.isError && (
         <Alert
@@ -330,7 +308,8 @@ export default function ManualReviewAdminPage() {
           </div>
         </aside>
       </div>
-    </div>
+      </AdminPageShell>
+    </AdminStaffGate>
   )
 }
 
