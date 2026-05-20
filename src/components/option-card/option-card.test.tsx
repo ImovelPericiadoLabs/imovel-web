@@ -3,10 +3,6 @@ import { describe, it, expect, vi } from 'vitest'
 import OptionCard from '@/components/option-card/option-card.tsx'
 import { Users } from 'lucide-react'
 
-vi.mock('lucide-react', () => ({
-  Users: () => <span data-testid="icon-mock" />,
-}))
-
 const setup = (props: Partial<React.ComponentProps<typeof OptionCard>> = {}) => {
   const onClickMock = vi.fn()
 
@@ -31,7 +27,7 @@ describe('OptionCard', () => {
     setup()
     expect(screen.getByText('Título de Teste')).toBeInTheDocument()
     expect(screen.getByText('Subtítulo de Teste')).toBeInTheDocument()
-    expect(screen.getByTestId('icon-mock')).toBeInTheDocument()
+    expect(screen.getByTestId('icon-Users')).toBeInTheDocument()
   })
 
   it('should call onClick when the card is clicked', () => {

@@ -19,7 +19,7 @@ describe('TextTitle', () => {
     const element = screen.getByText('Default')
     expect(element.className).toContain('text-lg')
     expect(element.className).toContain('font-bold')
-    expect(element.className).toContain('text-white')
+    expect(element.className).toContain('text-dark')
     expect(element.className).toContain('leading-6')
   })
 

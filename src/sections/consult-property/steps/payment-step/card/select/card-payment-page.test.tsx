@@ -8,11 +8,6 @@ vi.mock('@/hooks/use-public-plan-price', () => ({
   usePublicPlanPrice: () => ({ price: 59, isLoading: false }),
 }))
 
-vi.mock('lucide-react', () => ({
-  Check: () => <div data-testid="check-icon" />,
-  MapPin: () => <span data-testid="map-pin" />,
-}))
-
 function formWrapper() {
   function W({ children }: { children: React.ReactNode }) {
     const methods = useForm({
@@ -70,7 +65,7 @@ describe('SavedCardsPage', () => {
     expect(mastercardShell).toHaveClass('border-primary')
     expect(visaShell).toHaveClass('border-gray-200')
 
-    const checksInMaster = within(mastercardShell).getAllByTestId('check-icon')
+    const checksInMaster = within(mastercardShell).getAllByTestId('icon-Check')
     expect(checksInMaster.length).toBeGreaterThanOrEqual(1)
   })
 
@@ -86,7 +81,7 @@ describe('SavedCardsPage', () => {
     const mastercardShell = screen.getByTestId('saved-card-1')
     expect(mastercardShell).toHaveClass('border-gray-200')
 
-    const check = within(visaShell).getAllByTestId('check-icon')[0]
+    const check = within(visaShell).getAllByTestId('icon-Check')[0]
     expect(visaShell).toContainElement(check)
   })
 

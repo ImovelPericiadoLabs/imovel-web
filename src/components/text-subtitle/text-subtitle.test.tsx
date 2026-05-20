@@ -19,7 +19,7 @@ describe('TextSubtitle', () => {
     const element = screen.getByText('Default')
     expect(element.className).toContain('text-sm')
     expect(element.className).toContain('font-normal')
-    expect(element.className).toContain('text-white')
+    expect(element.className).toContain('text-gray-500')
     expect(element.className).toContain('leading-4')
   })
 

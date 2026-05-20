@@ -40,12 +40,6 @@ vi.mock('@/components/option-card/option-card.tsx', () => ({
   ),
 }))
 
-vi.mock('lucide-react', () => ({
-  Users: () => <span />,
-  FileText: () => <span />,
-  FileSignature: () => <span />,
-}))
-
 const setup = (props?: { watchValue?: string | null; errors?: FieldErrors }) => {
   setValueMock.mockClear()
   onNextMock.mockClear()

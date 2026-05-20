@@ -3,11 +3,6 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import Modal from './modal'
 
-vi.mock('lucide-react', () => ({
-  X: (props: React.SVGProps<SVGSVGElement>) => <svg data-testid="close-icon" {...props} />,
-  ChevronLeft: (props: React.SVGProps<SVGSVGElement>) => <svg data-testid="back-icon" {...props} />,
-}))
-
 beforeEach(() => {
   document.body.innerHTML = ''
   document.body.style.overflow = ''
@@ -70,7 +65,7 @@ describe('Modal Component', () => {
 
     render(<Modal open onClose={onCloseMock} content={<div>Modal Content</div>} />)
 
-    const btn = screen.getByTestId('close-icon').parentElement as HTMLElement
+    const btn = screen.getByTestId('icon-X').parentElement as HTMLElement
     fireEvent.click(btn)
 
     expect(onCloseMock).toHaveBeenCalledTimes(1)

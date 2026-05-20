@@ -37,15 +37,6 @@ vi.mock('@/components/option-card/option-card.tsx', () => ({
   ),
 }))
 
-vi.mock('lucide-react', () => ({
-  ThumbsUp: () => <span data-testid="icon-thumbs-up" />,
-  ThumbsDown: () => <span data-testid="icon-thumbs-down" />,
-  MapPin: () => <span data-testid="icon-map-pin" />,
-  ChevronRight: () => <span data-testid="icon-chevron-right" />,
-  Check: () => <span data-testid="icon-check" />,
-  X: () => <span data-testid="icon-x" />,
-}))
-
 const setup = (props?: { watchValue?: boolean | null; errors?: FieldErrors }) => {
   setValueMock.mockClear()
   onNextMock.mockClear()
@@ -100,9 +91,12 @@ describe('DocumentConfirmationStep', () => {
       })
     })
 
-    it('should show "Próximo" button only when "Tenho o documento do imóvel" is selected', () => {
-      const { optionYes } = setup({ watchValue: true })
-      expect(screen.getByText('Próximo')).toBeInTheDocument()
+    it('should call onNext when user selects they have the document', () => {
+      const { optionYes, onNextMock } = setup()
+
+      fireEvent.click(optionYes)
+
+      expect(onNextMock).toHaveBeenCalledTimes(1)
     })
   })
 })

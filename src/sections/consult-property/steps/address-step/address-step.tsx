@@ -11,7 +11,7 @@ import LoadingOverlay from '@/components/loading-overlay'
 import Button from '@/components/button'
 import useDebounce from '@/hooks/use-debounce'
 import { queryKey } from '@/constants/queries'
-import { listAddresses, listAddress, listRegistry } from '@/services/addresses'
+import { listAddresses, listAddress, listRegistry, type AddressConfirmPayload } from '@/services/addresses'
 import { trackGtmEvent } from '@/utils/analytics/gtm'
 
 const IS_DEBUG_MODE = process.env.NEXT_PUBLIC_ENABLE_DEBUG_MODE === 'true'
@@ -135,22 +135,30 @@ export const AddressStep = forwardRef<{ focus: () => boolean }, { onNext: () => 
       address_length: address?.length || 0,
     })
 
-    return response as { address: string; addressNumber: string | null }
+    return response
   }, [setValue, listAddressMutate, address])
 
   const handleChangeAddress = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setAddress(e.target.value)
   }, [])
 
-  const handleSubmit = useCallback(async (value: string) => {
+  const handleSubmit = useCallback(async (payload: AddressConfirmPayload) => {
+    const value = payload.address
     setValue('address', value)
-    await listRegistryMutate(value)
+
+    if (payload.place_response) {
+      setValue('place_response', payload.place_response)
+    }
+
     trackGtmEvent('address_confirmed', {
       event_category: 'address',
       event_label: 'confirm',
       event_description: 'Endereço confirmado para avançar no fluxo.',
       address_length: value?.length || 0,
+      address_has_number: payload.place_response?.address_has_number ?? Boolean(payload.addressNumber),
     })
+
+    await listRegistryMutate(value)
     onNext()
   }, [setValue, listRegistryMutate, onNext])
 

@@ -50,13 +50,6 @@ vi.mock('@/components/text-title', () => ({
   default: ({ children }: any) => <h1>{children}</h1>,
 }))
 
-vi.mock('lucide-react', () => ({
-  ChevronRight: () => <div data-testid="chevron-right" />,
-  Inbox: () => <div data-testid="inbox-icon" />,
-  /** Usado por ``Button`` no CTA "Consultar Imóvel" (estado vazio). */
-  Search: () => <div data-testid="search-icon" />,
-}))
-
 const mockObserve = vi.fn()
 const mockDisconnect = vi.fn()
 let intersectionCallback: any = null

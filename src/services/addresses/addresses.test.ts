@@ -189,6 +189,10 @@ describe('Address Services', () => {
       expect(result).toEqual({
         address: 'Rua A, São Paulo',
         addressNumber: null,
+        postalCode: null,
+        place_response: {
+          formatted_address: 'Rua A, São Paulo',
+        },
       })
     })
 
@@ -208,6 +212,11 @@ describe('Address Services', () => {
       expect(result).toEqual({
         address: 'Rua A, 123',
         addressNumber: '123',
+        postalCode: null,
+        place_response: {
+          formatted_address: 'Rua A, 123',
+          street_number: '123',
+        },
       })
     })
 
@@ -222,6 +231,10 @@ describe('Address Services', () => {
       expect(result).toEqual({
         address: '',
         addressNumber: null,
+        postalCode: null,
+        place_response: {
+          formatted_address: undefined,
+        },
       })
     })
   })

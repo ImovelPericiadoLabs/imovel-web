@@ -38,13 +38,6 @@ vi.mock('@/services/orders', () => ({
   orderQueryKey: (id: string) => ['order', id],
 }))
 
-vi.mock('lucide-react', () => ({
-  Download: ({ className }: { className?: string }) => (
-    <div data-testid="download-icon" className={className} />
-  ),
-  Info: () => null,
-}))
-
 vi.mock('@/sections/orders/order-header', () => ({
   default: () => (
     <div data-testid="order-header">
@@ -84,7 +77,7 @@ describe('OrderOptionsDocumentsPage', () => {
     await waitFor(() => {
       const pdfLabels = screen.getAllByText(/Documento - PDF/)
       expect(pdfLabels).toHaveLength(4)
-      const icons = screen.getAllByTestId('download-icon')
+      const icons = screen.getAllByTestId('icon-Download')
       expect(icons).toHaveLength(4)
     })
   })
@@ -103,17 +96,18 @@ describe('OrderOptionsDocumentsPage', () => {
     render(<OrderOptionsDocumentsPage />, { wrapper })
 
     await waitFor(() => {
-      expect(screen.getAllByTestId('download-icon')).toHaveLength(4)
+      expect(screen.getAllByTestId('icon-Download')).toHaveLength(4)
     })
-    const links = screen.getAllByRole('link')
-    expect(links[0]).toHaveClass('group', 'hover:border-primary')
+    const buttons = screen.getAllByRole('button')
+    const docButton = buttons.find((b) => b.textContent?.includes('Documento - PDF'))
+    expect(docButton).toHaveClass('group', 'hover:border-primary')
   })
 
   it('deve garantir que o ícone de download tenha a cor da marca', async () => {
     render(<OrderOptionsDocumentsPage />, { wrapper })
 
     await waitFor(() => {
-      const icons = screen.getAllByTestId('download-icon')
+      const icons = screen.getAllByTestId('icon-Download')
       expect(icons[0]).toHaveClass('text-primary')
     })
   })

@@ -66,26 +66,6 @@ vi.mock('@/components/alert', () => ({
   default: ({ message }: any) => <div role="alert">{message}</div>
 }))
 
-vi.mock('lucide-react', () => ({
-  Check: () => <svg />,
-  Clock: () => <svg />,
-  CheckCircle: () => <svg />,
-  Copy: () => <svg />,
-  ChevronRight: () => <svg />,
-  MapPin: () => <svg />,
-  Building: () => <svg />,
-  Grid2X2: () => <svg />,
-  RulerDimensionLineIcon: () => <svg />,
-  IdCard: () => <svg />,
-  Mail: () => <svg />,
-  Phone: () => <svg />,
-  User: () => <svg />,
-  Wallet: () => <svg />,
-  ShieldCheck: () => <svg />,
-  Lock: () => <svg />,
-  MessageCircle: () => <svg />,
-}))
-
 vi.mock('next/image', () => ({ default: (props: any) => <img {...props} /> }))
 
 vi.mock('@/services/payments', () => ({ processPayment: vi.fn(), getPaymentStatus: vi.fn() }))

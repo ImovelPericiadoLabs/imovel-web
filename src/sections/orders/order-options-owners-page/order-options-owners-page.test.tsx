@@ -38,11 +38,6 @@ vi.mock('@/services/orders', () => ({
   orderQueryKey: (id: string) => ['order', id],
 }))
 
-vi.mock('lucide-react', () => ({
-  User: () => <div data-testid="user-icon" />,
-  Info: () => null,
-}))
-
 vi.mock('@/sections/orders/order-header', () => ({
   default: () => (
     <div data-testid="order-header">
@@ -90,7 +85,7 @@ describe('OrderOptionsOwnersPage', () => {
       ownersNames.forEach(name => {
         expect(screen.getByText(name)).toBeInTheDocument()
       })
-      const icons = screen.getAllByTestId('user-icon')
+      const icons = screen.getAllByTestId('icon-User')
       expect(icons).toHaveLength(4)
     })
   })
