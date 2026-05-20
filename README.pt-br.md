@@ -26,7 +26,10 @@
   "build": "next build",
   "start": "next start",
   "lint": "eslint",
-  "test": "vitest run --coverage"
+  "test": "vitest run",
+  "test:unit": "vitest run",
+  "test:coverage": "vitest run --coverage",
+  "test:watch": "vitest"
 }
 ```
 
@@ -38,7 +41,10 @@
 | `npm run build` | Gera o build de produção. |
 | `npm run start` | Executa a build de produção. |
 | `npm run lint` | Executa o ESLint para análise de código. |
-| `npm run test` | Executa o Vitest e gera o relatório de cobertura. |
+| `npm run test` | Testes unitários rápidos (sem cobertura global). |
+| `npm run test:unit` | Alias de `test`. |
+| `npm run test:coverage` | Cobertura + thresholds (CI e pré-PR). |
+| `npm run test:watch` | Modo watch interativo. |
 
 ---
 
@@ -57,26 +63,38 @@
 
 ## Testes e Integração Contínua (CI)
 
-O projeto utiliza **Vitest** para testes unitários, com limiares mínimos de cobertura:
+O projeto usa **Vitest** com pool **`threads`** (evita timeout do pool `forks` em VPS/dev limitado). Cobertura e thresholds **só** com `npm run test:coverage` (CI usa este comando).
+
+Limiares atuais (`vitest.config.ts`, com `--coverage`):
 
 ```js
-thresholds: {
-  lines: 80,
-  functions: 80,
-  branches: 80,
-  statements: 80
-}
+thresholds: { lines: 70, functions: 70, branches: 70, statements: 70 }
 ```
+
+### Fluxos operacionais
+
+| Objetivo | Comando |
+| -------- | ------- |
+| Feedback rápido local | `npm run test` ou `npm run test:unit` |
+| Cobertura completa (como CI) | `npm run test:coverage` |
+| Um arquivo específico | `npx vitest run src/domain/order-journey.test.ts` |
+| Watch | `npm run test:watch` |
+| Limitar workers (máquina fraca) | `set VITEST_MAX_WORKERS=2` (PowerShell/cmd) antes do teste |
+
+### Troubleshooting
+
+| Sintoma | Causa provável | Ação |
+| -------- | ---------------- | ----- |
+| `Timeout starting forks runner` | pool `forks` + pouca RAM | Usar `npm run test` (config já usa `threads`) |
+| Falha de threshold 70% rodando um arquivo | `--coverage` no projeto inteiro | Rodar sem coverage ou só `test:coverage` no PR |
+| Testes lentos no Windows | muitos workers | `VITEST_MAX_WORKERS=2 npm run test` |
 
 ### Boas práticas de teste
 
-- Todos os testes devem ser escritos em inglês e seguir o formato:  
-  `it('should render ...')`
-- Sempre testar:
-  - Casos de sucesso.  
-  - Casos de erro.  
-  - Casos de borda (*edge cases*).  
-- Execute `npm run test` antes de abrir um PR.
+- Testes em inglês: `it('should render ...')`
+- Sucesso, erro e borda
+- Antes do PR: `npm run test:coverage` (igual ao CI)
+- Dev React Query: `NEXT_PUBLIC_RQ_DEBUG=1` loga refetch excessivo no console
 
 **Exemplo de teste:**
 

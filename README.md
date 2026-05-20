@@ -26,7 +26,10 @@
   "build": "next build",
   "start": "next start",
   "lint": "eslint",
-  "test": "vitest run --coverage"
+  "test": "vitest run",
+  "test:unit": "vitest run",
+  "test:coverage": "vitest run --coverage",
+  "test:watch": "vitest"
 }
 ```
 
@@ -38,7 +41,10 @@
 | `npm run build` | Builds the production bundle. |
 | `npm run start` | Runs the production build. |
 | `npm run lint` | Runs ESLint for code analysis. |
-| `npm run test` | Runs Vitest and generates coverage reports. |
+| `npm run test` | Fast unit tests (no global coverage). |
+| `npm run test:unit` | Alias of `test`. |
+| `npm run test:coverage` | Coverage + thresholds (CI / pre-PR). |
+| `npm run test:watch` | Interactive watch mode. |
 
 ---
 
@@ -57,26 +63,38 @@
 
 ## Testing and CI
 
-The project uses **Vitest** for unit testing with minimum coverage thresholds:
+**Vitest** uses the **`threads`** pool by default (avoids `forks` timeouts on constrained hosts). Coverage thresholds apply only with `npm run test:coverage` (CI runs this command).
+
+Current thresholds (`vitest.config.ts`, with `--coverage`):
 
 ```js
-thresholds: {
-  lines: 80,
-  functions: 80,
-  branches: 80,
-  statements: 80
-}
+thresholds: { lines: 70, functions: 70, branches: 70, statements: 70 }
 ```
+
+### Operational flows
+
+| Goal | Command |
+| ---- | ------- |
+| Fast local feedback | `npm run test` or `npm run test:unit` |
+| Full coverage (CI parity) | `npm run test:coverage` |
+| Single file | `npx vitest run src/domain/order-journey.test.ts` |
+| Watch | `npm run test:watch` |
+| Cap workers (low RAM) | `VITEST_MAX_WORKERS=2 npm run test` |
+
+### Troubleshooting
+
+| Symptom | Likely cause | Fix |
+| -------- | ------------- | ----- |
+| `Timeout starting forks runner` | `forks` pool + low RAM | Use `npm run test` (config uses `threads`) |
+| Threshold failure on one file | global `--coverage` | Run without coverage, or `test:coverage` for PR |
+| Slow tests on Windows | too many workers | `VITEST_MAX_WORKERS=2 npm run test` |
 
 ### Testing guidelines
 
-- All tests must be written in English and follow the format:  
-  `it('should render ...')`
-- Always test:
-  - Success cases.
-  - Error cases.
-  - Edge cases.
-- Run `npm run test` before opening a PR.
+- Tests in English: `it('should render ...')`
+- Success, error, and edge cases
+- Before PR: `npm run test:coverage`
+- React Query dev spam: set `NEXT_PUBLIC_RQ_DEBUG=1` for console warnings
 
 Example test:
 
