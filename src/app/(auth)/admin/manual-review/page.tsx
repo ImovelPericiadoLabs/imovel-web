@@ -16,7 +16,16 @@ import {
 } from 'lucide-react'
 import { cn } from '@/utils/tailwind'
 import Button from '@/components/button'
-import { AdminPageShell, AdminStaffGate } from '@/components/admin'
+import {
+  AdminEmptyState,
+  AdminKpiStrip,
+  AdminPageShell,
+  AdminPanelHeader,
+  AdminStaffGate,
+  ADMIN_INBOX_ITEM,
+  ADMIN_INBOX_ITEM_ACTIVE,
+  ADMIN_PANEL,
+} from '@/components/admin'
 import Alert from '@/components/alert'
 import Skeleton from '@/components/skeleton'
 import { getMe } from '@/services/account'
@@ -133,23 +142,47 @@ export default function ManualReviewAdminPage() {
     [uploadMutation],
   )
 
+  const queue = listQuery.data?.results ?? []
+  const urgent = queue.filter((r) => {
+    const h = hoursRemaining(r.manual_review_deadline)
+    return h !== null && h <= 4
+  }).length
+
   return (
     <AdminStaffGate>
       <AdminPageShell
-        title="Fila manual"
-        description="Pedidos aguardando matrícula ou dados complementares. Prazo típico de resolução: 24h (SLA no card)."
+        metrics={
+          <AdminKpiStrip
+            items={[
+              {
+                id: 'queue',
+                label: 'Na fila',
+                value: listQuery.data?.count ?? '—',
+                icon: ClipboardList,
+                tone: 'brand',
+              },
+              {
+                id: 'urgent',
+                label: 'SLA crítico',
+                value: urgent,
+                tone: urgent > 0 ? 'warning' : 'default',
+              },
+              { id: 'page', label: 'Página', value: page },
+            ]}
+          />
+        }
         actions={
           <Button
             type="button"
             variant="outline"
-            className="shrink-0 gap-2 !w-auto px-6"
+            className="h-9 gap-2 !w-auto rounded-lg px-4 text-xs"
             onClick={() => listQuery.refetch()}
             disabled={!canAccess || listQuery.isFetching}
           >
             {listQuery.isFetching ? (
-              <Loader2 className="size-4 animate-spin" />
+              <Loader2 className="size-3.5 animate-spin" />
             ) : (
-              <RefreshCw className="size-4" />
+              <RefreshCw className="size-3.5" />
             )}
             Atualizar
           </Button>
@@ -164,61 +197,67 @@ export default function ManualReviewAdminPage() {
         />
       )}
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,420px)]">
-        <section className="space-y-3">
-          <div className="flex items-center gap-2 text-sm font-semibold text-[#101114]">
-            <ClipboardList className="size-5 text-[#7132f5]" />
-            Pedidos na fila ({listQuery.data?.count ?? '…'})
-          </div>
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(300px,400px)]">
+        <section className={cn(ADMIN_PANEL, 'flex flex-col overflow-hidden')}>
+          <AdminPanelHeader title="Fila manual" meta={`${listQuery.data?.count ?? '…'} pedidos`} />
 
           {listQuery.isLoading ? (
-            <div className="space-y-3">
-              <Skeleton className="h-24 w-full rounded-2xl" />
-              <Skeleton className="h-24 w-full rounded-2xl" />
+            <div className="space-y-2 p-3">
+              <Skeleton className="h-16 w-full rounded-lg" />
+              <Skeleton className="h-16 w-full rounded-lg" />
             </div>
           ) : (
-            <ul className="space-y-3">
-              {(listQuery.data?.results ?? []).map((row) => (
-                <li key={row.id}>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedId(row.id)}
-                    className={cn(
-                      'w-full text-left rounded-2xl border transition shadow-[rgba(0,0,0,0.03)_0px_4px_24px] p-4',
-                      selectedId === row.id
-                        ? 'border-[#7132f5] bg-[rgba(133,91,251,0.06)]'
-                        : 'border-[#dedee5] bg-white hover:border-[#5741d8]',
-                    )}
-                  >
-                    <div className="flex justify-between gap-3 flex-wrap">
-                      <div>
-                        <p className="font-semibold text-[#101114]">Consulta #{row.code}</p>
-                        <p className="text-sm text-[#686b82] mt-0.5 line-clamp-2">
-                          {row.formatted_address ?? 'Sem endereço formatado'}
-                        </p>
+            <ul className="max-h-[min(32rem,65vh)] flex-1 space-y-1 overflow-y-auto p-2">
+              {queue.map((row) => {
+                const h = hoursRemaining(row.manual_review_deadline)
+                const urgentRow = h !== null && h <= 4
+                return (
+                  <li key={row.id}>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedId(row.id)}
+                      className={cn(
+                        ADMIN_INBOX_ITEM,
+                        'flex-col items-stretch gap-1',
+                        selectedId === row.id
+                          ? ADMIN_INBOX_ITEM_ACTIVE
+                          : 'hover:bg-[rgba(133,91,251,0.05)]',
+                      )}
+                    >
+                      <div className="flex w-full items-start justify-between gap-2">
+                        <p className="text-xs font-bold text-[#101114]">#{row.code}</p>
+                        <span
+                          className={cn(
+                            'shrink-0 text-[10px] font-semibold tabular-nums',
+                            urgentRow ? 'text-amber-900' : 'text-[#9497a9]',
+                          )}
+                        >
+                          {formatHours(h)}
+                        </span>
                       </div>
-                      <div className="flex items-center gap-1.5 text-sm text-[#484b5e] shrink-0">
-                        <Clock className="size-4 text-[#7132f5]" />
-                        <span>{formatHours(hoursRemaining(row.manual_review_deadline))}</span>
-                      </div>
-                    </div>
-                    {row.registration_number ? (
-                      <p className="text-xs mt-2 text-[#026b3f] bg-[rgba(20,158,97,0.16)] inline-block px-2 py-0.5 rounded-md font-medium">
-                        Matrícula informada: {row.registration_number}
+                      <p className="line-clamp-1 text-[11px] text-[#686b82]">
+                        {row.formatted_address ?? 'Sem endereço'}
                       </p>
-                    ) : null}
-                  </button>
-                </li>
-              ))}
-              {!listQuery.data?.results?.length && (
-                <div className="rounded-2xl border border-dashed border-[#dedee5] p-8 text-center text-[#686b82]">
-                  Nenhum pedido na fila manual.
-                </div>
+                      {row.registration_number ? (
+                        <span className="mt-0.5 inline-block rounded bg-[rgba(20,158,97,0.16)] px-1.5 py-0.5 text-[9px] font-bold uppercase text-[#026b3f]">
+                          Matrícula
+                        </span>
+                      ) : null}
+                    </button>
+                  </li>
+                )
+              })}
+              {!queue.length && !listQuery.isLoading && (
+                <AdminEmptyState
+                  title="Fila vazia"
+                  description="Novos pedidos aparecem aqui automaticamente."
+                  className="m-2 border-0"
+                />
               )}
             </ul>
           )}
 
-          <div className="flex justify-center gap-3 pt-4 flex-wrap">
+          <div className="flex justify-center gap-2 border-t border-[#dedee5] p-2">
             <Button
               type="button"
               variant="outline"
@@ -247,24 +286,29 @@ export default function ManualReviewAdminPage() {
           </div>
         </section>
 
-        <aside className="lg:sticky lg:top-4 h-fit space-y-4">
-          <div className="rounded-2xl border border-[#dedee5] bg-white shadow-[rgba(0,0,0,0.03)_0px_4px_24px] overflow-hidden">
-            <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-[#dedee5] bg-[rgba(148,151,169,0.06)]">
-              <span className="font-semibold text-[#101114]">Painel do pedido</span>
-              {selectedId && (
-                <button
-                  type="button"
-                  className="p-1 rounded-lg hover:bg-white/80 text-[#686b82]"
-                  aria-label="Fechar seleção"
-                  onClick={() => setSelectedId(null)}
-                >
-                  <X className="size-5" />
-                </button>
-              )}
-            </div>
+        <aside className={cn(ADMIN_PANEL, 'lg:sticky lg:top-2 h-fit overflow-hidden')}>
+            <AdminPanelHeader
+              title="Resolução"
+              meta={selectedSummary ? `#${selectedSummary.code}` : undefined}
+              actions={
+                selectedId ? (
+                  <button
+                    type="button"
+                    className="rounded-lg p-1 text-[#686b82] hover:bg-[rgba(148,151,169,0.08)]"
+                    aria-label="Fechar seleção"
+                    onClick={() => setSelectedId(null)}
+                  >
+                    <X className="size-4" />
+                  </button>
+                ) : undefined
+              }
+            />
 
             {!selectedId || !selectedSummary ? (
-              <div className="p-6 text-sm text-[#686b82]">Selecione um pedido à esquerda.</div>
+              <AdminEmptyState
+                title="Selecione um pedido"
+                className="m-3 border-0 bg-transparent py-8"
+              />
             ) : detailQuery.isLoading ? (
               <div className="p-6 space-y-3">
                 <Skeleton className="h-6 w-2/3" />
@@ -294,18 +338,8 @@ export default function ManualReviewAdminPage() {
                 resolvePending={resolveMutation.isPending}
               />
             ) : (
-              <div className="p-6 text-sm text-[#686b82]">Detalhe indisponível.</div>
+              <p className="p-4 text-xs text-[#686b82]">Detalhe indisponível.</p>
             )}
-          </div>
-
-          <div className="rounded-xl border border-[#dedee5] bg-[rgba(133,91,251,0.06)] p-4 text-sm text-[#484b5e]">
-            <p className="font-semibold text-[#5741d8] mb-1">Fluxo sugerido</p>
-            <ol className="list-decimal list-inside space-y-1">
-              <li>Anexar PDF da matrícula (busca manual).</li>
-              <li>Enviar para análise automática ou rejeitar com motivo padronizado.</li>
-              <li>Em rejeição, o cliente recebe notificação e créditos são tratados pelas regras da API.</li>
-            </ol>
-          </div>
         </aside>
       </div>
       </AdminPageShell>

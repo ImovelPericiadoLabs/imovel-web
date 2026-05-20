@@ -15,6 +15,8 @@ import { getMe, requestAccountDeletion, type MeResponse } from '@/services/accou
 import { CONSULTAR_IMOVEL_INICIO_HREF } from '@/constants/consult-flow'
 import { legalDocuments, getLegalRoute } from '@/constants/legal'
 import { clearAuthClientFlag } from '@/utils/auth-client-flag'
+import { cn } from '@/utils/tailwind'
+import { AdminSettingsProvider } from '@/layouts/admin-workspace/admin-settings-context'
 
 function formatCredits(value: number) {
   return new Intl.NumberFormat('pt-BR', {
@@ -151,23 +153,17 @@ export default function AppLayout({ children }: PropsWithChildren) {
     if (isMatch('/consultas/:id/opcoes/proprietarios')) {
       return <HeaderTitle>Proprietários</HeaderTitle>
     }
-    if (pathname.startsWith('/admin/manual-review')) {
-      return <HeaderTitle>Fila manual</HeaderTitle>
-    }
-    if (pathname.startsWith('/admin/partner-accounts')) {
-      return <HeaderTitle>Contas de teste</HeaderTitle>
-    }
-    if (pathname.startsWith('/admin/outreach')) {
-      return <HeaderTitle>Divulgação</HeaderTitle>
-    }
-    if (pathname.startsWith('/admin/chat')) {
-      return <HeaderTitle>Chat</HeaderTitle>
-    }
     return <></>
   }, [isMatch, pathname])
 
+  const adminSettingsValue = isAdminArea
+    ? { openSettings: () => setSidebarOpen(true), onBack: handleGoBack }
+    : null
+
   return (
-    <section className="min-h-screen bg-white pb-6">
+    <AdminSettingsProvider value={adminSettingsValue}>
+      <section className={cn('min-h-screen', isAdminArea ? 'bg-[#E4E6EF]' : 'bg-white pb-6')}>
+        {!isAdminArea && (
         <header className="flex flex-col pt-4 px-4 bg-primary relative z-40">
           <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2 py-4.5 mb-6 relative">
             <div className="flex items-center justify-start shrink-0">
@@ -183,7 +179,6 @@ export default function AppLayout({ children }: PropsWithChildren) {
               {headerTitle}
             </div>
 
-            {/* Logo centralizada com posicionamento absoluto para não ser deslocada pelos créditos */}
             {pathname === '/consultas' && (
               <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
                 <Image
@@ -197,7 +192,7 @@ export default function AppLayout({ children }: PropsWithChildren) {
             )}
 
             <div className="flex items-center justify-end shrink-0">
-              {(isConsultas || isAdminArea) ? (
+              {isConsultas ? (
                 <button
                   type="button"
                   onClick={() => setSidebarOpen(true)}
@@ -212,6 +207,7 @@ export default function AppLayout({ children }: PropsWithChildren) {
             </div>
           </div>
         </header>
+        )}
 
         {children}
 
@@ -460,6 +456,7 @@ export default function AppLayout({ children }: PropsWithChildren) {
             </div>
           }
         />
-    </section>
+      </section>
+    </AdminSettingsProvider>
   )
 }

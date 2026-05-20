@@ -13,6 +13,7 @@ import {
   Users,
   X,
 } from 'lucide-react'
+import { cn } from '@/utils/tailwind'
 import Alert from '@/components/alert'
 import Button from '@/components/button'
 import Skeleton from '@/components/skeleton'
@@ -20,10 +21,14 @@ import {
   AdminConfirmDialog,
   AdminDataTable,
   AdminEmptyState,
+  AdminKpiStrip,
   AdminPageShell,
+  AdminPanelHeader,
   AdminStaffGate,
   AdminStatusBadge,
+  AdminToolbar,
   ADMIN_CARD,
+  ADMIN_INPUT,
   type AdminTableColumn,
 } from '@/components/admin'
 import {
@@ -176,11 +181,36 @@ export default function PartnerAccountsView() {
     </>
   ) : null
 
+  const rows = listQuery.data?.results ?? []
+  const activeCount = rows.filter((r) => r.is_active).length
+
   return (
     <AdminStaffGate>
       <AdminPageShell
-        title="Contas parceiros"
-        description="Provisione contas de teste com créditos para parceiros. Gerencie saldo, histórico e acesso operacional."
+        metrics={
+          <AdminKpiStrip
+            items={[
+              {
+                id: 'total',
+                label: 'Contas',
+                value: listQuery.data?.count ?? '—',
+                icon: Users,
+              },
+              {
+                id: 'active',
+                label: 'Ativas',
+                value: activeCount,
+                tone: 'success',
+              },
+              {
+                id: 'page',
+                label: 'Página',
+                value: page,
+                hint: searchDebounced ? `Busca: ${searchDebounced}` : undefined,
+              },
+            ]}
+          />
+        }
         actions={
           <>
             <Button
@@ -234,27 +264,25 @@ export default function PartnerAccountsView() {
           />
         )}
 
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(320px,400px)]">
-          <section className="space-y-4">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <p className="flex items-center gap-2 text-sm font-semibold text-[#101114]">
-                <Users className="size-5 text-[#7132f5]" />
-                Registros ({listQuery.data?.count ?? '…'})
-              </p>
-              <div className="relative max-w-md flex-1 sm:min-w-[280px]">
-                <Search
-                  className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#9497a9]"
-                  aria-hidden
-                />
-                <input
-                  type="search"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Buscar e-mail, nome ou WhatsApp"
-                  className="w-full rounded-xl border border-[#dedee5] bg-white py-2.5 pl-10 pr-3 text-sm text-[#101114] outline-none focus:border-[#7132f5] focus:ring-2 focus:ring-[rgba(133,91,251,0.2)]"
-                />
-              </div>
-            </div>
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(300px,380px)]">
+          <section className="space-y-3">
+            <AdminToolbar
+              leading={
+                <div className="relative w-full min-w-[200px] max-w-sm">
+                  <Search
+                    className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-[#9497a9]"
+                    aria-hidden
+                  />
+                  <input
+                    type="search"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="E-mail, nome, WhatsApp…"
+                    className={cn(ADMIN_INPUT, 'py-1.5 pl-8 text-xs')}
+                  />
+                </div>
+              }
+            />
 
             <AdminDataTable
               columns={columns}
@@ -304,26 +332,26 @@ export default function PartnerAccountsView() {
             </div>
           </section>
 
-          <aside className="space-y-4 xl:sticky xl:top-4 xl:self-start">
+          <aside className="xl:sticky xl:top-2 xl:self-start">
             <div className={`${ADMIN_CARD} overflow-hidden`}>
-              <div className="flex items-center justify-between gap-2 border-b border-[#dedee5] bg-[rgba(148,151,169,0.06)] px-4 py-3">
-                <span className="text-sm font-semibold text-[#101114]">
-                  {mode === 'create' ? 'Nova conta' : 'Detalhe operacional'}
-                </span>
-                {mode !== 'idle' && (
-                  <button
-                    type="button"
-                    className="rounded-lg p-1 text-[#686b82] hover:bg-white/80"
-                    aria-label="Fechar painel"
-                    onClick={() => {
-                      setMode('idle')
-                      setSelectedId(null)
-                    }}
-                  >
-                    <X className="size-5" />
-                  </button>
-                )}
-              </div>
+              <AdminPanelHeader
+                title={mode === 'create' ? 'Nova conta' : 'Detalhe'}
+                actions={
+                  mode !== 'idle' ? (
+                    <button
+                      type="button"
+                      className="rounded-lg p-1 text-[#686b82] hover:bg-[rgba(148,151,169,0.08)]"
+                      aria-label="Fechar painel"
+                      onClick={() => {
+                        setMode('idle')
+                        setSelectedId(null)
+                      }}
+                    >
+                      <X className="size-5" />
+                    </button>
+                  ) : undefined
+                }
+              />
 
               {mode === 'create' ? (
                 <PartnerCreateForm

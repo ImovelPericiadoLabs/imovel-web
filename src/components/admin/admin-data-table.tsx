@@ -2,7 +2,13 @@
 
 import type { ReactNode } from 'react'
 import { cn } from '@/utils/tailwind'
-import { ADMIN_CARD } from './admin-styles'
+import {
+  ADMIN_TABLE_HEAD,
+  ADMIN_TABLE_ROW,
+  ADMIN_TABLE_ROW_ACTIVE,
+  ADMIN_TABLE_ROW_HOVER,
+  ADMIN_TABLE_WRAP,
+} from './admin-styles'
 
 export type AdminTableColumn<T> = {
   key: string
@@ -27,10 +33,10 @@ function TableSkeleton({ cols, rows }: { cols: number; rows: number }) {
   return (
     <>
       {Array.from({ length: rows }).map((_, i) => (
-        <tr key={i} className="border-b border-[#dedee5]">
+        <tr key={i} className={ADMIN_TABLE_ROW}>
           {Array.from({ length: cols }).map((__, j) => (
-            <td key={j} className="px-4 py-3">
-              <div className="h-4 animate-pulse rounded-md bg-[rgba(148,151,169,0.2)]" />
+            <td key={j} className="px-3 py-2.5">
+              <div className="h-3.5 animate-pulse rounded bg-[rgba(133,91,251,0.12)]" />
             </td>
           ))}
         </tr>
@@ -47,23 +53,16 @@ export default function AdminDataTable<T>({
   activeRowKey,
   empty,
   loading,
-  loadingRows = 5,
+  loadingRows = 8,
 }: Props<T>) {
   return (
-    <div className={cn(ADMIN_CARD, 'overflow-hidden')}>
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[640px] border-collapse text-left text-sm">
+    <div className={ADMIN_TABLE_WRAP}>
+      <div className="max-h-[min(70vh,48rem)] overflow-auto">
+        <table className="w-full min-w-[560px] border-collapse text-left text-sm">
           <thead>
-            <tr className="border-b border-[#dedee5] bg-[rgba(148,151,169,0.06)]">
+            <tr className={ADMIN_TABLE_HEAD}>
               {columns.map((col) => (
-                <th
-                  key={col.key}
-                  scope="col"
-                  className={cn(
-                    'px-4 py-3 text-xs font-semibold uppercase tracking-wide text-[#686b82]',
-                    col.headerClassName,
-                  )}
-                >
+                <th key={col.key} scope="col" className={cn('px-3 py-2.5', col.headerClassName)}>
                   {col.header}
                 </th>
               ))}
@@ -87,15 +86,15 @@ export default function AdminDataTable<T>({
                     key={key}
                     onClick={onRowClick ? () => onRowClick(row) : undefined}
                     className={cn(
-                      'border-b border-[#dedee5] last:border-b-0 transition-colors',
-                      onRowClick && 'cursor-pointer hover:bg-[rgba(133,91,251,0.04)]',
-                      active && 'bg-[rgba(133,91,251,0.08)]',
+                      ADMIN_TABLE_ROW,
+                      onRowClick && ADMIN_TABLE_ROW_HOVER,
+                      active && ADMIN_TABLE_ROW_ACTIVE,
                     )}
                   >
                     {columns.map((col) => (
                       <td
                         key={col.key}
-                        className={cn('px-4 py-3 text-[#101114]', col.cellClassName)}
+                        className={cn('px-3 py-2.5 text-[#101114]', col.cellClassName)}
                       >
                         {col.render(row)}
                       </td>

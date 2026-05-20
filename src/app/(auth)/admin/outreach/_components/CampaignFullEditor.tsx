@@ -16,7 +16,7 @@ import {
   Undo2,
 } from 'lucide-react'
 import { cn } from '@/utils/tailwind'
-import TextTitle from '@/components/text-title'
+import { AdminPageShell, ADMIN_PANEL } from '@/components/admin'
 import Button from '@/components/button'
 import Alert from '@/components/alert'
 import Skeleton from '@/components/skeleton'
@@ -450,41 +450,33 @@ export default function CampaignFullEditor({ campaignId }: { campaignId: string 
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-100/90 to-slate-50 pb-20">
-      <header className="border-b border-slate-200/80 bg-white shadow-sm">
-        <div className="mx-auto flex max-w-[1600px] flex-col gap-4 px-6 py-6 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <Link
-              href="/admin/outreach"
-              className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline"
-            >
-              <ArrowLeft className="size-4" aria-hidden />
-              Lista de campanhas
-            </Link>
-            <TextTitle className="mt-3 text-2xl text-slate-900 md:text-3xl">Editor de campanha</TextTitle>
-            <p className="mt-2 max-w-3xl text-base text-slate-600">
-              Ecrã completo para rever dados, mapeamento, regras, público-alvo, ritmo e voltar a pré-visualizar ou
-              enviar (reenviar após corrigir falhas).
-            </p>
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              <code className="rounded-lg bg-slate-100 px-3 py-1.5 font-mono text-sm text-slate-800">{campaign.id}</code>
-              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold uppercase text-slate-700 ring-1 ring-slate-200">
-                {STATUS_LABELS[campaign.status] ?? campaign.status}
-              </span>
-              {campaign.is_active === false ? (
-                <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-900">
-                  Desativada
-                </span>
-              ) : null}
-              <span className="text-sm text-slate-500">
-                {campaign.row_count} linhas · actualizada {formatCampaignDate(campaign.modified) || '—'}
-              </span>
-            </div>
-          </div>
-        </div>
-      </header>
+    <AdminPageShell
+      description="Ecrã completo para rever dados, mapeamento, regras, público-alvo, ritmo e voltar a pré-visualizar ou enviar."
+      actions={
+        <Link
+          href="/admin/outreach"
+          className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#dedee5] bg-white px-3 text-xs font-semibold text-[#686b82] hover:border-[#7132f5]/30 hover:text-[#7132f5]"
+        >
+          <ArrowLeft className="size-3.5" aria-hidden />
+          Campanhas
+        </Link>
+      }
+      className="mx-auto w-full max-w-[1600px]"
+    >
+      <div className="mb-4 flex flex-wrap items-center gap-2 text-xs">
+        <code className="rounded-md bg-[rgba(148,151,169,0.12)] px-2 py-1 font-mono text-[#101114]">{campaign.id}</code>
+        <span className="rounded-md bg-[rgba(148,151,169,0.12)] px-2 py-0.5 text-[10px] font-bold uppercase text-[#686b82]">
+          {STATUS_LABELS[campaign.status] ?? campaign.status}
+        </span>
+        {campaign.is_active === false ? (
+          <span className="rounded-md bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-900">Desativada</span>
+        ) : null}
+        <span className="text-[#9497a9]">
+          {campaign.row_count} linhas · {formatCampaignDate(campaign.modified) || '—'}
+        </span>
+      </div>
 
-      <div className="mx-auto grid max-w-[1600px] gap-10 px-6 py-10 lg:grid-cols-[minmax(0,1fr)_20rem] xl:grid-cols-[minmax(0,1fr)_22rem]">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] xl:grid-cols-[minmax(0,1fr)_22rem]">
         <main className="min-w-0 space-y-10">
           {pageError ? <Alert variant="error" message={pageError} /> : null}
 
@@ -499,7 +491,7 @@ export default function CampaignFullEditor({ campaignId }: { campaignId: string 
             />
           ) : null}
 
-          <section className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-sm md:p-8 lg:p-10">
+          <section className={cn(ADMIN_PANEL, 'p-4 md:p-6')}>
             <h2 className="text-xl font-bold text-slate-900">Dados do ficheiro</h2>
             <p className="mt-2 text-base text-slate-600">
               Colunas detectadas no dataset ({csvColumns.length}). Para acrescentar linhas use a secção no fundo da
@@ -517,7 +509,7 @@ export default function CampaignFullEditor({ campaignId }: { campaignId: string 
             </div>
           </section>
 
-          <section className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-sm md:p-8 lg:p-10">
+          <section className={cn(ADMIN_PANEL, 'p-4 md:p-6')}>
             <h2 className="text-xl font-bold text-slate-900">Canais e modelos</h2>
             <div className="mt-6 grid gap-4 sm:grid-cols-2">
               {(
@@ -598,7 +590,7 @@ export default function CampaignFullEditor({ campaignId }: { campaignId: string 
             </div>
           </section>
 
-          <section className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-sm md:p-8 lg:p-10">
+          <section className={cn(ADMIN_PANEL, 'p-4 md:p-6')}>
             <h2 className="text-xl font-bold text-slate-900">Mapeamento</h2>
             <div className="mt-6 grid gap-6 md:grid-cols-2">
               {channels.includes('email') ? (
@@ -667,7 +659,7 @@ export default function CampaignFullEditor({ campaignId }: { campaignId: string 
             )}
           </section>
 
-          <section className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-sm md:p-8 lg:p-10">
+          <section className={cn(ADMIN_PANEL, 'p-4 md:p-6')}>
             <h2 className="text-xl font-bold text-slate-900">Regras por destinatário</h2>
             <p className="mt-2 text-base text-slate-600">empty_fill, by_row e skip_rows — mesma API que o assistente.</p>
             <fieldset disabled={!canEdit} className="mt-6 min-w-0 border-0 p-0">
@@ -679,7 +671,7 @@ export default function CampaignFullEditor({ campaignId }: { campaignId: string 
             </fieldset>
           </section>
 
-          <section className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-sm md:p-8 lg:p-10">
+          <section className={cn(ADMIN_PANEL, 'p-4 md:p-6')}>
             <h2 className="text-xl font-bold text-slate-900">Opções de envio e URL</h2>
             <div className="mt-6 grid gap-6 lg:grid-cols-2">
               <div className="space-y-2">
@@ -717,7 +709,7 @@ export default function CampaignFullEditor({ campaignId }: { campaignId: string 
             </div>
           </section>
 
-          <section className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-sm md:p-8 lg:p-10">
+          <section className={cn(ADMIN_PANEL, 'p-4 md:p-6')}>
             <h2 className="text-xl font-bold text-slate-900">Público-alvo e ritmo</h2>
             <p className="mt-2 text-base text-slate-600">
               Alinhado aos campos <span className="font-mono text-sm">targeting_*</span> e{' '}
@@ -811,7 +803,7 @@ export default function CampaignFullEditor({ campaignId }: { campaignId: string 
             </div>
           </section>
 
-          <section className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-sm md:p-8 lg:p-10">
+          <section className={cn(ADMIN_PANEL, 'p-4 md:p-6')}>
             <h2 className="text-xl font-bold text-slate-900">Acrescentar linhas (JSON)</h2>
             <p className="mt-2 text-base text-slate-600">
               Array JSON de objectos com as mesmas chaves que o CSV. Só em rascunho / prévia / falhou (API). Estado
@@ -838,7 +830,7 @@ export default function CampaignFullEditor({ campaignId }: { campaignId: string 
           </section>
 
           {previewResult ? (
-            <section className="space-y-6 rounded-2xl border border-slate-200/90 bg-white p-6 shadow-sm md:p-8 lg:p-10">
+            <section className="space-y-6 rounded-xl border border-[#dedee5] bg-white p-4 shadow-[0_1px_2px_rgba(16,17,20,0.06)] md:p-6">
               <h2 className="text-xl font-bold text-slate-900">Última pré-visualização</h2>
               {previewResult.mapping_errors.length > 0 ? (
                 <Alert variant="warning" message={previewResult.mapping_errors.join(' · ')} />
@@ -883,7 +875,7 @@ export default function CampaignFullEditor({ campaignId }: { campaignId: string 
         </main>
 
         <aside className="h-fit space-y-4 lg:sticky lg:top-6">
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-md ring-1 ring-slate-900/[0.04]">
+          <div className={cn(ADMIN_PANEL, 'p-4')}>
             <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Acções</p>
             <div className="mt-4 flex flex-col gap-3">
               <Button
@@ -934,7 +926,7 @@ export default function CampaignFullEditor({ campaignId }: { campaignId: string 
             </div>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className={cn(ADMIN_PANEL, 'p-4')}>
             <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Campanha</p>
             <div className="mt-3 flex flex-col gap-2">
               {campaign.is_active === false ? (
@@ -972,6 +964,6 @@ export default function CampaignFullEditor({ campaignId }: { campaignId: string 
           </div>
         </aside>
       </div>
-    </div>
+    </AdminPageShell>
   )
 }
