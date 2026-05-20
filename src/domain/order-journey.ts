@@ -173,6 +173,32 @@ export function isOrderPipelineActive(statusValue: string | undefined): boolean 
   )
 }
 
+/** Terminal order statuses — polling must be off. */
+export function isOrderTerminalStatus(statusValue: string | undefined): boolean {
+  return (
+    statusValue === 'FINISHED' ||
+    statusValue === 'CANCELED' ||
+    statusValue === 'MANUAL_REVIEW_PENDING'
+  )
+}
+
+/** Polling interval for pipeline events timeline (ms); `false` = off. */
+export function getOrderEventsRefetchIntervalMs(
+  statusValue: string | undefined,
+): number | false {
+  if (isOrderTerminalStatus(statusValue)) return false
+  if (
+    statusValue === 'REJECTED_DATA' ||
+    statusValue === 'RETURNED_BY_NOTARY'
+  ) {
+    return 90_000
+  }
+  if (isOrderPipelineActive(statusValue)) {
+    return 12_000
+  }
+  return false
+}
+
 /**
  * Adaptive polling (ms). Returns `false` when idle polling should stop.
  */
