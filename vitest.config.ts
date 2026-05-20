@@ -22,7 +22,6 @@ export default defineConfig({
     setupFiles: './vitest.setup.ts',
     pool: 'threads',
     maxWorkers,
-    minWorkers: 1,
     testTimeout: 15_000,
     hookTimeout: 15_000,
     ...(enableCoverage
