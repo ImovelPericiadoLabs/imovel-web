@@ -220,8 +220,11 @@ const AutoCompleteInput = forwardRef<HTMLInputElement, Props>(({
       internalInputRef.current?.blur()
     }
   }, [isOpenErrorSheet, isOpenNotFoundAddressSheet])
+<<<<<<< HEAD
 
   const isAnySheetOpen = isOpenConsentSheet || isOpenErrorSheet || isOpenNotFoundAddressSheet || isOpenAddressSheet
+=======
+>>>>>>> fix/address-number-input-ux
 
   return (
     <div
