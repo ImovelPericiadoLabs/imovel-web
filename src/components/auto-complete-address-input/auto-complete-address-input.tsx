@@ -83,6 +83,7 @@ const AutoCompleteInput = forwardRef<HTMLInputElement, Props>(({
   const [noStreetNumber, setNoStreetNumber] = useState(false)
 
   const internalInputRef = useRef<HTMLInputElement>(null)
+  const propertyNumberInputRef = useRef<HTMLInputElement>(null)
 
   useImperativeHandle(ref, () => internalInputRef.current as HTMLInputElement)
 
@@ -198,6 +199,9 @@ const AutoCompleteInput = forwardRef<HTMLInputElement, Props>(({
     setPendingPlace(null)
     setManualNumber('')
     setNoStreetNumber(false)
+    
+    // Clear focus from property number input
+    propertyNumberInputRef.current = null
   }
 
   useEffect(() => {
@@ -215,6 +219,16 @@ const AutoCompleteInput = forwardRef<HTMLInputElement, Props>(({
       internalInputRef.current?.blur()
     }
   }, [isOpenAddressSheet, isOpenErrorSheet, isOpenNotFoundAddressSheet, isOpenConsentSheet, error])
+
+  // Focus property number input when consent sheet opens
+  useEffect(() => {
+    if (isOpenConsentSheet) {
+      // Use setTimeout to ensure the input is rendered and ready
+      setTimeout(() => {
+        propertyNumberInputRef.current?.focus()
+      }, 100)
+    }
+  }, [isOpenConsentSheet])
 
   return (
     <div
@@ -392,16 +406,16 @@ const AutoCompleteInput = forwardRef<HTMLInputElement, Props>(({
               Endereços sem número podem reduzir a precisão da busca registral.
             </p>
 
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2" onMouseDown={(e) => e.stopPropagation()}>
               <label htmlFor="property-number" className="text-sm font-semibold text-gray-700">
                 Número do imóvel
               </label>
               <Input
+                ref={propertyNumberInputRef}
                 id="property-number"
                 placeholder="Ex.: 123 ou S/N"
                 type="text"
                 inputMode="numeric"
-                autoFocus
                 value={manualNumber}
                 onChange={(e) => {
                   // Allow numbers and common separators/text (for "S/N" = Sem Número)
@@ -419,7 +433,7 @@ const AutoCompleteInput = forwardRef<HTMLInputElement, Props>(({
               )}
             </div>
 
-            <label className="flex items-start gap-3 cursor-pointer">
+            <label className="flex items-start gap-3 cursor-pointer" onMouseDown={(e) => e.stopPropagation()}>
               <input
                 type="checkbox"
                 className="mt-1 size-4 rounded border-gray-300"
