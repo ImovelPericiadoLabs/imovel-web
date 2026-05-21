@@ -199,6 +199,9 @@ const AutoCompleteInput = forwardRef<HTMLInputElement, Props>(({
     setPendingPlace(null)
     setManualNumber('')
     setNoStreetNumber(false)
+    
+    // Clear focus from property number input
+    propertyNumberInputRef.current = null
   }
 
   useEffect(() => {
@@ -217,13 +220,18 @@ const AutoCompleteInput = forwardRef<HTMLInputElement, Props>(({
     }
   }, [isOpenErrorSheet, isOpenNotFoundAddressSheet])
 
+  const isAnySheetOpen = isOpenConsentSheet || isOpenErrorSheet || isOpenNotFoundAddressSheet || isOpenAddressSheet
+
   return (
     <div
       className={cn({
         'bg-white rounded-xl': !!options?.length,
       })}
     >
-      <div className="relative">
+      <div 
+        className="relative"
+        inert={isAnySheetOpen ? true : undefined}
+      >
         <Search className="top-4.5 left-3.5 absolute text-primary size-5" />
 
         {!!value.length && (
@@ -399,6 +407,7 @@ const AutoCompleteInput = forwardRef<HTMLInputElement, Props>(({
                 placeholder="Ex.: 123 ou S/N"
                 type="text"
                 inputMode="numeric"
+                autoFocus
                 value={manualNumber}
                 onChange={(e) => {
                   // Validação numérica: permite apenas números, separadores e "S/N"
