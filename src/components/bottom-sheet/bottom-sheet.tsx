@@ -88,24 +88,8 @@ export default function BottomSheet({ isOpen, onClose, children, variant = 'defa
     const htmlElement = document.documentElement
     htmlElement.style.overflow = 'hidden'
 
-    // Marcar elementos fora do modal como inert (não-interativos)
-    const allElements = document.querySelectorAll('body > *')
-    const previousInertStates = new Map<Element, boolean>()
-
-    allElements.forEach((el) => {
-      if (el !== modalRef.current?.parentElement && !el.classList.contains('fixed')) {
-        previousInertStates.set(el, el.hasAttribute('inert'))
-        el.setAttribute('inert', '')
-      }
-    })
-
     return () => {
       htmlElement.style.overflow = ''
-      previousInertStates.forEach((wasInert, el) => {
-        if (!wasInert) {
-          el.removeAttribute('inert')
-        }
-      })
     }
   }, [isOpen])
 
