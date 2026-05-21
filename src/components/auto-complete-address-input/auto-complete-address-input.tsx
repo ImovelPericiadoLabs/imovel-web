@@ -398,16 +398,25 @@ const AutoCompleteInput = forwardRef<HTMLInputElement, Props>(({
               </label>
               <Input
                 id="property-number"
-                placeholder="Ex.: 123"
+                placeholder="Ex.: 123 ou S/N"
+                type="text"
+                inputMode="numeric"
+                autoFocus
                 value={manualNumber}
-                disabled={noStreetNumber}
                 onChange={(e) => {
-                  setManualNumber(e.target.value)
-                  if (e.target.value.trim()) {
+                  // Allow numbers and common separators/text (for "S/N" = Sem Número)
+                  const value = e.target.value.replace(/[^\d\s\-\/SN]/gi, '')
+                  setManualNumber(value)
+                  if (value.trim()) {
                     setNoStreetNumber(false)
                   }
                 }}
               />
+              {!manualNumber && (
+                <p className="text-xs text-gray-500">
+                  Deixe em branco e marque a checkbox se não houver número
+                </p>
+              )}
             </div>
 
             <label className="flex items-start gap-3 cursor-pointer">
