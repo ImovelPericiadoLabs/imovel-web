@@ -215,22 +215,21 @@ const AutoCompleteInput = forwardRef<HTMLInputElement, Props>(({
   }, [options, isLoading, isDirty, value])
 
   useEffect(() => {
-    if (isOpenAddressSheet || isOpenErrorSheet || isOpenNotFoundAddressSheet || isOpenConsentSheet || error) {
+    if (isOpenErrorSheet || isOpenNotFoundAddressSheet) {
       internalInputRef.current?.blur()
     }
-  }, [isOpenAddressSheet, isOpenErrorSheet, isOpenNotFoundAddressSheet, isOpenConsentSheet, error])
+  }, [isOpenErrorSheet, isOpenNotFoundAddressSheet])
 
   // Focus property number input when consent sheet opens
   useEffect(() => {
     if (isOpenConsentSheet) {
-      // Use setTimeout to ensure the DOM is fully rendered
+      // Delay slightly to ensure BottomSheet animation is complete
       const timer = setTimeout(() => {
         if (propertyNumberInputRef.current) {
           propertyNumberInputRef.current.focus()
-          // Select all text to replace if user starts typing
-          propertyNumberInputRef.current.select()
+          // Don't select - let user type naturally
         }
-      }, 150)
+      }, 300)
       
       return () => clearTimeout(timer)
     }
@@ -420,13 +419,6 @@ const AutoCompleteInput = forwardRef<HTMLInputElement, Props>(({
                 inputMode="numeric"
                 autoFocus
                 value={manualNumber}
-                onMouseDown={(e) => {
-                  e.stopPropagation()
-                  // Ensure focus stays on input
-                  if (propertyNumberInputRef.current && document.activeElement !== propertyNumberInputRef.current) {
-                    propertyNumberInputRef.current.focus()
-                  }
-                }}
                 onChange={(e) => {
                   // Allow numbers and common separators/text (for "S/N" = Sem Número)
                   const value = e.target.value.replace(/[^\d\s\-\/SN]/gi, '')
