@@ -223,10 +223,16 @@ const AutoCompleteInput = forwardRef<HTMLInputElement, Props>(({
   // Focus property number input when consent sheet opens
   useEffect(() => {
     if (isOpenConsentSheet) {
-      // Use setTimeout to ensure the input is rendered and ready
-      setTimeout(() => {
-        propertyNumberInputRef.current?.focus()
-      }, 100)
+      // Use setTimeout to ensure the DOM is fully rendered
+      const timer = setTimeout(() => {
+        if (propertyNumberInputRef.current) {
+          propertyNumberInputRef.current.focus()
+          // Select all text to replace if user starts typing
+          propertyNumberInputRef.current.select()
+        }
+      }, 150)
+      
+      return () => clearTimeout(timer)
     }
   }, [isOpenConsentSheet])
 
@@ -401,10 +407,6 @@ const AutoCompleteInput = forwardRef<HTMLInputElement, Props>(({
             <p className="text-lg font-semibold leading-tight text-gray-700">
               O Google não retornou o número deste imóvel.
             </p>
-            
-            <p className="text-sm text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 leading-relaxed">
-              Endereços sem número podem reduzir a precisão da busca registral.
-            </p>
 
             <div className="flex flex-col gap-2">
               <label htmlFor="property-number" className="text-sm font-semibold text-gray-700">
@@ -416,10 +418,14 @@ const AutoCompleteInput = forwardRef<HTMLInputElement, Props>(({
                 placeholder="Ex.: 123 ou S/N"
                 type="text"
                 inputMode="numeric"
+                autoFocus
                 value={manualNumber}
-                onMouseDown={(e) => e.stopPropagation()}
-                onFocus={(e) => {
+                onMouseDown={(e) => {
                   e.stopPropagation()
+                  // Ensure focus stays on input
+                  if (propertyNumberInputRef.current && document.activeElement !== propertyNumberInputRef.current) {
+                    propertyNumberInputRef.current.focus()
+                  }
                 }}
                 onChange={(e) => {
                   // Allow numbers and common separators/text (for "S/N" = Sem Número)
@@ -430,11 +436,6 @@ const AutoCompleteInput = forwardRef<HTMLInputElement, Props>(({
                   }
                 }}
               />
-              {!manualNumber && (
-                <p className="text-xs text-gray-500">
-                  Deixe em branco e marque a checkbox se não houver número
-                </p>
-              )}
             </div>
 
             <label className="flex items-start gap-3 cursor-pointer">
