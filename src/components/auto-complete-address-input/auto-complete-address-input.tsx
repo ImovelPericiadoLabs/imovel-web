@@ -185,8 +185,6 @@ const AutoCompleteInput = forwardRef<HTMLInputElement, Props>(({
   }
 
   function handleChangeAddress() {
-    handleFocusInput()
-
     handleCloseAddressSheet()
 
     handleCloseErrorSheet()
@@ -200,8 +198,11 @@ const AutoCompleteInput = forwardRef<HTMLInputElement, Props>(({
     setManualNumber('')
     setNoStreetNumber(false)
     
-    // Clear focus from property number input
-    propertyNumberInputRef.current = null
+    // Blur do elemento focado para impedir que foco retorne ao background
+    // quando inert é removido do container
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur()
+    }
   }
 
   useEffect(() => {
