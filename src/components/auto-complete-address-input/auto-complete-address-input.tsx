@@ -406,7 +406,7 @@ const AutoCompleteInput = forwardRef<HTMLInputElement, Props>(({
               Endereços sem número podem reduzir a precisão da busca registral.
             </p>
 
-            <div className="flex flex-col gap-2" onMouseDown={(e) => e.stopPropagation()}>
+            <div className="flex flex-col gap-2">
               <label htmlFor="property-number" className="text-sm font-semibold text-gray-700">
                 Número do imóvel
               </label>
@@ -417,6 +417,10 @@ const AutoCompleteInput = forwardRef<HTMLInputElement, Props>(({
                 type="text"
                 inputMode="numeric"
                 value={manualNumber}
+                onMouseDown={(e) => e.stopPropagation()}
+                onFocus={(e) => {
+                  e.stopPropagation()
+                }}
                 onChange={(e) => {
                   // Allow numbers and common separators/text (for "S/N" = Sem Número)
                   const value = e.target.value.replace(/[^\d\s\-\/SN]/gi, '')
@@ -433,7 +437,7 @@ const AutoCompleteInput = forwardRef<HTMLInputElement, Props>(({
               )}
             </div>
 
-            <label className="flex items-start gap-3 cursor-pointer" onMouseDown={(e) => e.stopPropagation()}>
+            <label className="flex items-start gap-3 cursor-pointer">
               <input
                 type="checkbox"
                 className="mt-1 size-4 rounded border-gray-300"
