@@ -220,11 +220,6 @@ const AutoCompleteInput = forwardRef<HTMLInputElement, Props>(({
       internalInputRef.current?.blur()
     }
   }, [isOpenErrorSheet, isOpenNotFoundAddressSheet])
-<<<<<<< HEAD
-
-  const isAnySheetOpen = isOpenConsentSheet || isOpenErrorSheet || isOpenNotFoundAddressSheet || isOpenAddressSheet
-=======
->>>>>>> fix/address-number-input-ux
 
   return (
     <div
@@ -232,10 +227,7 @@ const AutoCompleteInput = forwardRef<HTMLInputElement, Props>(({
         'bg-white rounded-xl': !!options?.length,
       })}
     >
-      <div 
-        className="relative"
-        inert={isAnySheetOpen ? true : undefined}
-      >
+      <div className="relative">
         <Search className="top-4.5 left-3.5 absolute text-primary size-5" />
 
         {!!value.length && (
