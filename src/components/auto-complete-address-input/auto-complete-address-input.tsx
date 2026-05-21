@@ -81,9 +81,11 @@ const AutoCompleteInput = forwardRef<HTMLInputElement, Props>(({
   const [pendingPlace, setPendingPlace] = useState<AddressConfirmPayload | null>(null)
   const [manualNumber, setManualNumber] = useState('')
   const [noStreetNumber, setNoStreetNumber] = useState(false)
+  const [userHasInteracted, setUserHasInteracted] = useState(false)
 
   const internalInputRef = useRef<HTMLInputElement>(null)
   const propertyNumberInputRef = useRef<HTMLInputElement>(null)
+  const focusAppliedRef = useRef(false)
 
   useImperativeHandle(ref, () => internalInputRef.current as HTMLInputElement)
 
@@ -220,18 +222,28 @@ const AutoCompleteInput = forwardRef<HTMLInputElement, Props>(({
     }
   }, [isOpenErrorSheet, isOpenNotFoundAddressSheet])
 
-  // Focus property number input when consent sheet opens
+  // ÚNICO ponto de entrada para gerenciamento de foco do modal de número
+  // Garante comportamento determinístico e evita conflitos de foco
   useEffect(() => {
-    if (isOpenConsentSheet) {
-      // Delay slightly to ensure BottomSheet animation is complete
+    // Quando modal abre: aplicar foco UMA VEZ apenas
+    if (isOpenConsentSheet && !focusAppliedRef.current) {
+      focusAppliedRef.current = true
+      setUserHasInteracted(false)
+      
+      // Aguardar animação do BottomSheet completar antes de focar
       const timer = setTimeout(() => {
         if (propertyNumberInputRef.current) {
           propertyNumberInputRef.current.focus()
-          // Don't select - let user type naturally
         }
-      }, 300)
+      }, 350)
       
       return () => clearTimeout(timer)
+    }
+    
+    // Quando modal fecha: resetar estado para próxima abertura
+    if (!isOpenConsentSheet) {
+      focusAppliedRef.current = false
+      setUserHasInteracted(false)
     }
   }, [isOpenConsentSheet])
 
@@ -417,11 +429,20 @@ const AutoCompleteInput = forwardRef<HTMLInputElement, Props>(({
                 placeholder="Ex.: 123 ou S/N"
                 type="text"
                 inputMode="numeric"
-                autoFocus
                 value={manualNumber}
+                // Sinalizadores de que o usuário começou a interagir
+                // Impede re-aplicação de foco após usuário iniciar digitação
+                onFocus={() => setUserHasInteracted(true)}
+                onMouseDown={() => setUserHasInteracted(true)}
+                onTouchStart={() => setUserHasInteracted(true)}
                 onChange={(e) => {
-                  // Allow numbers and common separators/text (for "S/N" = Sem Número)
-                  const value = e.target.value.replace(/[^\d\s\-\/SN]/gi, '')
+                  // Registrar que o usuário está interagindo
+                  setUserHasInteracted(true)
+                  
+                  // Validação numérica: permite apenas números, separadores e "S/N"
+                  const inputValue = e.target.value
+                  const value = inputValue.replace(/[^\d\s\-\/SN]/gi, '')
+                  
                   setManualNumber(value)
                   if (value.trim()) {
                     setNoStreetNumber(false)
