@@ -221,18 +221,13 @@ const AutoCompleteInput = forwardRef<HTMLInputElement, Props>(({
     }
   }, [isOpenErrorSheet, isOpenNotFoundAddressSheet])
 
-  const isAnySheetOpen = isOpenConsentSheet || isOpenErrorSheet || isOpenNotFoundAddressSheet || isOpenAddressSheet
-
   return (
     <div
       className={cn({
         'bg-white rounded-xl': !!options?.length,
       })}
     >
-      <div 
-        className="relative"
-        inert={isAnySheetOpen ? true : undefined}
-      >
+      <div className="relative">
         <Search className="top-4.5 left-3.5 absolute text-primary size-5" />
 
         {!!value.length && (
