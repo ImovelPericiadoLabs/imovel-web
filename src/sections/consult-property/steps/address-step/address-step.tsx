@@ -146,6 +146,11 @@ export const AddressStep = forwardRef<{ focus: () => boolean }, { onNext: () => 
     const value = payload.address
     setValue('address', value)
 
+    if (payload.addressNumber) {
+      setValue('addressNumber', payload.addressNumber)
+      setValue('noAddressNumber', false)
+    }
+
     if (payload.place_response) {
       setValue('place_response', payload.place_response)
     }

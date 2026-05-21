@@ -79,16 +79,10 @@ const AutoCompleteInput = forwardRef<HTMLInputElement, Props>(({
   const [isOpenConsentSheet, setIsOpenConsentSheet] = useState(false)
   const [addressError, setAddressError] = useState<{ title: string; subtitle: string } | null>(null)
   const [pendingPlace, setPendingPlace] = useState<AddressConfirmPayload | null>(null)
-  const [manualNumber, setManualNumber] = useState('')
-  const [noStreetNumber, setNoStreetNumber] = useState(false)
 
   const internalInputRef = useRef<HTMLInputElement>(null)
-  const propertyNumberInputRef = useRef<HTMLInputElement>(null)
 
   useImperativeHandle(ref, () => internalInputRef.current as HTMLInputElement)
-
-  const canConfirmWithoutNumber =
-    manualNumber.trim().length > 0 || noStreetNumber
 
   function handleFocusInput() {
     const el = internalInputRef?.current
@@ -122,8 +116,6 @@ const AutoCompleteInput = forwardRef<HTMLInputElement, Props>(({
     }
     setValue('')
     setPendingPlace(null)
-    setManualNumber('')
-    setNoStreetNumber(false)
     internalInputRef.current?.focus()
   }
 
@@ -134,8 +126,6 @@ const AutoCompleteInput = forwardRef<HTMLInputElement, Props>(({
 
     if (!result.addressNumber) {
       setPendingPlace(result)
-      setManualNumber('')
-      setNoStreetNumber(false)
       setIsOpenConsentSheet(true)
       handleCloseAddressSheet()
       setValue(result.address)
@@ -146,25 +136,8 @@ const AutoCompleteInput = forwardRef<HTMLInputElement, Props>(({
     setPendingPlace(result)
   }
 
-  function handleConfirmWithNumber() {
-    if (!pendingPlace) return
-
-    const payload = buildConfirmPayload(
-      pendingPlace.address,
-      pendingPlace.place_response,
-      manualNumber,
-      noStreetNumber,
-    )
-
-    setIsOpenConsentSheet(false)
-    onConfirm(payload)
-    setPendingPlace(null)
-    setManualNumber('')
-    setNoStreetNumber(false)
-  }
-
   function handleConfirmAddressSheet() {
-    if (!pendingPlace?.addressNumber) return
+    if (!pendingPlace) return
 
     onConfirm(
       buildConfirmPayload(
@@ -195,14 +168,6 @@ const AutoCompleteInput = forwardRef<HTMLInputElement, Props>(({
 
     setAddressError(null)
     setPendingPlace(null)
-    setManualNumber('')
-    setNoStreetNumber(false)
-    
-    // Blur do elemento focado para impedir que foco retorne ao background
-    // quando inert é removido do container
-    if (document.activeElement instanceof HTMLElement) {
-      document.activeElement.blur()
-    }
   }
 
   useEffect(() => {
@@ -384,66 +349,37 @@ const AutoCompleteInput = forwardRef<HTMLInputElement, Props>(({
           <div className="flex flex-col gap-4">
             <div className="flex items-center gap-3 text-yellow-600">
               <div className="p-2 bg-yellow-50 rounded-xl">
-                <CircleAlert className="size-6" />
+                <MapPin className="size-6" />
               </div>
-              <TextTitle className="text-xl font-bold">Endereço sem número</TextTitle>
+              <TextTitle className="text-xl font-bold">Falta o número do imóvel</TextTitle>
             </div>
             
-            <p className="text-lg font-semibold leading-tight text-gray-700">
-              O Google não retornou o número deste imóvel.
+            <p className="text-base leading-relaxed text-gray-600">
+              O número da sua casa não foi identificado pelo Google.
             </p>
 
-            <div className="flex flex-col gap-2">
-              <label htmlFor="property-number" className="text-sm font-semibold text-gray-700">
-                Número do imóvel
-              </label>
-              <Input
-                ref={propertyNumberInputRef}
-                id="property-number"
-                placeholder="Ex.: 123 ou S/N"
-                type="text"
-                inputMode="numeric"
-                autoFocus
-                value={manualNumber}
-                onChange={(e) => {
-                  // Validação numérica: permite apenas números, separadores e "S/N"
-                  const inputValue = e.target.value
-                  const value = inputValue.replace(/[^\d\s\-\/SN]/gi, '')
-                  
-                  setManualNumber(value)
-                  if (value.trim()) {
-                    setNoStreetNumber(false)
-                  }
-                }}
-              />
-            </div>
-
-            <label className="flex items-start gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                className="mt-1 size-4 rounded border-gray-300"
-                checked={noStreetNumber}
-                onChange={(e) => {
-                  setNoStreetNumber(e.target.checked)
-                  if (e.target.checked) {
-                    setManualNumber('')
-                  }
-                }}
-              />
-              <span className="text-sm text-gray-700 leading-snug">
-                Imóvel sem número
-              </span>
-            </label>
+            <p className="text-base leading-relaxed text-gray-600">
+              Na <strong>próxima etapa</strong>, você poderá digitar o número para confirmar o endereço.
+            </p>
           </div>
 
           <div className="flex flex-col w-full gap-3">
             <Button
-              onClick={handleConfirmWithNumber}
-              disabled={!canConfirmWithoutNumber}
+              onClick={() => {
+                if (!pendingPlace) return
+                onConfirm(
+                  buildConfirmPayload(
+                    pendingPlace.address,
+                    pendingPlace.place_response,
+                    null,
+                    false,
+                  ),
+                )
+              }}
               className="h-12 rounded-xl"
-              icon={<Check className="size-5" />}
+              icon={<ChevronRight className="size-5" />}
             >
-              Confirmar endereço
+              Continuar
             </Button>
             <Button 
               variant="outline" 

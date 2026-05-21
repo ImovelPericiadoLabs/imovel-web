@@ -12,6 +12,8 @@ export const validations = z
     lot: z.string().optional(),
     noLot: z.boolean().nullable().optional(),
     complement: z.string().optional(),
+    addressNumber: z.string().optional(),
+    noAddressNumber: z.boolean().nullable().optional(),
     unknownRegistration: z.boolean().nullable().optional(),
     registrationNumber: z.string().optional().nullable(),
     /** Nome do cartório quando o usuário não passou pelo mapa (fluxo matrícula + cartório). */
@@ -92,6 +94,18 @@ export const validations = z
       message: 'O documento é obrigatório',
       path: ['document'],
     },
+  )
+  .refine(
+    (data) => {
+      if (data.noAddressNumber === false) {
+        return !!data.addressNumber && data.addressNumber.trim().length > 0
+      }
+      return true
+    },
+    {
+      message: 'Informe o número do endereço',
+      path: ['addressNumber'],
+    }
   )
   .refine(
     (data) => {

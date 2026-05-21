@@ -36,6 +36,8 @@ const CONSULT_PROPERTY_FORM_DEFAULTS: FormTypes = {
   lot: '',
   noLot: undefined,
   complement: '',
+  addressNumber: '',
+  noAddressNumber: undefined,
   registrationNumber: '',
   unknownRegistration: undefined,
   hasDocument: undefined,

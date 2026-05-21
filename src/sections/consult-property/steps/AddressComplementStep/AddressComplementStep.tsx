@@ -1,7 +1,7 @@
 'use client'
 
 import { ChoiceCards } from '@/components/choice-cards'
-import { Check, Building, Box, Layout, Hash, Info, ChevronRight, Pencil, Building2 } from 'lucide-react'
+import { Check, Building, Box, Layout, Hash, Info, ChevronRight, Pencil, Building2, Home } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useFormContext } from 'react-hook-form'
 import { useState, useRef, useImperativeHandle, forwardRef, useCallback, useMemo } from 'react'
@@ -16,7 +16,7 @@ import { trackGtmEvent } from '@/utils/analytics/gtm'
 
 export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: () => void, onBack?: () => void }, ref) => {
   const [currentSubStep, setCurrentSubStep] = useState(0)
-  const subSteps = useMemo(() => ['registration', 'allotment', 'block', 'lot', 'complement'] as const, [])
+  const subSteps = useMemo(() => ['addressNumber', 'registration', 'allotment', 'block', 'lot', 'complement'] as const, [])
   type StepKey = (typeof subSteps)[number]
   type StepMeta = {
     label: string
@@ -27,6 +27,14 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
     badgeClassName: string
   }
   const stepMeta = useMemo<Record<StepKey, StepMeta>>(() => ({
+    addressNumber: {
+      label: 'Número',
+      icon: Home,
+      tone: 'registration' as const,
+      cardClassName: 'bg-primary/5 border-primary/10',
+      iconClassName: 'bg-primary/15 text-primary',
+      badgeClassName: 'text-primary bg-primary/10 border-primary/20',
+    },
     registration: {
       label: 'Matrícula',
       icon: Building,
@@ -69,6 +77,13 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
     },
   }), [])
   const validationStyles = useMemo(() => ({
+    addressNumber: {
+      sheet: 'border-t-4 border-primary/60',
+      iconWrap: 'bg-primary/10',
+      icon: 'text-primary',
+      title: 'text-primary',
+      button: 'bg-primary hover:bg-primary-hover text-white',
+    },
     registration: {
       sheet: 'border-t-4 border-primary/60',
       iconWrap: 'bg-primary/10',
@@ -127,6 +142,10 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
       const prevStep = subSteps[currentSubStep - 1]
       
       // Limpa a seleção e o campo do passo anterior ao voltar para ele
+      if (prevStep === 'addressNumber') {
+        setValue('noAddressNumber', undefined)
+        setValue('addressNumber', '')
+      }
       if (prevStep === 'registration') {
         setValue('unknownRegistration', undefined)
         setValue('registrationNumber', '')
@@ -147,10 +166,8 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
       setCurrentSubStep(prev => prev - 1)
       window.scrollTo({ top: 0, behavior: 'auto' })
     } else if (onBack) {
-      // Se estamos voltando do primeiro sub-passo (matrícula) para o endereço, 
-      // também resetamos a matrícula para que ao entrar novamente esteja limpo
-      setValue('unknownRegistration', undefined)
-      setValue('registrationNumber', '')
+      setValue('noAddressNumber', undefined)
+      setValue('addressNumber', '')
       onBack()
     }
   }, [currentSubStep, subSteps, setValue, onBack])
@@ -160,6 +177,10 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
     let fieldLabel = ''
     
     const subStep = subSteps[currentSubStep]
+    if (subStep === 'addressNumber') {
+      fieldsToValidate = ['noAddressNumber', 'addressNumber']
+      fieldLabel = 'o número do endereço'
+    }
     if (subStep === 'registration') {
       fieldsToValidate = ['unknownRegistration', 'registrationNumber']
       fieldLabel = 'o número da matrícula'
@@ -264,7 +285,9 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
   const noAllotment = watch('noAllotment')
   const noBlock = watch('noBlock')
   const noLot = watch('noLot')
+  const noAddressNumber = watch('noAddressNumber')
 
+  const addressNumberRef = useRef<HTMLInputElement>(null)
   const registrationRef = useRef<HTMLInputElement>(null)
   const allotmentRef = useRef<HTMLInputElement>(null)
   const blockRef = useRef<HTMLInputElement>(null)
@@ -273,6 +296,11 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
 
   const focusCurrentField = useCallback(() => {
     const step = subSteps[currentSubStep]
+    if (step === 'addressNumber') {
+      addressNumberRef.current?.focus()
+      addressNumberRef.current?.click()
+      return
+    }
     if (step === 'registration') {
       registrationRef.current?.focus()
       registrationRef.current?.click()
@@ -301,6 +329,9 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
 
   const showNextButton = useMemo(() => {
     const currentStepName = subSteps[currentSubStep]
+    if (currentStepName === 'addressNumber') {
+      return noAddressNumber === false
+    }
     if (currentStepName === 'registration') {
       return unknownRegistration === false
     }
@@ -317,7 +348,7 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
       return true
     }
     return true
-  }, [currentSubStep, subSteps, unknownRegistration, noAllotment, noBlock, noLot])
+  }, [currentSubStep, subSteps, noAddressNumber, unknownRegistration, noAllotment, noBlock, noLot])
 
   const currentStepKey = subSteps[currentSubStep]
   const currentStepMeta = stepMeta[currentStepKey]
@@ -365,6 +396,7 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
 
           <div className="flex flex-col gap-2">
             <TextTitle className="text-dark">
+              {subSteps[currentSubStep] === 'addressNumber' && 'Você tem o número do endereço?'}
               {subSteps[currentSubStep] === 'registration' && 'Você tem o número da matrícula?'}
               {subSteps[currentSubStep] === 'allotment' && 'Você tem o nome do loteamento?'}
               {subSteps[currentSubStep] === 'block' && 'Você tem o número da quadra?'}
@@ -375,6 +407,100 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
               Isso melhora a precisão da busca por seu imóvel.
             </TextSubtitle>
           </div>
+
+          {subSteps[currentSubStep] === 'addressNumber' && (
+            <div className="flex flex-col gap-3 mt-0">
+            {noAddressNumber === undefined ? (
+              <ChoiceCards
+                className="mt-0"
+                value={undefined}
+                tone="registration"
+                yesLabel="Tenho o número do endereço"
+                noLabel="Não tenho o número do endereço"
+                onChange={(hasInfo) => {
+                  const isNoInfo = !hasInfo
+                  if (isNoInfo) {
+                    setValue('noAddressNumber', isNoInfo)
+                    setValue('addressNumber', '')
+                    handleContinue(true)
+                  } else {
+                    flushSync(() => {
+                      setValue('noAddressNumber', isNoInfo)
+                    })
+                    addressNumberRef.current?.focus()
+                    addressNumberRef.current?.click()
+                  }
+                }}
+              />
+            ) : (
+              <div className="flex flex-col gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                <div className="flex justify-between items-center pr-1">
+                  <label
+                    htmlFor="addressNumber"
+                    className="text-sm font-semibold text-gray-700 ml-1"
+                  >
+                    {noAddressNumber ? 'Você marcou que não possui número' : 'Digite o número do endereço'}
+                  </label>
+                  <button
+                    onClick={() => {
+                      setValue('noAddressNumber', undefined)
+                      setValue('addressNumber', '')
+                    }}
+                    className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] text-primary font-bold bg-primary/5 rounded-lg hover:bg-primary/10 transition-colors border border-primary/10"
+                  >
+                    <Pencil className="size-3" />
+                    Alterar
+                  </button>
+                </div>
+
+                {!noAddressNumber && (
+                  <>
+                    <div className="relative group">
+                      <div className="absolute left-4 top-4 text-gray-400 group-focus-within:text-primary transition-colors pointer-events-none">
+                        <Home className="size-5" />
+                      </div>
+
+                      <input
+                        id="addressNumber"
+                        type="text"
+                        inputMode="numeric"
+                        placeholder="Ex: 123"
+                        {...register('addressNumber')}
+                        ref={(e) => {
+                          register('addressNumber').ref(e)
+                          addressNumberRef.current = e
+                        }}
+                        className={`
+                          w-full 
+                          pl-12 pr-4 py-4
+                          bg-white 
+                          border ${errors.addressNumber ? 'border-red-500' : 'border-gray-200'}
+                          rounded-xl
+                          text-sm text-gray-900 
+                          placeholder:text-gray-400 
+                          outline-none 
+                          transition-all duration-200
+                          focus:border-primary 
+                          focus:ring-4 focus:ring-primary/10
+                        `}
+                      />
+                    </div>
+                    <InfoCard className="mt-2">
+                      O número é essencial para localizar o imóvel. Caso não lembre, você pode marcar a opção &quot;Não tenho&quot;.
+                    </InfoCard>
+                    {showNextButton && renderInlineNextButton()}
+                  </>
+                )}
+
+                {errors.addressNumber && !noAddressNumber && (
+                  <p className="text-xs text-red-500 ml-1">
+                    {errors.addressNumber.message as string}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+          )}
 
           {subSteps[currentSubStep] === 'registration' && (
             <div className="flex flex-col gap-3 mt-0">
