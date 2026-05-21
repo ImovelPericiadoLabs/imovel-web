@@ -83,6 +83,7 @@ const AutoCompleteInput = forwardRef<HTMLInputElement, Props>(({
   const [noStreetNumber, setNoStreetNumber] = useState(false)
 
   const internalInputRef = useRef<HTMLInputElement>(null)
+  const propertyNumberInputRef = useRef<HTMLInputElement>(null)
 
   useImperativeHandle(ref, () => internalInputRef.current as HTMLInputElement)
 
@@ -184,8 +185,6 @@ const AutoCompleteInput = forwardRef<HTMLInputElement, Props>(({
   }
 
   function handleChangeAddress() {
-    handleFocusInput()
-
     handleCloseAddressSheet()
 
     handleCloseErrorSheet()
@@ -198,6 +197,12 @@ const AutoCompleteInput = forwardRef<HTMLInputElement, Props>(({
     setPendingPlace(null)
     setManualNumber('')
     setNoStreetNumber(false)
+    
+    // Blur do elemento focado para impedir que foco retorne ao background
+    // quando inert é removido do container
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur()
+    }
   }
 
   useEffect(() => {
@@ -211,10 +216,12 @@ const AutoCompleteInput = forwardRef<HTMLInputElement, Props>(({
   }, [options, isLoading, isDirty, value])
 
   useEffect(() => {
-    if (isOpenAddressSheet || isOpenErrorSheet || isOpenNotFoundAddressSheet || isOpenConsentSheet || error) {
+    if (isOpenErrorSheet || isOpenNotFoundAddressSheet) {
       internalInputRef.current?.blur()
     }
-  }, [isOpenAddressSheet, isOpenErrorSheet, isOpenNotFoundAddressSheet, isOpenConsentSheet, error])
+  }, [isOpenErrorSheet, isOpenNotFoundAddressSheet])
+
+  const isAnySheetOpen = isOpenConsentSheet || isOpenErrorSheet || isOpenNotFoundAddressSheet || isOpenAddressSheet
 
   return (
     <div
@@ -222,7 +229,10 @@ const AutoCompleteInput = forwardRef<HTMLInputElement, Props>(({
         'bg-white rounded-xl': !!options?.length,
       })}
     >
-      <div className="relative">
+      <div 
+        className="relative"
+        inert={isAnySheetOpen ? true : undefined}
+      >
         <Search className="top-4.5 left-3.5 absolute text-primary size-5" />
 
         {!!value.length && (
@@ -387,16 +397,13 @@ const AutoCompleteInput = forwardRef<HTMLInputElement, Props>(({
             <p className="text-lg font-semibold leading-tight text-gray-700">
               O Google não retornou o número deste imóvel.
             </p>
-            
-            <p className="text-sm text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 leading-relaxed">
-              Endereços sem número podem reduzir a precisão da busca registral.
-            </p>
 
             <div className="flex flex-col gap-2">
               <label htmlFor="property-number" className="text-sm font-semibold text-gray-700">
                 Número do imóvel
               </label>
               <Input
+                ref={propertyNumberInputRef}
                 id="property-number"
                 placeholder="Ex.: 123 ou S/N"
                 type="text"
@@ -404,19 +411,16 @@ const AutoCompleteInput = forwardRef<HTMLInputElement, Props>(({
                 autoFocus
                 value={manualNumber}
                 onChange={(e) => {
-                  // Allow numbers and common separators/text (for "S/N" = Sem Número)
-                  const value = e.target.value.replace(/[^\d\s\-\/SN]/gi, '')
+                  // Validação numérica: permite apenas números, separadores e "S/N"
+                  const inputValue = e.target.value
+                  const value = inputValue.replace(/[^\d\s\-\/SN]/gi, '')
+                  
                   setManualNumber(value)
                   if (value.trim()) {
                     setNoStreetNumber(false)
                   }
                 }}
               />
-              {!manualNumber && (
-                <p className="text-xs text-gray-500">
-                  Deixe em branco e marque a checkbox se não houver número
-                </p>
-              )}
             </div>
 
             <label className="flex items-start gap-3 cursor-pointer">
