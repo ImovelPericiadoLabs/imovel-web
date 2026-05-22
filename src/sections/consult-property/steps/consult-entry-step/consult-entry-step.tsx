@@ -20,8 +20,8 @@ const ENTRY_BADGE: Record<
   { dotClass: string; timeLabel: string }
 > = {
   document: { dotClass: 'bg-green-500', timeLabel: '~5 min' },
-  unsure: { dotClass: 'bg-yellow-300', timeLabel: '~10 min' },
-  address: { dotClass: 'bg-red-600', timeLabel: '~20 min' },
+  unsure: { dotClass: 'bg-yellow-300', timeLabel: '~20 min' },
+  address: { dotClass: 'bg-red-600', timeLabel: '~72 horas úteis' },
 }
 
 const cards: {
@@ -30,44 +30,46 @@ const cards: {
   subtitle: string
   icon: typeof MapPin
 }[] = [
-  {
-    id: 'document',
-    title: 'Tenho documento',
-    subtitle: 'Envie foto ou PDF da matrícula, contrato ou escritura.',
-    icon: FileText,
-  },
-  {
-    id: 'unsure',
-    title: 'Tenho matrícula',
-    subtitle: 'Informe o número e o cartório, perfeito se ainda não tem o endereço no mapa.',
-    icon: Hash,
-  },
-  {
-    id: 'address',
-    title: 'Tenho endereço',
-    subtitle: 'Busque no mapa, o jeito mais rápido de começar sua consulta.',
-    icon: MapPin,
-  },
-]
+    {
+      id: 'document',
+      title: 'Tenho documento',
+      subtitle: 'Envie foto ou PDF da matrícula, contrato ou escritura.',
+      icon: FileText,
+    },
+    {
+      id: 'unsure',
+      title: 'Tenho matrícula',
+      subtitle: 'Informe o número e o cartório para começar sua consulta.',
+      icon: Hash,
+    },
+    {
+      id: 'address',
+      title: 'Tenho endereço',
+      subtitle: 'Busque diretamente no mapa para começar sua consulta.',
+      icon: MapPin,
+    },
+  ]
 
 export function ConsultEntryStep({ onChoose }: ConsultEntryStepProps) {
   const { price } = usePublicPlanPrice()
 
   return (
     <div className="relative min-w-0 px-4 pb-32 pointer-events-auto md:px-6 md:pb-24 lg:pb-16 xl:px-8">
-      <div className="mb-4 flex max-w-3xl flex-col gap-2 text-center lg:mx-auto lg:mb-5">
-        <TextTitle className="w-full text-center text-dark md:text-xl md:leading-snug lg:text-2xl lg:leading-tight">
+      <div className="mx-auto mb-5 flex max-w-3xl min-h-[7.25rem] flex-col items-center justify-end gap-2 pb-1 text-center sm:mb-6 sm:min-h-[7.5rem] md:mb-7 md:min-h-[8rem] lg:mx-auto lg:mb-8 lg:min-h-[8.5rem]">
+        <p className="max-w-4xl text-sm font-black tracking-wide text-white lg:text-lg">
+          Endereço ou matrícula:
+          <span className="bg-gradient-to-r from-violet-400 to-blue-400 bg-clip-text text-transparent">
+            {" "}menos burocracia, mais agilidade.
+          </span>
+        </p>
+        <TextTitle className="w-full text-center text-white md:text-xl md:leading-snug lg:text-2xl lg:leading-tight">
           Como quer começar?
         </TextTitle>
-        <TextSubtitle className="w-full text-center text-gray-500 md:text-[15px] md:leading-relaxed lg:mx-auto lg:max-w-2xl lg:text-base">
-          Escolha o que combina com você, todos os caminhos levam à mesma consulta completa.
+        <TextSubtitle className="mx-auto w-full max-w-[18rem] text-pretty text-balance text-center text-sm leading-snug text-white/90 sm:max-w-md sm:text-[15px] sm:leading-relaxed md:max-w-lg lg:max-w-2xl lg:text-base">
+          <span className="block sm:inline">Escolha o que combina com você,</span>{" "}
+          <span className="block sm:inline">todos os caminhos levam à mesma consulta completa.</span>
         </TextSubtitle>
       </div>
-
-      <p className="mb-4 px-1 text-center text-xs font-bold leading-relaxed text-gray-700 lg:mx-auto lg:max-w-2xl lg:text-sm">
-        Com endereço, buscamos a matrícula para você. Com documento em mãos, a análise fica mais rápida.
-        Só tem a matrícula? Informe número e cartório.
-      </p>
 
       <div className="mb-4 w-full min-w-0 rounded-2xl border border-gray-100 bg-white px-3 py-3 shadow-sm sm:px-4 lg:mx-auto lg:max-w-3xl lg:py-4">
         <p className="mx-auto max-w-full break-words text-center text-xs font-semibold leading-snug text-primary tabular-nums md:text-sm">

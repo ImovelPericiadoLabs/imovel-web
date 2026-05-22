@@ -193,6 +193,9 @@ export function getOrderEventsRefetchIntervalMs(
   ) {
     return 90_000
   }
+  if (statusValue === 'IN_PROGRESS') {
+    return 8_000
+  }
   if (isOrderPipelineActive(statusValue)) {
     return 12_000
   }
@@ -210,7 +213,7 @@ export function getOrderRefetchIntervalMs(
     case 'SEARCHING_DOCUMENT':
       return 15_000
     case 'IN_PROGRESS':
-      return 10_000
+      return 8_000
     case 'PENDING':
       if (options?.paymentConfirmed) {
         return 15_000

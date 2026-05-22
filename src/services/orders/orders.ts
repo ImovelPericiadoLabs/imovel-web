@@ -43,10 +43,19 @@ export type PlaceResponse = {
   longitude?: number
 }
 
+export type OrderAnalysisProgress = {
+  step?: string
+  label?: string
+  agent_title?: string
+  agent_slug?: string
+  updated_at?: string
+}
+
 export type Order = {
   id: string
   code: number
   status: GenericStatus
+  analysis_progress?: OrderAnalysisProgress | null
   /** Confirmado = pagamento ou créditos já cobertos; útil quando ``status`` analítico ainda é PENDING (re-solicitação / fila). */
   payment_status?: GenericStatus
   gateway?: string

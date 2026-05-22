@@ -18,11 +18,19 @@ const LABELS: Record<string, string> = {
   POST_PAYMENT_SKIPPED_PAYMENT: 'Aguardando confirmação de pagamento',
   ENRICH_ENQUEUED: 'Enriquecimento do endereço na fila',
   ANALYSIS_ENQUEUED: 'Análise do documento na fila',
+  ANALYSIS_STEP: 'Etapa da análise',
   INFOSIMPLES_SEARCH_ENQUEUED: 'Busca online da matrícula iniciada',
   ONR_SEARCH_ENQUEUED: 'Pedido enviado para busca em cartório (ONR)',
 }
 
-export function formatOrderEventLabel(type: string): string {
+export function formatOrderEventLabel(
+  type: string,
+  payload?: Record<string, unknown>,
+): string {
+  if (type === 'ANALYSIS_STEP') {
+    const label = String(payload?.label || '').trim()
+    if (label) return label
+  }
   return LABELS[type] ?? type.replace(/_/g, ' ').toLowerCase()
 }
 
