@@ -9,4 +9,5 @@ const posthogHost =
 posthog.init(posthogKey, {
   api_host: posthogHost,
   defaults: '2025-11-30',
+  disable_session_recording: process.env.NEXT_PUBLIC_POSTHOG_SESSION_RECORDING !== 'true',
 })

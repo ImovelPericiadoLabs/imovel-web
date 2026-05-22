@@ -84,6 +84,10 @@ export function RegistrationManualStep({ onNext, onBack }: RegistrationManualSte
           inputId="notaryName"
           value={String(notaryName || '')}
           onChange={(v) => setValue('notaryName', v, { shouldValidate: true, shouldDirty: true })}
+          onGeoChange={({ uf, city }) => {
+            setValue('notaryState', uf, { shouldDirty: true })
+            setValue('notaryCity', city, { shouldDirty: true })
+          }}
           error={notaryErr ? String(notaryErr) : undefined}
         />
 

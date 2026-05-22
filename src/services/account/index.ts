@@ -3,6 +3,7 @@ export {
   verifyAuth,
   refreshToken,
   getMe,
+  markOnboardingVslSeen,
   requestAccountDeletion,
   type StartAuthRequest,
   type StartAuthResponse,

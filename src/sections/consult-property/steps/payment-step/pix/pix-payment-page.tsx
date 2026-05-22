@@ -98,6 +98,8 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
       complement,
       registrationNumber,
       notary,
+      notaryState,
+      notaryCity,
       documentId,
       allotment,
       block,
@@ -110,6 +112,8 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
         String(parentForm?.getValues('notaryName') || '').trim() ||
         String(parentForm?.getValues('registry')?.name || '').trim() ||
         undefined
+      const notaryState = String(parentForm?.getValues('notaryState') || '').trim().toUpperCase() || undefined
+      const notaryCity = String(parentForm?.getValues('notaryCity') || '').trim() || undefined
       const rawAllotment = parentForm?.getValues('allotment')
       const rawBlock = parentForm?.getValues('block')
       const rawLot = parentForm?.getValues('lot')
@@ -118,6 +122,8 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
         complement: rawComplement?.trim() || undefined,
         registrationNumber: rawRegistrationNumber?.trim() || undefined,
         notary: notaryName || undefined,
+        notaryState,
+        notaryCity,
         documentId: uploadedDoc?.id,
         allotment: rawAllotment?.trim() || undefined,
         block: rawBlock?.trim() || undefined,
@@ -239,12 +245,14 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
         complement,
         registration_number: registrationNumber,
         notary,
+        ...(notaryState ? { notary_state: notaryState } : {}),
+        ...(notaryCity ? { notary_city: notaryCity } : {}),
         lot_name: allotment,
         block_number: block,
         lot_number: lot,
       }
     },
-    [parentForm, documentId, complement, registrationNumber, notary, allotment, block, lot],
+    [parentForm, documentId, complement, registrationNumber, notary, notaryState, notaryCity, allotment, block, lot],
   )
 
   const attemptPayWithCredits = useCallback(

@@ -7,6 +7,15 @@ const apiUrl = url
 const INTERNAL_API_HEADER_NAME = process.env.INTERNAL_API_HEADER_NAME || 'x-internal-auth'
 const INTERNAL_API_SHARED_SECRET = process.env.INTERNAL_API_SHARED_SECRET
 
+function isInternalApiHost(): boolean {
+  try {
+    const host = new URL(apiUrl).hostname
+    return host === 'localhost' || host === '127.0.0.1' || host === '0.0.0.0'
+  } catch {
+    return false
+  }
+}
+
 function logInternalHeaderDecision(method: string, endpointPath: string, applied: boolean, reason: string) {
   if (typeof window !== 'undefined') return
 
@@ -34,6 +43,11 @@ function appendInternalApiHeader(
 
   if (!INTERNAL_API_SHARED_SECRET) {
     logInternalHeaderDecision(method, endpointPath, false, 'missing_internal_secret')
+    return
+  }
+
+  if (!isInternalApiHost()) {
+    logInternalHeaderDecision(method, endpointPath, false, 'public_api_host')
     return
   }
 

@@ -80,6 +80,7 @@ export type MeResponse = {
   whatsapp?: string
   is_superuser?: boolean
   is_staff?: boolean
+  onboarding_vsl_seen?: boolean
 }
 
 /**
@@ -92,6 +93,13 @@ export async function getMe(): Promise<MeResponse | null> {
   if (!token) return null
   const result = (await api.get(endpoint.me, token)) as MeResponse
   return result
+}
+
+export async function markOnboardingVslSeen(): Promise<void> {
+  const session = await getSessionDeduplicated()
+  const token = session?.accessToken
+  if (!token) return
+  await api.patch(endpoint.me, { onboarding_vsl_seen: true }, token)
 }
 
 export type RequestAccountDeletionRequest = {

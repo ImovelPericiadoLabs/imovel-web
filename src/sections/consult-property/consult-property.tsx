@@ -1,6 +1,5 @@
 'use client'
 
-import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { memo, useState, useRef, ReactNode, useEffect, useCallback, useMemo, forwardRef, useImperativeHandle } from 'react'
 import { FormProvider, useForm, type Resolver } from 'react-hook-form'
@@ -22,10 +21,12 @@ import { PaymentConfirmationStep } from '@/sections/consult-property/steps/payme
 import { SavedCardsPage } from '@/sections/consult-property/steps/payment-step/card/select'
 import { CreditCardPage } from '@/sections/consult-property/steps/payment-step/card/register'
 import TrafficLightModal from '@/components/traffic-light-modal'
+import { BrandLogoLink } from '@/components/brand-logo-link'
 import LoadingOverlay from '@/components/loading-overlay'
 import { CONSULT_FLUXO_INICIO_QUERY, CONSULTAR_IMOVEL_INICIO_HREF } from '@/constants/consult-flow'
 import { validations, FormTypes } from '@/sections/consult-property/validations'
 import { trackGtmEvent } from '@/utils/analytics/gtm'
+import { scrollConsultFlowToTop, unlockPageScroll } from '@/utils/consult-flow-scroll'
 
 const CONSULT_PROPERTY_FORM_DEFAULTS: FormTypes = {
   paymentMethod: 'pix',
@@ -49,6 +50,8 @@ const CONSULT_PROPERTY_FORM_DEFAULTS: FormTypes = {
   address: '',
   addressHint: '',
   notaryName: '',
+  notaryState: '',
+  notaryCity: '',
 }
 
 type FlowState =
@@ -114,6 +117,14 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
   }))
 
   useEffect(() => {
+    unlockPageScroll()
+  }, [])
+
+  useEffect(() => {
+    scrollConsultFlowToTop()
+  }, [flow])
+
+  useEffect(() => {
     if (searchParams.get(CONSULT_FLUXO_INICIO_QUERY) !== '1') return
 
     stack.current = []
@@ -127,7 +138,7 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
     params.delete(CONSULT_FLUXO_INICIO_QUERY)
     const qs = params.toString()
     router.replace(qs ? `/consultar-imovel?${qs}` : '/consultar-imovel', { scroll: false })
-    window.scrollTo({ top: 0, behavior: 'auto' })
+    scrollConsultFlowToTop()
   }, [searchParams, resetConsultForm, router])
 
   useEffect(() => {
@@ -204,7 +215,7 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
     stack.current.push(flow)
     setFlow(next)
     // Usar scroll imediato em vez de smooth para evitar atrasos na percepção de troca de página
-    window.scrollTo({ top: 0, behavior: 'auto' })
+    scrollConsultFlowToTop()
   }, [flow])
 
   const back = useCallback(() => {
@@ -248,7 +259,7 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
       }
 
       setFlow(previous)
-      window.scrollTo({ top: 0, behavior: 'auto' })
+      scrollConsultFlowToTop()
     }
   }, [flow, router, methods])
 
@@ -309,16 +320,16 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
 
   if (isInitialLoading) {
     return (
-      <section className="min-h-screen bg-background">
+      <section className="flex min-h-dvh w-full flex-col bg-background">
         <LoadingOverlay isLoading message="Carregando recursos..." />
       </section>
     )
   }
 
   return (
-    <section className="min-h-screen bg-background">
+    <section className="flex min-h-dvh w-full flex-col bg-background">
       <header
-        className={`relative z-40 flex w-full flex-col pt-4 transition-colors duration-500 ${
+        className={`relative z-40 flex w-full shrink-0 flex-col pt-4 transition-colors duration-500 ${
           isFinished ? 'bg-emerald-600' : 'bg-primary'
         }`}
       >
@@ -331,14 +342,8 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
             role="button"
           />
 
-          <div className="relative">
-            <Image
-              src="/images/logo.svg"
-              alt="Logo"
-              width={72}
-              height={70}
-              className="object-contain -my-2.5"
-            />
+          <div className="relative flex justify-center">
+            <BrandLogoLink className="[&_img]:brightness-0 [&_img]:invert" />
           </div>
 
           <TrafficLightModal>
@@ -347,14 +352,17 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
         </div>
       </header>
 
-      {/* Faixa clara: altura um pouco maior em desktop para respiro com o overlap do main */}
+      {/* Faixa decorativa: degradê do header → sky-200; não captura toque no overlap */}
       <div
-        className="relative h-36 shrink-0 bg-sky-200 transition-colors duration-500 sm:h-32 md:h-36 lg:h-40"
+        className={`pointer-events-none relative z-0 h-36 shrink-0 bg-gradient-to-b to-sky-200 transition-[background] duration-500 sm:h-32 md:h-36 lg:h-40 ${
+          isFinished ? 'from-emerald-600' : 'from-primary'
+        }`}
         aria-hidden
       />
 
       <FormProvider {...methods}>
-        <main className="relative z-10 mx-auto w-full max-w-lg -mt-28 px-0 pt-2 pb-8 sm:-mt-24 md:max-w-2xl md:pb-10 xl:max-w-3xl xl:pb-12 2xl:max-w-[52rem]">
+        <div role="main" className="relative z-10 -mt-28 w-full sm:-mt-24">
+          <div className="mx-auto w-full max-w-lg px-0 pt-2 pb-[max(3rem,env(safe-area-inset-bottom))] md:max-w-2xl md:pb-10 xl:max-w-3xl xl:pb-12 2xl:max-w-[52rem]">
           <Activity isActive={flow === 'entry'}>
             <ConsultEntryStep
               onChoose={(choice) => {
@@ -411,7 +419,7 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
                 const previous = stack.current.pop()
                 if (previous) {
                   setFlow(previous)
-                  window.scrollTo({ top: 0, behavior: 'auto' })
+                  scrollConsultFlowToTop()
                 }
               }} 
             />
@@ -458,7 +466,8 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
           <Activity isActive={flow === 'finished'}>
             <SuccessStep onNavigateToOrders={() => router.push('/consultas')} />
           </Activity>
-        </main>
+          </div>
+        </div>
       </FormProvider>
     </section>
   )

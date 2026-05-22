@@ -6,12 +6,16 @@ import { ArrowDown, Home } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
-import Image from 'next/image'
 import Button from '@/components/button'
 import LoadingOverlay from '@/components/loading-overlay'
+import { BrandLogoLink } from '@/components/brand-logo-link'
+import { TutorialBanner } from '@/components/tutorial-banner'
 import type { ConsultPropertyHandle } from '@/sections/consult-property/consult-property'
 import { trackGtmEvent } from '@/utils/analytics/gtm'
 import { legalDocuments, getLegalRoute } from '@/constants/legal'
+import { VSL_LOCAL_STORAGE_KEY } from '@/constants/onboarding'
+import { hasVslBeenSeen, persistVslSeen } from '@/utils/onboarding-vsl'
+import { unlockPageScroll } from '@/utils/consult-flow-scroll'
 
 const ConsultProperty = dynamic(() => import('@/sections/consult-property'), {
   ssr: false,
@@ -34,23 +38,42 @@ export default function VslPage() {
   const [ctaTheme, setCtaTheme] = useState<'default' | 'yellow'>('default')
   /** Evita mismatch de hidratação no `<video>` (classes/atributos podem divergir entre RSC e cliente). */
   const [isVideoClientMounted, setIsVideoClientMounted] = useState(false)
+  const [vslGateReady, setVslGateReady] = useState(false)
 
   useEffect(() => {
     setIsVideoClientMounted(true)
   }, [])
 
   useEffect(() => {
+    let cancelled = false
     const params = new URLSearchParams(window.location.search)
-    setRequiresLock(params.has('lock'))
+    const lock = params.has('lock')
+    setRequiresLock(lock)
     setCtaTheme(params.get('cta') === 'yellow' ? 'yellow' : 'default')
-    if (!params.has('lock')) {
-      setIsUnlocked(true)
-    } else {
-      try {
-        setIsUnlocked(localStorage.getItem('vsl-unlocked') === 'true')
-      } catch {
-        setIsUnlocked(false)
+
+    hasVslBeenSeen().then((seen) => {
+      if (cancelled) return
+      if (seen) {
+        setIsUnlocked(true)
+        setIsConsultActive(true)
+        setIsPageReady(true)
+        setVslGateReady(true)
+        return
       }
+      if (!lock) {
+        setIsUnlocked(true)
+      } else {
+        try {
+          setIsUnlocked(localStorage.getItem(VSL_LOCAL_STORAGE_KEY) === 'true')
+        } catch {
+          setIsUnlocked(false)
+        }
+      }
+      setVslGateReady(true)
+    })
+
+    return () => {
+      cancelled = true
     }
   }, [])
   const consultRef = useRef<ConsultPropertyHandle>(null)
@@ -71,6 +94,11 @@ export default function VslPage() {
   useEffect(() => {
     router.prefetch('/consultar-imovel')
   }, [router])
+
+  useEffect(() => {
+    if (!isConsultActive) return
+    unlockPageScroll()
+  }, [isConsultActive])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -152,7 +180,7 @@ export default function VslPage() {
     if (requiresLock && currentProgress > 98 && !isUnlocked) {
       setIsUnlocked(true)
       setRemainingTime(0)
-      localStorage.setItem('vsl-unlocked', 'true')
+      void persistVslSeen()
     }
   }
 
@@ -216,7 +244,7 @@ export default function VslPage() {
       sessionStorage.setItem('consultFlowStartedFromVsl', 'true')
     }
 
-    localStorage.setItem('vsl-unlocked', 'true')
+    void persistVslSeen()
     sessionStorage.setItem('autoFocusAddress', 'true')
 
     import('@/sections/consult-property').catch(() => {})
@@ -255,10 +283,14 @@ export default function VslPage() {
     handleStart()
   }, [handleStart])
 
+  if (isConsultActive) {
+    return <ConsultProperty ref={consultRef} isActive />
+  }
+
   return (
     <>
       <main
-        className={`relative w-full h-dvh overflow-hidden bg-black font-sans text-white flex justify-center items-center ${isConsultActive ? 'hidden' : ''}`}
+        className="relative flex h-dvh w-full items-center justify-center overflow-hidden bg-black font-sans text-white"
         onClick={handleActivateAudio}
         onTouchStart={handleActivateAudio}
       >
@@ -294,7 +326,7 @@ export default function VslPage() {
               onEnded={() => {
                 if (!requiresLock) return
                 setIsUnlocked(true)
-                localStorage.setItem('vsl-unlocked', 'true')
+                void persistVslSeen()
               }}
             />
           ) : (
@@ -310,15 +342,8 @@ export default function VslPage() {
 
           <div className="relative z-10 flex flex-col h-full w-full justify-between px-6 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pointer-events-none">
             {/* Logo */}
-            <div className="flex flex-col items-center mt-2 opacity-40 scale-75 lg:scale-100">
-              <Image
-                src="/images/logo.svg"
-                alt="Logo"
-                width={72}
-                height={70}
-                priority
-                className="object-contain -my-2.5"
-              />
+            <div className="pointer-events-auto flex flex-col items-center mt-2 opacity-90 scale-75 lg:scale-100">
+              <BrandLogoLink priority className="[&_img]:brightness-0 [&_img]:invert" />
             </div>
 
             <div className="flex flex-col items-center text-center gap-2 mt-1" />
@@ -343,6 +368,7 @@ export default function VslPage() {
             {/* Rodapé: Texto e Progresso */}
             <div className="flex flex-col gap-2 w-full max-w-md mx-auto mb-2">
               <div className="flex flex-col gap-4">
+                <TutorialBanner compact className="pointer-events-auto mb-1 border-white/25 bg-black/40 [&_span]:text-white [&_span.text-dark]:text-white [&_span.text-gray-600]:text-white/80" />
                 <div
                   className={`pointer-events-auto relative flex flex-col items-center gap-2 ${isIntroAnimating ? 'cta-drop' : ''}`}
                   data-cta="start"
@@ -408,15 +434,8 @@ export default function VslPage() {
           </div>
         </div>
 
-        <LoadingOverlay isLoading={!isPageReady} message="Carregando experiência..." />
+        <LoadingOverlay isLoading={!isPageReady || !vslGateReady} message="Carregando experiência..." />
       </main>
-
-      <div
-        className={`${isConsultActive ? 'block' : 'fixed inset-0 opacity-0 pointer-events-none'}`}
-        aria-hidden={!isConsultActive}
-      >
-        <ConsultProperty ref={consultRef} isActive={isConsultActive} />
-      </div>
     </>
   )
 }

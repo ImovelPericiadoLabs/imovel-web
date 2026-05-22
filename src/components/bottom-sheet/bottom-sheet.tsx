@@ -12,67 +12,54 @@ export default function BottomSheet({ isOpen, onClose, children, variant = 'defa
   const modalRef = useRef<HTMLDivElement>(null)
   const previousFocusRef = useRef<HTMLElement | null>(null)
 
+  // Isolamento de árvore focável: remover do tab order elementos fora do modal
+  // Isso resolve focus leakage sem loops de side effects
+  useEffect(() => {
+    if (!isOpen) return
+
+    const allFocusableElements = document.querySelectorAll(
+      'input, button, select, textarea, a[href], [tabindex]'
+    )
+
+    const elementsToRestore: HTMLElement[] = []
+
+    // Remover elementos fora do modal do tab order
+    allFocusableElements.forEach((el) => {
+      const htmlEl = el as HTMLElement
+      if (!modalRef.current?.contains(el)) {
+        const originalTabindex = htmlEl.getAttribute('tabindex')
+        htmlEl.setAttribute('tabindex', '-1')
+        elementsToRestore.push(htmlEl)
+      }
+    })
+
+    return () => {
+      // Restaurar tabindex original
+      elementsToRestore.forEach((el) => {
+        el.removeAttribute('tabindex')
+      })
+    }
+  }, [isOpen])
+
   // Focus trap: garante que foco fica dentro do modal enquanto aberto
-  // Isolamento total - sem dependência de lógica em componentes filhas
   useEffect(() => {
     if (!isOpen) return
 
     // Salvar elemento com foco anterior para restauração quando modal fecha
     previousFocusRef.current = document.activeElement as HTMLElement
 
-    // Handler para Tab: limita foco dentro do modal
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key !== 'Tab') return
-      if (!modalRef.current) return
-
-      // Obter todos os elementos focusáveis dentro do modal
-      const focusableElements = modalRef.current.querySelectorAll(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-      )
-
-      if (focusableElements.length === 0) return
-
-      const firstElement = focusableElements[0] as HTMLElement
-      const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement
-      const activeElement = document.activeElement
-
-      // Se Shift+Tab no primeiro elemento: mover para último
-      if (e.shiftKey && activeElement === firstElement) {
-        e.preventDefault()
-        lastElement.focus()
-        return
-      }
-
-      // Se Tab no último elemento: mover para primeiro
-      if (!e.shiftKey && activeElement === lastElement) {
-        e.preventDefault()
-        firstElement.focus()
-      }
-    }
-
     // Handler para Escape: fechar modal
-    const handleKeyDown_Escape = (e: KeyboardEvent) => {
+    const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && onClose) {
         onClose()
       }
     }
 
-    // Focar no primeiro elemento focusável imediatamente quando modal abre
-    const focusableElements = modalRef.current?.querySelectorAll(
-      'input, button:not(.handle), select, textarea, [tabindex]:not([tabindex="-1"])'
-    )
-
-    if (focusableElements && focusableElements.length > 0) {
-      ;(focusableElements[0] as HTMLElement).focus()
-    }
-
     // Listeners para controlar foco dentro do modal
     document.addEventListener('keydown', handleKeyDown)
-    document.addEventListener('keydown', handleKeyDown_Escape)
 
     return () => {
       document.removeEventListener('keydown', handleKeyDown)
-      document.removeEventListener('keydown', handleKeyDown_Escape)
 
       // Restaurar foco anterior quando modal fecha
       if (previousFocusRef.current && typeof previousFocusRef.current.focus === 'function') {
@@ -81,15 +68,21 @@ export default function BottomSheet({ isOpen, onClose, children, variant = 'defa
     }
   }, [isOpen, onClose])
 
-  // Isolamento: quando modal está aberto, marcar resto da página como inert
   useEffect(() => {
-    if (!isOpen) return
+    if (!isOpen) {
+      document.documentElement.style.overflow = ''
+      document.body.style.overflow = ''
+      return
+    }
 
-    const htmlElement = document.documentElement
-    htmlElement.style.overflow = 'hidden'
+    const prevHtmlOverflow = document.documentElement.style.overflow
+    const prevBodyOverflow = document.body.style.overflow
+    document.documentElement.style.overflow = 'hidden'
+    document.body.style.overflow = 'hidden'
 
     return () => {
-      htmlElement.style.overflow = ''
+      document.documentElement.style.overflow = prevHtmlOverflow
+      document.body.style.overflow = prevBodyOverflow
     }
   }, [isOpen])
 
@@ -98,8 +91,12 @@ export default function BottomSheet({ isOpen, onClose, children, variant = 'defa
       {isOpen && (
         <div
           data-testid="overlay"
-          className="fixed inset-0 bg-black/50 z-50 transition-opacity duration-500"
+          className="fixed inset-0 z-40"
           onClick={onClose}
+          style={{
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            pointerEvents: 'auto',
+          }}
         />
       )}
       <div

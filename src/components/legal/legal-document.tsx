@@ -2,7 +2,7 @@
 
 import type { RefObject } from 'react'
 import { useCallback, useEffect, useMemo, useRef } from 'react'
-import Image from 'next/image'
+import { BrandLogoLink } from '@/components/brand-logo-link'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import type { LucideIcon } from 'lucide-react'
@@ -107,14 +107,9 @@ export default function LegalDocument({ slug, fullDocumentHtml }: LegalDocumentP
             <ArrowLeft className="size-5" />
           </button>
           <div className="flex min-w-0 flex-1 items-center gap-3">
-            <Image
-              src="/images/logo.svg"
-              alt=""
-              width={52}
-              height={40}
-              className="hidden h-10 w-auto shrink-0 object-contain object-left sm:block"
-              aria-hidden
-            />
+            <div className="hidden shrink-0 sm:block">
+              <BrandLogoLink className="max-w-[9rem] [&_img]:h-8" />
+            </div>
             <div className="min-w-0 flex-1">
               <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#535862] sm:text-[11px]">
                 Imóvel Periciado · Centro legal

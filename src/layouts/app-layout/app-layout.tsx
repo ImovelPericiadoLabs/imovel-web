@@ -2,7 +2,7 @@
 
 import { PropsWithChildren, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Image from 'next/image'
+import { BrandLogoLink } from '@/components/brand-logo-link'
 import { ChevronLeft, Menu, X, LogOut, Wallet, Mail, Search, List, FileText, Trash2, AlertTriangle, LoaderCircle, Megaphone, MessageSquare, ClipboardList, UserPlus } from 'lucide-react'
 import Link from 'next/link'
 import { useSession } from 'next-auth/react'
@@ -180,14 +180,8 @@ export default function AppLayout({ children }: PropsWithChildren) {
             </div>
 
             {pathname === '/consultas' && (
-              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
-                <Image
-                  src="/images/logo.svg"
-                  alt="Logo Imóvel Periciado"
-                  width={72}
-                  height={70}
-                  className="object-contain -my-2.5"
-                />
+              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+                <BrandLogoLink className="[&_img]:brightness-0 [&_img]:invert" />
               </div>
             )}
 

@@ -10,6 +10,7 @@ import TextTitle from '@/components/text-title'
 import TextSubtitle from '@/components/text-subtitle'
 import Button from '@/components/button'
 import BottomSheet from '@/components/bottom-sheet'
+import { scrollConsultFlowToTop } from '@/utils/consult-flow-scroll'
 import SelectedAddressCard from '@/components/selected-address-card'
 import InfoCard from '@/components/info-card'
 import { trackGtmEvent } from '@/utils/analytics/gtm'
@@ -164,7 +165,7 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
       }
 
       setCurrentSubStep(prev => prev - 1)
-      window.scrollTo({ top: 0, behavior: 'auto' })
+      scrollConsultFlowToTop()
     } else if (onBack) {
       setValue('noAddressNumber', undefined)
       setValue('addressNumber', '')
@@ -206,7 +207,7 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
           has_info: Boolean(complementValue),
         })
         setCurrentSubStep(prev => prev + 1)
-        window.scrollTo({ top: 0, behavior: 'auto' })
+        scrollConsultFlowToTop()
       } else {
         trackComplementStep('complete', {
           step_key: subStep,
@@ -231,7 +232,7 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
       })
       if (currentSubStep < subSteps.length - 1) {
         setCurrentSubStep(prev => prev + 1)
-        window.scrollTo({ top: 0, behavior: 'auto' })
+        scrollConsultFlowToTop()
       } else {
         onNext()
       }
@@ -264,7 +265,7 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
       })
       if (currentSubStep < subSteps.length - 1) {
         setCurrentSubStep(prev => prev + 1)
-        window.scrollTo({ top: 0, behavior: 'auto' })
+        scrollConsultFlowToTop()
       } else {
         onNext()
       }

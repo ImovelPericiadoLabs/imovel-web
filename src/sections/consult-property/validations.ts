@@ -18,6 +18,8 @@ export const validations = z
     registrationNumber: z.string().optional().nullable(),
     /** Nome do cartório quando o usuário não passou pelo mapa (fluxo matrícula + cartório). */
     notaryName: z.string().max(150, 'Nome do cartório muito longo').default(''),
+    notaryState: z.string().max(2, 'UF inválida').default(''),
+    notaryCity: z.string().max(120, 'Cidade muito longa').default(''),
     placeId: z.string().default(''),
     addressHint: z.string().default(''),
     registry: z.object({

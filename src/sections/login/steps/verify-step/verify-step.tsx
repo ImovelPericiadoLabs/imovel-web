@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Controller, useFormContext } from 'react-hook-form'
-import Image from 'next/image'
 import { Mail, AlertCircle, ArrowRight } from 'lucide-react'
 import { signIn } from 'next-auth/react'
 import { FormTypes } from '@/sections/login/validations'
@@ -84,17 +83,6 @@ export function VerifyCodeStep({
       onSubmit={handleSubmit(onSubmit)}
       className="flex flex-col items-center animate-in fade-in slide-in-from-right-4 duration-300 text-center"
     >
-      <div className="mb-12">
-        <Image
-          src="/images/logo.svg"
-          alt="Logo"
-          width={72}
-          height={70}
-          priority
-          className="object-contain -my-2.5"
-        />
-      </div>
-
       <div className="mb-6 flex items-center justify-center size-16 rounded-full bg-primary/10">
         <Mail className="size-8 text-primary" />
       </div>

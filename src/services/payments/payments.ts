@@ -14,6 +14,8 @@ type PaymentRequest = {
   complement?: string
   registration_number?: string
   notary?: string
+  notary_state?: string
+  notary_city?: string
   lot_number?: string
   lot_name?: string
   block_number?: string

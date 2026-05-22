@@ -43,14 +43,26 @@ export function formatNotaryForOrder(row: NotaryOfficeRow): string {
   return `${n}º ${t}`.replace(/\s+/g, ' ').trim()
 }
 
+type NotaryOfficeGeo = {
+  uf: string
+  city: string
+}
+
 type NotaryOfficeComboboxProps = {
   value: string
   onChange: (canonical: string) => void
+  onGeoChange?: (geo: NotaryOfficeGeo) => void
   error?: string
   inputId?: string
 }
 
-export function NotaryOfficeCombobox({ value, onChange, error, inputId = 'notaryName' }: NotaryOfficeComboboxProps) {
+export function NotaryOfficeCombobox({
+  value,
+  onChange,
+  onGeoChange,
+  error,
+  inputId = 'notaryName',
+}: NotaryOfficeComboboxProps) {
   const [rows, setRows] = useState<NotaryOfficeRow[] | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [open, setOpen] = useState(false)
@@ -106,12 +118,14 @@ export function NotaryOfficeCombobox({ value, onChange, error, inputId = 'notary
 
   const pick = useCallback(
     (row: NotaryOfficeRow) => {
+      const [uf, city] = row
       const text = formatNotaryForOrder(row)
       setQuery(text)
       onChange(text)
+      onGeoChange?.({ uf: String(uf || '').trim().toUpperCase(), city: String(city || '').trim() })
       setOpen(false)
     },
-    [onChange],
+    [onChange, onGeoChange],
   )
 
   const showList = open && filtered.length > 0 && nq.length >= 2
@@ -137,6 +151,7 @@ export function NotaryOfficeCombobox({ value, onChange, error, inputId = 'notary
             const v = e.target.value
             setQuery(v)
             onChange(v)
+            onGeoChange?.({ uf: '', city: '' })
             setOpen(true)
           }}
           onFocus={() => setOpen(true)}

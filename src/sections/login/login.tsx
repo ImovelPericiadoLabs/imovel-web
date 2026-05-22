@@ -4,8 +4,8 @@ import { useState, useEffect, useCallback, ReactNode, memo } from 'react'
 import { useForm, FormProvider } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter } from 'next/navigation'
-import Image from 'next/image'
 import { ChevronLeft, CircleQuestionMark } from 'lucide-react'
+import { BrandLogoLink } from '@/components/brand-logo-link'
 
 import { startAuth } from '@/services/account'
 import LoadingOverlay from '@/components/loading-overlay'
@@ -76,26 +76,19 @@ export function Login() {
   }
 
   return (
-    <section className="min-h-screen bg-white flex flex-col">
+    <section className="flex min-h-dvh flex-col bg-white">
       <header className="w-full bg-primary py-7 px-5 shadow-sm shrink-0">
         <div className="flex items-center justify-between relative max-w-lg mx-auto">
-          <button 
+          <button
             onClick={handleBack}
-            className={`transition-opacity duration-200 ${flow === 'email' ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+            className="transition-opacity duration-200"
             aria-label="Voltar"
           >
             <ChevronLeft className="size-8 text-white" />
           </button>
 
           <div className="absolute left-1/2 -translate-x-1/2">
-            <Image 
-              src="/images/logo.svg" 
-              alt="Logo" 
-              width={72}
-              height={70}
-              priority 
-              className="object-contain -my-2.5"
-            />
+            <BrandLogoLink priority className="[&_img]:brightness-0 [&_img]:invert" />
           </div>
 
           <TrafficLightModal>

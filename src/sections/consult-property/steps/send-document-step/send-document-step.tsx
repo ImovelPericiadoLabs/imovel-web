@@ -67,7 +67,7 @@ export function SendDocumentStep({ onNext }: { onNext: () => void }) {
   }
 
   return (
-    <div className="flex flex-col h-full gap-5 px-4 relative">
+    <div className="relative flex flex-col gap-5 px-4">
       <TextTitle>Envie o documento</TextTitle>
 
       <DocumentUpload onFileSelect={handleFileSelect} />

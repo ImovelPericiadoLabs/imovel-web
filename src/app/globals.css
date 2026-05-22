@@ -2,10 +2,21 @@
 
 
 @layer base {
+  html {
+    min-height: 100%;
+    min-height: 100dvh;
+    overflow-x: hidden;
+  }
+
   body {
     background-color: var(--color-background);
     color: var(--color-dark-text);
     font-family: var(--font-plus-jakarta), sans-serif;
+    min-height: 100%;
+    min-height: 100dvh;
+    overflow-x: hidden;
+    overflow-y: scroll;
+    -webkit-overflow-scrolling: touch;
   }
 
   :root {

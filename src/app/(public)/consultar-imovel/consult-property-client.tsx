@@ -1,7 +1,9 @@
 'use client'
 
+import { useEffect } from 'react'
 import dynamic from 'next/dynamic'
 import { Suspense } from 'react'
+import { unlockPageScroll } from '@/utils/consult-flow-scroll'
 
 const ConsultProperty = dynamic(() => import('@/sections/consult-property'), {
   ssr: false,
@@ -21,6 +23,10 @@ function ConsultPropertyFallback() {
 }
 
 export default function ConsultPropertyClient() {
+  useEffect(() => {
+    unlockPageScroll()
+  }, [])
+
   return (
     <Suspense fallback={<ConsultPropertyFallback />}>
       <ConsultProperty />
