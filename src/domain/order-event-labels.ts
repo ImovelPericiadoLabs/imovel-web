@@ -19,7 +19,6 @@ const LABELS: Record<string, string> = {
   ENRICH_ENQUEUED: 'Enriquecimento do endereço na fila',
   ANALYSIS_ENQUEUED: 'Análise do documento na fila',
   ANALYSIS_STEP: 'Etapa da análise',
-  ENRICH_ENQUEUED: 'Completando endereço do imóvel (IA)',
   INFOSIMPLES_SEARCH_ENQUEUED: 'Busca online da matrícula iniciada',
   ONR_SEARCH_ENQUEUED: 'Pedido enviado para busca em cartório (ONR)',
 }
@@ -31,9 +30,6 @@ export function formatOrderEventLabel(
   if (type === 'ANALYSIS_STEP') {
     const label = String(payload?.label || '').trim()
     if (label) return label
-  }
-  if (type === 'ENRICH_ENQUEUED') {
-    return LABELS.ENRICH_ENQUEUED
   }
   return LABELS[type] ?? type.replace(/_/g, ' ').toLowerCase()
 }
