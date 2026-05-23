@@ -13,6 +13,7 @@ import {
 } from '@/domain/order-analysis-progress'
 import {
   filterCustomerFacingOrderEvents,
+  filterOrderHistoryEvents,
   formatOrderEventLabel,
 } from '@/domain/order-event-labels'
 import {
@@ -71,6 +72,11 @@ export default function OrderJourneyPanel({
 
   const visibleEvents = useMemo(
     () => filterCustomerFacingOrderEvents(events),
+    [events],
+  )
+
+  const historyEvents = useMemo(
+    () => filterOrderHistoryEvents(events),
     [events],
   )
 
@@ -176,18 +182,18 @@ export default function OrderJourneyPanel({
         </div>
       )}
 
-      {visibleEvents.length > 0 && (
+      {historyEvents.length > 0 && (
         <div className="mt-1">
-          <p className="text-[0.65rem] font-semibold uppercase tracking-wide text-[#9497a9] mb-2">
+          <p className="text-[0.65rem] font-semibold uppercase tracking-wide text-[#9497a9] mb-1.5">
             Histórico recente
           </p>
-          <ul className="flex flex-col gap-2 border-l-2 border-[#dedee5] pl-3 ml-1">
-            {visibleEvents.map((ev) => (
-              <li key={ev.id} className="text-xs leading-snug">
+          <ul className="flex flex-col gap-1 border-l border-[#dedee5] pl-2.5 ml-0.5">
+            {historyEvents.map((ev) => (
+              <li key={ev.id} className="text-[0.65rem] leading-snug">
                 <span className="text-[#9497a9] tabular-nums">
                   {formatDateWithTime(ev.created_at)}
                 </span>
-                <span className="text-[#101114] block mt-0.5">
+                <span className="text-[#686b82] block">
                   {formatOrderEventLabel(ev.type, ev.payload)}
                 </span>
               </li>

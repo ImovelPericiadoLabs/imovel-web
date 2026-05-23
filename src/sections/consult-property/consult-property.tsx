@@ -354,7 +354,7 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
 
       {/* Faixa decorativa: degradê do header → sky-200; não captura toque no overlap */}
       <div
-        className={`pointer-events-none relative z-0 h-36 shrink-0 bg-gradient-to-b to-sky-200 transition-[background] duration-500 sm:h-32 md:h-36 lg:h-40 ${
+        className={`pointer-events-none relative z-0 h-36 shrink-0 bg-gradient-to-b to-background transition-[background] duration-500 sm:h-32 md:h-36 lg:h-40 ${
           isFinished ? 'from-emerald-600' : 'from-primary'
         }`}
         aria-hidden

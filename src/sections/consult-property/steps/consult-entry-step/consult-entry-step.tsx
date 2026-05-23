@@ -56,16 +56,16 @@ export function ConsultEntryStep({ onChoose }: ConsultEntryStepProps) {
   return (
     <div className="relative min-w-0 px-4 pb-32 pointer-events-auto md:px-6 md:pb-24 lg:pb-16 xl:px-8">
       <div className="mx-auto mb-5 flex max-w-3xl min-h-[7.25rem] flex-col items-center justify-end gap-2 pb-1 text-center sm:mb-6 sm:min-h-[7.5rem] md:mb-7 md:min-h-[8rem] lg:mx-auto lg:mb-8 lg:min-h-[8.5rem]">
-        <p className="max-w-4xl text-sm font-black tracking-wide text-white lg:text-lg">
+        <p className="max-w-4xl text-sm font-black tracking-wide text-gray-900 lg:text-lg">
           Endereço ou matrícula:
-          <span className="bg-gradient-to-r from-violet-400 to-blue-400 bg-clip-text text-transparent">
+          <span className="bg-gradient-to-r from-violet-600 to-blue-600 bg-clip-text text-transparent">
             {" "}menos burocracia, mais agilidade.
           </span>
         </p>
-        <TextTitle className="w-full text-center text-white md:text-xl md:leading-snug lg:text-2xl lg:leading-tight">
+        <TextTitle className="w-full text-center text-gray-900 md:text-xl md:leading-snug lg:text-2xl lg:leading-tight">
           Como quer começar?
         </TextTitle>
-        <TextSubtitle className="mx-auto w-full max-w-[18rem] text-pretty text-balance text-center text-sm leading-snug text-white/90 sm:max-w-md sm:text-[15px] sm:leading-relaxed md:max-w-lg lg:max-w-2xl lg:text-base">
+        <TextSubtitle className="mx-auto w-full max-w-[18rem] text-pretty text-balance text-center text-sm leading-snug text-gray-600 sm:max-w-md sm:text-[15px] sm:leading-relaxed md:max-w-lg lg:max-w-2xl lg:text-base">
           <span className="block sm:inline">Escolha o que combina com você,</span>{" "}
           <span className="block sm:inline">todos os caminhos levam à mesma consulta completa.</span>
         </TextSubtitle>

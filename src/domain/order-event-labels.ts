@@ -41,3 +41,38 @@ export function formatOrderEventLabel(
 export function filterCustomerFacingOrderEvents(events: OrderEvent[]): OrderEvent[] {
   return events.filter((e) => !HIDDEN_EVENT_TYPES.has(e.type))
 }
+
+/** Analysis steps shown in “Histórico recente” (no per-agent lines). */
+const HISTORY_ANALYSIS_STEPS = new Set([
+  'started',
+  'enrollment',
+  'owners',
+  'finalizing',
+  'enrich_place',
+])
+
+const RECENT_HISTORY_MAX = 10
+
+export function filterOrderHistoryEvents(events: OrderEvent[]): OrderEvent[] {
+  const rows: OrderEvent[] = []
+
+  for (const ev of filterCustomerFacingOrderEvents(events)) {
+    if (ev.type === 'ANALYSIS_STEP') {
+      const step = String(ev.payload?.step || '').trim()
+      if (!HISTORY_ANALYSIS_STEPS.has(step)) continue
+    }
+    rows.push(ev)
+  }
+
+  const deduped: OrderEvent[] = []
+  let prevLabel = ''
+
+  for (const ev of rows) {
+    const label = formatOrderEventLabel(ev.type, ev.payload)
+    if (label === prevLabel) continue
+    prevLabel = label
+    deduped.push(ev)
+  }
+
+  return deduped.slice(-RECENT_HISTORY_MAX)
+}
