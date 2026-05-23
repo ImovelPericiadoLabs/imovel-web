@@ -395,8 +395,8 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
             </span>
           </div>
 
-          <div className="flex flex-col gap-2">
-            <TextTitle className="text-dark">
+          <div className="flex flex-col items-center gap-2 text-center">
+            <TextTitle className="w-full text-center text-dark">
               {subSteps[currentSubStep] === 'addressNumber' && 'Você tem o número do endereço?'}
               {subSteps[currentSubStep] === 'registration' && 'Você tem o número da matrícula?'}
               {subSteps[currentSubStep] === 'allotment' && 'Você tem o nome do loteamento?'}
@@ -404,7 +404,7 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
               {subSteps[currentSubStep] === 'lot' && 'Você tem o número do lote?'}
               {subSteps[currentSubStep] === 'complement' && 'Informe o complemento do endereço'}
             </TextTitle>
-            <TextSubtitle className="text-gray-500">
+            <TextSubtitle className="mx-auto w-[80%] max-w-2xl text-center text-gray-500">
               Isso melhora a precisão da busca por seu imóvel.
             </TextSubtitle>
           </div>

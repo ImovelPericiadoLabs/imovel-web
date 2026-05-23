@@ -77,9 +77,11 @@ export function PaymentStep({
   return (
     <div className="relative flex-1 px-4">
       <div className="flex flex-col gap-5 pb-24 md:pb-0">
-        <div className="flex flex-col gap-2 px-1">
-          <TextTitle className="text-dark">Escolha como pagar</TextTitle>
-          <TextSubtitle>Selecione o método de pagamento de sua preferência</TextSubtitle>
+        <div className="flex flex-col items-center gap-2 px-1 text-center">
+          <TextTitle className="w-full text-center text-dark">Escolha como pagar</TextTitle>
+          <TextSubtitle className="mx-auto w-[80%] max-w-2xl text-center">
+            Selecione o método de pagamento de sua preferência
+          </TextSubtitle>
         </div>
 
         <div className="flex flex-col gap-3">

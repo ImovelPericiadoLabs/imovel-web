@@ -88,7 +88,7 @@ export function Login() {
           </button>
 
           <div className="absolute left-1/2 -translate-x-1/2">
-            <BrandLogoLink priority className="[&_img]:brightness-0 [&_img]:invert" />
+            <BrandLogoLink priority tone="on-primary" />
           </div>
 
           <TrafficLightModal>

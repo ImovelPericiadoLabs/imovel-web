@@ -9,10 +9,9 @@ import dynamic from 'next/dynamic'
 import Button from '@/components/button'
 import LoadingOverlay from '@/components/loading-overlay'
 import { BrandLogoLink } from '@/components/brand-logo-link'
-import { TutorialBanner } from '@/components/tutorial-banner'
-import type { ConsultPropertyHandle } from '@/sections/consult-property/consult-property'
 import { trackGtmEvent } from '@/utils/analytics/gtm'
 import { legalDocuments, getLegalRoute } from '@/constants/legal'
+import { CONSULTAR_IMOVEL_INICIO_HREF } from '@/constants/consult-flow'
 import { VSL_LOCAL_STORAGE_KEY } from '@/constants/onboarding'
 import { hasVslBeenSeen, persistVslSeen } from '@/utils/onboarding-vsl'
 import { unlockPageScroll } from '@/utils/consult-flow-scroll'
@@ -76,7 +75,6 @@ export default function VslPage() {
       cancelled = true
     }
   }, [])
-  const consultRef = useRef<ConsultPropertyHandle>(null)
   const touchHandledRef = useRef(false)
 
   const attemptAutoplay = useCallback(() => {
@@ -232,7 +230,7 @@ export default function VslPage() {
       event_category: 'consult_flow',
       event_label: 'start',
       event_description: 'Iniciou o fluxo de consulta do imóvel.',
-      flow_step: 'address',
+      flow_step: 'entry',
       step_index: 1,
     }
 
@@ -242,10 +240,10 @@ export default function VslPage() {
     }).catch(() => {})
     if (typeof window !== 'undefined') {
       sessionStorage.setItem('consultFlowStartedFromVsl', 'true')
+      sessionStorage.removeItem('autoFocusAddress')
     }
 
     void persistVslSeen()
-    sessionStorage.setItem('autoFocusAddress', 'true')
 
     import('@/sections/consult-property').catch(() => {})
     flushSync(() => {
@@ -253,20 +251,7 @@ export default function VslPage() {
     })
 
     videoRef.current?.pause()
-
-    const startTime = performance.now()
-    const tryFocus = () => {
-      const didFocus = consultRef.current?.focusAddress() ?? false
-      if (didFocus) {
-        window.history.pushState({}, '', '/consultar-imovel')
-        return
-      }
-      if (performance.now() - startTime < 200) {
-        requestAnimationFrame(tryFocus)
-      }
-    }
-
-    requestAnimationFrame(tryFocus)
+    window.history.pushState({}, '', CONSULTAR_IMOVEL_INICIO_HREF)
   }, [isUnlocked])
 
   const handleTouchStart = useCallback(() => {
@@ -284,7 +269,7 @@ export default function VslPage() {
   }, [handleStart])
 
   if (isConsultActive) {
-    return <ConsultProperty ref={consultRef} isActive />
+    return <ConsultProperty isActive startAtEntry />
   }
 
   return (
@@ -343,7 +328,7 @@ export default function VslPage() {
           <div className="relative z-10 flex flex-col h-full w-full justify-between px-6 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pointer-events-none">
             {/* Logo */}
             <div className="pointer-events-auto flex flex-col items-center mt-2 opacity-90 scale-75 lg:scale-100">
-              <BrandLogoLink priority className="[&_img]:brightness-0 [&_img]:invert" />
+              <BrandLogoLink priority tone="on-primary" />
             </div>
 
             <div className="flex flex-col items-center text-center gap-2 mt-1" />
@@ -368,7 +353,6 @@ export default function VslPage() {
             {/* Rodapé: Texto e Progresso */}
             <div className="flex flex-col gap-2 w-full max-w-md mx-auto mb-2">
               <div className="flex flex-col gap-4">
-                <TutorialBanner compact className="pointer-events-auto mb-1 border-white/25 bg-black/40 [&_span]:text-white [&_span.text-dark]:text-white [&_span.text-gray-600]:text-white/80" />
                 <div
                   className={`pointer-events-auto relative flex flex-col items-center gap-2 ${isIntroAnimating ? 'cta-drop' : ''}`}
                   data-cta="start"

@@ -53,9 +53,11 @@ export function DocumentConfirmationStep({
           address={currentAddress}
           variant={String(getValues('address') || '').trim() ? 'selected' : 'hint'}
         />
-        <div className="flex flex-col gap-2 mb-2">
-          <TextTitle className="text-dark">Você tem o documento do imóvel?</TextTitle>
-          <TextSubtitle className="text-gray-500">Isso agiliza a análise do seu pedido</TextSubtitle>
+        <div className="mb-2 flex flex-col items-center gap-2 text-center">
+          <TextTitle className="w-full text-center text-dark">Você tem o documento do imóvel?</TextTitle>
+          <TextSubtitle className="mx-auto w-[80%] max-w-2xl text-center text-gray-500">
+            Isso agiliza a análise do seu pedido
+          </TextSubtitle>
         </div>
 
         <ChoiceCards

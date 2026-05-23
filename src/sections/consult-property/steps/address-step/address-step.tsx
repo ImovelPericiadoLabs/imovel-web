@@ -211,11 +211,11 @@ export const AddressStep = forwardRef<{ focus: () => boolean }, { onNext: () => 
   return (
     <div className="relative flex w-full flex-col px-4 pb-32 md:px-6 xl:px-8">
       <div className="flex-1 flex flex-col gap-4">
-        <div className="mb-6 flex max-w-[100%] flex-col gap-2 pb-1 lg:mx-auto lg:max-w-2xl lg:text-center">
-          <TextTitle className="text-balance text-black leading-snug sm:leading-6 md:text-xl lg:text-2xl">
+        <div className="mb-6 mx-auto flex max-w-2xl flex-col items-center gap-2 pb-1 text-center">
+          <TextTitle className="w-full text-center text-balance text-black leading-snug sm:leading-6 md:text-xl lg:text-2xl">
             Digite o endereço do imóvel para começar
           </TextTitle>
-          <TextSubtitle className="text-pretty text-black/70 leading-snug sm:leading-4 md:text-[15px] lg:mx-auto lg:max-w-xl lg:text-base">
+          <TextSubtitle className="mx-auto w-[80%] max-w-2xl text-center text-pretty text-black/70 leading-snug sm:leading-4 md:text-[15px] lg:text-base">
             Escreva rua, número e bairro para avançar com segurança
           </TextSubtitle>
         </div>

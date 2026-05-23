@@ -47,9 +47,9 @@ export function RegistrationManualStep({ onNext, onBack }: RegistrationManualSte
 
   return (
     <div className="relative flex-1 px-4 pb-28 md:px-6 lg:pb-16 xl:px-8">
-      <div className="mb-4 flex flex-col gap-2 lg:mx-auto lg:max-w-2xl lg:text-center">
-        <TextTitle className="text-dark md:text-xl lg:text-2xl">Matrícula e cartório</TextTitle>
-        <TextSubtitle className="text-gray-500 md:text-[15px] lg:mx-auto lg:max-w-xl lg:text-base">
+      <div className="mb-4 mx-auto flex max-w-2xl flex-col items-center gap-2 text-center">
+        <TextTitle className="w-full text-center text-dark md:text-xl lg:text-2xl">Matrícula e cartório</TextTitle>
+        <TextSubtitle className="mx-auto w-[80%] max-w-2xl text-center text-gray-500 md:text-[15px] lg:text-base">
           Sem o endereço no mapa, informe o número da matrícula e o nome do cartório de registro de imóveis. Esses dados
           seguem no pedido para localizar o imóvel corretamente.
         </TextSubtitle>

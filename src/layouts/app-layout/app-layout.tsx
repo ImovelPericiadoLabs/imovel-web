@@ -181,7 +181,7 @@ export default function AppLayout({ children }: PropsWithChildren) {
 
             {pathname === '/consultas' && (
               <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-                <BrandLogoLink className="[&_img]:brightness-0 [&_img]:invert" />
+                <BrandLogoLink tone="on-primary" />
               </div>
             )}
 

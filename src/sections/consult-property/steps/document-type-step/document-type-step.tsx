@@ -44,7 +44,13 @@ const OPTIONS: Option[] = [
   },
 ]
 
-export function DocumentTypeStep({ onNext }: { onNext: () => void }) {
+type DocumentTypeStepProps = {
+  onNext: () => void
+  /** false quando o usuário entrou por "Tenho documento" (ainda sem endereço) */
+  showAddressCard?: boolean
+}
+
+export function DocumentTypeStep({ onNext, showAddressCard = true }: DocumentTypeStepProps) {
   const { setValue, getValues, watch, formState, trigger, clearErrors, setError } = useFormContext()
   const documentType = watch('documentType')
   const documentPreview = watch('documentPreview')
@@ -224,13 +230,17 @@ export function DocumentTypeStep({ onNext }: { onNext: () => void }) {
   return (
     <div className="relative flex-1 px-4 -mt-6 pb-32">
       <div className="flex flex-col gap-4 pt-6">
-        <SelectedAddressCard
-          address={String(watch('address') || '').trim() || String(watch('addressHint') || '').trim()}
-          variant={String(watch('address') || '').trim() ? 'selected' : 'hint'}
-        />
-        <div className="flex flex-col gap-2 mb-2">
-          <TextTitle className="text-dark">Qual documento você tem?</TextTitle>
-          <TextSubtitle className="text-gray-500">Selecione uma das opções abaixo e envie o arquivo</TextSubtitle>
+        {showAddressCard && (
+          <SelectedAddressCard
+            address={String(watch('address') || '').trim() || String(watch('addressHint') || '').trim()}
+            variant={String(watch('address') || '').trim() ? 'selected' : 'hint'}
+          />
+        )}
+        <div className="mb-2 flex flex-col items-center gap-2 text-center">
+          <TextTitle className="w-full text-center text-dark">Qual documento você tem?</TextTitle>
+          <TextSubtitle className="mx-auto w-[80%] max-w-2xl text-center text-gray-500">
+            Selecione uma das opções abaixo e envie o arquivo
+          </TextSubtitle>
         </div>
 
         <div className="flex flex-col gap-3 mt-2">

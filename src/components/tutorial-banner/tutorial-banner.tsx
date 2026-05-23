@@ -2,6 +2,7 @@
 
 import Image from 'next/image'
 import { PlayCircle } from 'lucide-react'
+import { BRAND_LOGO_WITH_TEXT_SRC } from '@/constants/brand-logo'
 import { cn } from '@/utils/tailwind'
 import { YOUTUBE_TUTORIALS_URL } from '@/constants/onboarding'
 import { trackGtmEvent } from '@/utils/analytics/gtm'
@@ -90,7 +91,7 @@ export function TutorialBanner({ compact = false, className }: TutorialBannerPro
             Vídeos passo a passo no YouTube
           </span>
           <Image
-            src="/images/logo_text.svg"
+            src={BRAND_LOGO_WITH_TEXT_SRC}
             alt="Imóvel Periciado"
             width={140}
             height={28}

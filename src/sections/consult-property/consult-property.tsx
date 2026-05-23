@@ -82,10 +82,12 @@ export type ConsultPropertyHandle = {
 
 type ConsultPropertyProps = {
   isActive?: boolean
+  /** VSL e links diretos: abre em "Como quer começar?" sem pular para endereço */
+  startAtEntry?: boolean
 }
 
 const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(function ConsultProperty(
-  { isActive = true },
+  { isActive = true, startAtEntry = false },
   ref,
 ) {
   const router = useRouter()
@@ -125,6 +127,12 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
   }, [flow])
 
   useEffect(() => {
+    if (flow === 'summary') {
+      unlockPageScroll()
+    }
+  }, [flow])
+
+  useEffect(() => {
     if (searchParams.get(CONSULT_FLUXO_INICIO_QUERY) !== '1') return
 
     stack.current = []
@@ -142,12 +150,24 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
   }, [searchParams, resetConsultForm, router])
 
   useEffect(() => {
-    if (typeof window === 'undefined') return
+    if (!startAtEntry) return
+
+    stack.current = []
+    entryPathRef.current = null
+    hasTrackedFlowStart.current = false
+    setFlow('entry')
+    resetConsultForm(CONSULT_PROPERTY_FORM_DEFAULTS)
+    sessionStorage.removeItem('autoFocusAddress')
+    scrollConsultFlowToTop()
+  }, [startAtEntry, resetConsultForm])
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || startAtEntry) return
     const params = new URLSearchParams(window.location.search)
     if (params.get('autoFocus') === 'true' || sessionStorage.getItem('autoFocusAddress')) {
       setFlow((f) => (f === 'entry' ? 'address' : f))
     }
-  }, [])
+  }, [startAtEntry])
 
   useEffect(() => {
     if (!isActive) return
@@ -343,7 +363,7 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
           />
 
           <div className="relative flex justify-center">
-            <BrandLogoLink className="[&_img]:brightness-0 [&_img]:invert" />
+            <BrandLogoLink tone="on-primary" />
           </div>
 
           <TrafficLightModal>
@@ -371,6 +391,10 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
                   go('address')
                 } else if (choice === 'document') {
                   methods.setValue('hasDocument', true, { shouldValidate: true })
+                  methods.setValue('address', '', { shouldValidate: false })
+                  methods.setValue('addressHint', '', { shouldValidate: false })
+                  methods.setValue('placeId', '', { shouldValidate: false })
+                  methods.setValue('registry', null, { shouldValidate: false })
                   go('doc-type')
                 } else {
                   methods.setValue('registrationNumber', '', { shouldValidate: false })
@@ -431,6 +455,7 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
 
           <Activity isActive={flow === 'doc-type'}>
             <DocumentTypeStep
+              showAddressCard={entryPathRef.current !== 'document'}
               onNext={() => {
                 if (entryPathRef.current === 'document') {
                   go('address-hint')

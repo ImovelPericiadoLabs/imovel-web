@@ -89,4 +89,41 @@ describe('SummaryStep', () => {
     fireEvent.click(screen.getByTestId('continue-btn'))
     expect(mockOnNext).toHaveBeenCalledTimes(1)
   })
+
+  it('mostra tipo e arquivo quando o fluxo é por documento', () => {
+    function DocumentHarness() {
+      const methods = useForm({
+        defaultValues: {
+          address: '',
+          addressHint: '',
+          registry: null,
+          registrationNumber: '',
+          notaryName: '',
+          allotment: '',
+          block: '',
+          lot: '',
+          documentType: 'registration',
+          document: {
+            id: 'doc-uuid',
+            file_path: '/x',
+            file_hash: null,
+            original_name: 'matricula.pdf',
+            extension: 'pdf',
+          },
+          documentPreview: { id: '1', name: 'matricula.pdf', size: 1.2, type: 'application/pdf' },
+        },
+      })
+      return (
+        <FormProvider {...methods}>
+          <SummaryStep onNext={mockOnNext} />
+        </FormProvider>
+      )
+    }
+
+    render(<DocumentHarness />)
+    expect(screen.getByText('Matrícula')).toBeInTheDocument()
+    expect(screen.getByText('matricula.pdf')).toBeInTheDocument()
+    expect(screen.getByText('Tipo de documento')).toBeInTheDocument()
+    expect(screen.getByText('Arquivo enviado')).toBeInTheDocument()
+  })
 })
