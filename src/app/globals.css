@@ -114,6 +114,18 @@
     animation: cta-drop 1.6s ease-out forwards;
     will-change: transform, opacity;
   }
+
+  .journey-progress-active {
+    animation: journey-progress-shine 2.2s ease-in-out infinite;
+  }
+
+  .journey-roll-out {
+    animation: journey-roll-out 0.38s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+
+  .journey-roll-in {
+    animation: journey-roll-in 0.38s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
 }
 
 @layer base {
@@ -164,6 +176,38 @@
       opacity: 1;
     }
     100% {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  @keyframes journey-progress-shine {
+    0%,
+    100% {
+      filter: brightness(1);
+    }
+    50% {
+      filter: brightness(1.12);
+    }
+  }
+
+  @keyframes journey-roll-out {
+    from {
+      transform: translateY(0);
+      opacity: 1;
+    }
+    to {
+      transform: translateY(-110%);
+      opacity: 0;
+    }
+  }
+
+  @keyframes journey-roll-in {
+    from {
+      transform: translateY(110%);
+      opacity: 0;
+    }
+    to {
       transform: translateY(0);
       opacity: 1;
     }
