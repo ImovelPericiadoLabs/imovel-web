@@ -65,7 +65,7 @@ export function ConsultEntryStep({ onChoose }: ConsultEntryStepProps) {
         <TextTitle className="w-full text-center text-gray-900 md:text-xl md:leading-snug lg:text-2xl lg:leading-tight">
           Como quer começar?
         </TextTitle>
-        <TextSubtitle className="mx-auto w-full max-w-[18rem] text-pretty text-balance text-center text-sm leading-snug text-gray-600 sm:max-w-md sm:text-[15px] sm:leading-relaxed md:max-w-lg lg:max-w-2xl lg:text-base">
+        <TextSubtitle className="mx-auto w-[80%] max-w-2xl text-pretty text-center text-sm leading-snug text-gray-600 sm:text-[15px] sm:leading-relaxed lg:text-base">
           <span className="block sm:inline">Escolha o que combina com você,</span>{" "}
           <span className="block sm:inline">todos os caminhos levam à mesma consulta completa.</span>
         </TextSubtitle>
