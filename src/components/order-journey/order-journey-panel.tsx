@@ -83,7 +83,6 @@ type JourneyLiveCardProps = {
   marco: string
   activityIso: string
   eventsFetching: boolean
-  themeKey: string
   theme: ReturnType<typeof resolveLiveProcessView>['theme']
 }
 
@@ -92,17 +91,15 @@ function JourneyLiveCard({
   marco,
   activityIso,
   eventsFetching,
-  themeKey,
   theme,
 }: JourneyLiveCardProps) {
   const Icon = theme.Icon
 
   return (
     <div
-      key={themeKey}
       className={cn(
         'flex flex-col gap-2.5 rounded-xl border px-3.5 py-3 shadow-sm',
-        'transition-colors duration-500 animate-in fade-in zoom-in-95 duration-500 fill-mode-both',
+        'transition-[border-color,background-color,box-shadow] duration-500',
         theme.card,
       )}
       role="status"
@@ -250,8 +247,6 @@ export default function OrderJourneyPanel({
     [statusValue, ui, order.analysis_progress, events, journeyOpts.paymentConfirmed],
   )
 
-  const liveThemeKey = `${statusValue}-${order.analysis_progress?.step || ''}-${liveProcess.processTitle}`
-
   const showLiveCard =
     statusValue === 'SEARCHING_DOCUMENT' ||
     statusValue === 'IN_PROGRESS' ||
@@ -293,14 +288,15 @@ export default function OrderJourneyPanel({
       </div>
 
       {showLiveCard && (
+        <div className="animate-in fade-in slide-in-from-bottom-2 duration-400 fill-mode-both">
         <JourneyLiveCard
           processTitle={liveProcess.processTitle}
           marco={liveProcess.marco}
           activityIso={activityIso}
           eventsFetching={eventsFetching}
-          themeKey={liveThemeKey}
           theme={liveProcess.theme}
         />
+        </div>
       )}
 
       {showActionCta && (

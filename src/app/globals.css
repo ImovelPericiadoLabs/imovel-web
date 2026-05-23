@@ -119,12 +119,8 @@
     animation: journey-progress-shine 2.2s ease-in-out infinite;
   }
 
-  .journey-roll-out {
-    animation: journey-roll-out 0.38s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-  }
-
-  .journey-roll-in {
-    animation: journey-roll-in 0.38s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  .journey-roll-strip {
+    animation: journey-roll-strip 0.56s cubic-bezier(0.22, 1, 0.36, 1) forwards;
   }
 }
 
@@ -191,25 +187,12 @@
     }
   }
 
-  @keyframes journey-roll-out {
+  @keyframes journey-roll-strip {
     from {
       transform: translateY(0);
-      opacity: 1;
     }
     to {
-      transform: translateY(-110%);
-      opacity: 0;
-    }
-  }
-
-  @keyframes journey-roll-in {
-    from {
-      transform: translateY(110%);
-      opacity: 0;
-    }
-    to {
-      transform: translateY(0);
-      opacity: 1;
+      transform: translateY(-1.75rem);
     }
   }
 

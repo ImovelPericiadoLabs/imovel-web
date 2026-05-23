@@ -179,40 +179,89 @@ function pickAgentIcon(title: string): LucideIcon {
   return FileSearch
 }
 
-/** Nome do processo sem prefixos verbosos (ex.: só "Usufruto", não "Analisando: Usufruto"). */
+const PT_TITLE_SMALL_WORDS = new Set([
+  'de',
+  'da',
+  'do',
+  'das',
+  'dos',
+  'e',
+  'ou',
+  'em',
+  'no',
+  'na',
+  'nos',
+  'nas',
+  'a',
+  'o',
+  'as',
+  'os',
+])
+
+/** Títulos fixos por etapa do pipeline (pt-BR, capitalização correta). */
+const STEP_DISPLAY_TITLES: Record<string, string> = {
+  started: 'Análise do documento',
+  enrollment: 'Dados da matrícula',
+  owners: 'Identificação de proprietários',
+  finalizing: 'Finalização do relatório',
+  enrich_place: 'Complemento do endereço',
+}
+
+/** Capitalização estilo título em português (mantém "de", "da" etc. em minúsculo). */
+export function capitalizePortugueseTitle(text: string): string {
+  const normalized = text.trim().replace(/\s+/g, ' ')
+  if (!normalized) return normalized
+
+  if (/[A-ZÁÉÍÓÚÂÊÔÃÇ][a-záéíóúâêôãç]+/.test(normalized.slice(1))) {
+    return normalized
+  }
+
+  const words = normalized.toLocaleLowerCase('pt-BR').split(' ')
+  return words
+    .map((word, index) => {
+      if (index > 0 && PT_TITLE_SMALL_WORDS.has(word)) return word
+      return word.charAt(0).toLocaleUpperCase('pt-BR') + word.slice(1)
+    })
+    .join(' ')
+}
+
+/** Nome do processo sem prefixos verbosos (ex.: "Usufruto", não "Analisando: Usufruto"). */
 export function formatProcessTitle(
   rawLabel: string,
   step: string,
   agentTitle?: string,
 ): string {
   const agent = (agentTitle || '').trim()
-  if (agent) return agent
+  if (agent) return capitalizePortugueseTitle(agent)
+
+  const stepKey = step.trim()
+  const fixed = stepKey ? STEP_DISPLAY_TITLES[stepKey] : undefined
+  if (fixed) return fixed
 
   let t = rawLabel.trim()
-  if (!t) return 'Análise do documento'
+  if (!t) return STEP_DISPLAY_TITLES.started!
 
   if (t.startsWith('Analisando:')) {
-    return t.slice('Analisando:'.length).trim() || t
+    const name = t.slice('Analisando:'.length).trim()
+    return capitalizePortugueseTitle(name || t)
   }
   if (t.startsWith('Identificando ')) {
-    return t.slice('Identificando '.length).trim()
+    return capitalizePortugueseTitle(t.slice('Identificando '.length).trim())
   }
   if (t.startsWith('Extraindo ')) {
-    return t.slice('Extraindo '.length).trim()
+    return capitalizePortugueseTitle(t.slice('Extraindo '.length).trim())
   }
   if (t.startsWith('Iniciando ')) {
-    return t.slice('Iniciando '.length).trim()
+    return capitalizePortugueseTitle(t.slice('Iniciando '.length).trim())
   }
   if (t.startsWith('Finalizando ')) {
-    return t.slice('Finalizando '.length).trim()
+    return capitalizePortugueseTitle(t.slice('Finalizando '.length).trim())
   }
   if (t.startsWith('Completando ')) {
-    return t.slice('Completando '.length).trim()
+    return capitalizePortugueseTitle(t.slice('Completando '.length).trim())
   }
 
-  if (step === 'agent') return t
-
-  return t.replace(/…$/, '').trim()
+  return capitalizePortugueseTitle(t.replace(/…$/, '').trim())
 }
 
 export function resolveProcessTheme(step: string, processTitle: string): LiveProcessTheme {

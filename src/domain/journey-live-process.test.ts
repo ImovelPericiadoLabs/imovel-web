@@ -12,12 +12,22 @@ describe('formatProcessTitle', () => {
     )
   })
 
-  it('encurta outros passos do pipeline', () => {
+  it('usa titulos profissionais por etapa do pipeline', () => {
     expect(formatProcessTitle('Identificando proprietários', 'owners')).toBe(
-      'proprietários',
+      'Identificação de proprietários',
     )
     expect(formatProcessTitle('Finalizando relatório', 'finalizing')).toBe(
-      'relatório',
+      'Finalização do relatório',
+    )
+    expect(formatProcessTitle('Extraindo dados da matrícula', 'enrollment')).toBe(
+      'Dados da matrícula',
+    )
+  })
+
+  it('capitaliza nomes de agente em minusculo', () => {
+    expect(formatProcessTitle('Analisando: usufruto', 'agent')).toBe('Usufruto')
+    expect(formatProcessTitle('Analisando: ação de publicidade', 'agent')).toBe(
+      'Ação de Publicidade',
     )
   })
 })
