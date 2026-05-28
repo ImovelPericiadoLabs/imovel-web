@@ -338,51 +338,47 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
     }
   }, [flow, isInitialLoading, currentStepIndex, isFinished, isActive])
 
+  const heroGradientClass = isFinished
+    ? 'bg-gradient-to-b from-emerald-600 from-0% via-emerald-600 via-[55%] via-emerald-500/85 via-[82%] to-[#F6F5FA] to-[100%]'
+    : 'bg-gradient-to-b from-[#0b1b3a] from-0% via-[#0b1b3a] via-[32%] via-[#0f2247] via-[58%] via-[#142a5b] via-[82%] to-[#F6F5FA] to-[100%]'
+
   if (isInitialLoading) {
     return (
-      <section className="flex min-h-dvh w-full flex-col bg-background">
+      <section className="flex min-h-dvh w-full flex-col overflow-x-hidden bg-[#F6F5FA]">
         <LoadingOverlay isLoading message="Carregando recursos..." />
       </section>
     )
   }
 
   return (
-    <section className="flex min-h-dvh w-full flex-col bg-background">
-      <header
-        className={`relative z-40 flex w-full shrink-0 flex-col pt-4 transition-colors duration-500 ${
-          isFinished ? 'bg-emerald-600' : 'bg-primary'
-        }`}
-      >
-        <div className="mx-auto mb-2 flex w-full max-w-lg items-center justify-between px-4 py-4.5 md:max-w-2xl md:px-6 xl:max-w-3xl xl:px-8 2xl:max-w-[52rem] 2xl:px-10">
-          <ChevronLeft
-            onClick={back}
-            className={`size-7 transition-opacity text-white ${
-              flow === 'address' && stack.current.length === 0 ? 'opacity-0 pointer-events-none' : 'cursor-pointer'
-            }`}
-            role="button"
-          />
+    <section className="flex min-h-dvh w-full flex-col overflow-x-hidden bg-[#F6F5FA]">
+      <div className={`relative shrink-0 transition-[background] duration-500 ${heroGradientClass}`}>
+        <header className="relative z-40 flex w-full flex-col bg-transparent pt-4">
+          <div className="mx-auto mb-2 flex w-full max-w-lg items-center justify-between px-4 py-4.5 md:max-w-2xl md:px-6 xl:max-w-3xl xl:px-8 2xl:max-w-[52rem] 2xl:px-10">
+            <ChevronLeft
+              onClick={back}
+              className={`size-7 transition-opacity text-white ${
+                flow === 'address' && stack.current.length === 0 ? 'opacity-0 pointer-events-none' : 'cursor-pointer'
+              }`}
+              role="button"
+            />
 
-          <div className="relative flex justify-center">
-            <BrandLogoLink tone="on-primary" />
+            <div className="relative flex justify-center">
+              <BrandLogoLink tone="on-primary" />
+            </div>
+
+            <TrafficLightModal>
+              <CircleQuestionMark className="size-7 cursor-pointer text-white" />
+            </TrafficLightModal>
           </div>
+        </header>
 
-          <TrafficLightModal>
-            <CircleQuestionMark className="size-7 cursor-pointer text-white" />
-          </TrafficLightModal>
-        </div>
-      </header>
-
-      {/* Faixa decorativa: degradê do header → sky-200; não captura toque no overlap */}
-      <div
-        className={`pointer-events-none relative z-0 h-36 shrink-0 bg-gradient-to-b to-background transition-[background] duration-500 sm:h-32 md:h-36 lg:h-40 ${
-          isFinished ? 'from-emerald-600' : 'from-primary'
-        }`}
-        aria-hidden
-      />
+        <div className="pointer-events-none h-24 sm:h-20 md:h-24 lg:h-28" aria-hidden />
+      </div>
 
       <FormProvider {...methods}>
-        <div role="main" className="relative z-10 -mt-28 w-full sm:-mt-24">
-          <div className="mx-auto w-full max-w-lg px-0 pt-2 pb-[max(3rem,env(safe-area-inset-bottom))] md:max-w-2xl md:pb-10 xl:max-w-3xl xl:pb-12 2xl:max-w-[52rem]">
+        <div role="main" className="relative z-10 -mt-24 w-full flex-1 sm:-mt-20 md:-mt-24">
+          <div className="mx-auto w-full max-w-lg px-0 pt-2 pb-[max(2rem,env(safe-area-inset-bottom))] md:max-w-2xl md:pb-8 xl:max-w-3xl xl:pb-10 2xl:max-w-[52rem]">
           <Activity isActive={flow === 'entry'}>
             <ConsultEntryStep
               onChoose={(choice) => {

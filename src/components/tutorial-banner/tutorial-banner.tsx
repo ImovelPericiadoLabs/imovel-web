@@ -26,8 +26,8 @@ export function TutorialBanner({ compact = false, className }: TutorialBannerPro
         })
       }}
       className={cn(
-        'group relative flex w-full min-h-[5.5rem] overflow-hidden rounded-2xl border border-primary/25 text-left shadow-sm transition-[box-shadow,border-color] hover:border-primary/40 hover:shadow-md sm:min-h-[6.25rem]',
-        compact && 'min-h-[5rem] rounded-xl sm:min-h-[5.5rem]',
+        'group relative flex w-full min-h-[8.5rem] overflow-hidden rounded-2xl border border-primary/25 text-center shadow-sm transition-[box-shadow,border-color] hover:border-primary/40 hover:shadow-md sm:min-h-[9rem]',
+        compact && 'min-h-[7.5rem] rounded-xl sm:min-h-[8rem]',
         className,
       )}
     >
@@ -47,22 +47,10 @@ export function TutorialBanner({ compact = false, className }: TutorialBannerPro
 
       <div
         className={cn(
-          'relative z-10 flex w-full items-center gap-3 px-3 py-3 sm:px-4',
-          compact && 'px-3 py-2.5',
+          'relative z-10 mx-auto flex w-full max-w-md flex-col items-center justify-center gap-2 px-4 py-4 sm:gap-2.5 sm:py-5',
+          compact && 'gap-1.5 py-3 sm:py-4',
         )}
       >
-        <Image
-          src="/images/logo-mini.svg"
-          alt=""
-          width={40}
-          height={40}
-          className={cn(
-            'hidden shrink-0 opacity-90 sm:block',
-            compact ? 'size-8' : 'size-9 lg:size-10',
-          )}
-          aria-hidden
-        />
-
         <span
           className={cn(
             'flex shrink-0 items-center justify-center rounded-full bg-white/15 text-white ring-1 ring-white/25 backdrop-blur-sm',
@@ -73,7 +61,18 @@ export function TutorialBanner({ compact = false, className }: TutorialBannerPro
           <PlayCircle className={cn(compact ? 'size-5' : 'size-5 sm:size-6')} />
         </span>
 
-        <span className="min-w-0 flex-1">
+        <Image
+          src={BRAND_LOGO_WITH_TEXT_SRC}
+          alt="Imóvel Periciado"
+          width={180}
+          height={44}
+          className={cn(
+            'h-auto w-[8.75rem] max-w-[min(100%,11rem)] object-contain sm:w-[9.5rem]',
+            compact && 'w-[7.5rem] sm:w-[8.25rem]',
+          )}
+        />
+
+        <span className="min-w-0">
           <span
             className={cn(
               'block font-bold leading-snug text-white',
@@ -90,16 +89,6 @@ export function TutorialBanner({ compact = false, className }: TutorialBannerPro
           >
             Vídeos passo a passo no YouTube
           </span>
-          <Image
-            src={BRAND_LOGO_WITH_TEXT_SRC}
-            alt="Imóvel Periciado"
-            width={140}
-            height={28}
-            className={cn(
-              'mt-1.5 h-auto w-[7.5rem] max-w-[min(100%,10rem)] opacity-95 sm:mt-2 sm:w-[8.5rem]',
-              compact && 'mt-1 w-[6.5rem] sm:w-[7.25rem]',
-            )}
-          />
         </span>
       </div>
     </a>
