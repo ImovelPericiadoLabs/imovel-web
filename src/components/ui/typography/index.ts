@@ -1,0 +1,7 @@
+export { HeroTitle } from './HeroTitle'
+export { HeroDescription } from './HeroDescription'
+export { LeadText } from './LeadText'
+export { SectionTitle } from './SectionTitle'
+export { SectionDescription } from './SectionDescription'
+export { GradientText } from './GradientText'
+export { EyebrowText } from './EyebrowText'

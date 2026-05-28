@@ -327,8 +327,12 @@ export default function VslPage() {
 
           <div className="relative z-10 flex flex-col h-full w-full justify-between px-6 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pointer-events-none">
             {/* Logo */}
-            <div className="pointer-events-auto flex flex-col items-center mt-2 opacity-90 scale-75 lg:scale-100">
-              <BrandLogoLink priority tone="on-primary" />
+            <div className="pointer-events-auto mt-2 flex flex-col items-center opacity-95">
+              <BrandLogoLink
+                priority
+                tone="on-primary"
+                className="w-[9rem] sm:w-[10rem] lg:w-[10.75rem]"
+              />
             </div>
 
             <div className="flex flex-col items-center text-center gap-2 mt-1" />

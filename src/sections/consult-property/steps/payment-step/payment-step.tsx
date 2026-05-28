@@ -4,6 +4,13 @@ import { useFormContext } from 'react-hook-form'
 import { QrCode, CreditCard, Barcode, DollarSign, LucideIcon, Check } from 'lucide-react'
 import TextTitle from '@/components/text-title'
 import TextSubtitle from '@/components/text-subtitle'
+import {
+  consultFlowHeroBlockClass,
+  consultFlowHeroSubtitleClass,
+  consultFlowHeroTitleClass,
+  consultFlowHeroTitleSizePrimaryClass,
+} from '@/constants/consult-flow-hero-text'
+import { cn } from '@/utils/tailwind'
 import { Switch } from '@/components/switch'
 import { trackGtmEvent } from '@/utils/analytics/gtm'
 
@@ -77,9 +84,11 @@ export function PaymentStep({
   return (
     <div className="relative flex-1 px-4">
       <div className="flex flex-col gap-5 pb-24 md:pb-0">
-        <div className="flex flex-col items-center gap-2 px-1 text-center">
-          <TextTitle className="w-full text-center text-dark">Escolha como pagar</TextTitle>
-          <TextSubtitle className="mx-auto w-[80%] max-w-2xl text-center">
+        <div className={cn(consultFlowHeroBlockClass, 'px-1')}>
+          <TextTitle className={cn(consultFlowHeroTitleClass, consultFlowHeroTitleSizePrimaryClass)}>
+            Escolha como pagar
+          </TextTitle>
+          <TextSubtitle className={consultFlowHeroSubtitleClass}>
             Selecione o método de pagamento de sua preferência
           </TextSubtitle>
         </div>

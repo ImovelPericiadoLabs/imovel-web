@@ -9,6 +9,11 @@ import { Check, Clock, Copy, IdCard, Lock, Mail, MessageCircle, Phone, ShieldChe
 import { useSession, signOut } from 'next-auth/react'
 
 import TextTitle from '@/components/text-title'
+import {
+  consultFlowHeroAccentClass,
+  consultFlowHeroSubtitleClass,
+} from '@/constants/consult-flow-hero-text'
+import { cn } from '@/utils/tailwind'
 import TextSubtitle from '@/components/text-subtitle'
 import Button from '@/components/button'
 import Skeleton from '@/components/skeleton'
@@ -970,9 +975,11 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
 
         {step === 'pix' && !!pixData && pixPayloadFromResult(pixData) !== '' && (
           <div className="flex flex-col items-center pt-10 -mt-20">
-            <div className="mb-8 pt-4 text-black px-1 text-left relative z-10 w-full text-center flex flex-col gap-5">
-              <p className="text-center leading-snug font-normal text-black/80">
-                Realize o pagamento de <span className="font-bold text-black">{formatMoney(planPriceFromApi)}</span> para iniciar a consulta do imóvel.
+            <div className="relative z-10 mb-8 flex w-full flex-col gap-5 px-1 pt-4 text-center">
+              <p className={consultFlowHeroSubtitleClass}>
+                Realize o pagamento de{' '}
+                <span className={consultFlowHeroAccentClass}>{formatMoney(planPriceFromApi)}</span> para iniciar a
+                consulta do imóvel.
               </p>
 
               <AddressSummaryCard

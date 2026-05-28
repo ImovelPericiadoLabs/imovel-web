@@ -1,8 +1,9 @@
 'use client'
 
 import { useFormContext } from 'react-hook-form'
-import TextTitle from '@/components/text-title'
-import TextSubtitle from '@/components/text-subtitle'
+import { HeroDescription, HeroTitle } from '@/components/ui/typography'
+import { consultFlowHeroBlockClass } from '@/constants/consult-flow-hero-text'
+import { cn } from '@/utils/tailwind'
 import { ChoiceCards } from '@/components/choice-cards'
 import SelectedAddressCard from '@/components/selected-address-card'
 import { trackGtmEvent } from '@/utils/analytics/gtm'
@@ -53,11 +54,13 @@ export function DocumentConfirmationStep({
           address={currentAddress}
           variant={String(getValues('address') || '').trim() ? 'selected' : 'hint'}
         />
-        <div className="mb-2 flex flex-col items-center gap-2 text-center">
-          <TextTitle className="w-full text-center text-dark">Você tem o documento do imóvel?</TextTitle>
-          <TextSubtitle className="mx-auto w-[80%] max-w-2xl text-center text-gray-500">
+        <div className={cn(consultFlowHeroBlockClass, 'mb-2')}>
+          <HeroTitle variant="primary" surface="light">
+            Você tem o documento do imóvel?
+          </HeroTitle>
+          <HeroDescription surface="light">
             Isso agiliza a análise do seu pedido
-          </TextSubtitle>
+          </HeroDescription>
         </div>
 
         <ChoiceCards

@@ -165,7 +165,7 @@ export default function AppLayout({ children }: PropsWithChildren) {
       <section className={cn('min-h-screen', isAdminArea ? 'bg-[#E4E6EF]' : 'bg-white pb-6')}>
         {!isAdminArea && (
         <header className="flex flex-col pt-4 px-4 bg-primary relative z-40">
-          <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2 py-4.5 mb-6 relative">
+          <div className="relative mb-6 grid min-h-[4rem] grid-cols-[auto_1fr_auto] items-center gap-2 py-5 sm:min-h-[4.25rem]">
             <div className="flex items-center justify-start shrink-0">
               <ChevronLeft
                 onClick={handleGoBack}

@@ -77,8 +77,8 @@ export function Login() {
 
   return (
     <section className="flex min-h-dvh flex-col bg-white">
-      <header className="w-full bg-primary py-7 px-5 shadow-sm shrink-0">
-        <div className="flex items-center justify-between relative max-w-lg mx-auto">
+      <header className="w-full shrink-0 bg-primary px-5 py-7 shadow-sm">
+        <div className="relative mx-auto flex min-h-[3.75rem] max-w-lg items-center justify-between sm:min-h-[4rem]">
           <button
             onClick={handleBack}
             className="transition-opacity duration-200"

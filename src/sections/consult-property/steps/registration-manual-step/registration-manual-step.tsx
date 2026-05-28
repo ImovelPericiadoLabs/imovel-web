@@ -2,8 +2,9 @@
 
 import { Hash } from 'lucide-react'
 import { useFormContext } from 'react-hook-form'
-import TextTitle from '@/components/text-title'
-import TextSubtitle from '@/components/text-subtitle'
+import { CenteredContent } from '@/components/ui/layout'
+import { Surface } from '@/components/ui/surfaces'
+import { HeroDescription, HeroTitle } from '@/components/ui/typography'
 import Button from '@/components/button'
 import InfoCard from '@/components/info-card'
 import { NotaryOfficeCombobox } from '@/components/notary-office-combobox/notary-office-combobox'
@@ -47,15 +48,16 @@ export function RegistrationManualStep({ onNext, onBack }: RegistrationManualSte
 
   return (
     <div className="relative flex-1 px-4 pb-28 md:px-6 lg:pb-16 xl:px-8">
-      <div className="mb-4 mx-auto flex max-w-2xl flex-col items-center gap-2 text-center">
-        <TextTitle className="w-full text-center text-dark md:text-xl lg:text-2xl">Matrícula e cartório</TextTitle>
-        <TextSubtitle className="mx-auto w-[80%] max-w-2xl text-center text-gray-500 md:text-[15px] lg:text-base">
-          Sem o endereço no mapa, informe o número da matrícula e o nome do cartório de registro de imóveis. Esses dados
-          seguem no pedido para localizar o imóvel corretamente.
-        </TextSubtitle>
-      </div>
+      <Surface variant="dark" className="mb-3 pt-1 sm:mb-4 sm:pt-1.5 md:mb-5">
+        <CenteredContent variant="heroBlock" className="mb-4 sm:mb-5 md:mb-6">
+          <HeroTitle variant="large">Matrícula e cartório</HeroTitle>
+          <HeroDescription>
+            Informe a matrícula e o cartório para localizarmos o imóvel no pedido.
+          </HeroDescription>
+        </CenteredContent>
+      </Surface>
 
-      <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 lg:max-w-xl">
+      <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 pt-2 sm:pt-3 lg:max-w-xl">
         <label className="flex flex-col gap-1.5">
           <span className="text-xs font-semibold text-gray-700">Número da matrícula</span>
           <div className="relative group">

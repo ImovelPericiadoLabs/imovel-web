@@ -2,9 +2,12 @@
 
 import Link from 'next/link'
 import { MapPin, FileText, Hash, LayoutList } from 'lucide-react'
-import TextTitle from '@/components/text-title'
-import TextSubtitle from '@/components/text-subtitle'
 import { TutorialBanner } from '@/components/tutorial-banner'
+import { CenteredContent } from '@/components/ui/layout'
+import { Surface } from '@/components/ui/surfaces'
+import { GradientText, HeroDescription, HeroTitle, LeadText } from '@/components/ui/typography'
+import { cardSurface } from '@/styles/surfaces'
+import { cn } from '@/utils/tailwind'
 import { trackGtmEvent } from '@/utils/analytics/gtm'
 import { formatMoney } from '@/utils/text/text'
 import { usePublicPlanPrice } from '@/hooks/use-public-plan-price'
@@ -30,50 +33,53 @@ const cards: {
   subtitle: string
   icon: typeof MapPin
 }[] = [
-    {
-      id: 'document',
-      title: 'Tenho documento',
-      subtitle: 'Envie foto ou PDF da matrícula, contrato ou escritura.',
-      icon: FileText,
-    },
-    {
-      id: 'unsure',
-      title: 'Tenho matrícula',
-      subtitle: 'Informe o número e o cartório para começar sua consulta.',
-      icon: Hash,
-    },
-    {
-      id: 'address',
-      title: 'Tenho endereço',
-      subtitle: 'Busque diretamente no mapa para começar sua consulta.',
-      icon: MapPin,
-    },
-  ]
+  {
+    id: 'document',
+    title: 'Tenho documento',
+    subtitle: 'Envie foto ou PDF da matrícula, contrato ou escritura.',
+    icon: FileText,
+  },
+  {
+    id: 'unsure',
+    title: 'Tenho matrícula',
+    subtitle: 'Informe o número e o cartório para começar sua consulta.',
+    icon: Hash,
+  },
+  {
+    id: 'address',
+    title: 'Tenho endereço',
+    subtitle: 'Busque diretamente no mapa para começar sua consulta.',
+    icon: MapPin,
+  },
+]
 
 export function ConsultEntryStep({ onChoose }: ConsultEntryStepProps) {
   const { price } = usePublicPlanPrice()
 
   return (
-    <div className="relative mx-auto min-w-0 w-full max-w-3xl px-4 pb-10 pointer-events-auto md:px-6 md:pb-12 xl:px-8">
-      <div className="mx-auto mb-5 flex w-full flex-col items-center gap-2.5 text-center sm:mb-6 md:mb-7 lg:mb-8">
-        <TextTitle className="w-full max-w-2xl text-pretty text-center text-base font-extrabold leading-snug text-gray-900 sm:text-lg md:text-xl lg:text-[1.65rem] lg:leading-tight xl:text-[1.75rem]">
-          Escolha o que combina com você. Todos os caminhos levam à mesma consulta completa.
-        </TextTitle>
-        <TextTitle className="w-full text-center text-base font-bold text-gray-900 md:text-lg md:leading-snug lg:text-xl">
-          Como quer começar?
-        </TextTitle>
-        <TextSubtitle className="mx-auto w-[80%] max-w-2xl text-pretty text-center text-sm leading-snug text-gray-600 sm:text-[15px] sm:leading-relaxed lg:text-base">
-          O endereço ou matrícula, menos burocracia, mais agilidade.
-        </TextSubtitle>
-      </div>
+    <div className="relative mx-auto min-w-0 w-full max-w-3xl px-4 pb-12 pointer-events-auto md:px-6 md:pb-14 xl:px-8">
+      <Surface variant="dark" className="mb-3 pt-0 sm:mb-4 md:mb-5">
+        <CenteredContent variant="hero" className="gap-2 sm:gap-2.5">
+          <HeroTitle variant="primary">
+            Escolha o que combina com você. Todos os caminhos levam à mesma consulta completa.
+          </HeroTitle>
 
-      <div className="mb-4 w-full min-w-0 rounded-2xl border border-gray-100 bg-white px-3 py-3 shadow-sm sm:px-4 lg:py-4">
+          <HeroTitle variant="secondary">Como quer começar?</HeroTitle>
+
+          <HeroDescription kind="body">
+            <LeadText>O endereço ou matrícula:</LeadText>
+            <GradientText> menos burocracia, mais agilidade.</GradientText>
+          </HeroDescription>
+        </CenteredContent>
+      </Surface>
+
+      <div className={cn(cardSurface, 'mb-4 w-full min-w-0 px-3 py-3 sm:px-4 lg:py-4')}>
         <p className="mx-auto max-w-full break-words text-center text-xs font-semibold leading-snug text-primary tabular-nums md:text-sm">
           Consulta completa · {formatMoney(price)}
         </p>
       </div>
 
-      <div className="mx-auto flex w-full flex-col gap-3 lg:grid lg:max-w-3xl lg:grid-cols-3 lg:gap-4 lg:items-stretch">
+      <div className="mx-auto flex w-full flex-col gap-3 lg:grid lg:grid-cols-3 lg:gap-4 lg:items-stretch">
         {cards.map(({ id, title, subtitle, icon: Icon }) => {
           const badge = ENTRY_BADGE[id]
           return (

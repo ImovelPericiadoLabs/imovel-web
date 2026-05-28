@@ -108,7 +108,7 @@ export default function LegalDocument({ slug, fullDocumentHtml }: LegalDocumentP
           </button>
           <div className="flex min-w-0 flex-1 items-center gap-3">
             <div className="hidden shrink-0 sm:block">
-              <BrandLogoLink tone="on-light" className="w-[7.5rem] sm:w-[8rem] [&_img]:h-8" />
+              <BrandLogoLink tone="on-light" className="w-[8rem] sm:w-[8.75rem] [&_img]:h-10 sm:[&_img]:h-11" />
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#535862] sm:text-[11px]">

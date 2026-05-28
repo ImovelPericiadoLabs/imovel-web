@@ -5,6 +5,14 @@ import { Switch } from '@/components/switch'
 import { useFormContext } from 'react-hook-form'
 import TextTitle from '@/components/text-title'
 import TextSubtitle from '@/components/text-subtitle'
+import {
+  consultFlowHeroAccentClass,
+  consultFlowHeroBlockClass,
+  consultFlowHeroSubtitleClass,
+  consultFlowHeroTitleClass,
+  consultFlowHeroTitleSizePrimaryClass,
+} from '@/constants/consult-flow-hero-text'
+import { cn } from '@/utils/tailwind'
 import AddressSummaryCard from '@/components/address-summary-card'
 import { trackGtmEvent, DEFAULT_CURRENCY, buildConsultItem } from '@/utils/analytics/gtm'
 import { formatMoney } from '@/utils/text/text'
@@ -137,14 +145,20 @@ export function CreditCardPage({
     return (
         <form className="relative z-50 -mt-15 flex w-full flex-col px-6 pb-20 md:px-8 lg:-mt-10 lg:px-10 xl:px-12">
             
-            <div className="flex flex-col gap-2 mb-6 px-1">
-                <TextTitle className="text-dark">Novo cartão</TextTitle>
-                <TextSubtitle>Preencha os dados do cartão para continuar</TextSubtitle>
+            <div className={cn(consultFlowHeroBlockClass, 'relative z-50 mb-6 px-1')}>
+                <TextTitle className={cn(consultFlowHeroTitleClass, consultFlowHeroTitleSizePrimaryClass)}>
+                  Novo cartão
+                </TextTitle>
+                <TextSubtitle className={consultFlowHeroSubtitleClass}>
+                  Preencha os dados do cartão para continuar
+                </TextSubtitle>
             </div>
 
             <div className="mb-8 relative z-50 w-full flex flex-col gap-5">
-                <p className="text-center text-dark leading-snug font-normal px-4">
-                    Realize o pagamento de <span className="font-bold">{formatMoney(consultPrice)}</span> para iniciar a consulta do imóvel.
+                <p className={cn(consultFlowHeroSubtitleClass, 'px-4')}>
+                    Realize o pagamento de{' '}
+                    <span className={consultFlowHeroAccentClass}>{formatMoney(consultPrice)}</span> para iniciar a
+                    consulta do imóvel.
                 </p>
 
                 <AddressSummaryCard

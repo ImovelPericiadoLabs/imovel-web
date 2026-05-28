@@ -6,6 +6,14 @@ import Image from 'next/image'
 import { useFormContext } from 'react-hook-form'
 import TextTitle from '@/components/text-title'
 import TextSubtitle from '@/components/text-subtitle'
+import {
+  consultFlowHeroAccentClass,
+  consultFlowHeroBlockClass,
+  consultFlowHeroSubtitleClass,
+  consultFlowHeroTitleClass,
+  consultFlowHeroTitleSizePrimaryClass,
+} from '@/constants/consult-flow-hero-text'
+import { cn } from '@/utils/tailwind'
 import AddressSummaryCard from '@/components/address-summary-card'
 import { trackGtmEvent } from '@/utils/analytics/gtm'
 import { formatMoney } from '@/utils/text/text'
@@ -77,14 +85,19 @@ export function SavedCardsPage({
 
   return (
     <div className="relative -mt-20 flex flex-col px-6 py-4 md:px-8 lg:-mt-12 lg:px-10 xl:px-12">
-      <div className="flex flex-col gap-2 relative z-50 mb-6 px-1">
-        <TextTitle className="text-dark">Seus cartões</TextTitle>
-        <TextSubtitle>Escolha um cartão salvo para realizar o pagamento</TextSubtitle>
+      <div className={cn(consultFlowHeroBlockClass, 'relative z-50 mb-6 px-1')}>
+        <TextTitle className={cn(consultFlowHeroTitleClass, consultFlowHeroTitleSizePrimaryClass)}>
+          Seus cartões
+        </TextTitle>
+        <TextSubtitle className={consultFlowHeroSubtitleClass}>
+          Escolha um cartão salvo para realizar o pagamento
+        </TextSubtitle>
       </div>
 
       <div className="mb-8 relative z-50 w-full flex flex-col gap-5">
-        <p className="text-center text-white/90 leading-snug font-normal px-4">
-          Realize o pagamento de <span className="font-bold text-white">{formatMoney(price)}</span> para iniciar a consulta do imóvel.
+        <p className={cn(consultFlowHeroSubtitleClass, 'px-4')}>
+          Realize o pagamento de{' '}
+          <span className={consultFlowHeroAccentClass}>{formatMoney(price)}</span> para iniciar a consulta do imóvel.
         </p>
 
         <AddressSummaryCard

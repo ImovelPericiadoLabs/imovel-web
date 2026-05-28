@@ -103,8 +103,8 @@ export function AuthCodePage({ onBack, onSuccess }: AuthCodePageProps) {
 
     return (
         <div className="min-h-screen w-full bg-white fixed inset-0 z-50 flex flex-col">
-            <header className="w-full shrink-0 bg-primary px-4 py-5 shadow-sm">
-                <div className="relative mx-auto flex max-w-lg items-center justify-between">
+            <header className="w-full shrink-0 bg-primary px-4 py-6 shadow-sm">
+                <div className="relative mx-auto flex min-h-[3.75rem] max-w-lg items-center justify-between sm:min-h-[4rem]">
                     <button
                         type="button"
                         onClick={onBack}

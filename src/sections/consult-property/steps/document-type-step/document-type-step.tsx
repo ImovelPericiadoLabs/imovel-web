@@ -4,8 +4,9 @@ import { useEffect, useState, useRef } from 'react'
 import { useFormContext } from 'react-hook-form'
 import { Check, FileText, Building, Scroll, LucideIcon, ChevronRight } from 'lucide-react'
 import { useMutation } from '@tanstack/react-query'
-import TextTitle from '@/components/text-title'
-import TextSubtitle from '@/components/text-subtitle'
+import { HeroDescription, HeroTitle } from '@/components/ui/typography'
+import { consultFlowHeroBlockClass } from '@/constants/consult-flow-hero-text'
+import { cn } from '@/utils/tailwind'
 import DocumentItem from '@/components/document-item'
 import Alert from '@/components/alert'
 import LoadingOverlay from '@/components/loading-overlay'
@@ -236,11 +237,13 @@ export function DocumentTypeStep({ onNext, showAddressCard = true }: DocumentTyp
             variant={String(watch('address') || '').trim() ? 'selected' : 'hint'}
           />
         )}
-        <div className="mb-2 flex flex-col items-center gap-2 text-center">
-          <TextTitle className="w-full text-center text-dark">Qual documento você tem?</TextTitle>
-          <TextSubtitle className="mx-auto w-[80%] max-w-2xl text-center text-gray-500">
+        <div className={cn(consultFlowHeroBlockClass, 'mb-2')}>
+          <HeroTitle variant="primary" surface={showAddressCard ? 'light' : 'dark'}>
+            Qual documento você tem?
+          </HeroTitle>
+          <HeroDescription surface={showAddressCard ? 'light' : 'dark'}>
             Selecione uma das opções abaixo e envie o arquivo
-          </TextSubtitle>
+          </HeroDescription>
         </div>
 
         <div className="flex flex-col gap-3 mt-2">

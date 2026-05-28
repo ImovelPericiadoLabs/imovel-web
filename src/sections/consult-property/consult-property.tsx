@@ -24,6 +24,14 @@ import TrafficLightModal from '@/components/traffic-light-modal'
 import { BrandLogoLink } from '@/components/brand-logo-link'
 import LoadingOverlay from '@/components/loading-overlay'
 import { CONSULT_FLUXO_INICIO_QUERY, CONSULTAR_IMOVEL_INICIO_HREF } from '@/constants/consult-flow'
+import {
+  consultFlowShellBandClass,
+  consultFlowShellClass,
+  consultFlowShellGradientClass,
+  consultFlowShellGradientFinishedClass,
+} from '@/constants/consult-flow-hero-text'
+import { flowMainOverlap } from '@/styles/layout'
+import { cn } from '@/utils/tailwind'
 import { validations, FormTypes } from '@/sections/consult-property/validations'
 import { trackGtmEvent } from '@/utils/analytics/gtm'
 import { scrollConsultFlowToTop, unlockPageScroll } from '@/utils/consult-flow-scroll'
@@ -338,23 +346,24 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
     }
   }, [flow, isInitialLoading, currentStepIndex, isFinished, isActive])
 
-  const heroGradientClass = isFinished
-    ? 'bg-gradient-to-b from-emerald-600 from-0% via-emerald-600 via-[55%] via-emerald-500/85 via-[82%] to-[#F6F5FA] to-[100%]'
-    : 'bg-gradient-to-b from-[#0b1b3a] from-0% via-[#0b1b3a] via-[32%] via-[#0f2247] via-[58%] via-[#142a5b] via-[82%] to-[#F6F5FA] to-[100%]'
-
   if (isInitialLoading) {
     return (
-      <section className="flex min-h-dvh w-full flex-col overflow-x-hidden bg-[#F6F5FA]">
+      <section className="flex min-h-dvh w-full flex-col overflow-x-hidden bg-background">
         <LoadingOverlay isLoading message="Carregando recursos..." />
       </section>
     )
   }
 
   return (
-    <section className="flex min-h-dvh w-full flex-col overflow-x-hidden bg-[#F6F5FA]">
-      <div className={`relative shrink-0 transition-[background] duration-500 ${heroGradientClass}`}>
-        <header className="relative z-40 flex w-full flex-col bg-transparent pt-4">
-          <div className="mx-auto mb-2 flex w-full max-w-lg items-center justify-between px-4 py-4.5 md:max-w-2xl md:px-6 xl:max-w-3xl xl:px-8 2xl:max-w-[52rem] 2xl:px-10">
+    <section className="flex min-h-dvh w-full flex-col overflow-x-hidden bg-background">
+      <div
+        className={cn(
+          consultFlowShellClass,
+          isFinished ? consultFlowShellGradientFinishedClass : consultFlowShellGradientClass,
+        )}
+      >
+        <header className="relative z-40 flex w-full flex-col bg-transparent pt-3">
+          <div className="mx-auto flex min-h-[3.25rem] w-full max-w-lg items-center justify-between px-4 py-3.5 sm:min-h-[3.5rem] sm:py-4 md:max-w-2xl md:px-6 xl:max-w-3xl xl:px-8 2xl:max-w-[52rem] 2xl:px-10">
             <ChevronLeft
               onClick={back}
               className={`size-7 transition-opacity text-white ${
@@ -373,12 +382,12 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
           </div>
         </header>
 
-        <div className="pointer-events-none h-24 sm:h-20 md:h-24 lg:h-28" aria-hidden />
+        <div className={consultFlowShellBandClass} aria-hidden />
       </div>
 
       <FormProvider {...methods}>
-        <div role="main" className="relative z-10 -mt-24 w-full flex-1 sm:-mt-20 md:-mt-24">
-          <div className="mx-auto w-full max-w-lg px-0 pt-2 pb-[max(2rem,env(safe-area-inset-bottom))] md:max-w-2xl md:pb-8 xl:max-w-3xl xl:pb-10 2xl:max-w-[52rem]">
+        <div role="main" className={cn('relative z-10 w-full flex-1', flowMainOverlap)}>
+          <div className="mx-auto w-full max-w-lg px-0 pt-0 pb-[max(2.5rem,env(safe-area-inset-bottom))] md:max-w-2xl md:pb-10 xl:max-w-3xl xl:pb-12 2xl:max-w-[52rem]">
           <Activity isActive={flow === 'entry'}>
             <ConsultEntryStep
               onChoose={(choice) => {

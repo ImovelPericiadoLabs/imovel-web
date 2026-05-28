@@ -6,6 +6,13 @@ import { MapPin, Building, ChevronRight, Hash, Box, Layout, Package, Check, File
 import { useFormContext } from 'react-hook-form'
 import TextTitle from '@/components/text-title'
 import TextSubtitle from '@/components/text-subtitle'
+import {
+  consultFlowHeroBlockClass,
+  consultFlowHeroSubtitleClass,
+  consultFlowHeroTitleClass,
+  consultFlowHeroTitleSizeLargeClass,
+} from '@/constants/consult-flow-hero-text'
+import { cn } from '@/utils/tailwind'
 import Button from '@/components/button'
 import { SummaryItemsList, type SummaryItems } from '@/components/summary-items-list'
 import { trackGtmEvent, buildConsultItem, DEFAULT_CURRENCY } from '@/utils/analytics/gtm'
@@ -162,11 +169,11 @@ export function SummaryStep({ onNext }: { onNext: () => void }) {
         className="flex flex-col gap-4 px-4 pb-[calc(6.5rem+env(safe-area-inset-bottom))] md:px-6 xl:px-8"
         aria-label="Resumo da consulta"
       >
-        <div className="mb-6 mx-auto flex max-w-3xl flex-col items-center gap-2 text-center">
-          <TextTitle className="w-full text-center text-black md:text-xl lg:text-2xl">
+        <div className={cn(consultFlowHeroBlockClass, 'mb-6 max-w-3xl')}>
+          <TextTitle className={cn(consultFlowHeroTitleClass, consultFlowHeroTitleSizeLargeClass)}>
             Resumo da Consulta do Imóvel
           </TextTitle>
-          <TextSubtitle className="mx-auto w-[80%] max-w-2xl text-center text-black/70 md:text-[15px] lg:text-base">
+          <TextSubtitle className={consultFlowHeroSubtitleClass}>
             Verifique se os dados abaixo estão corretos
           </TextSubtitle>
         </div>

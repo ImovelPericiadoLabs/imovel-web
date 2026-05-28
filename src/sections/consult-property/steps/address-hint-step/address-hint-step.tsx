@@ -3,6 +3,13 @@
 import { useFormContext } from 'react-hook-form'
 import TextTitle from '@/components/text-title'
 import TextSubtitle from '@/components/text-subtitle'
+import {
+  consultFlowHeroBlockClass,
+  consultFlowHeroSubtitleClass,
+  consultFlowHeroTitleClass,
+  consultFlowHeroTitleSizeLargeClass,
+} from '@/constants/consult-flow-hero-text'
+import { cn } from '@/utils/tailwind'
 import Button from '@/components/button'
 import SelectedAddressCard from '@/components/selected-address-card'
 import { FormTypes } from '@/sections/consult-property/validations'
@@ -23,11 +30,11 @@ export function AddressHintStep({ onNext, onBack, afterDocument }: AddressHintSt
 
   return (
     <div className="relative flex-1 px-4 pb-28 md:px-6 lg:pb-16 xl:px-8">
-      <div className="mb-4 mx-auto flex max-w-2xl flex-col items-center gap-2 text-center">
-        <TextTitle className="w-full text-center text-dark md:text-xl lg:text-2xl">
+      <div className={consultFlowHeroBlockClass}>
+        <TextTitle className={cn(consultFlowHeroTitleClass, consultFlowHeroTitleSizeLargeClass)}>
           {afterDocument ? 'Onde fica o imóvel?' : 'O que você sabe sobre o local?'}
         </TextTitle>
-        <TextSubtitle className="mx-auto w-[80%] max-w-2xl text-center text-gray-500 md:text-[15px] lg:text-base">
+        <TextSubtitle className={consultFlowHeroSubtitleClass}>
           {afterDocument
             ? 'Mesmo com o documento, um endereço ou referência (bairro, cidade, condomínio) ajuda a geolocalizar e agilizar o pedido. Nossa IA também lê o arquivo quando possível.'
             : 'Escreva bairro, cidade, condomínio ou trechos do endereço. Se preferir, pule e busque pelo mapa na próxima tela.'}
