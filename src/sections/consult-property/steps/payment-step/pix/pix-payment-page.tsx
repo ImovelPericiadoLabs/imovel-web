@@ -22,6 +22,7 @@ import LoadingOverlay from '@/components/loading-overlay'
 import PixIcon from '@/components/icons/pix-icon'
 import Alert from '@/components/alert'
 import AddressSummaryCard from '@/components/address-summary-card'
+import { IncludedCertificatesPanel } from '@/components/included-certificates/included-certificates-panel'
 
 import { processPayment, getPaymentStatus, type ProcessPaymentResult } from '@/services/payments'
 import { getMe, startAuth } from '@/services/account'
@@ -779,6 +780,8 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
                   </li>
                 </ul>
               </div>
+
+              <IncludedCertificatesPanel compact />
 
               <form onSubmit={(e) => e.preventDefault()} className="flex flex-col gap-4">
                 {!!serverError && <Alert variant="error" message={serverError} />}

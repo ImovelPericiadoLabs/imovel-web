@@ -27,6 +27,21 @@ export type OrderAnalysisResult = {
   reason: string
 }
 
+export type PlanFeature = {
+  slug: string
+  name: string
+  description?: string
+}
+
+export type Plan = {
+  id?: string
+  slug?: string
+  name?: string
+  description?: string
+  price?: number
+  features?: PlanFeature[]
+}
+
 /** Objeto de endereço usado na análise e no re-request (GET/POST). CEP 8 dígitos quando enviado. */
 export type PlaceResponse = {
   formatted_address?: string
@@ -82,6 +97,8 @@ export type Order = {
   owners?: OwnersDetails[]
   semaphore?: SemaphoreStatus
   analysis?: OrderAnalysisResult[]
+  /** Certidões oficiais emitidas (mesmo formato dos cards de análise). */
+  certificates?: OrderAnalysisResult[]
 }
 
 export type OwnersDetails = {
@@ -286,15 +303,15 @@ export async function listPlans() {
 }
 
 /** GET /plans/ sem autenticação (mesmo payload que `listPlans` autenticado). */
-export async function listPlansPublic(): Promise<Array<{ id?: string; price?: number; name?: string }>> {
+export async function listPlansPublic(): Promise<Plan[]> {
   try {
     const response = (await api.get(endpoint.plans)) as unknown
     if (Array.isArray(response)) {
-      return response as Array<{ id?: string; price?: number; name?: string }>
+      return response as Plan[]
     }
     if (response && typeof response === 'object' && 'plans' in response) {
       const plans = (response as { plans?: unknown }).plans
-      return Array.isArray(plans) ? (plans as Array<{ id?: string; price?: number; name?: string }>) : []
+      return Array.isArray(plans) ? (plans as Plan[]) : []
     }
     return []
   } catch {

@@ -26,7 +26,7 @@ export default function OrderOptionsPage() {
     {
       icon: Files,
       title: 'Documentos',
-      subtitle: 'Visualizar documentos da consulta',
+      subtitle: 'Relatório PDF, matrícula e certidões anexas',
       href: `/consultas/${id}/opcoes/documentos`,
     },
     {

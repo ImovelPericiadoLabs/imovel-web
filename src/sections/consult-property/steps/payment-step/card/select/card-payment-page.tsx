@@ -15,6 +15,7 @@ import {
 } from '@/constants/consult-flow-hero-text'
 import { cn } from '@/utils/tailwind'
 import AddressSummaryCard from '@/components/address-summary-card'
+import { IncludedCertificatesPanel } from '@/components/included-certificates/included-certificates-panel'
 import { trackGtmEvent } from '@/utils/analytics/gtm'
 import { formatMoney } from '@/utils/text/text'
 import { usePublicPlanPrice } from '@/hooks/use-public-plan-price'
@@ -103,6 +104,8 @@ export function SavedCardsPage({
         <AddressSummaryCard
           {...addressSummaryData}
         />
+
+        <IncludedCertificatesPanel compact className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm" />
       </div>
 
       <div className="flex flex-col gap-4 relative z-50">

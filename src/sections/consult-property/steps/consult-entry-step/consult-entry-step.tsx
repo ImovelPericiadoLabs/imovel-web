@@ -11,6 +11,8 @@ import { cn } from '@/utils/tailwind'
 import { trackGtmEvent } from '@/utils/analytics/gtm'
 import { formatMoney } from '@/utils/text/text'
 import { usePublicPlanPrice } from '@/hooks/use-public-plan-price'
+import { IncludedCertificatesPanel } from '@/components/included-certificates/included-certificates-panel'
+import { INCLUDED_CERTIFICATES_COUNT } from '@/constants/included-certificates'
 
 export type ConsultEntryChoice = 'address' | 'document' | 'unsure'
 
@@ -77,6 +79,13 @@ export function ConsultEntryStep({ onChoose }: ConsultEntryStepProps) {
         <p className="mx-auto max-w-full break-words text-center text-xs font-semibold leading-snug text-primary tabular-nums md:text-sm">
           Consulta completa · {formatMoney(price)}
         </p>
+        <p className="mx-auto mt-1 max-w-full text-center text-[11px] font-medium text-gray-600 md:text-xs">
+          Inclui análise por IA + {INCLUDED_CERTIFICATES_COUNT} certidões oficiais
+        </p>
+      </div>
+
+      <div className="mb-4 lg:hidden">
+        <IncludedCertificatesPanel compact className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm" />
       </div>
 
       <div className="mx-auto flex w-full flex-col gap-3 lg:grid lg:grid-cols-3 lg:gap-4 lg:items-stretch">

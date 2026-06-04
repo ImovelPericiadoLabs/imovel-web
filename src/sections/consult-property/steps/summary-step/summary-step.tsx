@@ -17,13 +17,11 @@ import Button from '@/components/button'
 import { SummaryItemsList, type SummaryItems } from '@/components/summary-items-list'
 import { trackGtmEvent, buildConsultItem, DEFAULT_CURRENCY } from '@/utils/analytics/gtm'
 import { formatMoney } from '@/utils/text/text'
+import { ANALYSIS_VALUE_BULLETS } from '@/constants/included-certificates'
+import { IncludedCertificatesPanel } from '@/components/included-certificates/included-certificates-panel'
 import { usePublicPlanPrice } from '@/hooks/use-public-plan-price'
 
-const VALUE_BULLETS = [
-  'Leitura assistida por IA da matrícula e dos documentos enviados',
-  'Sinais de risco, pendências e pontos que merecem atenção antes de negociar',
-  'Relatório em linguagem clara para apoiar sua decisão com segurança',
-] as const
+const VALUE_BULLETS = ANALYSIS_VALUE_BULLETS
 
 const DOCUMENT_TYPE_LABELS = {
   agreement: 'Contrato de compra e venda',
@@ -210,6 +208,10 @@ export function SummaryStep({ onNext }: { onNext: () => void }) {
                   </li>
                 ))}
               </ul>
+
+              <div className="border-t border-gray-100 pt-4">
+                <IncludedCertificatesPanel />
+              </div>
             </div>
           </div>
         </div>
