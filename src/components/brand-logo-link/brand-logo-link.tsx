@@ -8,6 +8,7 @@ import {
   BRAND_LOGO_LIGHT_SRC,
   BRAND_LOGO_WIDTH,
 } from '@/constants/brand-logo'
+import { CONSULTAR_IMOVEL_INICIO_HREF } from '@/constants/consult-flow'
 import { cn } from '@/utils/tailwind'
 
 type BrandLogoLinkProps = {
@@ -22,12 +23,14 @@ const logoImgClass =
   'block h-12 w-full object-contain object-center sm:h-[3.5rem] md:h-14 [image-rendering:auto] [-webkit-backface-visibility:hidden] [backface-visibility:hidden]'
 
 export function BrandLogoLink({
-  href = '/consultas',
+  href = CONSULTAR_IMOVEL_INICIO_HREF,
   className,
   priority = false,
   tone = 'on-primary',
 }: BrandLogoLinkProps) {
   const src = tone === 'on-light' ? BRAND_LOGO_DARK_SRC : BRAND_LOGO_LIGHT_SRC
+  const ariaLabel =
+    href === '/consultas' ? 'Ir para minhas consultas' : 'Ir para como quer começar'
 
   return (
     <Link
@@ -36,7 +39,7 @@ export function BrandLogoLink({
         'inline-flex w-[9rem] max-w-[min(100%,12rem)] shrink-0 touch-manipulation sm:w-[9.75rem] md:w-[10.75rem]',
         className,
       )}
-      aria-label="Ir para minhas consultas"
+      aria-label={ariaLabel}
     >
       <Image
         src={src}

@@ -373,7 +373,10 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
             />
 
             <div className="relative flex justify-center">
-              <BrandLogoLink tone="on-primary" />
+              <BrandLogoLink
+                tone="on-primary"
+                href={flow === 'entry' ? '/consultas' : CONSULTAR_IMOVEL_INICIO_HREF}
+              />
             </div>
 
             <TrafficLightModal>
