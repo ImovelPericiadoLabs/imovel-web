@@ -85,8 +85,8 @@ export function SuccessStep({ onNavigateToOrders }: SuccessStepProps) {
             </div>
           </div>
 
-          <div className="mt-8 rounded-2xl border border-gray-100 bg-gray-50/60 p-4">
-            <IncludedCertificatesPanel compact />
+          <div className="mt-8">
+            <IncludedCertificatesPanel />
           </div>
         </div>
       </div>

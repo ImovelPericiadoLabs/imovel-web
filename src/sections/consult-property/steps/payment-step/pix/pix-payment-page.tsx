@@ -26,7 +26,6 @@ import { IncludedCertificatesPanel } from '@/components/included-certificates/in
 
 import { processPayment, getPaymentStatus, type ProcessPaymentResult } from '@/services/payments'
 import { getMe, startAuth } from '@/services/account'
-import { listPlans } from '@/services/orders/orders'
 import { ApiError } from '@/utils/api/errors'
 import { queryKey } from '@/constants/queries'
 import { validations, FormTypes } from './validations'
@@ -48,9 +47,9 @@ function hasParentConsultContext(
   const notary = (notaryManual || registryName).trim()
   return hasDoc || hint.length >= 10 || (reg.length >= 1 && notary.length >= 3)
 }
-import { trackGtmEvent, buildConsultItem, DEFAULT_CURRENCY, CONSULT_PRODUCT_PRICE } from '@/utils/analytics/gtm'
+import { trackGtmEvent, buildConsultItem, DEFAULT_CURRENCY } from '@/utils/analytics/gtm'
 import { formatMoney } from '@/utils/text/text'
-import { usePublicPlanPrice } from '@/hooks/use-public-plan-price'
+import { resolveConsultPrice, type EntryPath } from '@/hooks/use-consult-price'
 
 import { AuthCodePage } from './AuthCodePage/AuthCodePage'
 
@@ -97,8 +96,11 @@ function applyMask(value: string, mask?: MaskType): string {
 
 export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPageProps) {
   const { data: session, status } = useSession()
-  const parentForm = useFormContext()
-  const { price: planPriceFromApi } = usePublicPlanPrice()
+  const parentForm = useFormContext<ConsultFormTypes>()
+
+  const entryPath = parentForm?.watch('entryPath') as EntryPath | undefined
+  const includeCertificates = Boolean(parentForm?.watch('includeCertificates'))
+  const { price: consultPrice } = resolveConsultPrice(entryPath, includeCertificates)
 
   const {
       complement,
@@ -231,7 +233,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
   const creditsForUi = Number(meSnapshot?.credits_balance ?? 0)
   const showCreditsOption =
     status !== 'loading' &&
-    (status !== 'authenticated' || creditsForUi >= planPriceFromApi)
+    (status !== 'authenticated' || creditsForUi >= consultPrice)
 
   const buildPaymentPayload = useCallback(
     (
@@ -240,6 +242,9 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
       whatsappClean: string,
     ) => {
       const hint = String(parentForm?.getValues('addressHint') || '').trim()
+      const payloadEntryPath = parentForm?.getValues('entryPath') as EntryPath | undefined
+      const payloadIncludeCerts = Boolean(parentForm?.getValues('includeCertificates'))
+
       return {
         place_id: finalPlaceId,
         ...(hint.length > 0 ? { address_hint: hint } : {}),
@@ -256,6 +261,8 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
         lot_name: allotment,
         block_number: block,
         lot_number: lot,
+        ...(payloadEntryPath ? { entry_path: payloadEntryPath } : {}),
+        include_certificates: payloadIncludeCerts,
       }
     },
     [parentForm, documentId, complement, registrationNumber, notary, notaryState, notaryCity, allotment, block, lot],
@@ -267,11 +274,9 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
       finalPlaceId: string,
       whatsappClean: string,
     ) => {
-      const [me, plans] = await Promise.all([getMe(), listPlans()])
-      const arr = Array.isArray(plans) ? plans : []
-      const price = typeof arr[0]?.price === 'number' ? arr[0].price : CONSULT_PRODUCT_PRICE
+      const me = await getMe()
       const bal = Number(me?.credits_balance ?? 0)
-      if (bal < price) {
+      if (bal < consultPrice) {
         return false
       }
 
@@ -286,7 +291,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
       )
       return true
     },
-    [buildPaymentPayload],
+    [buildPaymentPayload, consultPrice],
   )
 
   const clearServerError = useCallback(() => {
@@ -324,7 +329,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
         payment_method: 'pix',
         payment_id: payment?.id,
         currency: DEFAULT_CURRENCY,
-        value: planPriceFromApi,
+        value: consultPrice,
       })
       trackGtmEvent('generate_lead', {
         event_category: 'payment',
@@ -333,7 +338,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
         payment_method: 'pix',
         payment_id: payment?.id,
         currency: DEFAULT_CURRENCY,
-        value: planPriceFromApi,
+        value: consultPrice,
       })
     },
   })
@@ -360,8 +365,8 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
             payment_method: 'pix',
             payment_id: paymentId,
             currency: DEFAULT_CURRENCY,
-            value: planPriceFromApi,
-            items: [buildConsultItem(planPriceFromApi)],
+            value: consultPrice,
+            items: [buildConsultItem(consultPrice)],
           })
         }
         onFinish()
@@ -401,8 +406,8 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
       place_id: finalPlaceId || undefined,
       has_document: Boolean(documentId),
       currency: DEFAULT_CURRENCY,
-      value: planPriceFromApi,
-      items: [buildConsultItem(planPriceFromApi)],
+      value: consultPrice,
+      items: [buildConsultItem(consultPrice)],
     })
 
     clearServerError()
@@ -442,8 +447,8 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
         event_description: 'Compra concluída com saldo em créditos.',
         payment_method: 'credits',
         currency: DEFAULT_CURRENCY,
-        value: planPriceFromApi,
-        items: [buildConsultItem(planPriceFromApi)],
+        value: consultPrice,
+        items: [buildConsultItem(consultPrice)],
       })
       onFinish()
     } catch (error) {
@@ -484,7 +489,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
     clearServerError,
     status,
     documentId,
-    planPriceFromApi,
+    consultPrice,
     attemptPayWithCredits,
     onFinish,
     parentForm,
@@ -521,8 +526,8 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
       place_id: finalPlaceId || undefined,
       has_document: Boolean(documentId),
       currency: DEFAULT_CURRENCY,
-      value: planPriceFromApi,
-      items: [buildConsultItem(planPriceFromApi)],
+      value: consultPrice,
+      items: [buildConsultItem(consultPrice)],
     })
 
     clearServerError()
@@ -601,7 +606,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
     generatePix,
     buildPaymentPayload,
     parentForm,
-    planPriceFromApi,
+    consultPrice,
     documentId,
   ])
 
@@ -639,8 +644,8 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
             event_description: 'Compra concluída com saldo em créditos.',
             payment_method: 'credits',
             currency: DEFAULT_CURRENCY,
-            value: planPriceFromApi,
-            items: [buildConsultItem(planPriceFromApi)],
+            value: consultPrice,
+            items: [buildConsultItem(consultPrice)],
           })
           onFinish()
           return
@@ -679,7 +684,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
     buildPaymentPayload,
     parentForm,
     attemptPayWithCredits,
-    planPriceFromApi,
+    consultPrice,
     onFinish,
   ])
 
@@ -741,59 +746,59 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
       <div className="flex flex-col relative px-4 mt-6">
         {step === 'details' && (
           <BottomSheet isOpen={true} onClose={handleCloseBottomSheet} className="bg-white">
-            <div className="p-6 pb-12 max-h-[85vh] overflow-y-auto flex flex-col gap-6">
+            <div className="px-5 pb-6 flex flex-col gap-3.5">
 
-              <div className="flex flex-row gap-3 items-center">
-                <div className="p-2 bg-primary/5 rounded-xl">
-                  <PixIcon className="size-7 text-primary" />
+              <div className="flex flex-row gap-2.5 items-center">
+                <div className="p-1.5 bg-primary/5 rounded-xl shrink-0">
+                  <PixIcon className="size-6 text-primary" />
                 </div>
-                <div className="flex flex-col gap-0.5">
-                  <TextTitle className="text-lg font-semibold text-dark leading-tight">
+                <div className="flex flex-col gap-0.5 min-w-0">
+                  <TextTitle className="text-base font-semibold text-dark leading-tight">
                     Último passo para sua consulta do imóvel
                   </TextTitle>
-                  <TextSubtitle className="text-sm text-gray-500 leading-snug">
+                  <TextSubtitle className="text-[13px] text-gray-500 leading-snug">
                     {showCreditsOption
                       ? status === 'authenticated'
-                        ? `Preencha os dados e escolha pagar com saldo ou PIX (${formatMoney(planPriceFromApi)})`
+                        ? `Preencha os dados e escolha pagar com saldo ou PIX (${formatMoney(consultPrice)})`
                         : 'Preencha os dados: você pode usar o saldo da sua conta após confirmar o e-mail ou pagar com PIX'
-                      : `Preencha seus dados para gerar o PIX de ${formatMoney(planPriceFromApi)}`}
+                      : `Preencha seus dados para gerar o PIX de ${formatMoney(consultPrice)}`}
                   </TextSubtitle>
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-gray-100 bg-gray-50/90 px-3.5 py-3 flex flex-col gap-2.5">
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+              <div className="rounded-xl border border-gray-100 bg-gray-50/90 px-3 py-2.5 flex flex-col gap-1.5">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">
                   Antes de preencher
                 </p>
-                <ul className="flex flex-col gap-2 text-xs text-gray-600 leading-snug">
+                <ul className="flex flex-col gap-1.5 text-[11px] text-gray-600 leading-snug">
                   <li className="flex gap-2 items-start">
-                    <ShieldCheck className="size-4 shrink-0 text-primary mt-0.5" aria-hidden />
+                    <ShieldCheck className="size-3.5 shrink-0 text-primary mt-0.5" aria-hidden />
                     <span>PIX processado por parceiro de pagamentos; a confirmação costuma levar poucos minutos.</span>
                   </li>
                   <li className="flex gap-2 items-start">
-                    <Lock className="size-4 shrink-0 text-primary mt-0.5" aria-hidden />
+                    <Lock className="size-3.5 shrink-0 text-primary mt-0.5" aria-hidden />
                     <span>Seus dados são usados para esta consulta e contato sobre o pedido, conforme a política de privacidade.</span>
                   </li>
                   <li className="flex gap-2 items-start">
-                    <MessageCircle className="size-4 shrink-0 text-primary mt-0.5" aria-hidden />
+                    <MessageCircle className="size-3.5 shrink-0 text-primary mt-0.5" aria-hidden />
                     <span>WhatsApp informado para avisos do pedido — não enviamos spam.</span>
                   </li>
                 </ul>
               </div>
 
-              <IncludedCertificatesPanel compact />
+              <IncludedCertificatesPanel summaryOnly included={includeCertificates} />
 
-              <form onSubmit={(e) => e.preventDefault()} className="flex flex-col gap-4">
+              <form onSubmit={(e) => e.preventDefault()} className="flex flex-col gap-3">
                 {!!serverError && <Alert variant="error" message={serverError} />}
 
 
-                <div className="flex flex-col gap-2">
-                  <label htmlFor="name" className="text-sm font-semibold text-gray-700 ml-1">
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="name" className="text-xs font-semibold text-gray-700 ml-1">
                     Nome completo
                   </label>
                   <div className="relative group">
-                    <div className="absolute left-4 top-4 text-gray-400 group-focus-within:text-primary transition-colors pointer-events-none">
-                      <User className="size-5" />
+                    <div className="absolute left-3.5 top-3 text-gray-400 group-focus-within:text-primary transition-colors pointer-events-none">
+                      <User className="size-4" />
                     </div>
                     <input
                       id="name"
@@ -803,7 +808,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
                       onKeyDown={clearServerError}
                       className={`
                         w-full 
-                        pl-12 pr-4 py-4
+                        pl-10 pr-3 py-3
                         bg-white 
                         border ${errors.name ? 'border-red-500' : 'border-gray-200'}
                         rounded-xl
@@ -821,13 +826,13 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
                   )}
                 </div>
 
-                <div className="flex flex-col gap-2">
-                  <label htmlFor="document" className="text-sm font-semibold text-gray-700 ml-1">
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="document" className="text-xs font-semibold text-gray-700 ml-1">
                     CPF (somente números)
                   </label>
                   <div className="relative group">
-                    <div className="absolute left-4 top-4 text-gray-400 group-focus-within:text-primary transition-colors pointer-events-none">
-                      <IdCard className="size-5" />
+                    <div className="absolute left-3.5 top-3 text-gray-400 group-focus-within:text-primary transition-colors pointer-events-none">
+                      <IdCard className="size-4" />
                     </div>
                     <input
                       id="document"
@@ -842,7 +847,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
                       onKeyDown={clearServerError}
                       className={`
                         w-full 
-                        pl-12 pr-4 py-4
+                        pl-10 pr-3 py-3
                         bg-white 
                         border ${errors.document ? 'border-red-500' : 'border-gray-200'}
                         rounded-xl
@@ -863,13 +868,13 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
                 {status === 'authenticated' ? (
                   <input type="hidden" {...emailField} />
                 ) : (
-                  <div className="flex flex-col gap-2">
-                  <label htmlFor="email" className="text-sm font-semibold text-gray-700 ml-1">
+                  <div className="flex flex-col gap-1.5">
+                  <label htmlFor="email" className="text-xs font-semibold text-gray-700 ml-1">
                     E-mail (para receber atualizações)
                   </label>
                     <div className="relative group">
-                      <div className="absolute left-4 top-4 text-gray-400 group-focus-within:text-primary transition-colors pointer-events-none">
-                        <Mail className="size-5" />
+                      <div className="absolute left-3.5 top-3 text-gray-400 group-focus-within:text-primary transition-colors pointer-events-none">
+                        <Mail className="size-4" />
                       </div>
                       <input
                         id="email"
@@ -879,7 +884,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
                         onKeyDown={clearServerError}
                         className={`
                           w-full 
-                          pl-12 pr-4 py-4
+                          pl-10 pr-3 py-3
                           bg-white 
                           border ${errors.email ? 'border-red-500' : 'border-gray-200'}
                           rounded-xl
@@ -898,13 +903,13 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
                   </div>
                 )}
 
-                <div className="flex flex-col gap-2">
-                  <label htmlFor="whatsapp" className="text-sm font-semibold text-gray-700 ml-1">
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="whatsapp" className="text-xs font-semibold text-gray-700 ml-1">
                     WhatsApp com DDD (para receber atualizações)
                   </label>
                   <div className="relative group">
-                    <div className="absolute left-4 top-4 text-gray-400 group-focus-within:text-primary transition-colors pointer-events-none">
-                      <Phone className="size-5" />
+                    <div className="absolute left-3.5 top-3 text-gray-400 group-focus-within:text-primary transition-colors pointer-events-none">
+                      <Phone className="size-4" />
                     </div>
                     <input
                       id="whatsapp"
@@ -919,7 +924,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
                       onKeyDown={clearServerError}
                       className={`
                         w-full 
-                        pl-12 pr-4 py-4
+                        pl-10 pr-3 py-3
                         bg-white 
                         border ${errors.whatsapp ? 'border-red-500' : 'border-gray-200'}
                         rounded-xl
@@ -937,15 +942,15 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
                   )}
                 </div>
 
-                <div className="flex flex-col gap-3 pt-2">
+                <div className="flex flex-col gap-2 pt-1">
                   {showCreditsOption && (
                     <Button
                       type="button"
                       variant="outline"
                       onClick={handlePayWithCreditsClick}
                       disabled={isLoading}
-                      className="rounded-xl h-12"
-                      icon={<Wallet className="size-5" />}
+                      className="rounded-xl h-11"
+                      icon={<Wallet className="size-4" />}
                     >
                       {isLoading
                         ? 'Processando...'
@@ -958,8 +963,8 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
                     type="button"
                     onClick={handleDetailsSubmit}
                     disabled={isLoading}
-                    className="rounded-xl h-12"
-                    icon={<PixIcon className="size-5" />}
+                    className="rounded-xl h-11"
+                    icon={<PixIcon className="size-4" />}
                   >
                     {isLoading ? 'Processando...' : 'Pagar com PIX'}
                   </Button>
@@ -981,7 +986,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
             <div className="relative z-10 mb-8 flex w-full flex-col gap-5 px-1 pt-4 text-center">
               <p className={consultFlowHeroSubtitleClass}>
                 Realize o pagamento de{' '}
-                <span className={consultFlowHeroAccentClass}>{formatMoney(planPriceFromApi)}</span> para iniciar a
+                <span className={consultFlowHeroAccentClass}>{formatMoney(consultPrice)}</span> para iniciar a
                 consulta do imóvel.
               </p>
 

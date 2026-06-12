@@ -39,7 +39,7 @@ export type Registry = {
 }
 
 export type RegistryApiResponse = {
-  registry?: Registry
+  registry?: Registry | null
 }
 
 type ListAddressRequest = {
@@ -191,10 +191,17 @@ export async function listRegistry(address: string) {
     with_registry: true,
   }
 
-  const response = (await api.post(
-    endpoint.addresses,
-    data
-  )) as RegistryApiResponse
+  try {
+    const response = (await api.post(
+      endpoint.addresses,
+      data
+    )) as RegistryApiResponse
 
-  return response?.registry
+    return response?.registry ?? undefined
+  } catch (error: unknown) {
+    if (error instanceof Error && error.message === 'Erro 404') {
+      return undefined
+    }
+    throw error
+  }
 }

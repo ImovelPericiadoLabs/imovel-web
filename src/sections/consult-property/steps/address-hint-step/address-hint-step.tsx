@@ -1,12 +1,9 @@
 'use client'
 
 import { useFormContext } from 'react-hook-form'
-import TextTitle from '@/components/text-title'
-import TextSubtitle from '@/components/text-subtitle'
+import { HeroDescription, HeroTitle } from '@/components/ui/typography'
 import {
   consultFlowHeroBlockClass,
-  consultFlowHeroSubtitleClass,
-  consultFlowHeroTitleClass,
   consultFlowHeroTitleSizeLargeClass,
 } from '@/constants/consult-flow-hero-text'
 import { cn } from '@/utils/tailwind'
@@ -31,14 +28,18 @@ export function AddressHintStep({ onNext, onBack, afterDocument }: AddressHintSt
   return (
     <div className="relative flex-1 px-4 pb-28 md:px-6 lg:pb-16 xl:px-8">
       <div className={consultFlowHeroBlockClass}>
-        <TextTitle className={cn(consultFlowHeroTitleClass, consultFlowHeroTitleSizeLargeClass)}>
-          {afterDocument ? 'Onde fica o imóvel?' : 'O que você sabe sobre o local?'}
-        </TextTitle>
-        <TextSubtitle className={consultFlowHeroSubtitleClass}>
+        <HeroTitle
+          variant="large"
+          surface="dark"
+          className={cn(consultFlowHeroTitleSizeLargeClass)}
+        >
+          {afterDocument ? 'Localização do imóvel' : 'Referência do imóvel'}
+        </HeroTitle>
+        <HeroDescription surface="dark" kind="subtitle" className="text-white/85">
           {afterDocument
-            ? 'Mesmo com o documento, um endereço ou referência (bairro, cidade, condomínio) ajuda a geolocalizar e agilizar o pedido. Nossa IA também lê o arquivo quando possível.'
-            : 'Escreva bairro, cidade, condomínio ou trechos do endereço. Se preferir, pule e busque pelo mapa na próxima tela.'}
-        </TextSubtitle>
+            ? 'Informe endereço, bairro ou município para identificar o imóvel no pedido.'
+            : 'Indique o que souber sobre o endereço. Ou busque no mapa.'}
+        </HeroDescription>
       </div>
 
       <SelectedAddressCard
@@ -47,10 +48,10 @@ export function AddressHintStep({ onNext, onBack, afterDocument }: AddressHintSt
       />
 
       <label className="flex flex-col gap-1 mt-2">
-        <span className="text-xs font-medium text-gray-600">Descrição do local (opcional)</span>
+        <span className="text-xs font-medium text-gray-600">Referência de localização (opcional)</span>
         <textarea
           className="w-full min-h-[100px] border border-gray-200 rounded-xl px-3 py-2 text-sm resize-y"
-          placeholder="Ex.: Condomínio X, Florianópolis / próximo à praça central / Rua das Flores sem número"
+          placeholder="Ex.: Rua das Flores, bairro Centro, Florianópolis/SC"
           {...register('addressHint')}
         />
         {hintErr ? <span className="text-xs text-red-600">{hintErr}</span> : null}
@@ -85,7 +86,7 @@ export function AddressHintStep({ onNext, onBack, afterDocument }: AddressHintSt
             onNext()
           }}
         >
-          Pular — prefiro buscar no mapa
+          Pular — buscar no mapa
         </Button>
         <Button type="button" variant="outline" className="rounded-xl h-11 w-full" onClick={onBack}>
           Voltar

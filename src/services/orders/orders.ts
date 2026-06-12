@@ -39,6 +39,7 @@ export type Plan = {
   name?: string
   description?: string
   price?: number
+  price_with_certificates?: number
   features?: PlanFeature[]
 }
 

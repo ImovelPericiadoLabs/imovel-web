@@ -15,7 +15,6 @@ import {
   SummaryStep,
   AddressComplementStep,
   SuccessStep,
-  type ConsultEntryChoice,
 } from '@/sections/consult-property/steps'
 import { PaymentConfirmationStep } from '@/sections/consult-property/steps/payment-step/payment-confirmation-step/payment-confirmation-step'
 import { SavedCardsPage } from '@/sections/consult-property/steps/payment-step/card/select'
@@ -60,6 +59,8 @@ const CONSULT_PROPERTY_FORM_DEFAULTS: FormTypes = {
   notaryName: '',
   notaryState: '',
   notaryCity: '',
+  entryPath: undefined,
+  includeCertificates: false,
 }
 
 type FlowState =
@@ -76,9 +77,23 @@ type FlowState =
   | 'payment-confirm'
   | 'finished'
 
+function releaseFocusWithin(node: HTMLElement | null) {
+  const active = document.activeElement
+  if (active instanceof HTMLElement && node?.contains(active)) {
+    active.blur()
+  }
+}
+
 const Activity = memo(function Activity({ isActive, children }: { isActive: boolean; children: ReactNode }) {
+  const panelRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (isActive) return
+    releaseFocusWithin(panelRef.current)
+  }, [isActive])
+
   return (
-    <div aria-hidden={!isActive} style={{ display: isActive ? 'block' : 'none' }}>
+    <div ref={panelRef} hidden={!isActive} inert={!isActive || undefined}>
       {children}
     </div>
   )
@@ -101,8 +116,8 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
   const router = useRouter()
   const searchParams = useSearchParams()
   const [flow, setFlow] = useState<FlowState>('entry')
+  const [navStackDepth, setNavStackDepth] = useState(0)
   const stack = useRef<FlowState[]>([])
-  const entryPathRef = useRef<ConsultEntryChoice | null>(null)
   const hasTrackedFlowStart = useRef(false)
   const [isInitialLoading, setIsInitialLoading] = useState(() => {
     if (typeof window === 'undefined') return true
@@ -115,7 +130,8 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
     shouldUnregister: false,
     mode: 'onChange',
   })
-  const { reset: resetConsultForm } = methods
+  const { reset: resetConsultForm, watch } = methods
+  const entryPath = watch('entryPath')
 
   const addressStepRef = useRef<{ focus: () => boolean }>(null)
   const addressComplementRef = useRef<{ handleBack: () => void }>(null)
@@ -144,7 +160,7 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
     if (searchParams.get(CONSULT_FLUXO_INICIO_QUERY) !== '1') return
 
     stack.current = []
-    entryPathRef.current = null
+    setNavStackDepth(0)
     hasTrackedFlowStart.current = false
     setFlow('entry')
     resetConsultForm(CONSULT_PROPERTY_FORM_DEFAULTS)
@@ -161,7 +177,7 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
     if (!startAtEntry) return
 
     stack.current = []
-    entryPathRef.current = null
+    setNavStackDepth(0)
     hasTrackedFlowStart.current = false
     setFlow('entry')
     resetConsultForm(CONSULT_PROPERTY_FORM_DEFAULTS)
@@ -240,9 +256,12 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
   }, [isInitialLoading])
 
   const go = useCallback((next: FlowState) => {
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur()
+    }
     stack.current.push(flow)
+    setNavStackDepth(stack.current.length)
     setFlow(next)
-    // Usar scroll imediato em vez de smooth para evitar atrasos na percepção de troca de página
     scrollConsultFlowToTop()
   }, [flow])
 
@@ -287,6 +306,10 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
       }
 
       setFlow(previous)
+      setNavStackDepth(stack.current.length)
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur()
+      }
       scrollConsultFlowToTop()
     }
   }, [flow, router, methods])
@@ -367,7 +390,7 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
             <ChevronLeft
               onClick={back}
               className={`size-7 transition-opacity text-white ${
-                flow === 'address' && stack.current.length === 0 ? 'opacity-0 pointer-events-none' : 'cursor-pointer'
+                flow === 'address' && navStackDepth === 0 ? 'opacity-0 pointer-events-none' : 'cursor-pointer'
               }`}
               role="button"
             />
@@ -394,10 +417,13 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
           <Activity isActive={flow === 'entry'}>
             <ConsultEntryStep
               onChoose={(choice) => {
-                entryPathRef.current = choice
                 if (choice === 'address') {
+                  methods.setValue('entryPath', 'address', { shouldValidate: false })
+                  methods.setValue('includeCertificates', false, { shouldValidate: false })
                   go('address')
                 } else if (choice === 'document') {
+                  methods.setValue('entryPath', 'document', { shouldValidate: false })
+                  methods.setValue('includeCertificates', true, { shouldValidate: false })
                   methods.setValue('hasDocument', true, { shouldValidate: true })
                   methods.setValue('address', '', { shouldValidate: false })
                   methods.setValue('addressHint', '', { shouldValidate: false })
@@ -405,6 +431,8 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
                   methods.setValue('registry', null, { shouldValidate: false })
                   go('doc-type')
                 } else {
+                  methods.setValue('entryPath', 'registry', { shouldValidate: false })
+                  methods.setValue('includeCertificates', true, { shouldValidate: false })
                   methods.setValue('registrationNumber', '', { shouldValidate: false })
                   methods.setValue('notaryName', '', { shouldValidate: false })
                   methods.setValue('unknownRegistration', undefined, { shouldValidate: false })
@@ -420,11 +448,10 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
 
           <Activity isActive={flow === 'address-hint'}>
             <AddressHintStep
-              afterDocument={entryPathRef.current === 'document'}
+              afterDocument={entryPath === 'document'}
               onBack={back}
               onNext={() => {
-                const ep = entryPathRef.current
-                if (ep === 'document') {
+                if (entryPath === 'document') {
                   go('address-complement')
                 } else {
                   go('address')
@@ -441,7 +468,7 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
             <AddressComplementStep 
               ref={addressComplementRef}
               onNext={() => {
-                if (entryPathRef.current === 'document') {
+                if (entryPath === 'document') {
                   go('summary')
                 } else {
                   go('doc-confirmation')
@@ -463,9 +490,9 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
 
           <Activity isActive={flow === 'doc-type'}>
             <DocumentTypeStep
-              showAddressCard={entryPathRef.current !== 'document'}
+              showAddressCard={entryPath !== 'document'}
               onNext={() => {
-                if (entryPathRef.current === 'document') {
+                if (entryPath === 'document') {
                   go('address-hint')
                 } else {
                   go('summary')

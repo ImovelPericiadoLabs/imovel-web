@@ -105,7 +105,7 @@ export function SavedCardsPage({
           {...addressSummaryData}
         />
 
-        <IncludedCertificatesPanel compact className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm" />
+        <IncludedCertificatesPanel className="rounded-2xl border border-gray-100 bg-white shadow-sm" />
       </div>
 
       <div className="flex flex-col gap-4 relative z-50">

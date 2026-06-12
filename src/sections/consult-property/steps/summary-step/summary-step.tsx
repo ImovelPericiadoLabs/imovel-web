@@ -14,12 +14,14 @@ import {
 } from '@/constants/consult-flow-hero-text'
 import { cn } from '@/utils/tailwind'
 import Button from '@/components/button'
+import { Switch } from '@/components/switch/switch'
 import { SummaryItemsList, type SummaryItems } from '@/components/summary-items-list'
-import { trackGtmEvent, buildConsultItem, DEFAULT_CURRENCY } from '@/utils/analytics/gtm'
+import { trackGtmEvent, buildConsultItem, DEFAULT_CURRENCY, CERTIFICATES_UPSELL_PRICE } from '@/utils/analytics/gtm'
 import { formatMoney } from '@/utils/text/text'
 import { ANALYSIS_VALUE_BULLETS } from '@/constants/included-certificates'
 import { IncludedCertificatesPanel } from '@/components/included-certificates/included-certificates-panel'
-import { usePublicPlanPrice } from '@/hooks/use-public-plan-price'
+import { resolveConsultPrice, type EntryPath } from '@/hooks/use-consult-price'
+import type { FormTypes } from '@/sections/consult-property/validations'
 
 const VALUE_BULLETS = ANALYSIS_VALUE_BULLETS
 
@@ -30,9 +32,13 @@ const DOCUMENT_TYPE_LABELS = {
 } as const
 
 export function SummaryStep({ onNext }: { onNext: () => void }) {
-  const { watch } = useFormContext()
+  const { watch, setValue } = useFormContext<FormTypes>()
   const values = watch()
-  const { price: consultPrice } = usePublicPlanPrice()
+
+  const entryPath = values.entryPath as EntryPath | undefined
+  const includeCertificates = Boolean(values.includeCertificates)
+  const { price: consultPrice } = resolveConsultPrice(entryPath, includeCertificates)
+  const showCertificatesToggle = entryPath === 'address'
 
   useEffect(() => {
     unlockPageScroll()
@@ -209,8 +215,28 @@ export function SummaryStep({ onNext }: { onNext: () => void }) {
                 ))}
               </ul>
 
+              {showCertificatesToggle && (
+                <div className="flex items-center justify-between gap-3 rounded-xl border border-gray-100 bg-gray-50/80 px-4 py-3">
+                  <div className="min-w-0 flex flex-col gap-0.5">
+                    <p className="text-[13px] font-semibold text-gray-900">
+                      Incluir certidões oficiais
+                    </p>
+                    <p className="text-[12px] text-gray-600">
+                      +{formatMoney(CERTIFICATES_UPSELL_PRICE)} — emitidas após a análise
+                    </p>
+                  </div>
+                  <Switch
+                    checked={includeCertificates}
+                    onCheckedChange={(checked) => {
+                      setValue('includeCertificates', checked, { shouldValidate: false })
+                    }}
+                    aria-label="Incluir certidões oficiais"
+                  />
+                </div>
+              )}
+
               <div className="border-t border-gray-100 pt-4">
-                <IncludedCertificatesPanel />
+                <IncludedCertificatesPanel embedded included={includeCertificates} />
               </div>
             </div>
           </div>
@@ -230,6 +256,8 @@ export function SummaryStep({ onNext }: { onNext: () => void }) {
               value: consultPrice,
               items: [buildConsultItem(consultPrice)],
               checkout_step: 'summary',
+              include_certificates: includeCertificates,
+              entry_path: entryPath,
             })
             trackGtmEvent('summary_continue', {
               event_category: 'summary',
@@ -243,6 +271,8 @@ export function SummaryStep({ onNext }: { onNext: () => void }) {
               has_lot: Boolean(values.lot),
               has_document: Boolean(values.document?.id),
               document_type: values.documentType,
+              include_certificates: includeCertificates,
+              entry_path: entryPath,
             })
             onNext()
           }}

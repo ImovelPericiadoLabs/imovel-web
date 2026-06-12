@@ -242,7 +242,7 @@ export function DocumentTypeStep({ onNext, showAddressCard = true }: DocumentTyp
             Qual documento você tem?
           </HeroTitle>
           <HeroDescription surface={showAddressCard ? 'light' : 'dark'}>
-            Selecione uma das opções abaixo e envie o arquivo
+            Selecione o tipo e envie o arquivo.
           </HeroDescription>
         </div>
 

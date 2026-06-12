@@ -5,10 +5,6 @@ import { SummaryStep } from './summary-step'
 
 const mockOnNext = vi.fn()
 
-vi.mock('@/hooks/use-public-plan-price', () => ({
-  usePublicPlanPrice: () => ({ price: 59, isLoading: false }),
-}))
-
 vi.mock('@/utils/analytics/gtm', () => ({
   trackGtmEvent: vi.fn(),
   buildConsultItem: (v: number) => ({ item_id: 'x', price: v, quantity: 1 }),
@@ -38,7 +34,13 @@ vi.mock('@/components/button', () => ({
   ),
 }))
 
-function SummaryHarness() {
+function SummaryHarness({
+  entryPath,
+  includeCertificates = false,
+}: {
+  entryPath?: 'address' | 'document' | 'registry'
+  includeCertificates?: boolean
+} = {}) {
   const methods = useForm({
     defaultValues: {
       address: 'Rua Teste, 123',
@@ -49,6 +51,8 @@ function SummaryHarness() {
       allotment: '',
       block: '',
       lot: '',
+      entryPath,
+      includeCertificates,
     },
   })
   return (
@@ -78,12 +82,20 @@ describe('SummaryStep', () => {
   })
 
   it('exibe preço formatado e lista de benefícios', () => {
-    render(<SummaryHarness />)
+    render(<SummaryHarness entryPath="document" includeCertificates />)
     expect(screen.getByText('R$ 59,00')).toBeInTheDocument()
     expect(screen.getByText(/análise objetiva do imóvel/i)).toBeInTheDocument()
     expect(screen.getByText(/Leitura assistida por IA/i)).toBeInTheDocument()
     expect(screen.getByText(/certidões oficiais incluídas/i)).toBeInTheDocument()
+    expect(screen.queryByText('CND Federal')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /certidões oficiais incluídas/i }))
     expect(screen.getByText('CND Federal')).toBeInTheDocument()
+  })
+
+  it('mostra toggle de certidões no fluxo por endereço', () => {
+    render(<SummaryHarness entryPath="address" includeCertificates={false} />)
+    expect(screen.getByRole('switch', { name: /incluir certidões oficiais/i })).toBeInTheDocument()
+    expect(screen.getByText(/certidões oficiais não incluídas/i)).toBeInTheDocument()
   })
 
   it('chama onNext ao continuar', () => {

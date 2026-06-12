@@ -114,7 +114,7 @@ export const AddressStep = forwardRef<{ focus: () => boolean }, { onNext: () => 
   const { mutateAsync: listRegistryMutate, isPending: isLoadingListRegistry } = useMutation({
     mutationFn: listRegistry,
     onSuccess(data) {
-      setValue('registry', data)
+      setValue('registry', data ?? null)
       trackGtmEvent('address_registry_loaded', {
         event_category: 'address',
         event_label: 'registry_loaded',
@@ -122,6 +122,9 @@ export const AddressStep = forwardRef<{ focus: () => boolean }, { onNext: () => 
         registry_name: data?.name,
         has_registry: Boolean(data?.name),
       })
+    },
+    onError() {
+      setValue('registry', null)
     },
   })
 
@@ -170,7 +173,7 @@ export const AddressStep = forwardRef<{ focus: () => boolean }, { onNext: () => 
       address_has_number: payload.place_response?.address_has_number ?? Boolean(payload.addressNumber),
     })
 
-    await listRegistryMutate(value)
+    await listRegistryMutate(value).catch(() => undefined)
     onNext()
   }, [setValue, listRegistryMutate, onNext])
 
@@ -223,7 +226,7 @@ export const AddressStep = forwardRef<{ focus: () => boolean }, { onNext: () => 
             Digite o endereço do imóvel para começar
           </TextTitle>
           <TextSubtitle className={consultFlowHeroSubtitleClass}>
-            Escreva rua, número e bairro para avançar com segurança
+            Informe logradouro, número e bairro.
           </TextSubtitle>
         </div>
 

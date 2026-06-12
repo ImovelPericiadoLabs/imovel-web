@@ -33,7 +33,8 @@ vi.mock('next/font/google', () => ({
   Noto_Sans: vi.fn(() => ({ variable: '--font-noto-sans' })),
 }))
 
-vi.mock('lucide-react', () => {
+vi.mock('lucide-react', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('lucide-react')>()
   const cache = new Map<string, React.FC<Record<string, unknown>>>()
 
   const makeIcon = (name: string): React.FC<Record<string, unknown>> => {
@@ -50,19 +51,24 @@ vi.mock('lucide-react', () => {
     return cache.get(name)!
   }
 
-  return new Proxy(
-    { __esModule: true as const },
-    {
-      get(_target, prop) {
-        if (prop === '__esModule') return true
-        if (typeof prop === 'symbol') return undefined
-        return makeIcon(String(prop))
-      },
-      has() {
-        return true
-      },
+  const mocked: Record<string, unknown> = { __esModule: true as const }
+
+  for (const key of Object.keys(actual)) {
+    if (key === 'default' || key === '__esModule') continue
+    mocked[key] = makeIcon(key)
+  }
+
+  return new Proxy(mocked, {
+    get(target, prop) {
+      if (prop === '__esModule') return true
+      if (typeof prop === 'symbol') return undefined
+      const name = String(prop)
+      if (name in target) return target[name]
+      const icon = makeIcon(name)
+      target[name] = icon
+      return icon
     },
-  )
+  })
 })
 
 afterEach(() => {

@@ -71,10 +71,7 @@ vi.mock('next/image', () => ({ default: (props: any) => <img {...props} /> }))
 vi.mock('@/services/payments', () => ({ processPayment: vi.fn(), getPaymentStatus: vi.fn() }))
 vi.mock('@/services/account', () => ({ startAuth: vi.fn(), getMe: vi.fn() }))
 vi.mock('@/services/orders/orders', () => ({ listPlans: vi.fn().mockResolvedValue([{ price: 59 }]) }))
-vi.mock('@/utils/text/text', () => ({ formatMoney: (v: number) => `R$ ${v},00` }))
-vi.mock('@/hooks/use-public-plan-price', () => ({
-  usePublicPlanPrice: () => ({ price: 59, isLoading: false }),
-}))
+vi.mock('@/utils/text/text', () => ({ formatMoney: (v: number) => `R$ ${v.toFixed(2).replace('.', ',')}` }))
 
 import { PixPaymentPage } from './pix-payment-page'
 import { useSession, signOut } from 'next-auth/react'
@@ -107,9 +104,15 @@ describe('PixPaymentPage', () => {
       allotment: '',
       block: '',
       lot: '',
+      entryPath: 'document',
+      includeCertificates: true,
     }
     vi.mocked(useFormContext).mockReturnValue({
       getValues: (field?: string) => {
+        if (field === undefined) return parentValues as never
+        return parentValues[field] as never
+      },
+      watch: (field?: string) => {
         if (field === undefined) return parentValues as never
         return parentValues[field] as never
       },

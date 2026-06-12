@@ -43,6 +43,8 @@ export const validations = z
       .nullable(),
     documentPreview: z.any().optional(),
     paymentMethod: z.enum(['pix', 'credit_card', 'debit_card', 'boleto']),
+    entryPath: z.enum(['address', 'document', 'registry']).optional(),
+    includeCertificates: z.boolean().default(false),
   })
   .refine(
     (data) => {
