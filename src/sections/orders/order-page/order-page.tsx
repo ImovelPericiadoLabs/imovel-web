@@ -37,30 +37,30 @@ export default function OrderPage() {
         {order && (
           <section
             className={cn(
-              'flex flex-col gap-3 p-4 rounded-xl border transition-colors',
+              'flex flex-col gap-2.5 p-3.5 rounded-xl border transition-colors',
               isAnalysisComplete
                 ? 'border-primary/30 bg-primary/[0.04] shadow-sm'
                 : 'border-dashed border-gray-200 bg-gray-50/90',
             )}
             aria-label="Acesso a documentos e dados da consulta"
           >
-            <div className="flex items-start gap-3">
+            <div className="flex items-start gap-2.5">
               {isAnalysisComplete ? (
                 <Files
-                  className="size-6 text-primary shrink-0 mt-0.5"
+                  className="size-5 text-primary shrink-0 mt-0.5"
                   aria-hidden
                 />
               ) : (
                 <Lock
-                  className="size-6 text-gray-400 shrink-0 mt-0.5"
+                  className="size-5 text-gray-400 shrink-0 mt-0.5"
                   aria-hidden
                 />
               )}
-              <div className="flex flex-col gap-1 min-w-0">
-                <p className="text-sm font-semibold text-gray-900 leading-[130%]">
+              <div className="flex flex-col gap-0.5 min-w-0">
+                <p className="text-sm font-semibold text-gray-900 leading-snug">
                   Dados da consulta
                 </p>
-                <p className="text-xs text-gray-500 leading-[140%]">
+                <p className="text-xs text-gray-500 leading-snug">
                   {isAnalysisComplete
                     ? 'Acesse resultado completo, documentos e proprietários.'
                     : 'Disponível quando a análise for concluída. Acompanhe o andamento acima.'}
@@ -71,8 +71,15 @@ export default function OrderPage() {
               <Button
                 href={`/consultas/${orderId}/opcoes`}
                 variant="primary"
-                className="!mt-1"
-                icon={<Files className="size-5" />}
+                className={cn(
+                  '!mt-0 !w-auto !self-start',
+                  '!text-sm !font-medium !leading-none tracking-tight',
+                  '!px-3 !py-2 !rounded-lg',
+                  '!shadow-none hover:brightness-105',
+                  'active:!translate-y-0 active:!shadow-none',
+                  '[&>span]:!mr-1.5',
+                )}
+                icon={<Files className="size-3.5" aria-hidden />}
               >
                 Abrir documentos e dados
               </Button>

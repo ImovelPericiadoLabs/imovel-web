@@ -174,25 +174,26 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
   const emailField = register('email')
   const whatsappField = register('whatsapp')
 
-  // Unificamos os métodos de pegar valores para usar o formulário pai nos campos de endereço
-  const getValues = useCallback((field?: string) => {
-    const parentFields = [
-      'address',
-      'addressHint',
-      'placeId',
-      'registrationNumber',
-      'notaryName',
-      'registry',
-      'allotment',
-      'block',
-      'lot',
-      'complement',
-    ]
-    if (field && parentFields.includes(field)) {
-      return parentForm?.getValues(field as keyof FormTypes)
-    }
-    return getLocalValues(field as keyof FormTypes)
-  }, [parentForm, getLocalValues])
+  const parentFields = [
+    'address',
+    'addressHint',
+    'placeId',
+    'registrationNumber',
+    'notaryName',
+    'registry',
+    'allotment',
+    'block',
+    'lot',
+    'complement',
+  ] as const satisfies readonly (keyof ConsultFormTypes)[]
+
+  type ParentField = (typeof parentFields)[number]
+
+  const getConsultField = useCallback(
+    <K extends ParentField>(field: K): ConsultFormTypes[K] | undefined =>
+      parentForm?.getValues(field),
+    [parentForm],
+  )
 
   useEffect(() => {
     const savedData = localStorage.getItem(STORAGE_KEY)
@@ -381,7 +382,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
     const isValid = await trigger(['name', 'document', 'email', 'whatsapp'])
     if (!isValid) return
 
-    const formData = getValues()
+    const formData = getLocalValues()
 
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
       name: formData.name,
@@ -484,7 +485,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
     }
   }, [
     trigger,
-    getValues,
+    getLocalValues,
     placeId,
     clearServerError,
     status,
@@ -501,7 +502,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
 
     if (!isValid) return
 
-    const formData = getValues()
+    const formData = getLocalValues()
 
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
       name: formData.name,
@@ -599,7 +600,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
     }
   }, [
     trigger,
-    getValues,
+    getLocalValues,
     placeId,
     clearServerError,
     status,
@@ -619,7 +620,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
       event_description: 'Código de autenticação enviado com sucesso.',
     })
 
-    const formData = getValues()
+    const formData = getLocalValues()
     const finalPlaceId = String(formData.placeId || placeId || '').trim()
     if (!hasParentConsultContext(parentForm, finalPlaceId)) {
       setServerError(
@@ -678,7 +679,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
     }
   }, [
     setValue,
-    getValues,
+    getLocalValues,
     placeId,
     generatePix,
     buildPaymentPayload,
@@ -991,12 +992,12 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
               </p>
 
               <AddressSummaryCard
-                address={String(getValues('address') || getValues('addressHint') || '').trim()}
-                registrationNumber={getValues('registrationNumber')}
-                notary={String(getValues('notaryName') || '').trim() || (parentForm?.getValues('registry') as { name?: string } | null | undefined)?.name?.trim() || undefined}
-                allotment={getValues('allotment')}
-                block={getValues('block')}
-                lot={getValues('lot')}
+                address={String(getConsultField('address') || getConsultField('addressHint') || '').trim()}
+                registrationNumber={getConsultField('registrationNumber') ?? undefined}
+                notary={String(getConsultField('notaryName') || '').trim() || getConsultField('registry')?.name?.trim() || undefined}
+                allotment={getConsultField('allotment') ?? undefined}
+                block={getConsultField('block') ?? undefined}
+                lot={getConsultField('lot') ?? undefined}
               />
             </div>
 
