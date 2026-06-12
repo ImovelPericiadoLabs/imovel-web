@@ -59,7 +59,7 @@ export function DocumentConfirmationStep({
             Você tem o documento do imóvel?
           </HeroTitle>
           <HeroDescription surface="light">
-            Isso agiliza a análise do seu pedido
+            Documento opcional, se disponível.
           </HeroDescription>
         </div>
 

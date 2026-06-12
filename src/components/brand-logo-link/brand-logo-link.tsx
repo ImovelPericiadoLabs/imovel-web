@@ -2,6 +2,7 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
+import { useSession } from 'next-auth/react'
 import {
   BRAND_LOGO_DARK_SRC,
   BRAND_LOGO_HEIGHT,
@@ -12,6 +13,7 @@ import { CONSULTAR_IMOVEL_INICIO_HREF } from '@/constants/consult-flow'
 import { cn } from '@/utils/tailwind'
 
 type BrandLogoLinkProps = {
+  /** Se omitido: logado → /consultas; visitante → início do fluxo de consulta. */
   href?: string
   className?: string
   priority?: boolean
@@ -23,18 +25,23 @@ const logoImgClass =
   'block h-12 w-full object-contain object-center sm:h-[3.5rem] md:h-14 [image-rendering:auto] [-webkit-backface-visibility:hidden] [backface-visibility:hidden]'
 
 export function BrandLogoLink({
-  href = CONSULTAR_IMOVEL_INICIO_HREF,
+  href,
   className,
   priority = false,
   tone = 'on-primary',
 }: BrandLogoLinkProps) {
+  const { status } = useSession()
+
+  const resolvedHref =
+    href ?? (status === 'authenticated' ? '/consultas' : CONSULTAR_IMOVEL_INICIO_HREF)
+
   const src = tone === 'on-light' ? BRAND_LOGO_DARK_SRC : BRAND_LOGO_LIGHT_SRC
   const ariaLabel =
-    href === '/consultas' ? 'Ir para minhas consultas' : 'Ir para como quer começar'
+    resolvedHref === '/consultas' ? 'Ir para minhas consultas' : 'Ir para como quer começar'
 
   return (
     <Link
-      href={href}
+      href={resolvedHref}
       className={cn(
         'inline-flex w-[9rem] max-w-[min(100%,12rem)] shrink-0 touch-manipulation sm:w-[9.75rem] md:w-[10.75rem]',
         className,

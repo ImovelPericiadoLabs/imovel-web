@@ -6,7 +6,7 @@ import type { LucideIcon } from 'lucide-react'
 import { useFormContext } from 'react-hook-form'
 import { useState, useRef, useImperativeHandle, forwardRef, useCallback, useMemo } from 'react'
 import { flushSync } from 'react-dom'
-import TextTitle from '@/components/text-title'
+import { HeroTitle } from '@/components/ui/typography'
 import TextSubtitle from '@/components/text-subtitle'
 import Button from '@/components/button'
 import BottomSheet from '@/components/bottom-sheet'
@@ -376,7 +376,7 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
 
         <div
           key={currentStepKey}
-          className={`rounded-2xl border shadow-sm p-4 flex flex-col gap-4 animate-in fade-in slide-in-from-top-2 duration-300 ${currentStepMeta?.cardClassName ?? 'bg-white border-gray-100'}`}
+          className="rounded-2xl border border-gray-100 bg-white shadow-sm p-4 flex flex-col gap-4 animate-in fade-in slide-in-from-top-2 duration-300"
         >
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
@@ -387,7 +387,7 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
                 <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
                   Etapa {currentSubStep + 1} de {subSteps.length}
                 </span>
-                <span className="text-sm font-semibold text-dark">{currentStepMeta?.label}</span>
+                <span className="text-sm font-semibold text-gray-900">{currentStepMeta?.label}</span>
               </div>
             </div>
             <span className={`text-[10px] font-bold border rounded-full px-2.5 py-1 ${currentStepMeta?.badgeClassName ?? 'text-primary bg-primary/5 border-primary/10'}`}>
@@ -396,16 +396,16 @@ export const AddressComplementStep = forwardRef(({ onNext, onBack }: { onNext: (
           </div>
 
           <div className="flex flex-col items-center gap-2 text-center">
-            <TextTitle className="w-full text-center text-dark">
+            <HeroTitle variant="primary" surface="light" className="w-full text-center">
               {subSteps[currentSubStep] === 'addressNumber' && 'Você tem o número do endereço?'}
               {subSteps[currentSubStep] === 'registration' && 'Você tem o número da matrícula?'}
               {subSteps[currentSubStep] === 'allotment' && 'Você tem o nome do loteamento?'}
               {subSteps[currentSubStep] === 'block' && 'Você tem o número da quadra?'}
               {subSteps[currentSubStep] === 'lot' && 'Você tem o número do lote?'}
               {subSteps[currentSubStep] === 'complement' && 'Informe o complemento do endereço'}
-            </TextTitle>
-            <TextSubtitle className="mx-auto w-[80%] max-w-2xl text-center text-gray-500">
-              Isso melhora a precisão da busca por seu imóvel.
+            </HeroTitle>
+            <TextSubtitle className="mx-auto w-[80%] max-w-2xl text-center text-gray-600">
+              Dado opcional para identificação do imóvel no pedido.
             </TextSubtitle>
           </div>
 

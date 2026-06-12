@@ -20,6 +20,8 @@ type PaymentRequest = {
   lot_name?: string
   block_number?: string
   use_credits?: boolean
+  include_certificates?: boolean
+  entry_path?: 'address' | 'document' | 'registry'
 }
 
 export type ProcessPaymentResult =

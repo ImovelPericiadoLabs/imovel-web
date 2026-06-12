@@ -14,6 +14,8 @@ export const DEFAULT_CURRENCY = 'BRL'
 export const CONSULT_PRODUCT_ID = 'consulta-imovel'
 export const CONSULT_PRODUCT_NAME = 'Consulta Completa'
 export const CONSULT_PRODUCT_PRICE = 59
+export const CONSULT_PRICE_WITH_CERTIFICATES = 64.99
+export const CERTIFICATES_UPSELL_PRICE = 5.99
 
 export function buildConsultItem(value: number = CONSULT_PRODUCT_PRICE) {
   return {
