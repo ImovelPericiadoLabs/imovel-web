@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation'
 import { useOrderDetailQuery } from '@/hooks/use-order-detail-query'
 import OrderHeader from '@/sections/orders/order-header'
 import { OrderAnalysisList } from '@/sections/orders/order-analysis-list'
+import { OrderCertificateList } from '@/sections/orders/order-certificate-list'
 
 export default function OrderVisualizarPage() {
   const { id } = useParams()
@@ -30,7 +31,7 @@ export default function OrderVisualizarPage() {
         {hasCertificates && (
           <section className="flex flex-col gap-2">
             <h2 className="text-sm font-bold text-gray-900 px-1">Certidões oficiais</h2>
-            <OrderAnalysisList items={order!.certificates!} />
+            <OrderCertificateList items={order!.certificates!} />
           </section>
         )}
 
