@@ -27,6 +27,14 @@ export type OrderAnalysisResult = {
   reason: string
 }
 
+export type OrderCertificateResult = OrderAnalysisResult & {
+  kind_label?: string
+  subject?: string
+  tax_id?: string
+  summary?: string
+  footnote?: string
+}
+
 export type PlanFeature = {
   slug: string
   name: string
@@ -98,8 +106,8 @@ export type Order = {
   owners?: OwnersDetails[]
   semaphore?: SemaphoreStatus
   analysis?: OrderAnalysisResult[]
-  /** Certidões oficiais emitidas (mesmo formato dos cards de análise). */
-  certificates?: OrderAnalysisResult[]
+  /** Certidões oficiais emitidas (layout compacto na visualização). */
+  certificates?: OrderCertificateResult[]
 }
 
 export type OwnersDetails = {
