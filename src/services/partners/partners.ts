@@ -8,16 +8,26 @@ export type ConsentScope = {
   description: string
 }
 
+export type ConsentPartner = {
+  application: string | null
+  organization: string | null
+  organization_id: string | null
+  website: string | null
+  description: string | null
+  logo_url: string | null
+}
+
 export type ConsentMetadata = {
   client_id: string
-  partner: {
-    application: string | null
-    organization: string | null
-    organization_id: string | null
-  }
+  partner: ConsentPartner
   redirect_uri: string
   state: string | null
   scopes: ConsentScope[]
+  /** Cliente já autorizou este parceiro: a tela "reconecta" reusando a mesma conexão. */
+  already_connected: boolean
+  /** Escopos já concedidos (para destacar o que é novo na reconexão). */
+  current_scopes: ConsentScope[]
+  connected_since: string | null
 }
 
 export type ConsentDecision = {
@@ -30,6 +40,9 @@ export type ConnectedPartner = {
   id: string
   organization: string
   application: string
+  website: string | null
+  description: string | null
+  logo_url: string | null
   scopes: ConsentScope[]
   granted_at: string
 }
