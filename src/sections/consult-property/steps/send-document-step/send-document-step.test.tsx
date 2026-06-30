@@ -76,7 +76,7 @@ vi.mock('@/components/loading-overlay', () => ({
 const mockUseFormContext = useFormContext as Mock
 const mockUseMutation = useMutation as Mock
 const mockUploadDocument = uploadDocument as Mock<
-  (file: File, progress: (n: number) => void) => Promise<unknown>
+  (file: File, documentType: string, onProgress: (progress: number) => void) => Promise<unknown>
 >
 
 describe('SendDocumentStep', () => {

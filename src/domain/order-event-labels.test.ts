@@ -11,7 +11,8 @@ function ev(
   return {
     id,
     type,
-    payload,
+    payload: payload ?? {},
+    source: '',
     created_at: '2026-05-22T21:00:00Z',
   }
 }
