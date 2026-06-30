@@ -1,33 +1,25 @@
 'use client'
 
-import { useQuery } from '@tanstack/react-query'
+import { useMemo } from 'react'
 
-import {
-  getOrderAnalyses,
-  orderAnalysesQueryKey,
-  toOrderAnalysisResult,
-  type OrderAnalysisResult,
-} from '@/services/orders'
-import { isOrderPipelineActive } from '@/domain/order-journey'
+import { useOrderDetailQuery } from '@/hooks/use-order-detail-query'
+import type { OrderAnalysisResult } from '@/services/orders'
 
 /**
- * Per-agent analysis verdicts (GET /orders/:id/analyses) mapped to the
- * OrderAnalysisList shape (title + semaphore color + reason). Polls while the
- * pipeline is active; suppressed when realtime is connected.
+ * Veredictos por agente (semáforo + justificativa). Derivados do detalhe
+ * (GET /orders/:id/) na chave `analysis` (SINGULAR) inline — o backend não expõe
+ * /orders/:id/analyses (404). O shape já vem como OrderAnalysisResult do backend.
+ * `statusValue` é mantido por compatibilidade de assinatura.
  */
 export function useOrderAnalysesQuery(
   orderId: string | undefined,
-  statusValue?: string,
+  _statusValue?: string,
   realtimeConnected = false,
 ) {
-  return useQuery<OrderAnalysisResult[]>({
-    queryKey: orderAnalysesQueryKey(orderId ?? ''),
-    queryFn: async () => (await getOrderAnalyses(orderId!)).map(toOrderAnalysisResult),
-    enabled: !!orderId,
-    staleTime: 10_000,
-    refetchOnWindowFocus: false,
-    retry: 1,
-    refetchInterval: () =>
-      realtimeConnected ? false : isOrderPipelineActive(statusValue) ? 8_000 : false,
-  })
+  const query = useOrderDetailQuery(orderId, realtimeConnected)
+  const data = useMemo<OrderAnalysisResult[]>(
+    () => query.data?.analysis ?? [],
+    [query.data],
+  )
+  return { ...query, data }
 }

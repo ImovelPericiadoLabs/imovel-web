@@ -4,15 +4,16 @@ import React from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import OrderOptionsOwnersPage from './index'
 import { useParams } from 'next/navigation'
-import { getOrder, getOrderOwners } from '@/services/orders'
+import { getOrder } from '@/services/orders'
 
 const mockOwners = [
-  { id: '1', order_id: '1', name: 'JULIO BARBOSA LEMES FILHO', tax_id: '159.256.252-00', undivided_interest: 100, owner_type: 'proprietario_pleno' },
-  { id: '2', order_id: '1', name: 'MARIANA SANTOS', tax_id: '123.456.789-01', undivided_interest: 75, owner_type: 'nua_propriedade' },
-  { id: '3', order_id: '1', name: 'CARLOS ANDRADE', tax_id: '123.456.789-10', undivided_interest: 75, owner_type: null },
-  { id: '4', order_id: '1', name: 'ANA CARLA DA SILVA', tax_id: '987.654.321-09', undivided_interest: 50, owner_type: 'usufrutuario' },
+  { id: '1', name: 'JULIO BARBOSA LEMES FILHO', tax_id: '159.256.252-00', undivided_interest: 100, owner_type: 'proprietario_pleno' },
+  { id: '2', name: 'MARIANA SANTOS', tax_id: '123.456.789-01', undivided_interest: 75, owner_type: 'nua_propriedade' },
+  { id: '3', name: 'CARLOS ANDRADE', tax_id: '123.456.789-10', undivided_interest: 75, owner_type: null },
+  { id: '4', name: 'ANA CARLA DA SILVA', tax_id: '987.654.321-09', undivided_interest: 50, owner_type: 'usufrutuario' },
 ]
 
+// Os proprietários vêm INLINE no detalhe do pedido (order.owners) — não há /orders/:id/owners.
 const mockOrder = {
   id: '1',
   status: { value: 'FINISHED', label: 'Concluído' },
@@ -21,6 +22,7 @@ const mockOrder = {
   formatted_address: '',
   created: '',
   modified: '',
+  owners: mockOwners,
 }
 
 function wrapper({ children }: { children: React.ReactNode }) {
@@ -41,7 +43,6 @@ vi.mock('@/services/orders', async (importOriginal) => {
   return {
     ...actual,
     getOrder: vi.fn(),
-    getOrderOwners: vi.fn(),
   }
 })
 
@@ -63,7 +64,6 @@ describe('OrderOptionsOwnersPage', () => {
   beforeEach(() => {
     vi.mocked(useParams).mockReturnValue({ id: '1' })
     vi.mocked(getOrder).mockResolvedValue(mockOrder as any)
-    vi.mocked(getOrderOwners).mockResolvedValue(mockOwners as any)
   })
 
   it('deve renderizar o header com o badge de sinal vermelho', async () => {

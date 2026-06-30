@@ -10,10 +10,7 @@ export {
   rerequestOrder,
   getAnalysisPdfBlob,
   getDocumentBlob,
-  getOrderOwners,
-  getOrderAnalyses,
-  getOrderDocuments,
-  toOrderAnalysisResult,
+  toOrderRelatedDocuments,
   orderOwnersQueryKey,
   orderAnalysesQueryKey,
   orderDocumentsQueryKey,
@@ -27,8 +24,7 @@ export {
   type ReRequestOrderBody,
   type PlaceResponse,
   type Document,
-  type OrderOwner,
-  type OrderAnalysisApiItem,
+  type OwnersDetails,
   type OrderRelatedDocument,
   type OrderRelatedDocumentKind
 } from './orders'
