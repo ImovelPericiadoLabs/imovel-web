@@ -45,6 +45,7 @@ export function PartnerCreateDialog({
   const [email, setEmail] = useState('')
   const [initialCredits, setInitialCredits] = useState('0')
   const [scopes, setScopes] = useState<PartnerScope[]>(DEFAULT_SCOPES)
+  const [redirectUris, setRedirectUris] = useState('')
   const [provisioned, setProvisioned] = useState<PartnerProvisioned | null>(null)
 
   const reset = () => {
@@ -52,6 +53,7 @@ export function PartnerCreateDialog({
     setEmail('')
     setInitialCredits('0')
     setScopes(DEFAULT_SCOPES)
+    setRedirectUris('')
     setProvisioned(null)
     mutation.reset()
   }
@@ -64,12 +66,18 @@ export function PartnerCreateDialog({
     },
   })
 
+  const parsedRedirectUris = redirectUris
+    .split(/[\s,]+/)
+    .map((u) => u.trim())
+    .filter(Boolean)
+
   const submit = () => {
     mutation.mutate({
       name: name.trim(),
       email: email.trim() || undefined,
       initial_credits: Number(initialCredits) || 0,
       scopes,
+      redirect_uris: parsedRedirectUris.length ? parsedRedirectUris : undefined,
     })
   }
 
@@ -97,8 +105,24 @@ export function PartnerCreateDialog({
             </DialogHeader>
 
             <div className="flex flex-col gap-3">
-              <CopyField label="Client ID" value={provisioned.client_id ?? ''} />
-              <CopyField label="Client Secret" value={provisioned.client_secret} sensitive />
+              <CopyField label="Client ID (M2M)" value={provisioned.client_id ?? ''} />
+              <CopyField label="Client Secret (M2M)" value={provisioned.client_secret} sensitive />
+
+              {provisioned.consent_client_id && (
+                <>
+                  <CopyField
+                    label="Client ID (consent / authorization_code)"
+                    value={provisioned.consent_client_id}
+                  />
+                  {provisioned.consent_client_secret && (
+                    <CopyField
+                      label="Client Secret (consent)"
+                      value={provisioned.consent_client_secret}
+                      sensitive
+                    />
+                  )}
+                </>
+              )}
 
               <div className="flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-800">
                 <AlertTriangle className="mt-0.5 size-4 shrink-0" />
@@ -165,6 +189,25 @@ export function PartnerCreateDialog({
               <div className="flex flex-col gap-2">
                 <Label>Permissões (escopos)</Label>
                 <ScopePicker value={scopes} onChange={setScopes} />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="partner-redirects">
+                  Redirect URIs do consent delegado{' '}
+                  <span className="font-normal text-muted-foreground">(opcional)</span>
+                </Label>
+                <textarea
+                  id="partner-redirects"
+                  value={redirectUris}
+                  onChange={(e) => setRedirectUris(e.target.value)}
+                  placeholder={'https://app.parceiro.com/callback\nhttps://...'}
+                  rows={2}
+                  className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                />
+                <p className="text-xs text-muted-foreground">
+                  https, um por linha. Se preenchido, provisiona também o app de consent
+                  (authorization_code + PKCE). Deixe vazio para criar só a credencial M2M.
+                </p>
               </div>
 
               {mutation.isError && (
