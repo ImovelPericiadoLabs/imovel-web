@@ -30,6 +30,7 @@ const DEFAULT_SCOPES: PartnerScope[] = [
   'analysis:read',
   'certificate:read',
   'webhook:manage',
+  'integration:manage',
 ]
 
 export function PartnerCreateDialog({

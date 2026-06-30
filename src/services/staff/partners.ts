@@ -9,13 +9,19 @@ async function withToken<T>(fn: (token: string) => Promise<T>): Promise<T> {
   return fn(token)
 }
 
-export type PartnerScope = 'analysis:create' | 'analysis:read' | 'certificate:read' | 'webhook:manage'
+export type PartnerScope =
+  | 'analysis:create'
+  | 'analysis:read'
+  | 'certificate:read'
+  | 'webhook:manage'
+  | 'integration:manage'
 
 export const ALL_SCOPES: { value: PartnerScope; label: string }[] = [
   { value: 'analysis:create', label: 'Criar análises/pedidos' },
   { value: 'analysis:read', label: 'Ler análises/pedidos' },
   { value: 'certificate:read', label: 'Ler certidões' },
   { value: 'webhook:manage', label: 'Gerenciar webhooks' },
+  { value: 'integration:manage', label: 'Gerenciar integração (redirect_uris + branding)' },
 ]
 
 export type PartnerStatus = 'ACTIVE' | 'SUSPENDED'
