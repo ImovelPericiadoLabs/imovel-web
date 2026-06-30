@@ -3,6 +3,8 @@
 import { useParams } from 'next/navigation'
 
 import { useOrderDetailQuery } from '@/hooks/use-order-detail-query'
+import { useOrderAnalysesQuery } from '@/hooks/use-order-analyses-query'
+import { useOrderRealtime } from '@/hooks/use-order-realtime'
 import OrderHeader from '@/sections/orders/order-header'
 import { OrderAnalysisList } from '@/sections/orders/order-analysis-list'
 import { OrderCertificateList } from '@/sections/orders/order-certificate-list'
@@ -11,9 +13,15 @@ export default function OrderVisualizarPage() {
   const { id } = useParams()
   const orderId = id as string
 
-  const { data: order } = useOrderDetailQuery(orderId)
+  const { connected: realtimeConnected } = useOrderRealtime(orderId)
+  const { data: order } = useOrderDetailQuery(orderId, realtimeConnected)
+  const { data: analysis = [] } = useOrderAnalysesQuery(
+    orderId,
+    order?.status?.value,
+    realtimeConnected,
+  )
 
-  const hasAnalysis = Boolean(order?.analysis?.length)
+  const hasAnalysis = analysis.length > 0
   const hasCertificates = Boolean(order?.certificates?.length)
 
   return (
@@ -24,7 +32,7 @@ export default function OrderVisualizarPage() {
         {hasAnalysis && (
           <section className="flex flex-col gap-2">
             <h2 className="text-sm font-bold text-gray-900 px-1">Análise do imóvel</h2>
-            <OrderAnalysisList items={order!.analysis!} />
+            <OrderAnalysisList items={analysis} />
           </section>
         )}
 

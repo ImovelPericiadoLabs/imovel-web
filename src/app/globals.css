@@ -71,7 +71,26 @@
   --color-button-primary-hover: var(--color-midnight-500);
 
   --color-secondary: #E8DEF8;
-  
+
+  /* ---------------------------------------------------------------------- */
+  /* shadcn/ui semantic tokens (mapeados à marca midnight #0b1b3a)          */
+  /* ---------------------------------------------------------------------- */
+  --color-foreground: #0b1b3a;
+  --color-primary-foreground: #ffffff;
+  --color-secondary-foreground: #0b1b3a;
+  --color-card: #ffffff;
+  --color-card-foreground: #0b1b3a;
+  --color-popover: #ffffff;
+  --color-popover-foreground: #0b1b3a;
+  --color-muted: #f1f5f9;
+  --color-muted-foreground: #64748b;
+  --color-accent: #f1f5f9;
+  --color-accent-foreground: #0b1b3a;
+  --color-border: #e5e7eb;
+  --color-input: #d5d7da;
+  --color-ring: #0b1b3a;
+  --color-destructive: #d92d20;
+  --color-destructive-foreground: #ffffff;
 
   /* ====================================================================== */
   /* 2. SIZING & RADIUS                                                     */

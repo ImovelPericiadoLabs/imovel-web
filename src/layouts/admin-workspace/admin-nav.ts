@@ -2,8 +2,10 @@ import type { LucideIcon } from 'lucide-react'
 import {
   ClipboardList,
   LayoutGrid,
+  LineChart,
   Megaphone,
   MessageSquare,
+  Plug,
   UserPlus,
 } from 'lucide-react'
 
@@ -47,10 +49,30 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
         staffOnly: true,
       },
       {
+        href: '/admin/partners',
+        label: 'Parceiros API',
+        shortLabel: 'Parceiros API',
+        icon: Plug,
+        staffOnly: true,
+      },
+      {
         href: '/admin/partner-accounts',
-        label: 'Parceiros',
-        shortLabel: 'Parceiros',
+        label: 'Contas de teste',
+        shortLabel: 'Contas teste',
         icon: UserPlus,
+        staffOnly: true,
+      },
+    ],
+  },
+  {
+    id: 'finance',
+    label: 'Financeiro',
+    items: [
+      {
+        href: '/admin/finance',
+        label: 'Custos & receita',
+        shortLabel: 'Financeiro',
+        icon: LineChart,
         staffOnly: true,
       },
     ],

@@ -5,12 +5,27 @@ import { useParams } from 'next/navigation'
 import OrderHeader from '@/sections/orders/order-header'
 import BadgeComponent from '@/components/badge'
 import { useOrderDetailQuery } from '@/hooks/use-order-detail-query'
+import { useOrderOwnersQuery } from '@/hooks/use-order-owners-query'
+import { useOrderRealtime } from '@/hooks/use-order-realtime'
+
+const OWNER_TYPE_LABELS: Record<string, string> = {
+  proprietario_pleno: 'Proprietário pleno',
+  nua_propriedade: 'Nua-propriedade',
+  usufrutuario: 'Usufrutuário',
+  outro_titular_nao_proprietario: 'Outro titular',
+}
 
 export default function OrderOptionsOwnersPage() {
   const { id } = useParams()
   const orderId = id as string
 
-  const { data: order, isLoading } = useOrderDetailQuery(orderId)
+  const { connected: realtimeConnected } = useOrderRealtime(orderId)
+  const { data: order } = useOrderDetailQuery(orderId, realtimeConnected)
+  const { data: owners, isLoading } = useOrderOwnersQuery(
+    orderId,
+    order?.status?.value,
+    realtimeConnected,
+  )
 
   if (isLoading) {
     return (
@@ -20,12 +35,14 @@ export default function OrderOptionsOwnersPage() {
     )
   }
 
+  const hasOwners = Boolean(owners && owners.length > 0)
+
   return (
     <div className="flex flex-col gap-3 pb-10">
       <OrderHeader />
 
       <div className="flex flex-col gap-2 px-3 lg:px-0 w-full mx-auto lg:max-w-lg">
-        {order && (!order.owners || order.owners.length === 0) && (
+        {!hasOwners && (
           <div className="flex flex-col items-center justify-center p-6 border border-blue-100 rounded-2xl bg-blue-50/60 text-center gap-4 shadow-sm">
             <div className="bg-blue-100 p-3 rounded-full">
               <Info className="size-8 text-blue-600" />
@@ -44,7 +61,7 @@ export default function OrderOptionsOwnersPage() {
           </div>
         )}
 
-        {order?.owners?.map((owner) => (
+        {owners?.map((owner) => (
           <div
             key={owner.id}
             className="flex flex-col p-4 border border-box rounded-sm group hover:border-primary transition-colors"
@@ -61,13 +78,21 @@ export default function OrderOptionsOwnersPage() {
                   {owner.tax_id ?? 'Não Disponível'}
                 </p>
 
-                <BadgeComponent>
-                  Possui{' '}
-                  {owner.undivided_interest !== null &&
-                  owner.undivided_interest !== undefined
-                    ? `${owner.undivided_interest}%`
-                    : 'Não Disponível'}
-                </BadgeComponent>
+                <div className="flex flex-wrap gap-2">
+                  {owner.owner_type && (
+                    <BadgeComponent>
+                      {OWNER_TYPE_LABELS[owner.owner_type] ?? owner.owner_type}
+                    </BadgeComponent>
+                  )}
+
+                  <BadgeComponent>
+                    Possui{' '}
+                    {owner.undivided_interest !== null &&
+                    owner.undivided_interest !== undefined
+                      ? `${owner.undivided_interest}%`
+                      : 'Não Disponível'}
+                  </BadgeComponent>
+                </div>
               </div>
             </div>
           </div>

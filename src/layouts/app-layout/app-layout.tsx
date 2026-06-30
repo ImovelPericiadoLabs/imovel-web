@@ -3,7 +3,7 @@
 import { PropsWithChildren, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { BrandLogoLink } from '@/components/brand-logo-link'
-import { ChevronLeft, Menu, X, LogOut, Wallet, Mail, Search, List, FileText, Trash2, AlertTriangle, LoaderCircle, Megaphone, MessageSquare, ClipboardList, UserPlus } from 'lucide-react'
+import { ChevronLeft, Menu, X, LogOut, Wallet, Mail, Search, List, FileText, Trash2, AlertTriangle, LoaderCircle, Megaphone, MessageSquare, ClipboardList, UserPlus, ShieldCheck } from 'lucide-react'
 import Link from 'next/link'
 import { useSession } from 'next-auth/react'
 import { useMutation, useQuery } from '@tanstack/react-query'
@@ -12,6 +12,7 @@ import HeaderTitle from '@/components/header-title'
 import Modal from '@/components/modal'
 import useIsRouteMatch from '@/hooks/use-is-router-match'
 import { getMe, requestAccountDeletion, type MeResponse } from '@/services/account'
+import { listConnectedPartners } from '@/services/partners'
 import { CONSULTAR_IMOVEL_INICIO_HREF } from '@/constants/consult-flow'
 import { legalDocuments, getLegalRoute } from '@/constants/legal'
 import { clearAuthClientFlag } from '@/utils/auth-client-flag'
@@ -42,6 +43,16 @@ export default function AppLayout({ children }: PropsWithChildren) {
     queryFn: getMe,
     enabled: status === 'authenticated'
   })
+
+  // Link de parceiros conectados só aparece para quem já autorizou algum parceiro —
+  // mantém o fluxo B2B escondido para o cliente comum até o lançamento oficial.
+  const { data: connectedPartners } = useQuery({
+    queryKey: ['connected-partners'],
+    queryFn: listConnectedPartners,
+    enabled: status === 'authenticated',
+    staleTime: 60_000,
+  })
+  const hasConnectedPartners = (connectedPartners?.length ?? 0) > 0
 
   const deletionMutation = useMutation({
     mutationFn: requestAccountDeletion,
@@ -281,6 +292,16 @@ export default function AppLayout({ children }: PropsWithChildren) {
                     <List className="size-5 text-primary shrink-0" />
                     Minhas consultas
                   </Link>
+                  {hasConnectedPartners && (
+                    <Link
+                      href="/conta/parceiros"
+                      onClick={() => setSidebarOpen(false)}
+                      className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-gray-700 hover:bg-gray-100 font-medium touch-manipulation"
+                    >
+                      <ShieldCheck className="size-5 text-primary shrink-0" />
+                      Parceiros conectados
+                    </Link>
+                  )}
                   {(me?.is_staff || me?.is_superuser) && (
                     <>
                       <Link

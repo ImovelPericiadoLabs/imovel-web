@@ -116,7 +116,7 @@ describe('PixPaymentPage', () => {
         if (field === undefined) return parentValues as never
         return parentValues[field] as never
       },
-    } as ReturnType<typeof useFormContext>)
+    } as unknown as ReturnType<typeof useFormContext>)
 
     ;(useSession as Mock).mockReturnValue({ data: null, status: 'unauthenticated' })
     ;(useMutation as Mock).mockReturnValue({ 

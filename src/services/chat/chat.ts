@@ -1,19 +1,13 @@
 import api from '@/utils/api/client'
 import { endpoint } from '@/constants/api'
-import { signOut } from 'next-auth/react'
 import { getSessionDeduplicated } from '@/utils/session'
-
-async function handleUnauthorized() {
-  if (typeof window === 'undefined') return
-  window.dispatchEvent(new Event('auth:unauthorized'))
-  await signOut({ redirect: false })
-}
+import { requestReauth } from '@/utils/auth-reauth'
 
 async function guard<T>(callback: (token: string) => Promise<T>): Promise<T> {
   const session = await getSessionDeduplicated()
   const token = session?.accessToken
   if (!token) {
-    await handleUnauthorized()
+    requestReauth()
     throw new Error('Sessão inválida ou expirada.')
   }
   return callback(token)

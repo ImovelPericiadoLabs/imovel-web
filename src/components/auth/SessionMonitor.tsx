@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useForm, FormProvider } from 'react-hook-form'
+import { useSession } from 'next-auth/react'
 import { VerifyCodeStep } from '@/sections/login/steps/verify-step'
 import { InsertStep } from '@/sections/login/steps/insert-step'
 import { X } from 'lucide-react'
@@ -17,6 +18,8 @@ const STORAGE_KEY = '@pix-payment:form-data'
 export function SessionMonitor() {
   const [isOpen, setIsOpen] = useState(false)
   const [flow, setFlow] = useState<FlowState>('email')
+
+  const { update } = useSession()
 
   const methods = useForm<FormProps>({
     defaultValues: {
@@ -55,6 +58,13 @@ export function SessionMonitor() {
     methods.reset({ email: '', code: '' })
   }, [methods])
 
+  const handleSuccess = useCallback(() => {
+    handleClose()
+    // Refresh the client session on the same screen and let listeners retry.
+    void update()
+    window.dispatchEvent(new Event('auth:reauthenticated'))
+  }, [handleClose, update])
+
   if (!isOpen) return null
 
   return (
@@ -72,7 +82,7 @@ export function SessionMonitor() {
           {flow === 'email' ? (
             <InsertStep onNext={() => setFlow('code')} />
           ) : (
-            <VerifyCodeStep onBack={() => setFlow('email')} />
+            <VerifyCodeStep onBack={() => setFlow('email')} onSuccess={handleSuccess} />
           )}
         </FormProvider>
       </div>

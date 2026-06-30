@@ -20,7 +20,7 @@ import { trackGtmEvent, buildConsultItem, DEFAULT_CURRENCY, CERTIFICATES_UPSELL_
 import { formatMoney } from '@/utils/text/text'
 import { ANALYSIS_VALUE_BULLETS } from '@/constants/included-certificates'
 import { IncludedCertificatesPanel } from '@/components/included-certificates/included-certificates-panel'
-import { resolveConsultPrice, type EntryPath } from '@/hooks/use-consult-price'
+import { useConsultDynamicPrice, type EntryPath } from '@/hooks/use-consult-price'
 import type { FormTypes } from '@/sections/consult-property/validations'
 
 const VALUE_BULLETS = ANALYSIS_VALUE_BULLETS
@@ -37,8 +37,18 @@ export function SummaryStep({ onNext }: { onNext: () => void }) {
 
   const entryPath = values.entryPath as EntryPath | undefined
   const includeCertificates = Boolean(values.includeCertificates)
-  const { price: consultPrice } = resolveConsultPrice(entryPath, includeCertificates)
+  const propertyUf =
+    (values as { place_response?: { state?: string } }).place_response?.state ||
+    values.notaryState ||
+    null
+  const {
+    price: consultPrice,
+    surcharge,
+    uf: quotedUf,
+    newPricing,
+  } = useConsultDynamicPrice({ entryPath, includeCertificates, uf: propertyUf })
   const showCertificatesToggle = entryPath === 'address'
+  const showSurchargeLine = newPricing && surcharge > 0
 
   useEffect(() => {
     unlockPageScroll()
@@ -214,6 +224,22 @@ export function SummaryStep({ onNext }: { onNext: () => void }) {
                   </li>
                 ))}
               </ul>
+
+              {showSurchargeLine && (
+                <div className="flex items-center justify-between gap-3 rounded-xl border border-gray-100 bg-gray-50/80 px-4 py-3">
+                  <div className="min-w-0 flex flex-col gap-0.5">
+                    <p className="text-[13px] font-semibold text-gray-900">
+                      Inteiro-Teor{quotedUf ? ` (${quotedUf})` : ''}
+                    </p>
+                    <p className="text-[12px] text-gray-600">
+                      Emolumento do cartório para emissão da matrícula
+                    </p>
+                  </div>
+                  <p className="text-[13px] font-semibold text-gray-900 tabular-nums shrink-0">
+                    +{formatMoney(surcharge)}
+                  </p>
+                </div>
+              )}
 
               {showCertificatesToggle && (
                 <div className="flex items-center justify-between gap-3 rounded-xl border border-gray-100 bg-gray-50/80 px-4 py-3">

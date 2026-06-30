@@ -1,5 +1,8 @@
 export const url = process.env.NEXT_PUBLIC_API_URL || 'https://api.imovelpericiado.com/v1'
 
+/** Base WebSocket URL mirroring `NEXT_PUBLIC_API_URL` (incl. /v1): http→ws, https→wss. */
+export const wsUrl = url.replace(/^http/, 'ws')
+
 export const endpoint = {
   addresses: '/places/autocomplete/',
   documents: {
@@ -8,6 +11,7 @@ export const endpoint = {
   payments: {
     process: '/payments/',
     status: '/payments',
+    quote: '/payments/quote/',
   },
   start: '/auth/start/',
   verify: '/auth/verify/',
@@ -15,9 +19,21 @@ export const endpoint = {
   me: '/me/',
   orders: '/orders/',
   reRequest: (orderId: string) => `/orders/${orderId}/re-request/`,
+  /** Proprietários extraídos da matrícula. GET /orders/:id/owners */
+  orderOwners: (orderId: string) => `/orders/${orderId}/owners`,
+  /** Veredictos por agente (semáforo + justificativa). GET /orders/:id/analyses */
+  orderAnalyses: (orderId: string) => `/orders/${orderId}/analyses`,
+  /** Documentos relacionados (matrícula, certidões, laudo) com URL assinada. GET /orders/:id/documents */
+  orderDocuments: (orderId: string) => `/orders/${orderId}/documents`,
   plans: '/plans/',
   /** PDF do relatório de análise. GET com Bearer retorna application/pdf. Parâmetro: order ID. */
   analysisPdfView: (orderId: string) => `/analysis/pdfview/${orderId}`,
+  /** Consent delegado (authorization_code + PKCE). GET valida e retorna metadados; POST emite o code. */
+  partnerOAuthAuthorize: '/partner/oauth/authorize/',
+  /** Parceiros que o cliente final autorizou (consentimentos ativos). */
+  connectedPartners: '/me/connected-partners/',
+  /** Revoga o acesso de um parceiro (invalida tokens emitidos). */
+  connectedPartner: (id: string) => `/me/connected-partners/${id}/`,
   outreach: {
     registryTemplates: '/admin/outreach/templates/registry/',
     emailTemplates: '/admin/outreach/templates/email-db/',
@@ -41,6 +57,14 @@ export const endpoint = {
     partnerAccounts: '/admin/staff/partner-accounts/',
     partnerAccount: (id: string) => `/admin/staff/partner-accounts/${id}/`,
     partnerAccountCredits: (id: string) => `/admin/staff/partner-accounts/${id}/credits/`,
+    /** Parceiros B2B (Organization + credenciais OAuth). */
+    partners: '/admin/staff/partners/',
+    partner: (id: string) => `/admin/staff/partners/${id}/`,
+    partnerRotateSecret: (id: string) => `/admin/staff/partners/${id}/rotate-secret/`,
+    partnerCredits: (id: string) => `/admin/staff/partners/${id}/credits/`,
+    partnerSendOnboarding: (id: string) => `/admin/staff/partners/${id}/send-onboarding/`,
+    /** Overview de custo/receita (dashboard financeiro). */
+    costsOverview: '/admin/staff/costs/overview/',
   },
   chat: {
     campaigns: '/admin/chat/campaigns/',

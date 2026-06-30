@@ -15,13 +15,12 @@ import Button from '@/components/button'
 
 import { formatDateWithTime } from '@/utils/date'
 
-import { listOrders, type Order } from '@/services/orders'
+import { listOrders, ordersListQueryKey, type Order } from '@/services/orders'
 import {
   resolveOrderTheme,
   resolveListBadgeLabel
 } from '@/sections/orders/constants'
 
-const ORDERS_QUERY_KEY = ['orders'] as const
 const PAGE_SIZE = 10
 
 export default function OrdersPage() {
@@ -34,11 +33,14 @@ export default function OrdersPage() {
     hasNextPage,
     fetchNextPage
   } = useInfiniteQuery({
-    queryKey: ORDERS_QUERY_KEY,
+    queryKey: ordersListQueryKey,
     queryFn: ({ pageParam }) =>
       listOrders({ limit: PAGE_SIZE, p: pageParam }),
     initialPageParam: 1,
     staleTime: 30_000,
+    // Sempre revalida ao montar: ao voltar do pagamento, a nova consulta aparece
+    // sem refresh manual mesmo com a lista ainda "fresca" no cache.
+    refetchOnMount: 'always',
     refetchOnWindowFocus: false,
     getNextPageParam: lastPage =>
       lastPage.meta.has_next ? lastPage.meta.page + 1 : undefined

@@ -1,13 +1,29 @@
 import React from 'react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, cleanup } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import ConsultProperty from './consult-property'
+
+const renderConsult = () => {
+  const queryClient = new QueryClient()
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <ConsultProperty />
+    </QueryClientProvider>,
+  )
+}
 
 const mockPush = vi.fn()
 const mockReplace = vi.fn()
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: mockPush, replace: mockReplace }),
   useSearchParams: () => new URLSearchParams(),
+}))
+
+vi.mock('next-auth/react', () => ({
+  useSession: () => ({ data: null, status: 'unauthenticated' }),
+  signOut: vi.fn(),
+  SessionProvider: ({ children }: { children: React.ReactNode }) => children,
 }))
 
 vi.mock('@hookform/resolvers/zod', () => ({
@@ -101,7 +117,7 @@ describe('ConsultProperty Flow', () => {
   })
 
   it('deve navegar por todo o fluxo linear com sucesso', () => {
-    render(<ConsultProperty />)
+    renderConsult()
 
     expect(screen.getByTestId('entry-step')).toBeVisible()
 
@@ -128,14 +144,14 @@ describe('ConsultProperty Flow', () => {
   })
 
   it('na entrada, voltar envia para a home', () => {
-    render(<ConsultProperty />)
+    renderConsult()
     const backBtn = screen.getByTestId('icon-ChevronLeft')
     fireEvent.click(backBtn)
     expect(mockPush).toHaveBeenCalledWith('/')
   })
 
   it('deve gerenciar a pilha de estados (stack) ao voltar passos', () => {
-    render(<ConsultProperty />)
+    renderConsult()
 
     fireEvent.click(screen.getByText('Pick Address Path'))
     fireEvent.click(screen.getByText('Next Address'))
@@ -157,7 +173,7 @@ describe('ConsultProperty Flow', () => {
     // Mas o ConsultProperty renderiza o FormProvider com o hook real.
     
     // Vou apenas verificar se o fluxo de navegação funciona após os resets adicionados.
-    render(<ConsultProperty />)
+    renderConsult()
 
     fireEvent.click(screen.getByText('Pick Address Path'))
     fireEvent.click(screen.getByText('Next Address'))
@@ -177,7 +193,7 @@ describe('ConsultProperty Flow', () => {
     const mockLocation = { href: 'http://localhost/consultar-imovel' };
     vi.stubGlobal('location', mockLocation);
 
-    render(<ConsultProperty />)
+    renderConsult()
 
     fireEvent.click(screen.getByText('Pick Address Path'))
     fireEvent.click(screen.getByText('Next Address'))

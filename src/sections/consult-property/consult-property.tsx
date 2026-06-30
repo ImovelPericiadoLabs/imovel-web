@@ -2,6 +2,8 @@
 
 import { useRouter, useSearchParams } from 'next/navigation'
 import { memo, useState, useRef, ReactNode, useEffect, useCallback, useMemo, forwardRef, useImperativeHandle } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
+import { ordersListQueryKey } from '@/services/orders'
 import { FormProvider, useForm, type Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { ChevronLeft, CircleQuestionMark } from 'lucide-react'
@@ -114,6 +116,7 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
   ref,
 ) {
   const router = useRouter()
+  const queryClient = useQueryClient()
   const searchParams = useSearchParams()
   const [flow, setFlow] = useState<FlowState>('entry')
   const [navStackDepth, setNavStackDepth] = useState(0)
@@ -517,7 +520,12 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
 
           <Activity isActive={flow === 'payment-confirm'}>
             <PaymentConfirmationStep
-              onFinish={() => go('finished')}
+              onFinish={() => {
+                // Nova consulta acabou de ser paga: invalida a lista para que apareça
+                // imediatamente em "Acompanhar consultas" (sem refresh manual).
+                void queryClient.invalidateQueries({ queryKey: ordersListQueryKey })
+                go('finished')
+              }}
               onBackToMethods={back}
               onAddNewCard={() => go('payment-card-new')}
             />
