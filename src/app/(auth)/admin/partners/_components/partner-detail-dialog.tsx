@@ -3,6 +3,7 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
 import {
   AlertTriangle,
+  ImagePlus,
   Loader2,
   Mail,
   PauseCircle,
@@ -36,6 +37,7 @@ import {
   sendPartnerOnboarding,
   topUpPartnerCredits,
   updatePartner,
+  uploadPartnerLogo,
   type Partner,
   type PartnerScope,
 } from '@/services/staff/partners'
@@ -63,6 +65,9 @@ export function PartnerDetailDialog({
   const [scopesEdit, setScopesEdit] = useState<PartnerScope[] | null>(null)
   const [redirectUrisEdit, setRedirectUrisEdit] = useState<string | null>(null)
   const [newConsentSecret, setNewConsentSecret] = useState<string | null>(null)
+  const [websiteEdit, setWebsiteEdit] = useState<string | null>(null)
+  const [descriptionEdit, setDescriptionEdit] = useState<string | null>(null)
+  const [logoLink, setLogoLink] = useState('')
   const [feedback, setFeedback] = useState<Feedback>(null)
 
   const detail = useQuery({
@@ -81,6 +86,9 @@ export function PartnerDetailDialog({
       setScopesEdit(null)
       setRedirectUrisEdit(null)
       setNewConsentSecret(null)
+      setWebsiteEdit(null)
+      setDescriptionEdit(null)
+      setLogoLink('')
       setFeedback(null)
     }
     onOpenChange(next)
@@ -99,6 +107,12 @@ export function PartnerDetailDialog({
     .filter(Boolean)
   const redirectsDirty = p
     ? JSON.stringify(parsedRedirects) !== JSON.stringify(p.redirect_uris)
+    : false
+
+  const website = websiteEdit ?? p?.website ?? ''
+  const description = descriptionEdit ?? p?.description ?? ''
+  const brandingDirty = p
+    ? website !== (p.website ?? '') || description !== (p.description ?? '')
     : false
 
   const afterChange = (message: string) => {
@@ -169,6 +183,31 @@ export function PartnerDetailDialog({
     onError,
   })
 
+  const saveBranding = useMutation({
+    mutationFn: () => updatePartner(partnerId as string, { website, description }),
+    onSuccess: () => {
+      setWebsiteEdit(null)
+      setDescriptionEdit(null)
+      afterChange('Branding atualizado.')
+    },
+    onError,
+  })
+
+  const applyLogoLink = useMutation({
+    mutationFn: () => updatePartner(partnerId as string, { logo_url: logoLink.trim() }),
+    onSuccess: () => {
+      setLogoLink('')
+      afterChange('Logo (link) aplicado.')
+    },
+    onError,
+  })
+
+  const logoUpload = useMutation({
+    mutationFn: (file: File) => uploadPartnerLogo(partnerId as string, file),
+    onSuccess: () => afterChange('Logo enviado.'),
+    onError,
+  })
+
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-2xl">
@@ -210,6 +249,9 @@ export function PartnerDetailDialog({
               </TabsTrigger>
               <TabsTrigger value="credentials" className="flex-1">
                 Credenciais
+              </TabsTrigger>
+              <TabsTrigger value="branding" className="flex-1">
+                Branding
               </TabsTrigger>
               <TabsTrigger value="credits" className="flex-1">
                 Créditos
@@ -351,6 +393,99 @@ export function PartnerDetailDialog({
                       para gerar um novo (invalida o anterior).
                     </p>
                   </div>
+                )}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="branding">
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center gap-3">
+                  {p.logo_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={p.logo_url}
+                      alt={p.name}
+                      className="h-14 w-14 rounded-xl border border-border bg-white object-contain p-1"
+                    />
+                  ) : (
+                    <div className="flex h-14 w-14 items-center justify-center rounded-xl border border-border bg-muted text-lg font-bold text-muted-foreground">
+                      {p.name.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <div className="flex flex-col gap-1.5">
+                    <label className="inline-flex cursor-pointer items-center gap-2 self-start rounded-md border border-input px-3 py-1.5 text-xs font-medium hover:bg-muted">
+                      <ImagePlus className="size-4" />
+                      {logoUpload.isPending ? 'Enviando...' : 'Enviar logo'}
+                      <input
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp"
+                        className="hidden"
+                        onChange={(e) => {
+                          const f = e.target.files?.[0]
+                          if (f) logoUpload.mutate(f)
+                          e.target.value = ''
+                        }}
+                      />
+                    </label>
+                    <p className="text-[11px] text-muted-foreground">
+                      PNG/JPG/WebP, até 512KB (re-encodado no servidor).
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="logo-link">Ou use um link de imagem</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="logo-link"
+                      value={logoLink}
+                      onChange={(e) => setLogoLink(e.target.value)}
+                      placeholder="https://.../logo.png"
+                    />
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => applyLogoLink.mutate()}
+                      disabled={applyLogoLink.isPending || !logoLink.trim()}
+                    >
+                      {applyLogoLink.isPending ? <Loader2 className="size-4 animate-spin" /> : 'Aplicar'}
+                    </Button>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="b-website">Site</Label>
+                  <Input
+                    id="b-website"
+                    value={website}
+                    onChange={(e) => setWebsiteEdit(e.target.value)}
+                    placeholder="https://parceiro.com"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="b-desc">Descrição</Label>
+                  <Input
+                    id="b-desc"
+                    value={description}
+                    onChange={(e) => setDescriptionEdit(e.target.value)}
+                    maxLength={280}
+                    placeholder="Descrição curta exibida na tela de consent"
+                  />
+                </div>
+
+                {brandingDirty && (
+                  <Button
+                    size="sm"
+                    className="self-start"
+                    onClick={() => saveBranding.mutate()}
+                    disabled={saveBranding.isPending}
+                  >
+                    {saveBranding.isPending && <Loader2 className="size-4 animate-spin" />}
+                    Salvar branding
+                  </Button>
                 )}
               </div>
             </TabsContent>

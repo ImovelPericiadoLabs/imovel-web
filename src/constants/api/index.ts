@@ -63,6 +63,7 @@ export const endpoint = {
     partnerRotateSecret: (id: string) => `/admin/staff/partners/${id}/rotate-secret/`,
     partnerCredits: (id: string) => `/admin/staff/partners/${id}/credits/`,
     partnerSendOnboarding: (id: string) => `/admin/staff/partners/${id}/send-onboarding/`,
+    partnerLogo: (id: string) => `/admin/staff/partners/${id}/logo/`,
     /** Overview de custo/receita (dashboard financeiro). */
     costsOverview: '/admin/staff/costs/overview/',
   },

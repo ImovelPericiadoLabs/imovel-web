@@ -33,6 +33,11 @@ export type Partner = {
   consent_client_id: string | null
   /** redirect_uris (https) cadastrados no app de consent. */
   redirect_uris: string[]
+  /** Branding da integração (exibido na tela de consent). */
+  website: string | null
+  description: string | null
+  /** logo efetivo (upload tem precedência sobre link). */
+  logo_url: string | null
   scopes: PartnerScope[]
   owner_email: string | null
   created: string
@@ -80,6 +85,9 @@ export type CreatePartnerBody = {
   scopes?: PartnerScope[]
   /** Se enviado, provisiona também o app de consent delegado (authorization_code + PKCE). */
   redirect_uris?: string[]
+  website?: string
+  description?: string
+  logo_url?: string
   notes?: string
 }
 
@@ -94,6 +102,9 @@ export type UpdatePartnerBody = {
   status?: PartnerStatus
   /** Atualiza (ou cria, se ainda não existir) o app de consent delegado. */
   redirect_uris?: string[]
+  website?: string
+  description?: string
+  logo_url?: string
 }
 
 export async function updatePartner(id: string, body: UpdatePartnerBody): Promise<PartnerUpdated> {
@@ -110,6 +121,15 @@ export async function rotatePartnerSecret(
   return withToken((token) =>
     api.post(endpoint.staff.partnerRotateSecret(id), { app }, token),
   ) as Promise<RotatedSecret>
+}
+
+/** Upload seguro do logo do parceiro (re-encodado no backend). Retorna o parceiro atualizado. */
+export async function uploadPartnerLogo(id: string, file: File): Promise<Partner> {
+  const form = new FormData()
+  form.append('file', file)
+  return withToken((token) =>
+    api.post(endpoint.staff.partnerLogo(id), form, token),
+  ) as Promise<Partner>
 }
 
 export async function topUpPartnerCredits(
