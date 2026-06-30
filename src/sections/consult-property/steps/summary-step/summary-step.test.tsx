@@ -13,6 +13,9 @@ vi.mock('@/utils/analytics/gtm', () => ({
   trackGtmEvent: vi.fn(),
   buildConsultItem: (v: number) => ({ item_id: 'x', price: v, quantity: 1 }),
   DEFAULT_CURRENCY: 'BRL',
+  CONSULT_PRODUCT_PRICE: 79.9,
+  CONSULT_PRICE_WITH_CERTIFICATES: 79.9,
+  CERTIFICATES_UPSELL_PRICE: 5.99,
 }))
 
 vi.mock('@/components/text-title', () => ({
@@ -91,8 +94,12 @@ describe('SummaryStep', () => {
     expect(screen.getByText(/análise objetiva do imóvel/i)).toBeInTheDocument()
     expect(screen.getByText(/Leitura assistida por IA/i)).toBeInTheDocument()
     expect(screen.getByText(/certidões oficiais incluídas/i)).toBeInTheDocument()
-    expect(screen.queryByText('CND Federal')).not.toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: /certidões oficiais incluídas/i }))
+    // O painel de certidões é um accordion via CSS (grid-rows): o conteúdo está
+    // sempre no DOM, colapsado por padrão. Verificamos o estado via aria-expanded.
+    const certToggle = screen.getByRole('button', { name: /certidões oficiais incluídas/i })
+    expect(certToggle).toHaveAttribute('aria-expanded', 'false')
+    fireEvent.click(certToggle)
+    expect(certToggle).toHaveAttribute('aria-expanded', 'true')
     expect(screen.getByText('CND Federal')).toBeInTheDocument()
   })
 
