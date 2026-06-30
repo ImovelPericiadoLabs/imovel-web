@@ -58,8 +58,11 @@ export function PartnerDetailDialog({
   onChanged: () => void
 }) {
   const [rotatedSecret, setRotatedSecret] = useState<string | null>(null)
+  const [rotatedLabel, setRotatedLabel] = useState('Novo Client Secret')
   const [topUpAmount, setTopUpAmount] = useState('')
   const [scopesEdit, setScopesEdit] = useState<PartnerScope[] | null>(null)
+  const [redirectUrisEdit, setRedirectUrisEdit] = useState<string | null>(null)
+  const [newConsentSecret, setNewConsentSecret] = useState<string | null>(null)
   const [feedback, setFeedback] = useState<Feedback>(null)
 
   const detail = useQuery({
@@ -73,8 +76,11 @@ export function PartnerDetailDialog({
   const handleOpenChange = (next: boolean) => {
     if (!next) {
       setRotatedSecret(null)
+      setRotatedLabel('Novo Client Secret')
       setTopUpAmount('')
       setScopesEdit(null)
+      setRedirectUrisEdit(null)
+      setNewConsentSecret(null)
       setFeedback(null)
     }
     onOpenChange(next)
@@ -84,6 +90,15 @@ export function PartnerDetailDialog({
   const scopes = scopesEdit ?? p?.scopes ?? []
   const scopesDirty = p
     ? JSON.stringify([...scopes].sort()) !== JSON.stringify([...p.scopes].sort())
+    : false
+
+  const redirectUrisText = redirectUrisEdit ?? (p?.redirect_uris ?? []).join('\n')
+  const parsedRedirects = redirectUrisText
+    .split(/[\s,]+/)
+    .map((u) => u.trim())
+    .filter(Boolean)
+  const redirectsDirty = p
+    ? JSON.stringify(parsedRedirects) !== JSON.stringify(p.redirect_uris)
     : false
 
   const afterChange = (message: string) => {
@@ -99,9 +114,12 @@ export function PartnerDetailDialog({
     })
 
   const rotate = useMutation({
-    mutationFn: () => rotatePartnerSecret(partnerId as string),
+    mutationFn: (app: 'm2m' | 'consent') => rotatePartnerSecret(partnerId as string, app),
     onSuccess: (data) => {
       setRotatedSecret(data.client_secret)
+      setRotatedLabel(
+        data.app === 'consent' ? 'Novo Client Secret (consent)' : 'Novo Client Secret (M2M)',
+      )
       setFeedback({ kind: 'success', message: 'Secret rotacionado. Copie agora.' })
     },
     onError,
@@ -134,6 +152,20 @@ export function PartnerDetailDialog({
   const onboarding = useMutation({
     mutationFn: () => sendPartnerOnboarding(partnerId as string),
     onSuccess: (r) => setFeedback({ kind: 'success', message: `Onboarding enviado para ${r.email}.` }),
+    onError,
+  })
+
+  const saveRedirects = useMutation({
+    mutationFn: () => updatePartner(partnerId as string, { redirect_uris: parsedRedirects }),
+    onSuccess: (r) => {
+      setRedirectUrisEdit(null)
+      if (r.consent_client_secret) setNewConsentSecret(r.consent_client_secret)
+      afterChange(
+        r.consent_client_secret
+          ? 'App de consent criado. Copie o secret agora.'
+          : 'Redirect URIs atualizados.',
+      )
+    },
     onError,
   })
 
@@ -238,30 +270,88 @@ export function PartnerDetailDialog({
             </TabsContent>
 
             <TabsContent value="credentials">
-              <div className="flex flex-col gap-4">
-                <CopyField label="Client ID" value={p.client_id ?? ''} />
+              <div className="flex flex-col gap-5">
+                <div className="flex flex-col gap-3">
+                  <CopyField label="Client ID (M2M / client_credentials)" value={p.client_id ?? ''} />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="self-start"
+                    onClick={() => rotate.mutate('m2m')}
+                    disabled={rotate.isPending}
+                  >
+                    {rotate.isPending ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
+                    Rotacionar secret (M2M)
+                  </Button>
+                </div>
+
+                <Separator />
+
+                <div className="flex flex-col gap-3">
+                  <Label>Consent delegado (authorization_code + PKCE)</Label>
+
+                  {p.consent_client_id ? (
+                    <>
+                      <CopyField label="Client ID (consent)" value={p.consent_client_id} />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="self-start"
+                        onClick={() => rotate.mutate('consent')}
+                        disabled={rotate.isPending}
+                      >
+                        {rotate.isPending ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
+                        Rotacionar secret (consent)
+                      </Button>
+                    </>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      Sem app de consent. Cadastre os redirect URIs abaixo para provisioná-lo
+                      (libera o fluxo de criação de pedidos delegada pelo cliente final).
+                    </p>
+                  )}
+
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="redirects">Redirect URIs (https, um por linha)</Label>
+                    <textarea
+                      id="redirects"
+                      value={redirectUrisText}
+                      onChange={(e) => setRedirectUrisEdit(e.target.value)}
+                      rows={2}
+                      placeholder="https://app.parceiro.com/callback"
+                      className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    />
+                    {redirectsDirty && (
+                      <Button
+                        size="sm"
+                        className="self-start"
+                        onClick={() => saveRedirects.mutate()}
+                        disabled={saveRedirects.isPending || parsedRedirects.length === 0}
+                      >
+                        {saveRedirects.isPending && <Loader2 className="size-4 animate-spin" />}
+                        Salvar redirect URIs
+                      </Button>
+                    )}
+                  </div>
+
+                  {newConsentSecret && (
+                    <CopyField label="Client Secret (consent)" value={newConsentSecret} sensitive />
+                  )}
+                </div>
+
+                <Separator />
 
                 {rotatedSecret ? (
-                  <CopyField label="Novo Client Secret" value={rotatedSecret} sensitive />
+                  <CopyField label={rotatedLabel} value={rotatedSecret} sensitive />
                 ) : (
                   <div className="flex items-start gap-2 rounded-lg border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
                     <ShieldCheck className="mt-0.5 size-4 shrink-0" />
                     <p>
-                      O secret é exibido apenas na criação. Se o parceiro perdeu, rotacione para gerar
-                      um novo (invalida o anterior).
+                      O secret é exibido apenas na criação/rotação. Se o parceiro perdeu, rotacione
+                      para gerar um novo (invalida o anterior).
                     </p>
                   </div>
                 )}
-
-                <Button
-                  variant="outline"
-                  className="self-start"
-                  onClick={() => rotate.mutate()}
-                  disabled={rotate.isPending}
-                >
-                  {rotate.isPending ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
-                  Rotacionar secret
-                </Button>
               </div>
             </TabsContent>
 

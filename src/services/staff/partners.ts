@@ -27,15 +27,30 @@ export type Partner = {
   status: PartnerStatus
   is_partner: boolean
   credits_balance: string
+  /** Credencial M2M (client_credentials). */
   client_id: string | null
+  /** Credencial do consent delegado (authorization_code + PKCE); null se não provisionada. */
+  consent_client_id: string | null
+  /** redirect_uris (https) cadastrados no app de consent. */
+  redirect_uris: string[]
   scopes: PartnerScope[]
   owner_email: string | null
   created: string
 }
 
-export type PartnerProvisioned = Partner & { client_secret: string }
+export type PartnerProvisioned = Partner & {
+  client_secret: string
+  /** Secret do app de consent; só presente quando redirect_uris foi enviado na criação. */
+  consent_client_secret?: string
+}
 
-export type RotatedSecret = { client_id: string; client_secret: string }
+/** PATCH pode emitir o app de consent (e seu secret, uma vez) ao receber redirect_uris pela 1ª vez. */
+export type PartnerUpdated = Partner & {
+  consent_client_id?: string
+  consent_client_secret?: string
+}
+
+export type RotatedSecret = { app: string; client_id: string; client_secret: string }
 
 export type Paginated<T> = {
   count: number
@@ -63,6 +78,8 @@ export type CreatePartnerBody = {
   last_name?: string
   initial_credits?: number
   scopes?: PartnerScope[]
+  /** Se enviado, provisiona também o app de consent delegado (authorization_code + PKCE). */
+  redirect_uris?: string[]
   notes?: string
 }
 
@@ -75,17 +92,23 @@ export async function createPartner(body: CreatePartnerBody): Promise<PartnerPro
 export type UpdatePartnerBody = {
   scopes?: PartnerScope[]
   status?: PartnerStatus
+  /** Atualiza (ou cria, se ainda não existir) o app de consent delegado. */
+  redirect_uris?: string[]
 }
 
-export async function updatePartner(id: string, body: UpdatePartnerBody): Promise<Partner> {
+export async function updatePartner(id: string, body: UpdatePartnerBody): Promise<PartnerUpdated> {
   return withToken((token) =>
     api.patch(endpoint.staff.partner(id), body, token),
-  ) as Promise<Partner>
+  ) as Promise<PartnerUpdated>
 }
 
-export async function rotatePartnerSecret(id: string): Promise<RotatedSecret> {
+/** app: 'm2m' (default) ou 'consent' — escolhe qual credencial rotacionar. */
+export async function rotatePartnerSecret(
+  id: string,
+  app: 'm2m' | 'consent' = 'm2m',
+): Promise<RotatedSecret> {
   return withToken((token) =>
-    api.post(endpoint.staff.partnerRotateSecret(id), {}, token),
+    api.post(endpoint.staff.partnerRotateSecret(id), { app }, token),
   ) as Promise<RotatedSecret>
 }
 
