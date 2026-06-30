@@ -1,28 +1,26 @@
 'use client'
 
-import { useQuery } from '@tanstack/react-query'
+import { useMemo } from 'react'
 
-import { getOrderDocuments, orderDocumentsQueryKey } from '@/services/orders'
-import { isOrderPipelineActive } from '@/domain/order-journey'
+import { useOrderDetailQuery } from '@/hooks/use-order-detail-query'
+import { toOrderRelatedDocuments, type OrderRelatedDocument } from '@/services/orders'
 
 /**
- * Related documents (GET /orders/:id/documents): matrícula, certidões and the laudo
- * with signed download URLs. Polls while the pipeline is active; suppressed when
- * realtime is connected (the WebSocket invalidates this key on new events).
+ * Documentos do pedido (matrícula + certidões anexas + laudo). Derivados do detalhe
+ * (GET /orders/:id/) na chave `documents` inline — o backend não expõe
+ * /orders/:id/documents (404). O laudo (REPORT) é sintetizado quando a consulta está
+ * FINISHED (download via GET /analysis/pdfview/:id). `statusValue` é mantido por
+ * compatibilidade de assinatura.
  */
 export function useOrderDocumentsQuery(
   orderId: string | undefined,
-  statusValue?: string,
+  _statusValue?: string,
   realtimeConnected = false,
 ) {
-  return useQuery({
-    queryKey: orderDocumentsQueryKey(orderId ?? ''),
-    queryFn: () => getOrderDocuments(orderId!),
-    enabled: !!orderId,
-    staleTime: 10_000,
-    refetchOnWindowFocus: false,
-    retry: 1,
-    refetchInterval: () =>
-      realtimeConnected ? false : isOrderPipelineActive(statusValue) ? 8_000 : false,
-  })
+  const query = useOrderDetailQuery(orderId, realtimeConnected)
+  const data = useMemo<OrderRelatedDocument[]>(
+    () => toOrderRelatedDocuments(query.data),
+    [query.data],
+  )
+  return { ...query, data }
 }

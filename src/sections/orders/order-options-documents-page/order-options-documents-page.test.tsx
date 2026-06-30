@@ -6,11 +6,12 @@ import OrderOptionsDocumentsPage from './order-options-documents-page'
 import { useParams } from 'next/navigation'
 import { getOrder, getOrderDocuments } from '@/services/orders'
 
+// Anexos INLINE no detalhe (order.documents): matrícula + certidões anexas.
+// O laudo (REPORT) é sintetizado pelo hook quando status === FINISHED.
 const mockDocuments = [
-  { id: 'reg', kind: 'REGISTRATION', label: 'Matrícula do imóvel', original_name: 'matricula.pdf', extension: 'pdf', download_url: 'https://signed.example/matricula.pdf', file_hash: null },
-  { id: 'c1', kind: 'CERTIFICATE', label: 'Certidão Federal (CND) - JULIO BARBOSA', original_name: 'cnd-federal.pdf', extension: 'pdf', download_url: 'https://signed.example/cnd-federal.pdf', file_hash: null },
-  { id: 'c2', kind: 'CERTIFICATE', label: 'Certidão Estadual (SEFAZ) - JULIO BARBOSA', original_name: 'cnd-estadual.pdf', extension: 'pdf', download_url: 'https://signed.example/cnd-estadual.pdf', file_hash: null },
-  { id: 'report-1', kind: 'REPORT', label: 'Relatório consolidado da consulta (laudo)', original_name: 'Consulta #1.pdf', extension: 'pdf', download_url: null, file_hash: null },
+  { id: 'reg', file_path: 'https://signed.example/matricula.pdf', type: 'REGISTRATION', original_name: 'matricula.pdf', file_hash: null, extension: 'pdf' },
+  { id: 'c1', file_path: 'https://signed.example/cnd-federal.pdf', type: 'CERTIFICATE', original_name: 'cnd-federal.pdf', file_hash: null, extension: 'pdf' },
+  { id: 'c2', file_path: 'https://signed.example/cnd-estadual.pdf', type: 'CERTIFICATE', original_name: 'cnd-estadual.pdf', file_hash: null, extension: 'pdf' },
 ]
 
 const mockOrder = {
@@ -21,6 +22,7 @@ const mockOrder = {
   formatted_address: '',
   created: '',
   modified: '',
+  documents: mockDocuments,
 }
 
 function wrapper({ children }: { children: React.ReactNode }) {
@@ -41,7 +43,6 @@ vi.mock('@/services/orders', async (importOriginal) => {
   return {
     ...actual,
     getOrder: vi.fn(),
-    getOrderDocuments: vi.fn(),
   }
 })
 
@@ -79,14 +80,16 @@ describe('OrderOptionsDocumentsPage', () => {
     })
   })
 
-  it('deve listar matrícula, certidões e laudo com seus rótulos', async () => {
+  it('deve listar matrícula, certidões anexas e laudo com seus rótulos', async () => {
     render(<OrderOptionsDocumentsPage />, { wrapper })
 
     await waitFor(() => {
-      expect(screen.getByText('Matrícula do imóvel')).toBeInTheDocument()
-      expect(screen.getByText('Certidão Federal (CND) - JULIO BARBOSA')).toBeInTheDocument()
-      expect(screen.getByText('Certidão Estadual (SEFAZ) - JULIO BARBOSA')).toBeInTheDocument()
-      expect(screen.getByText('Relatório consolidado da consulta (laudo)')).toBeInTheDocument()
+      expect(screen.getByText('Matrícula')).toBeInTheDocument()
+      expect(screen.getAllByText('Certidão')).toHaveLength(2)
+      expect(screen.getByText('Relatório de análise (PDF)')).toBeInTheDocument()
+      // nomes originais dos arquivos aparecem como linha secundária
+      expect(screen.getByText('cnd-federal.pdf')).toBeInTheDocument()
+      expect(screen.getByText('cnd-estadual.pdf')).toBeInTheDocument()
     })
   })
 
@@ -107,7 +110,7 @@ describe('OrderOptionsDocumentsPage', () => {
       expect(screen.getAllByTestId('icon-Download')).toHaveLength(3)
     })
     const buttons = screen.getAllByRole('button')
-    const docButton = buttons.find((b) => b.textContent?.includes('Matrícula do imóvel'))
+    const docButton = buttons.find((b) => b.textContent?.includes('Matrícula'))
     expect(docButton).toHaveClass('group', 'hover:border-primary')
   })
 

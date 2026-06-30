@@ -56,12 +56,13 @@ export default function OrderOptionsDocumentsPage() {
         downloadBlob(blob, safeDocumentFilename(doc))
         return
       }
-      // Matrícula and certidões carry a signed GCS URL: open it directly when present.
+      // Matrícula and certidões carry an absolute (GCS) URL: open it directly when present.
       if (doc.download_url) {
         window.open(doc.download_url, '_blank', 'noopener,noreferrer')
         return
       }
-      const blob = await getDocumentBlob(doc.id)
+      // Otherwise stream the attached file by its path (getBlob handles absolute/relative).
+      const blob = await getDocumentBlob(doc.file_path ?? doc.id)
       downloadBlob(blob, safeDocumentFilename(doc))
     } finally {
       setLoadingDocId(null)

@@ -1,28 +1,25 @@
 'use client'
 
-import { useQuery } from '@tanstack/react-query'
+import { useMemo } from 'react'
 
-import { getOrderOwners, orderOwnersQueryKey } from '@/services/orders'
-import { isOrderPipelineActive } from '@/domain/order-journey'
+import { useOrderDetailQuery } from '@/hooks/use-order-detail-query'
+import type { OwnersDetails } from '@/services/orders'
 
 /**
- * Order owners (GET /orders/:id/owners). Polls while the pipeline is active so the
- * list fills in when the order FINISHES; polling is suppressed while realtime is
- * connected (the WebSocket invalidates this key on new events instead).
+ * Proprietários do pedido. Derivados do detalhe (GET /orders/:id/) na chave `owners`
+ * inline — o backend não expõe /orders/:id/owners (404). A query de detalhe é
+ * compartilhada (mesma queryKey), então não há requisição extra; o polling/realtime
+ * já é controlado por ela. `statusValue` é mantido por compatibilidade de assinatura.
  */
 export function useOrderOwnersQuery(
   orderId: string | undefined,
-  statusValue?: string,
+  _statusValue?: string,
   realtimeConnected = false,
 ) {
-  return useQuery({
-    queryKey: orderOwnersQueryKey(orderId ?? ''),
-    queryFn: () => getOrderOwners(orderId!),
-    enabled: !!orderId,
-    staleTime: 10_000,
-    refetchOnWindowFocus: false,
-    retry: 1,
-    refetchInterval: () =>
-      realtimeConnected ? false : isOrderPipelineActive(statusValue) ? 8_000 : false,
-  })
+  const query = useOrderDetailQuery(orderId, realtimeConnected)
+  const data = useMemo<OwnersDetails[]>(
+    () => query.data?.owners ?? [],
+    [query.data],
+  )
+  return { ...query, data }
 }
