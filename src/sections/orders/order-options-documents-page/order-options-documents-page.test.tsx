@@ -110,4 +110,13 @@ describe('OrderOptionsDocumentsPage', () => {
     const docButton = buttons.find((b) => b.textContent?.includes('Matrícula do imóvel'))
     expect(docButton).toHaveClass('group', 'hover:border-primary')
   })
+
+  it('deve garantir que o ícone de download tenha a cor da marca', async () => {
+    render(<OrderOptionsDocumentsPage />, { wrapper })
+
+    await waitFor(() => {
+      const icons = screen.getAllByTestId('icon-Download')
+      expect(icons[0]).toHaveClass('text-primary')
+    })
+  })
 })

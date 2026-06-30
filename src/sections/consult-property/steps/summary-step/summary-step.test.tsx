@@ -87,7 +87,7 @@ describe('SummaryStep', () => {
 
   it('exibe preço formatado e lista de benefícios', () => {
     render(<SummaryHarness entryPath="document" includeCertificates />)
-    expect(screen.getByText('R$ 59,00')).toBeInTheDocument()
+    expect(screen.getByText('R$ 79,90')).toBeInTheDocument()
     expect(screen.getByText(/análise objetiva do imóvel/i)).toBeInTheDocument()
     expect(screen.getByText(/Leitura assistida por IA/i)).toBeInTheDocument()
     expect(screen.getByText(/certidões oficiais incluídas/i)).toBeInTheDocument()

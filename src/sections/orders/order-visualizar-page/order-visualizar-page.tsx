@@ -7,6 +7,7 @@ import { useOrderAnalysesQuery } from '@/hooks/use-order-analyses-query'
 import { useOrderRealtime } from '@/hooks/use-order-realtime'
 import OrderHeader from '@/sections/orders/order-header'
 import { OrderAnalysisList } from '@/sections/orders/order-analysis-list'
+import { OrderCertificateList } from '@/sections/orders/order-certificate-list'
 
 export default function OrderVisualizarPage() {
   const { id } = useParams()
@@ -21,6 +22,7 @@ export default function OrderVisualizarPage() {
   )
 
   const hasAnalysis = analysis.length > 0
+  const hasCertificates = Boolean(order?.certificates?.length)
 
   return (
     <div className="flex flex-col gap-3 pb-10">
@@ -34,7 +36,14 @@ export default function OrderVisualizarPage() {
           </section>
         )}
 
-        {!hasAnalysis && (
+        {hasCertificates && (
+          <section className="flex flex-col gap-2">
+            <h2 className="text-sm font-bold text-gray-900 px-1">Certidões oficiais</h2>
+            <OrderCertificateList items={order!.certificates!} />
+          </section>
+        )}
+
+        {!hasAnalysis && !hasCertificates && (
           <p className="text-sm text-gray-500 px-1">
             O resultado ainda está sendo processado. Volte em alguns minutos.
           </p>
