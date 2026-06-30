@@ -46,6 +46,9 @@ export function PartnerCreateDialog({
   const [initialCredits, setInitialCredits] = useState('0')
   const [scopes, setScopes] = useState<PartnerScope[]>(DEFAULT_SCOPES)
   const [redirectUris, setRedirectUris] = useState('')
+  const [website, setWebsite] = useState('')
+  const [description, setDescription] = useState('')
+  const [logoUrl, setLogoUrl] = useState('')
   const [provisioned, setProvisioned] = useState<PartnerProvisioned | null>(null)
 
   const reset = () => {
@@ -54,6 +57,9 @@ export function PartnerCreateDialog({
     setInitialCredits('0')
     setScopes(DEFAULT_SCOPES)
     setRedirectUris('')
+    setWebsite('')
+    setDescription('')
+    setLogoUrl('')
     setProvisioned(null)
     mutation.reset()
   }
@@ -78,6 +84,9 @@ export function PartnerCreateDialog({
       initial_credits: Number(initialCredits) || 0,
       scopes,
       redirect_uris: parsedRedirectUris.length ? parsedRedirectUris : undefined,
+      website: website.trim() || undefined,
+      description: description.trim() || undefined,
+      logo_url: logoUrl.trim() || undefined,
     })
   }
 
@@ -208,6 +217,28 @@ export function PartnerCreateDialog({
                   https, um por linha. Se preenchido, provisiona também o app de consent
                   (authorization_code + PKCE). Deixe vazio para criar só a credencial M2M.
                 </p>
+              </div>
+
+              <div className="flex flex-col gap-3 rounded-lg border border-dashed border-input p-3">
+                <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+                  Branding da integração (opcional)
+                </Label>
+                <Input
+                  value={website}
+                  onChange={(e) => setWebsite(e.target.value)}
+                  placeholder="Site — https://parceiro.com"
+                />
+                <Input
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Descrição curta (até 280 caracteres)"
+                  maxLength={280}
+                />
+                <Input
+                  value={logoUrl}
+                  onChange={(e) => setLogoUrl(e.target.value)}
+                  placeholder="Logo (link https) — o upload pode ser feito depois, no detalhe"
+                />
               </div>
 
               {mutation.isError && (
