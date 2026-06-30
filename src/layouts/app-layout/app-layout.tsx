@@ -2,8 +2,8 @@
 
 import { PropsWithChildren, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Image from 'next/image'
-import { ChevronLeft, Menu, X, LogOut, Wallet, Mail, Search, List, FileText, Trash2, AlertTriangle, LoaderCircle, Megaphone, MessageSquare, ClipboardList } from 'lucide-react'
+import { BrandLogoLink } from '@/components/brand-logo-link'
+import { ChevronLeft, Menu, X, LogOut, Wallet, Mail, Search, List, FileText, Trash2, AlertTriangle, LoaderCircle, Megaphone, MessageSquare, ClipboardList, UserPlus } from 'lucide-react'
 import Link from 'next/link'
 import { useSession } from 'next-auth/react'
 import { useMutation, useQuery } from '@tanstack/react-query'
@@ -15,6 +15,8 @@ import { getMe, requestAccountDeletion, type MeResponse } from '@/services/accou
 import { CONSULTAR_IMOVEL_INICIO_HREF } from '@/constants/consult-flow'
 import { legalDocuments, getLegalRoute } from '@/constants/legal'
 import { clearAuthClientFlag } from '@/utils/auth-client-flag'
+import { cn } from '@/utils/tailwind'
+import { AdminSettingsProvider } from '@/layouts/admin-workspace/admin-settings-context'
 
 function formatCredits(value: number) {
   return new Intl.NumberFormat('pt-BR', {
@@ -70,6 +72,7 @@ export default function AppLayout({ children }: PropsWithChildren) {
     const mapRoutes: Record<string, string> = {
       '/consultas': CONSULTAR_IMOVEL_INICIO_HREF,
       '/admin/manual-review': '/consultas',
+      '/admin/partner-accounts': '/consultas',
       '/admin/outreach': '/consultas',
       '/admin/chat': '/admin/outreach',
     }
@@ -150,22 +153,19 @@ export default function AppLayout({ children }: PropsWithChildren) {
     if (isMatch('/consultas/:id/opcoes/proprietarios')) {
       return <HeaderTitle>Proprietários</HeaderTitle>
     }
-    if (pathname.startsWith('/admin/manual-review')) {
-      return <HeaderTitle>Fila manual</HeaderTitle>
-    }
-    if (pathname.startsWith('/admin/outreach')) {
-      return <HeaderTitle>Divulgação</HeaderTitle>
-    }
-    if (pathname.startsWith('/admin/chat')) {
-      return <HeaderTitle>Chat</HeaderTitle>
-    }
     return <></>
   }, [isMatch, pathname])
 
+  const adminSettingsValue = isAdminArea
+    ? { openSettings: () => setSidebarOpen(true), onBack: handleGoBack }
+    : null
+
   return (
-    <section className="min-h-screen bg-white pb-6">
+    <AdminSettingsProvider value={adminSettingsValue}>
+      <section className={cn('min-h-screen', isAdminArea ? 'bg-[#E4E6EF]' : 'bg-white pb-6')}>
+        {!isAdminArea && (
         <header className="flex flex-col pt-4 px-4 bg-primary relative z-40">
-          <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2 py-4.5 mb-6 relative">
+          <div className="relative mb-6 grid min-h-[4rem] grid-cols-[auto_1fr_auto] items-center gap-2 py-5 sm:min-h-[4.25rem]">
             <div className="flex items-center justify-start shrink-0">
               <ChevronLeft
                 onClick={handleGoBack}
@@ -179,21 +179,14 @@ export default function AppLayout({ children }: PropsWithChildren) {
               {headerTitle}
             </div>
 
-            {/* Logo centralizada com posicionamento absoluto para não ser deslocada pelos créditos */}
             {pathname === '/consultas' && (
-              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
-                <Image
-                  src="/images/logo.svg"
-                  alt="Logo Imóvel Periciado"
-                  width={72}
-                  height={70}
-                  className="object-contain -my-2.5"
-                />
+              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+                <BrandLogoLink tone="on-primary" />
               </div>
             )}
 
             <div className="flex items-center justify-end shrink-0">
-              {(isConsultas || isAdminArea) ? (
+              {isConsultas ? (
                 <button
                   type="button"
                   onClick={() => setSidebarOpen(true)}
@@ -208,6 +201,7 @@ export default function AppLayout({ children }: PropsWithChildren) {
             </div>
           </div>
         </header>
+        )}
 
         {children}
 
@@ -288,14 +282,24 @@ export default function AppLayout({ children }: PropsWithChildren) {
                     Minhas consultas
                   </Link>
                   {(me?.is_staff || me?.is_superuser) && (
-                    <Link
-                      href="/admin/manual-review"
-                      onClick={() => setSidebarOpen(false)}
-                      className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-gray-700 hover:bg-gray-100 font-medium touch-manipulation"
-                    >
-                      <ClipboardList className="size-5 text-primary shrink-0" />
-                      Fila manual (equipe)
-                    </Link>
+                    <>
+                      <Link
+                        href="/admin/manual-review"
+                        onClick={() => setSidebarOpen(false)}
+                        className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-gray-700 hover:bg-gray-100 font-medium touch-manipulation"
+                      >
+                        <ClipboardList className="size-5 text-primary shrink-0" />
+                        Fila manual (equipe)
+                      </Link>
+                      <Link
+                        href="/admin/partner-accounts"
+                        onClick={() => setSidebarOpen(false)}
+                        className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-gray-700 hover:bg-gray-100 font-medium touch-manipulation"
+                      >
+                        <UserPlus className="size-5 text-primary shrink-0" />
+                        Contas de teste (parceiros)
+                      </Link>
+                    </>
                   )}
                   {me?.is_superuser && (
                     <>
@@ -446,6 +450,7 @@ export default function AppLayout({ children }: PropsWithChildren) {
             </div>
           }
         />
-    </section>
+      </section>
+    </AdminSettingsProvider>
   )
 }

@@ -1,13 +1,7 @@
 import api from '@/utils/api/client'
 import { endpoint } from '@/constants/api'
-import { signOut } from 'next-auth/react'
 import { getSessionDeduplicated } from '@/utils/session'
-
-async function handleUnauthorized() {
-  if (typeof window === 'undefined') return
-  window.dispatchEvent(new Event('auth:unauthorized'))
-  await signOut({ redirect: false })
-}
+import { requestReauth } from '@/utils/auth-reauth'
 
 export type SemaphoreStatus = 'green' | 'yellow' | 'red' | 'blue' | 'gray'
 export type AnalisisStatus = {
@@ -27,10 +21,35 @@ export type OrderAnalysisResult = {
   reason: string
 }
 
+export type OrderCertificateResult = OrderAnalysisResult & {
+  kind_label?: string
+  subject?: string
+  tax_id?: string
+  summary?: string
+  footnote?: string
+}
+
+export type PlanFeature = {
+  slug: string
+  name: string
+  description?: string
+}
+
+export type Plan = {
+  id?: string
+  slug?: string
+  name?: string
+  description?: string
+  price?: number
+  price_with_certificates?: number
+  features?: PlanFeature[]
+}
+
 /** Objeto de endereço usado na análise e no re-request (GET/POST). CEP 8 dígitos quando enviado. */
 export type PlaceResponse = {
   formatted_address?: string
   street_number?: string
+  address_has_number?: boolean
   route?: string
   neighborhood?: string
   sublocality?: string
@@ -42,10 +61,19 @@ export type PlaceResponse = {
   longitude?: number
 }
 
+export type OrderAnalysisProgress = {
+  step?: string
+  label?: string
+  agent_title?: string
+  agent_slug?: string
+  updated_at?: string
+}
+
 export type Order = {
   id: string
   code: number
   status: GenericStatus
+  analysis_progress?: OrderAnalysisProgress | null
   /** Confirmado = pagamento ou créditos já cobertos; útil quando ``status`` analítico ainda é PENDING (re-solicitação / fila). */
   payment_status?: GenericStatus
   gateway?: string
@@ -72,6 +100,8 @@ export type Order = {
   owners?: OwnersDetails[]
   semaphore?: SemaphoreStatus
   analysis?: OrderAnalysisResult[]
+  /** Certidões oficiais emitidas (layout compacto na visualização). */
+  certificates?: OrderCertificateResult[]
 }
 
 export type OwnersDetails = {
@@ -139,6 +169,7 @@ async function guard<T>(callback: (token: string) => Promise<T>): Promise<T> {
   const token = session?.accessToken
 
   if (!token) {
+    requestReauth()
     throw new Error(
       'Não foi possível obter a sessão. Verifique sua conexão ou entre novamente.',
     )
@@ -149,7 +180,7 @@ async function guard<T>(callback: (token: string) => Promise<T>): Promise<T> {
   } catch (error: unknown) {
     const err = error as { status?: number }
     if (err?.status === 401) {
-      await handleUnauthorized()
+      requestReauth()
     }
     throw error
   }
@@ -234,6 +265,93 @@ export async function getDocumentBlob(filePath: string): Promise<Blob> {
   })
 }
 
+/** Proprietário extraído da matrícula (GET /orders/:id/owners). */
+export type OrderOwner = {
+  id: string
+  order_id: string
+  name: string
+  tax_id: string | null
+  undivided_interest: number | null
+  owner_type: string | null
+  group_id?: string | null
+  group_label?: string | null
+}
+
+/** Veredicto bruto por agente (GET /orders/:id/analyses). */
+export type OrderAnalysisApiItem = {
+  id: string
+  order_id: string
+  agent_id: string
+  title: string | null
+  signal: SemaphoreStatus
+  signal_label: string | null
+  reason: string
+  response: Record<string, unknown>
+  created_at: string
+}
+
+export type OrderRelatedDocumentKind = 'REGISTRATION' | 'CERTIFICATE' | 'REPORT'
+
+/** Documento relacionado ao pedido (GET /orders/:id/documents). */
+export type OrderRelatedDocument = {
+  id: string
+  kind: OrderRelatedDocumentKind
+  label: string
+  original_name: string
+  extension: string
+  /** URL assinada (GCS) para download direto; null no laudo (use getAnalysisPdfBlob). */
+  download_url: string | null
+  file_hash: string | null
+}
+
+export const orderOwnersQueryKey = (orderId: string) =>
+  ['order-owners', orderId] as const
+
+export const orderAnalysesQueryKey = (orderId: string) =>
+  ['order-analyses', orderId] as const
+
+export const orderDocumentsQueryKey = (orderId: string) =>
+  ['order-documents', orderId] as const
+
+/** GET /orders/:id/owners — proprietários (nome, documento, tipo, %). */
+export async function getOrderOwners(orderId: string) {
+  return guard(async (token) => {
+    return api.get(endpoint.orderOwners(orderId), token) as Promise<OrderOwner[]>
+  })
+}
+
+/** GET /orders/:id/analyses — veredictos por agente (semáforo + justificativa). */
+export async function getOrderAnalyses(orderId: string) {
+  return guard(async (token) => {
+    return api.get(
+      endpoint.orderAnalyses(orderId),
+      token,
+    ) as Promise<OrderAnalysisApiItem[]>
+  })
+}
+
+/** Mapeia o veredicto bruto para o shape consumido por OrderAnalysisList. */
+export function toOrderAnalysisResult(
+  item: OrderAnalysisApiItem,
+): OrderAnalysisResult {
+  return {
+    id: item.id,
+    title: item.title ?? 'Análise',
+    status: { value: item.signal, label: item.signal_label ?? item.signal },
+    reason: item.reason,
+  }
+}
+
+/** GET /orders/:id/documents — matrícula, certidões e laudo com URL assinada. */
+export async function getOrderDocuments(orderId: string) {
+  return guard(async (token) => {
+    return api.get(
+      endpoint.orderDocuments(orderId),
+      token,
+    ) as Promise<OrderRelatedDocument[]>
+  })
+}
+
 export type ReRequestOrderBody = {
   /** Se enviado, backend usa este objeto (não chama API de endereço). CEP validado 8 dígitos. */
   place_response?: PlaceResponse
@@ -276,15 +394,15 @@ export async function listPlans() {
 }
 
 /** GET /plans/ sem autenticação (mesmo payload que `listPlans` autenticado). */
-export async function listPlansPublic(): Promise<Array<{ id?: string; price?: number; name?: string }>> {
+export async function listPlansPublic(): Promise<Plan[]> {
   try {
     const response = (await api.get(endpoint.plans)) as unknown
     if (Array.isArray(response)) {
-      return response as Array<{ id?: string; price?: number; name?: string }>
+      return response as Plan[]
     }
     if (response && typeof response === 'object' && 'plans' in response) {
       const plans = (response as { plans?: unknown }).plans
-      return Array.isArray(plans) ? (plans as Array<{ id?: string; price?: number; name?: string }>) : []
+      return Array.isArray(plans) ? (plans as Plan[]) : []
     }
     return []
   } catch {

@@ -56,6 +56,10 @@ vi.mock('@/components/order-journey', () => ({
   OrderJourneyPanel: () => <div data-testid="order-journey">Journey</div>,
 }))
 
+vi.mock('@/hooks/use-order-realtime', () => ({
+  useOrderRealtime: () => ({ connected: false }),
+}))
+
 vi.mock('lucide-react', () => ({
   Files: () => <span />,
   Lock: () => <span />,

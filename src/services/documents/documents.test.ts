@@ -10,7 +10,12 @@ vi.mock('@/utils/api/client', () => ({
 }))
 
 const mockApiUpload = api.upload as Mock<
-  (url: string, file: File, progress: (p: number) => void) => Promise<unknown>
+  (
+    url: string,
+    documentType: string,
+    file: File,
+    progress: (p: number) => void,
+  ) => Promise<unknown>
 >
 
 describe('uploadDocument service', () => {
@@ -20,13 +25,14 @@ describe('uploadDocument service', () => {
 
     mockApiUpload.mockResolvedValue({ ok: true })
 
-    const result = await uploadDocument(file, progressFn)
+    const result = await uploadDocument(file, 'REGISTRATION', progressFn)
 
     expect(mockApiUpload).toHaveBeenCalledTimes(1)
 
-    const [url, passedFile, passedProgress] = mockApiUpload.mock.calls[0]
+    const [url, documentType, passedFile, passedProgress] = mockApiUpload.mock.calls[0]
 
     expect(url).toBe(endpoint.documents.upload)
+    expect(documentType).toBe('REGISTRATION')
     expect(passedFile).toBeInstanceOf(File)
     expect(passedFile.name).toBe('file.pdf')
     expect(typeof passedProgress).toBe('function')
@@ -41,21 +47,23 @@ describe('uploadDocument service', () => {
 
     mockApiUpload.mockRejectedValue(error)
 
-    await expect(uploadDocument(file, progressFn)).rejects.toThrow('Something went wrong')
+    await expect(uploadDocument(file, 'REGISTRATION', progressFn)).rejects.toThrow(
+      'Something went wrong',
+    )
   })
 
   it('should forward the progress callback to api.upload', async () => {
     const file = new File(['123'], 'doc.pdf', { type: 'application/pdf' })
     const progressFn = vi.fn()
 
-    mockApiUpload.mockImplementation(async (_url, _file, onProgress) => {
+    mockApiUpload.mockImplementation(async (_url, _type, _file, onProgress) => {
       onProgress(15)
       onProgress(55)
       onProgress(100)
       return { done: true }
     })
 
-    await uploadDocument(file, progressFn)
+    await uploadDocument(file, 'DEED', progressFn)
 
     expect(progressFn).toHaveBeenCalledTimes(3)
     expect(progressFn).toHaveBeenNthCalledWith(1, 15)

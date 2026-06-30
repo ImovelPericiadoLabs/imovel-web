@@ -1,9 +1,12 @@
 import { describe, it, expect } from 'vitest'
 
 import {
+  getOrderEventsRefetchIntervalMs,
   getOrderRefetchIntervalMs,
   getOrderTimelineRows,
   isOrderPaymentConfirmed,
+  isOrderPipelineActive,
+  isOrderTerminalStatus,
   resolveOrderStatusUI,
 } from './order-journey'
 
@@ -18,9 +21,17 @@ describe('order-journey', () => {
     expect(getOrderRefetchIntervalMs('FINISHED')).toBe(false)
   })
 
-  it('getOrderRefetchIntervalMs polls faster while searching', () => {
-    expect(getOrderRefetchIntervalMs('SEARCHING_DOCUMENT')).toBe(12_000)
-    expect(getOrderRefetchIntervalMs('IN_PROGRESS')).toBe(8_000)
+  it('getOrderRefetchIntervalMs polls while pipeline is active', () => {
+    expect(getOrderRefetchIntervalMs('SEARCHING_DOCUMENT')).toBe(15_000)
+    expect(getOrderRefetchIntervalMs('IN_PROGRESS')).toBe(10_000)
+  })
+
+  it('getOrderRefetchIntervalMs stops on manual review queue', () => {
+    expect(getOrderRefetchIntervalMs('MANUAL_REVIEW_PENDING')).toBe(false)
+  })
+
+  it('getOrderRefetchIntervalMs stops on unknown status', () => {
+    expect(getOrderRefetchIntervalMs(undefined)).toBe(false)
   })
 
   it('getOrderTimelineRows marks search as current when searching', () => {
@@ -42,11 +53,11 @@ describe('order-journey', () => {
     expect(rows[1]!.state).toBe('current')
   })
 
-  it('getOrderRefetchIntervalMs polls faster for PENDING when payment confirmed', () => {
+  it('getOrderRefetchIntervalMs polls for PENDING when payment confirmed', () => {
     expect(
       getOrderRefetchIntervalMs('PENDING', { paymentConfirmed: true }),
-    ).toBe(12_000)
-    expect(getOrderRefetchIntervalMs('PENDING', {})).toBe(30_000)
+    ).toBe(15_000)
+    expect(getOrderRefetchIntervalMs('PENDING', {})).toBe(45_000)
   })
 
   it('isOrderPaymentConfirmed reads CONFIRMED', () => {
@@ -54,5 +65,30 @@ describe('order-journey', () => {
       true,
     )
     expect(isOrderPaymentConfirmed(undefined)).toBe(false)
+  })
+
+  it('isOrderPipelineActive is true only for transit pipeline states', () => {
+    expect(isOrderPipelineActive('IN_PROGRESS')).toBe(true)
+    expect(isOrderPipelineActive('SEARCHING_DOCUMENT')).toBe(true)
+    expect(isOrderPipelineActive('FINISHED')).toBe(false)
+    expect(isOrderPipelineActive('PENDING')).toBe(false)
+  })
+
+  it('isOrderTerminalStatus stops polling targets', () => {
+    expect(isOrderTerminalStatus('FINISHED')).toBe(true)
+    expect(isOrderTerminalStatus('CANCELED')).toBe(true)
+    expect(isOrderTerminalStatus('MANUAL_REVIEW_PENDING')).toBe(true)
+    expect(isOrderTerminalStatus('IN_PROGRESS')).toBe(false)
+  })
+
+  it('getOrderEventsRefetchIntervalMs polls only during active pipeline', () => {
+    expect(getOrderEventsRefetchIntervalMs('IN_PROGRESS')).toBe(12_000)
+    expect(getOrderEventsRefetchIntervalMs('FINISHED')).toBe(false)
+    expect(getOrderEventsRefetchIntervalMs('PENDING')).toBe(false)
+  })
+
+  it('getOrderEventsRefetchIntervalMs slows on action-required terminals', () => {
+    expect(getOrderEventsRefetchIntervalMs('REJECTED_DATA')).toBe(90_000)
+    expect(getOrderEventsRefetchIntervalMs('RETURNED_BY_NOTARY')).toBe(90_000)
   })
 })

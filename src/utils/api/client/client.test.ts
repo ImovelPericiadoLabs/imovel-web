@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import api from './client'
 import { signOut } from 'next-auth/react'
+import { touchAuthClientFlag, clearAuthClientFlag } from '@/utils/auth-client-flag'
+import { resetReauthGuard, AUTH_UNAUTHORIZED_EVENT } from '@/utils/auth-reauth'
 
 vi.mock('next-auth/react', () => ({
   signOut: vi.fn(),
@@ -28,6 +30,8 @@ const mockTextResponse = (data: string, status = 200) =>
 beforeEach(() => {
   mockFetch.mockReset()
   vi.clearAllMocks()
+  resetReauthGuard()
+  clearAuthClientFlag()
 })
 
 describe('api.get', () => {
@@ -46,11 +50,43 @@ describe('api.get', () => {
     })
   })
 
-  it('deve chamar signOut e lançar erro em status 401', async () => {
+  it('deve sinalizar re-autenticação (sem signOut) em 401 quando o browser já teve sessão', async () => {
+    touchAuthClientFlag()
+    const dispatchSpy = vi.spyOn(window, 'dispatchEvent')
     mockFetch.mockResolvedValue(mockJsonResponse({ error: 'Unauthorized' }, 401))
 
     await expect(api.get('/unauth')).rejects.toEqual({ error: 'Unauthorized' })
-    expect(signOut).toHaveBeenCalled()
+    expect(dispatchSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ type: AUTH_UNAUTHORIZED_EVENT }),
+    )
+    expect(signOut).not.toHaveBeenCalled()
+    dispatchSpy.mockRestore()
+  })
+
+  it('NÃO deve abrir o modal de re-auth em 401 para usuário anônimo (sem flag)', async () => {
+    const dispatchSpy = vi.spyOn(window, 'dispatchEvent')
+    mockFetch.mockResolvedValue(mockJsonResponse({ error: 'Unauthorized' }, 401))
+
+    await expect(api.get('/unauth')).rejects.toEqual({ error: 'Unauthorized' })
+    expect(dispatchSpy).not.toHaveBeenCalledWith(
+      expect.objectContaining({ type: AUTH_UNAUTHORIZED_EVENT }),
+    )
+    expect(signOut).not.toHaveBeenCalled()
+    dispatchSpy.mockRestore()
+  })
+
+  it('deve disparar o evento de re-auth no máximo uma vez em 401 concorrentes', async () => {
+    touchAuthClientFlag()
+    const dispatchSpy = vi.spyOn(window, 'dispatchEvent')
+    mockFetch.mockResolvedValue(mockJsonResponse({ error: 'Unauthorized' }, 401))
+
+    await Promise.allSettled([api.get('/a'), api.get('/b'), api.get('/c')])
+
+    const reauthCalls = dispatchSpy.mock.calls.filter(
+      ([event]) => event instanceof Event && event.type === AUTH_UNAUTHORIZED_EVENT,
+    )
+    expect(reauthCalls).toHaveLength(1)
+    dispatchSpy.mockRestore()
   })
 
   it('deve lançar em GET 429 em vez de devolver o corpo como sucesso', async () => {
@@ -109,10 +145,16 @@ describe('api.put & api.delete', () => {
     expect(result).toBe('updated')
   })
 
-  it('deve processar DELETE e disparar signOut em caso de 401', async () => {
+  it('deve processar DELETE e sinalizar re-auth (sem signOut) em caso de 401', async () => {
+    touchAuthClientFlag()
+    const dispatchSpy = vi.spyOn(window, 'dispatchEvent')
     mockFetch.mockResolvedValue(mockTextResponse('unauthorized', 401))
     await expect(api.delete('/remove')).rejects.toBe('unauthorized')
-    expect(signOut).toHaveBeenCalled()
+    expect(dispatchSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ type: AUTH_UNAUTHORIZED_EVENT }),
+    )
+    expect(signOut).not.toHaveBeenCalled()
+    dispatchSpy.mockRestore()
   })
 })
 
@@ -145,7 +187,7 @@ describe('api.upload', () => {
     const file = new File(['data'], 'test.png')
     const onProgress = vi.fn()
 
-    const promise = api.upload('/upload', file, onProgress)
+    const promise = api.upload('/upload', 'REGISTRATION', file, onProgress)
     const xhr = MockXHR.instance
 
     xhr.upload.onprogress({ lengthComputable: true, loaded: 50, total: 100 })
@@ -158,22 +200,28 @@ describe('api.upload', () => {
     expect(result).toEqual({ fileId: '123' })
   })
 
-  it('deve rejeitar upload com 401 e chamar signOut', async () => {
+  it('deve rejeitar upload com 401 e sinalizar re-auth (sem signOut)', async () => {
+    touchAuthClientFlag()
+    const dispatchSpy = vi.spyOn(window, 'dispatchEvent')
     const file = new File([''], 'empty.txt')
-    const promise = api.upload('/fail', file, vi.fn())
-    
+    const promise = api.upload('/fail', 'REGISTRATION', file, vi.fn())
+
     const xhr = MockXHR.instance
     xhr.status = 401
     xhr.responseText = 'Unauthorized'
     xhr.onload()
 
     await expect(promise).rejects.toBe('Unauthorized')
-    expect(signOut).toHaveBeenCalled()
+    expect(dispatchSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ type: AUTH_UNAUTHORIZED_EVENT }),
+    )
+    expect(signOut).not.toHaveBeenCalled()
+    dispatchSpy.mockRestore()
   })
 
   it('deve falhar se o progresso não for computável', async () => {
     const onProgress = vi.fn()
-    api.upload('/up', new File([], 'f'), onProgress)
+    api.upload('/up', 'REGISTRATION', new File([], 'f'), onProgress)
     MockXHR.instance.upload.onprogress({ lengthComputable: false })
     expect(onProgress).not.toHaveBeenCalled()
   })

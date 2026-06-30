@@ -4,6 +4,12 @@ import { useState } from 'react'
 import { useFormContext } from 'react-hook-form'
 import { useMutation } from '@tanstack/react-query'
 import TextTitle from '@/components/text-title'
+import {
+  consultFlowHeroBlockClass,
+  consultFlowHeroTitleClass,
+  consultFlowHeroTitleSizePrimaryClass,
+} from '@/constants/consult-flow-hero-text'
+import { cn } from '@/utils/tailwind'
 import DocumentUpload from '@/components/document-upload'
 import DocumentItem from '@/components/document-item'
 import Button from '@/components/button'
@@ -67,8 +73,12 @@ export function SendDocumentStep({ onNext }: { onNext: () => void }) {
   }
 
   return (
-    <div className="flex flex-col h-full gap-5 px-4 relative">
-      <TextTitle>Envie o documento</TextTitle>
+    <div className="relative flex flex-col gap-5 px-4">
+      <div className={consultFlowHeroBlockClass}>
+        <TextTitle className={cn(consultFlowHeroTitleClass, consultFlowHeroTitleSizePrimaryClass)}>
+          Envie o documento
+        </TextTitle>
+      </div>
 
       <DocumentUpload onFileSelect={handleFileSelect} />
 

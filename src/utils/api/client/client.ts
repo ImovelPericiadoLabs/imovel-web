@@ -1,11 +1,19 @@
-import { signOut } from 'next-auth/react'
 import { url } from '@/constants/api'
 import { ApiError } from '@/utils/api/errors'
-import { clearAuthClientFlag } from '@/utils/auth-client-flag'
+import { requestReauth } from '@/utils/auth-reauth'
 
 const apiUrl = url
 const INTERNAL_API_HEADER_NAME = process.env.INTERNAL_API_HEADER_NAME || 'x-internal-auth'
 const INTERNAL_API_SHARED_SECRET = process.env.INTERNAL_API_SHARED_SECRET
+
+function isInternalApiHost(): boolean {
+  try {
+    const host = new URL(apiUrl).hostname
+    return host === 'localhost' || host === '127.0.0.1' || host === '0.0.0.0'
+  } catch {
+    return false
+  }
+}
 
 function logInternalHeaderDecision(method: string, endpointPath: string, applied: boolean, reason: string) {
   if (typeof window !== 'undefined') return
@@ -37,15 +45,18 @@ function appendInternalApiHeader(
     return
   }
 
+  if (!isInternalApiHost()) {
+    logInternalHeaderDecision(method, endpointPath, false, 'public_api_host')
+    return
+  }
+
   headers[INTERNAL_API_HEADER_NAME] = INTERNAL_API_SHARED_SECRET
   logInternalHeaderDecision(method, endpointPath, true, 'header_attached')
 }
 
-async function handleUnauthorized() {
-  if (typeof window === 'undefined') return
-  clearAuthClientFlag()
-  window.dispatchEvent(new Event('auth:unauthorized'))
-  await signOut({ redirect: false })
+/** Signals re-auth (modal) for an authenticated session that hit 401. Never signs out. */
+function handleUnauthorized() {
+  requestReauth()
 }
 
 const api = {
@@ -79,7 +90,7 @@ const api = {
     }
 
     if (response.status === 401) {
-      await handleUnauthorized()
+      handleUnauthorized()
       throw result
     }
 
@@ -114,7 +125,7 @@ const api = {
     appendInternalApiHeader(headers, 'GET', pathOrUrl.startsWith('http') ? pathOrUrl : pathOrUrl)
     const response = await fetch(fullUrl, { method: 'GET', headers })
     if (response.status === 401) {
-      await handleUnauthorized()
+      handleUnauthorized()
       throw new Error('Não autorizado')
     }
     if (!response.ok) throw new Error(`Erro ${response.status}`)
@@ -165,7 +176,7 @@ const api = {
     }
 
     if (response.status === 401) {
-      await handleUnauthorized()
+      handleUnauthorized()
       throw result
     }
 
@@ -173,6 +184,10 @@ const api = {
       const err = result?.error
       if (err && typeof err.code === 'string' && typeof err.message === 'string') {
         throw new ApiError(err.code, err.message)
+      }
+      const detail = result?.detail
+      if (typeof detail === 'string') {
+        throw new Error(detail)
       }
       throw new Error(typeof result?.message === 'string' ? result.message : 'Erro na requisição')
     }
@@ -215,7 +230,7 @@ const api = {
     }
 
     if (response.status === 401) {
-      await handleUnauthorized()
+      handleUnauthorized()
       throw result
     }
 
@@ -250,7 +265,7 @@ const api = {
     const result = await response.text()
 
     if (response.status === 401) {
-      await handleUnauthorized()
+      handleUnauthorized()
       throw result
     }
 
@@ -276,7 +291,7 @@ const api = {
     const responseText = await response.text()
 
     if (response.status === 401) {
-      await handleUnauthorized()
+      handleUnauthorized()
       throw responseText
     }
 
@@ -326,10 +341,7 @@ const api = {
 
       xhr.onload = () => {
         if (xhr.status === 401) {
-          if (typeof window !== 'undefined') {
-            window.dispatchEvent(new Event('auth:unauthorized'))
-            void signOut({ redirect: false })
-          }
+          handleUnauthorized()
           reject(xhr.responseText)
           return
         }

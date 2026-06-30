@@ -21,8 +21,23 @@ import {
   Zap,
 } from 'lucide-react'
 import { cn } from '@/utils/tailwind'
-import TextTitle from '@/components/text-title'
-import TextSubtitle from '@/components/text-subtitle'
+import {
+  AdminChatContextPanel,
+  AdminEmptyState,
+  AdminInboxWorkspace,
+  AdminKpiStrip,
+  AdminPageShell,
+  AdminPanelHeader,
+  AdminSegmentedControl,
+  ADMIN_BTN_GHOST,
+  ADMIN_BTN_PRIMARY,
+  ADMIN_INBOX_ITEM,
+  ADMIN_INBOX_ITEM_ACTIVE,
+  ADMIN_INPUT,
+  ADMIN_LABEL,
+  ADMIN_PANEL,
+  ADMIN_PANEL_HEADER,
+} from '@/components/admin'
 import Button from '@/components/button'
 import Alert from '@/components/alert'
 import Skeleton from '@/components/skeleton'
@@ -67,7 +82,7 @@ function chatQueryRetry(failureCount: number, error: unknown): boolean {
 const chatRetryDelay = (attemptIndex: number) => Math.min(40_000, 1500 * 2 ** attemptIndex)
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
-  return <label className="text-xs font-bold uppercase tracking-wide text-slate-500">{children}</label>
+  return <label className={ADMIN_LABEL}>{children}</label>
 }
 
 function conversationTitle(c: ChatConversation) {
@@ -504,75 +519,59 @@ export default function AdminChatPage() {
     )
   }
 
+  const chatSegments = [
+    { id: 'inbox' as const, label: 'Caixa', icon: MessageSquare, badge: conversations.length },
+    { id: 'campaigns' as const, label: 'Campanhas', icon: Megaphone, badge: campaigns.length },
+    { id: 'leads' as const, label: 'Leads', icon: Users, badge: leads.length },
+    { id: 'scheduled' as const, label: 'Agendados', icon: CalendarClock, badge: scheduled.length },
+  ] as const
+
+  const openCount = conversations.filter((c) => c.state === 'open').length
+  const handoffCount = conversations.filter((c) => c.state === 'handoff').length
+  const pendingAi = conversations.filter((c) => (c.ai_pending_reply_body || '').trim()).length
+
   return (
-    <div className="min-h-screen bg-[#f7f8fa] pb-24">
-      <div className="border-b border-slate-200/80 bg-white py-2 text-center text-[11px] font-medium text-[#6b7280]">
-        Chat comercial · Meta WhatsApp + operadores (superusuário)
-      </div>
-      <header className="border-b border-slate-200/70 bg-white shadow-sm shadow-slate-200/40">
-        <div className="mx-auto flex max-w-[1600px] flex-col gap-4 px-4 py-6 md:flex-row md:items-center md:justify-between md:px-8 lg:px-10">
-          <div className="flex min-w-0 items-start gap-4">
-            <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/15 to-primary/5 ring-1 ring-primary/10">
-              <MessageSquare className="size-7 text-primary" aria-hidden />
-            </div>
-            <div className="min-w-0">
-              <TextTitle className="text-xl text-slate-900 md:text-2xl">Chat</TextTitle>
-              <TextSubtitle className="mt-1 max-w-2xl text-sm text-slate-600 md:text-[15px]">
-                Campanhas de chat (não confundir com outreach) recebem WhatsApp; pode exigir aprovação antes da IA
-                enviar ao cliente. O estado da IA e rascunhos ficam visíveis na caixa.
-              </TextSubtitle>
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Link
-              href="/admin/outreach"
-              className="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm hover:border-primary/30 hover:text-primary"
-            >
-              Divulgação
-            </Link>
-            <Link
-              href="/consultas"
-              className="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm hover:border-primary/30 hover:text-primary"
-            >
-              Consultas
-            </Link>
-          </div>
-        </div>
-      </header>
+    <AdminPageShell
+      metrics={
+        tab === 'inbox' ? (
+          <AdminKpiStrip
+            items={[
+              { id: 'open', label: 'Abertas', value: openCount, tone: 'success' },
+              { id: 'handoff', label: 'Handoff', value: handoffCount, tone: 'warning' },
+              { id: 'draft', label: 'Rascunho IA', value: pendingAi, tone: 'brand' },
+              {
+                id: 'camp',
+                label: 'Campanhas',
+                value: campaigns.length,
+                hint: campaignFilter ? 'Filtrada' : 'Todas',
+              },
+            ]}
+          />
+        ) : undefined
+      }
+      actions={
+        <Link
+          href="/admin/outreach"
+          className="inline-flex h-9 items-center rounded-lg border border-[#dedee5] bg-white px-3 text-xs font-semibold text-[#686b82] hover:border-[#7132f5]/30 hover:text-[#7132f5]"
+        >
+          Divulgação
+        </Link>
+      }
+      className="max-w-[1600px] mx-auto w-full"
+    >
+        {pageError ? <Alert variant="error" message={pageError} /> : null}
 
-      <div className="mx-auto max-w-[1600px] px-4 py-6 md:px-8 lg:px-10">
-        {pageError ? <Alert variant="error" message={pageError} className="mb-4" /> : null}
-
-        <nav className="mb-6 flex flex-wrap gap-2" aria-label="Seções">
-          {(
-            [
-              { id: 'inbox' as const, label: 'Caixa', Icon: MessageSquare },
-              { id: 'campaigns' as const, label: 'Campanhas', Icon: Megaphone },
-              { id: 'leads' as const, label: 'Leads', Icon: Users },
-              { id: 'scheduled' as const, label: 'Agendados', Icon: CalendarClock },
-            ] as const
-          ).map(({ id, label, Icon }) => (
-            <button
-              key={id}
-              type="button"
-              onClick={() => setTab(id)}
-              className={cn(
-                'inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition',
-                tab === id
-                  ? 'bg-[#1f3a8a] text-white shadow-md shadow-[#1f3a8a]/20'
-                  : 'bg-white text-[#6b7280] shadow-sm shadow-slate-200/50 hover:bg-slate-50 hover:text-slate-800',
-              )}
-            >
-              <Icon className="size-4" aria-hidden />
-              {label}
-            </button>
-          ))}
-        </nav>
+        <AdminSegmentedControl
+          segments={chatSegments}
+          value={tab}
+          onChange={(id) => setTab(id as Tab)}
+          aria-label="Seções do chat"
+        />
 
         {tab === 'campaigns' ? (
           <div className="grid gap-6 lg:grid-cols-2">
-            <section className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm md:p-6">
-              <h2 className="text-lg font-bold text-slate-900">Nova campanha</h2>
+            <section className={cn(ADMIN_PANEL, 'p-4 md:p-5')}>
+              <h2 className="text-sm font-semibold text-[#101114]">Nova campanha</h2>
               <p className="mt-1 text-sm text-slate-600">Rascunho com IA e playbook padrão; ative quando estiver pronto.</p>
               <div className="mt-4 space-y-3">
                 <div>
@@ -595,9 +594,9 @@ export default function AdminChatPage() {
                 </Button>
               </div>
             </section>
-            <section className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm md:p-6">
+            <section className={cn(ADMIN_PANEL, 'p-4 md:p-5')}>
               <div className="mb-3 flex items-center justify-between">
-                <h2 className="text-lg font-bold text-slate-900">Lista</h2>
+                <h2 className="text-sm font-semibold text-[#101114]">Lista</h2>
                 {campaignsLoading ? <Loader2 className="size-4 animate-spin text-slate-400" /> : null}
               </div>
               <ul className="max-h-[28rem] space-y-2 overflow-y-auto pr-1">
@@ -657,21 +656,36 @@ export default function AdminChatPage() {
         ) : null}
 
         {tab === 'inbox' ? (
-          <div className="grid gap-5 lg:grid-cols-[minmax(280px,320px)_minmax(0,1fr)]">
-            <aside className="flex flex-col overflow-hidden rounded-xl bg-white p-4 shadow-md shadow-slate-200/50">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-semibold uppercase tracking-wide text-[#6b7280]">Campanha</span>
-                <button
-                  type="button"
-                  className="rounded-lg p-1.5 text-[#6b7280] transition hover:bg-slate-100 hover:text-slate-800"
-                  onClick={() => void qc.invalidateQueries({ queryKey: ['chat-conversations'] })}
-                  aria-label="Atualizar"
-                >
-                  <RefreshCw className="size-4" />
-                </button>
-              </div>
+          <AdminInboxWorkspace
+            intelligence={
+              selectedConvId && selectedConv ? (
+                <AdminChatContextPanel
+                  conversation={selectedConv}
+                  campaign={selectedCampaign}
+                  className="h-full"
+                />
+              ) : undefined
+            }
+            rail={
+              <>
+              <AdminPanelHeader
+                title="Inbox"
+                meta={`${conversations.length} conversas`}
+                actions={
+                  <button
+                    type="button"
+                    className="rounded-lg p-1.5 text-[#686b82] transition hover:bg-[rgba(148,151,169,0.08)]"
+                    onClick={() => void qc.invalidateQueries({ queryKey: ['chat-conversations'] })}
+                    aria-label="Atualizar"
+                  >
+                    <RefreshCw className="size-3.5" />
+                  </button>
+                }
+              />
+              <div className="border-b border-[#dedee5] px-3 py-2">
+                <label className={ADMIN_LABEL}>Campanha</label>
               <SelectShell
-                className="mt-2"
+                className="mt-1.5"
                 value={campaignFilter}
                 onChange={(e) => {
                   setCampaignFilter(e.target.value)
@@ -685,7 +699,8 @@ export default function AdminChatPage() {
                   </option>
                 ))}
               </SelectShell>
-              <div className="mt-3 max-h-[min(36rem,60vh)] flex-1 space-y-0.5 overflow-y-auto scroll-smooth pr-0.5">
+              </div>
+              <div className="max-h-[min(36rem,62vh)] flex-1 space-y-0.5 overflow-y-auto p-2 scroll-smooth">
                 {convLoading ? (
                   <Loader2 className="mx-auto size-6 animate-spin text-slate-300" />
                 ) : (
@@ -698,18 +713,16 @@ export default function AdminChatPage() {
                         type="button"
                         onClick={() => setSelectedConvId(c.id)}
                         className={cn(
-                          'flex w-full gap-3 border-l-[3px] rounded-xl px-2.5 py-2.5 text-left transition',
-                          selected
-                            ? 'border-l-[#1f3a8a] bg-[#eceffb] shadow-sm shadow-slate-200/40 ring-1 ring-[#1f3a8a]/15'
-                            : 'border-l-transparent hover:bg-slate-50',
+                          ADMIN_INBOX_ITEM,
+                          selected ? ADMIN_INBOX_ITEM_ACTIVE : 'hover:bg-[rgba(133,91,251,0.05)]',
                         )}
                       >
                         <div
                           className={cn(
-                            'flex size-10 shrink-0 items-center justify-center rounded-full text-xs font-bold ring-1',
+                            'flex size-8 shrink-0 items-center justify-center rounded-md text-[10px] font-bold',
                             selected
-                              ? 'bg-white text-[#1f3a8a] ring-[#1f3a8a]/20'
-                              : 'bg-gradient-to-br from-slate-100 to-slate-50 text-slate-600 ring-slate-200/80',
+                              ? 'bg-white text-[#5741d8] ring-1 ring-[#dedee5]'
+                              : 'bg-[rgba(148,151,169,0.12)] text-[#686b82]',
                           )}
                           aria-hidden
                         >
@@ -717,12 +730,12 @@ export default function AdminChatPage() {
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="flex items-start justify-between gap-2">
-                            <span className="truncate text-[13px] font-semibold text-slate-900">{title}</span>
-                            <span className="shrink-0 tabular-nums text-[11px] text-[#6b7280]">
+                            <span className="truncate text-xs font-semibold text-[#101114]">{title}</span>
+                            <span className="shrink-0 tabular-nums text-[10px] text-[#9497a9]">
                               {conversationListTimestamp(c)}
                             </span>
                           </div>
-                          <p className="mt-0.5 line-clamp-2 text-[12px] leading-snug text-[#6b7280]">
+                          <p className="mt-0.5 line-clamp-2 text-[11px] leading-snug text-[#686b82]">
                             {conversationPreviewLine(c)}
                           </p>
                           <div className="mt-1.5 flex flex-wrap items-center gap-1">
@@ -740,7 +753,7 @@ export default function AdminChatPage() {
                               </span>
                             )}
                             {c.ai_active ? (
-                              <span className="rounded-md bg-[#1f3a8a]/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#1f3a8a]">
+                              <span className="rounded-md bg-[rgba(133,91,251,0.12)] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#5741d8]">
                                 IA
                               </span>
                             ) : null}
@@ -756,13 +769,17 @@ export default function AdminChatPage() {
                   })
                 )}
               </div>
-            </aside>
-            <section className="flex min-h-[min(32rem,70vh)] flex-col overflow-hidden rounded-xl bg-white shadow-md shadow-slate-200/50">
+              </>
+            }
+            thread={
+              <>
               {!selectedConvId ? (
-                <div className="flex flex-1 flex-col items-center justify-center gap-3 p-10 text-center text-sm text-[#6b7280]">
-                  <MessageSquare className="size-12 text-slate-300" aria-hidden />
-                  <p className="max-w-xs">Escolha uma conversa na lista para ver as mensagens e responder.</p>
-                </div>
+                <AdminEmptyState
+                  title="Nenhuma conversa selecionada"
+                  description="Selecione um contato na lista para ver histórico, estados de IA, handoff e responder."
+                  icon={<MessageSquare className="size-10 opacity-30" />}
+                  className="m-4 flex-1 border-0 bg-transparent"
+                />
               ) : (
                 <>
                   {messagesQueryError ? (
@@ -774,34 +791,33 @@ export default function AdminChatPage() {
                       A última lista carregada mantém-se visível (rede instável ou limite da API).
                     </div>
                   ) : null}
-                  <div className="border-b border-slate-100 px-5 py-4">
+                  <div className={cn(ADMIN_PANEL_HEADER, 'px-4 py-3')}>
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
-                          <p className="truncate text-base font-semibold text-slate-900">
+                          <p className="truncate text-sm font-bold text-[#101114]">
                             {selectedConv ? conversationTitle(selectedConv) : '—'}
                           </p>
                           {selectedConv?.state === 'open' ? (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-800">
-                              <span className="size-1.5 rounded-full bg-emerald-500" aria-hidden />
+                            <span className="inline-flex items-center gap-1 rounded-md bg-[rgba(20,158,97,0.16)] px-2 py-0.5 text-[10px] font-bold uppercase text-[#026b3f]">
                               Ativa
                             </span>
                           ) : selectedConv?.state === 'handoff' ? (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-900">
+                            <span className="rounded-md bg-amber-50 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-900">
                               Handoff
                             </span>
                           ) : null}
                         </div>
-                        <p className="mt-0.5 font-mono text-[13px] text-[#6b7280]">{selectedConv?.customer_wa_id}</p>
+                        <p className="mt-0.5 font-mono text-[11px] text-[#9497a9]">{selectedConv?.customer_wa_id}</p>
                         {selectedConv?.campaign_name ? (
-                          <p className="mt-1 text-xs text-[#6b7280]">{selectedConv.campaign_name}</p>
+                          <p className="mt-0.5 text-[10px] text-[#686b82]">{selectedConv.campaign_name}</p>
                         ) : null}
                       </div>
                       <div className="relative shrink-0" ref={actionsMenuRef}>
                         <button
                           type="button"
                           onClick={() => setActionMenuOpen((o) => !o)}
-                          className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-slate-50 px-3 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-100"
+                          className={ADMIN_BTN_GHOST}
                         >
                           <Zap className="size-3.5" aria-hidden />
                           Ações
@@ -917,7 +933,7 @@ export default function AdminChatPage() {
                       </div>
                     </div>
                   ) : null}
-                  <div className="flex flex-1 flex-col overflow-hidden bg-[#f7f8fa]">
+                  <div className="flex flex-1 flex-col overflow-hidden bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(133,91,251,0.05),#F4F5FA)]">
                     <div className="min-h-0 flex-1 space-y-3 overflow-y-auto scroll-smooth px-4 py-4">
                       {msgLoading ? <Loader2 className="mx-auto size-6 animate-spin text-slate-300" /> : null}
                       {messages.map((m: ChatMessage) => {
@@ -942,7 +958,7 @@ export default function AdminChatPage() {
                                 'ml-auto rounded-2xl rounded-tr-md bg-[#dbe4ff] px-3 py-2 text-slate-900 shadow-slate-300/30',
                               m.direction === 'out' &&
                                 !isAiOut &&
-                                'ml-auto rounded-2xl rounded-tr-md bg-[#1f3a8a] px-3 py-2 text-white shadow-[#1f3a8a]/25',
+                                'ml-auto rounded-xl rounded-tr-md bg-[#7132f5] px-3 py-2 text-white shadow-[0_1px_2px_rgba(16,17,20,0.08)]',
                               m.direction === 'system' &&
                                 'mx-auto max-w-[min(92%,32rem)] rounded-xl bg-amber-50/95 px-3 py-2 text-center text-amber-950 shadow-sm',
                             )}
@@ -970,14 +986,14 @@ export default function AdminChatPage() {
                         value={composer}
                         onChange={(e) => setComposer(e.target.value)}
                         rows={2}
-                        className="min-h-[2.75rem] min-w-0 flex-1 resize-y rounded-xl border border-slate-200/90 bg-[#f7f8fa] px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-[#1f3a8a] focus:bg-white focus:ring-2 focus:ring-[#1f3a8a]/15"
+                        className="min-h-[2.75rem] min-w-0 flex-1 resize-y rounded-lg border border-[#dedee5] bg-[#FAFAFB] px-3 py-2 text-sm text-[#101114] outline-none transition focus:border-[#7132f5] focus:bg-white focus:ring-2 focus:ring-[rgba(133,91,251,0.15)]"
                         placeholder="Mensagem ao cliente (WhatsApp)…"
                       />
                       <button
                         type="button"
                         onClick={() => sendMut.mutate()}
                         disabled={sendMut.isPending || !composer.trim()}
-                        className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-[#1f3a8a] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[#1a326f] disabled:pointer-events-none disabled:opacity-50"
+                        className={cn(ADMIN_BTN_PRIMARY, 'shrink-0 disabled:pointer-events-none')}
                       >
                         {sendMut.isPending ? (
                           <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
@@ -994,12 +1010,13 @@ export default function AdminChatPage() {
                   </div>
                 </>
               )}
-            </section>
-          </div>
+              </>
+            }
+          />
         ) : null}
 
         {tab === 'leads' ? (
-          <div className="overflow-x-auto rounded-2xl border border-slate-200/90 bg-white shadow-sm">
+          <div className={cn(ADMIN_PANEL, 'overflow-x-auto')}>
             <table className="w-full min-w-[640px] text-left text-sm">
               <thead className="border-b border-slate-200 bg-slate-50 text-xs font-bold uppercase tracking-wide text-slate-500">
                 <tr>
@@ -1047,8 +1064,8 @@ export default function AdminChatPage() {
 
         {tab === 'scheduled' ? (
           <div className="grid gap-6 lg:grid-cols-2">
-            <section className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm md:p-6">
-              <h2 className="text-lg font-bold text-slate-900">Novo envio agendado</h2>
+            <section className={cn(ADMIN_PANEL, 'p-4 md:p-5')}>
+              <h2 className="text-sm font-semibold text-[#101114]">Novo envio agendado</h2>
               <p className="mt-1 text-sm text-slate-600">Texto de sessão para conversas da campanha filtrada (ou primeira da lista).</p>
               <div className="mt-4 space-y-3">
                 <div>
@@ -1079,9 +1096,9 @@ export default function AdminChatPage() {
                 </Button>
               </div>
             </section>
-            <section className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm md:p-6">
+            <section className={cn(ADMIN_PANEL, 'p-4 md:p-5')}>
               <div className="mb-3 flex items-center justify-between">
-                <h2 className="text-lg font-bold text-slate-900">Fila</h2>
+                <h2 className="text-sm font-semibold text-[#101114]">Fila</h2>
                 {schedLoading ? <Loader2 className="size-4 animate-spin text-slate-400" /> : null}
               </div>
               <ul className="max-h-[24rem] space-y-2 overflow-y-auto">
@@ -1110,7 +1127,6 @@ export default function AdminChatPage() {
             </section>
           </div>
         ) : null}
-      </div>
-    </div>
+    </AdminPageShell>
   )
 }

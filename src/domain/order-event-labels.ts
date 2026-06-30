@@ -18,14 +18,57 @@ const LABELS: Record<string, string> = {
   POST_PAYMENT_SKIPPED_PAYMENT: 'Aguardando confirmação de pagamento',
   ENRICH_ENQUEUED: 'Enriquecimento do endereço na fila',
   ANALYSIS_ENQUEUED: 'Análise do documento na fila',
+  ANALYSIS_STEP: 'Etapa da análise',
   INFOSIMPLES_SEARCH_ENQUEUED: 'Busca online da matrícula iniciada',
   ONR_SEARCH_ENQUEUED: 'Pedido enviado para busca em cartório (ONR)',
 }
 
-export function formatOrderEventLabel(type: string): string {
+export function formatOrderEventLabel(
+  type: string,
+  payload?: Record<string, unknown>,
+): string {
+  if (type === 'ANALYSIS_STEP') {
+    const label = String(payload?.label || '').trim()
+    if (label) return label
+  }
   return LABELS[type] ?? type.replace(/_/g, ' ').toLowerCase()
 }
 
 export function filterCustomerFacingOrderEvents(events: OrderEvent[]): OrderEvent[] {
   return events.filter((e) => !HIDDEN_EVENT_TYPES.has(e.type))
+}
+
+/** Analysis steps shown in “Histórico recente” (no per-agent lines). */
+const HISTORY_ANALYSIS_STEPS = new Set([
+  'started',
+  'enrollment',
+  'owners',
+  'finalizing',
+  'enrich_place',
+])
+
+const RECENT_HISTORY_MAX = 10
+
+export function filterOrderHistoryEvents(events: OrderEvent[]): OrderEvent[] {
+  const rows: OrderEvent[] = []
+
+  for (const ev of filterCustomerFacingOrderEvents(events)) {
+    if (ev.type === 'ANALYSIS_STEP') {
+      const step = String(ev.payload?.step || '').trim()
+      if (!HISTORY_ANALYSIS_STEPS.has(step)) continue
+    }
+    rows.push(ev)
+  }
+
+  const deduped: OrderEvent[] = []
+  let prevLabel = ''
+
+  for (const ev of rows) {
+    const label = formatOrderEventLabel(ev.type, ev.payload)
+    if (label === prevLabel) continue
+    prevLabel = label
+    deduped.push(ev)
+  }
+
+  return deduped.slice(-RECENT_HISTORY_MAX)
 }

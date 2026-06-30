@@ -4,24 +4,23 @@ import React from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import OrderOptionsDocumentsPage from './order-options-documents-page'
 import { useParams } from 'next/navigation'
-import { getOrder } from '@/services/orders'
+import { getOrder, getOrderDocuments } from '@/services/orders'
 
 const mockDocuments = [
-  { id: '1', file_path: '/a.pdf', file_hash: null, original_name: 'JULIO BARBOSA LEMES FILHO - Estadual - Processo 6e0c39306b05cfe.pdf', extension: 'pdf' },
-  { id: '2', file_path: '/b.pdf', file_hash: null, original_name: 'JULIO BARBOSA LEMES FILHO - Estadual - Processo 6e0c39306b05cfe.pdf', extension: 'pdf' },
-  { id: '3', file_path: '/c.pdf', file_hash: null, original_name: 'JULIO BARBOSA LEMES FILHO - Estadual - Processo 6e0c39306b05cfe.pdf', extension: 'pdf' },
-  { id: '4', file_path: '/d.pdf', file_hash: null, original_name: 'JULIO BARBOSA LEMES FILHO - Estadual - Processo 6e0c39306b05cfe.pdf', extension: 'pdf' }
+  { id: 'reg', kind: 'REGISTRATION', label: 'Matrícula do imóvel', original_name: 'matricula.pdf', extension: 'pdf', download_url: 'https://signed.example/matricula.pdf', file_hash: null },
+  { id: 'c1', kind: 'CERTIFICATE', label: 'Certidão Federal (CND) - JULIO BARBOSA', original_name: 'cnd-federal.pdf', extension: 'pdf', download_url: 'https://signed.example/cnd-federal.pdf', file_hash: null },
+  { id: 'c2', kind: 'CERTIFICATE', label: 'Certidão Estadual (SEFAZ) - JULIO BARBOSA', original_name: 'cnd-estadual.pdf', extension: 'pdf', download_url: 'https://signed.example/cnd-estadual.pdf', file_hash: null },
+  { id: 'report-1', kind: 'REPORT', label: 'Relatório consolidado da consulta (laudo)', original_name: 'Consulta #1.pdf', extension: 'pdf', download_url: null, file_hash: null },
 ]
 
 const mockOrder = {
   id: '1',
   status: { value: 'FINISHED', label: 'Concluído' },
   semaphore: 'red',
-  documents: mockDocuments,
   code: 1,
   formatted_address: '',
   created: '',
-  modified: ''
+  modified: '',
 }
 
 function wrapper({ children }: { children: React.ReactNode }) {
@@ -33,17 +32,18 @@ vi.mock('next/navigation', () => ({
   useParams: vi.fn(),
 }))
 
-vi.mock('@/services/orders', () => ({
-  getOrder: vi.fn(),
-  orderQueryKey: (id: string) => ['order', id],
+vi.mock('@/hooks/use-order-realtime', () => ({
+  useOrderRealtime: () => ({ connected: false }),
 }))
 
-vi.mock('lucide-react', () => ({
-  Download: ({ className }: { className?: string }) => (
-    <div data-testid="download-icon" className={className} />
-  ),
-  Info: () => null,
-}))
+vi.mock('@/services/orders', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/services/orders')>()
+  return {
+    ...actual,
+    getOrder: vi.fn(),
+    getOrderDocuments: vi.fn(),
+  }
+})
 
 vi.mock('@/sections/orders/order-header', () => ({
   default: () => (
@@ -63,6 +63,7 @@ describe('OrderOptionsDocumentsPage', () => {
   beforeEach(() => {
     vi.mocked(useParams).mockReturnValue({ id: '1' })
     vi.mocked(getOrder).mockResolvedValue(mockOrder as any)
+    vi.mocked(getOrderDocuments).mockResolvedValue(mockDocuments as any)
   })
 
   it('deve renderizar o header com o badge de sinal vermelho', async () => {
@@ -78,24 +79,24 @@ describe('OrderOptionsDocumentsPage', () => {
     })
   })
 
-  it('deve renderizar todos os tipos de documentos da lista', async () => {
+  it('deve listar matrícula, certidões e laudo com seus rótulos', async () => {
     render(<OrderOptionsDocumentsPage />, { wrapper })
 
     await waitFor(() => {
-      const pdfLabels = screen.getAllByText(/Documento - PDF/)
-      expect(pdfLabels).toHaveLength(4)
-      const icons = screen.getAllByTestId('download-icon')
-      expect(icons).toHaveLength(4)
+      expect(screen.getByText('Matrícula do imóvel')).toBeInTheDocument()
+      expect(screen.getByText('Certidão Federal (CND) - JULIO BARBOSA')).toBeInTheDocument()
+      expect(screen.getByText('Certidão Estadual (SEFAZ) - JULIO BARBOSA')).toBeInTheDocument()
+      expect(screen.getByText('Relatório consolidado da consulta (laudo)')).toBeInTheDocument()
     })
   })
 
-  it('deve exibir o nome do arquivo para cada documento', async () => {
+  it('deve usar ícone de download nas certidões/matrícula e FileText no laudo', async () => {
     render(<OrderOptionsDocumentsPage />, { wrapper })
 
-    const fileName = 'JULIO BARBOSA LEMES FILHO - Estadual - Processo 6e0c39306b05cfe.pdf'
     await waitFor(() => {
-      const files = screen.getAllByText(fileName)
-      expect(files).toHaveLength(4)
+      // matrícula + 2 certidões = 3 ícones de download; laudo usa FileText.
+      expect(screen.getAllByTestId('icon-Download')).toHaveLength(3)
+      expect(screen.getAllByTestId('icon-FileText')).toHaveLength(1)
     })
   })
 
@@ -103,18 +104,10 @@ describe('OrderOptionsDocumentsPage', () => {
     render(<OrderOptionsDocumentsPage />, { wrapper })
 
     await waitFor(() => {
-      expect(screen.getAllByTestId('download-icon')).toHaveLength(4)
+      expect(screen.getAllByTestId('icon-Download')).toHaveLength(3)
     })
-    const links = screen.getAllByRole('link')
-    expect(links[0]).toHaveClass('group', 'hover:border-primary')
-  })
-
-  it('deve garantir que o ícone de download tenha a cor da marca', async () => {
-    render(<OrderOptionsDocumentsPage />, { wrapper })
-
-    await waitFor(() => {
-      const icons = screen.getAllByTestId('download-icon')
-      expect(icons[0]).toHaveClass('text-primary')
-    })
+    const buttons = screen.getAllByRole('button')
+    const docButton = buttons.find((b) => b.textContent?.includes('Matrícula do imóvel'))
+    expect(docButton).toHaveClass('group', 'hover:border-primary')
   })
 })

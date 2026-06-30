@@ -39,7 +39,7 @@ export type Registry = {
 }
 
 export type RegistryApiResponse = {
-  registry?: Registry
+  registry?: Registry | null
 }
 
 type ListAddressRequest = {
@@ -56,6 +56,7 @@ export type ListAddressResponse = {
 export type PlaceResponseFromApi = {
   formatted_address?: string
   street_number?: string
+  address_has_number?: boolean
   route?: string
   neighborhood?: string
   sublocality?: string
@@ -67,13 +68,14 @@ export type PlaceResponseFromApi = {
   longitude?: number
 }
 
-export type FormattedAddressResult = {
+export type AddressConfirmPayload = {
   address: string
   addressNumber: string | null
   postalCode?: string | null
-  /** Montado a partir de addressComponents para enviar em re-request. */
   place_response?: PlaceResponseFromApi
 }
+
+export type FormattedAddressResult = AddressConfirmPayload
 
 export async function listAddresses(address: string) {
   const data = {
@@ -149,11 +151,17 @@ export async function listAddress({
     finalAddress
   )
 
+  const streetNumber = numberComponent?.longText || null
+
   return {
     address: finalAddress,
-    addressNumber: numberComponent?.longText || null,
+    addressNumber: streetNumber,
     postalCode: postalCodeComponent?.longText ?? null,
-    place_response,
+    place_response: {
+      ...place_response,
+      street_number: streetNumber ?? undefined,
+      address_has_number: Boolean(streetNumber?.trim()),
+    },
   }
 }
 
@@ -183,10 +191,17 @@ export async function listRegistry(address: string) {
     with_registry: true,
   }
 
-  const response = (await api.post(
-    endpoint.addresses,
-    data
-  )) as RegistryApiResponse
+  try {
+    const response = (await api.post(
+      endpoint.addresses,
+      data
+    )) as RegistryApiResponse
 
-  return response?.registry
+    return response?.registry ?? undefined
+  } catch (error: unknown) {
+    if (error instanceof Error && error.message === 'Erro 404') {
+      return undefined
+    }
+    throw error
+  }
 }

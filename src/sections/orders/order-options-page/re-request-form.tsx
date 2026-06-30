@@ -12,7 +12,12 @@ import {
   type ReRequestOrderBody,
   type PlaceResponse
 } from '@/services/orders'
-import { listAddresses, listAddress, listRegistry } from '@/services/addresses'
+import {
+  listAddresses,
+  listAddress,
+  listRegistry,
+  type AddressConfirmPayload,
+} from '@/services/addresses'
 import { ApiError } from '@/utils/api/errors'
 import { cn } from '@/utils/tailwind'
 import Input from '@/components/input'
@@ -170,12 +175,18 @@ export default function ReRequestForm({ orderId, order, onClose }: Props) {
   )
 
   const handleConfirmAddress = useCallback(
-    async (addressStr: string) => {
+    async (payload: AddressConfirmPayload) => {
       setPlaceResponse(prev => ({
         ...prev,
-        formatted_address: addressStr
+        ...payload.place_response,
+        formatted_address:
+          payload.place_response?.formatted_address ?? payload.address,
+        street_number:
+          payload.place_response?.street_number ??
+          payload.addressNumber ??
+          prev.street_number,
       }))
-      const registry = await fetchRegistry(addressStr)
+      const registry = await fetchRegistry(payload.address)
       if (registry?.name) setNotary(registry.name)
       setShowSearch(false)
     },

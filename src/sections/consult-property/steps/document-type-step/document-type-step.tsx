@@ -4,8 +4,9 @@ import { useEffect, useState, useRef } from 'react'
 import { useFormContext } from 'react-hook-form'
 import { Check, FileText, Building, Scroll, LucideIcon, ChevronRight } from 'lucide-react'
 import { useMutation } from '@tanstack/react-query'
-import TextTitle from '@/components/text-title'
-import TextSubtitle from '@/components/text-subtitle'
+import { HeroDescription, HeroTitle } from '@/components/ui/typography'
+import { consultFlowHeroBlockClass } from '@/constants/consult-flow-hero-text'
+import { cn } from '@/utils/tailwind'
 import DocumentItem from '@/components/document-item'
 import Alert from '@/components/alert'
 import LoadingOverlay from '@/components/loading-overlay'
@@ -44,7 +45,13 @@ const OPTIONS: Option[] = [
   },
 ]
 
-export function DocumentTypeStep({ onNext }: { onNext: () => void }) {
+type DocumentTypeStepProps = {
+  onNext: () => void
+  /** false quando o usuário entrou por "Tenho documento" (ainda sem endereço) */
+  showAddressCard?: boolean
+}
+
+export function DocumentTypeStep({ onNext, showAddressCard = true }: DocumentTypeStepProps) {
   const { setValue, getValues, watch, formState, trigger, clearErrors, setError } = useFormContext()
   const documentType = watch('documentType')
   const documentPreview = watch('documentPreview')
@@ -224,13 +231,19 @@ export function DocumentTypeStep({ onNext }: { onNext: () => void }) {
   return (
     <div className="relative flex-1 px-4 -mt-6 pb-32">
       <div className="flex flex-col gap-4 pt-6">
-        <SelectedAddressCard
-          address={String(watch('address') || '').trim() || String(watch('addressHint') || '').trim()}
-          variant={String(watch('address') || '').trim() ? 'selected' : 'hint'}
-        />
-        <div className="flex flex-col gap-2 mb-2">
-          <TextTitle className="text-dark">Qual documento você tem?</TextTitle>
-          <TextSubtitle className="text-gray-500">Selecione uma das opções abaixo e envie o arquivo</TextSubtitle>
+        {showAddressCard && (
+          <SelectedAddressCard
+            address={String(watch('address') || '').trim() || String(watch('addressHint') || '').trim()}
+            variant={String(watch('address') || '').trim() ? 'selected' : 'hint'}
+          />
+        )}
+        <div className={cn(consultFlowHeroBlockClass, 'mb-2')}>
+          <HeroTitle variant="primary" surface={showAddressCard ? 'light' : 'dark'}>
+            Qual documento você tem?
+          </HeroTitle>
+          <HeroDescription surface={showAddressCard ? 'light' : 'dark'}>
+            Selecione o tipo e envie o arquivo.
+          </HeroDescription>
         </div>
 
         <div className="flex flex-col gap-3 mt-2">

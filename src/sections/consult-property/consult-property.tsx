@@ -1,6 +1,5 @@
 'use client'
 
-import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { memo, useState, useRef, ReactNode, useEffect, useCallback, useMemo, forwardRef, useImperativeHandle } from 'react'
 import { FormProvider, useForm, type Resolver } from 'react-hook-form'
@@ -16,16 +15,25 @@ import {
   SummaryStep,
   AddressComplementStep,
   SuccessStep,
-  type ConsultEntryChoice,
 } from '@/sections/consult-property/steps'
 import { PaymentConfirmationStep } from '@/sections/consult-property/steps/payment-step/payment-confirmation-step/payment-confirmation-step'
 import { SavedCardsPage } from '@/sections/consult-property/steps/payment-step/card/select'
 import { CreditCardPage } from '@/sections/consult-property/steps/payment-step/card/register'
 import TrafficLightModal from '@/components/traffic-light-modal'
+import { BrandLogoLink } from '@/components/brand-logo-link'
 import LoadingOverlay from '@/components/loading-overlay'
 import { CONSULT_FLUXO_INICIO_QUERY, CONSULTAR_IMOVEL_INICIO_HREF } from '@/constants/consult-flow'
+import {
+  consultFlowShellBandClass,
+  consultFlowShellClass,
+  consultFlowShellGradientClass,
+  consultFlowShellGradientFinishedClass,
+} from '@/constants/consult-flow-hero-text'
+import { flowMainOverlap } from '@/styles/layout'
+import { cn } from '@/utils/tailwind'
 import { validations, FormTypes } from '@/sections/consult-property/validations'
 import { trackGtmEvent } from '@/utils/analytics/gtm'
+import { scrollConsultFlowToTop, unlockPageScroll } from '@/utils/consult-flow-scroll'
 
 const CONSULT_PROPERTY_FORM_DEFAULTS: FormTypes = {
   paymentMethod: 'pix',
@@ -36,6 +44,8 @@ const CONSULT_PROPERTY_FORM_DEFAULTS: FormTypes = {
   lot: '',
   noLot: undefined,
   complement: '',
+  addressNumber: '',
+  noAddressNumber: undefined,
   registrationNumber: '',
   unknownRegistration: undefined,
   hasDocument: undefined,
@@ -47,6 +57,10 @@ const CONSULT_PROPERTY_FORM_DEFAULTS: FormTypes = {
   address: '',
   addressHint: '',
   notaryName: '',
+  notaryState: '',
+  notaryCity: '',
+  entryPath: undefined,
+  includeCertificates: false,
 }
 
 type FlowState =
@@ -63,9 +77,23 @@ type FlowState =
   | 'payment-confirm'
   | 'finished'
 
+function releaseFocusWithin(node: HTMLElement | null) {
+  const active = document.activeElement
+  if (active instanceof HTMLElement && node?.contains(active)) {
+    active.blur()
+  }
+}
+
 const Activity = memo(function Activity({ isActive, children }: { isActive: boolean; children: ReactNode }) {
+  const panelRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (isActive) return
+    releaseFocusWithin(panelRef.current)
+  }, [isActive])
+
   return (
-    <div aria-hidden={!isActive} style={{ display: isActive ? 'block' : 'none' }}>
+    <div ref={panelRef} hidden={!isActive} inert={!isActive || undefined}>
       {children}
     </div>
   )
@@ -77,17 +105,19 @@ export type ConsultPropertyHandle = {
 
 type ConsultPropertyProps = {
   isActive?: boolean
+  /** VSL e links diretos: abre em "Como quer começar?" sem pular para endereço */
+  startAtEntry?: boolean
 }
 
 const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(function ConsultProperty(
-  { isActive = true },
+  { isActive = true, startAtEntry = false },
   ref,
 ) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [flow, setFlow] = useState<FlowState>('entry')
+  const [navStackDepth, setNavStackDepth] = useState(0)
   const stack = useRef<FlowState[]>([])
-  const entryPathRef = useRef<ConsultEntryChoice | null>(null)
   const hasTrackedFlowStart = useRef(false)
   const [isInitialLoading, setIsInitialLoading] = useState(() => {
     if (typeof window === 'undefined') return true
@@ -100,7 +130,8 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
     shouldUnregister: false,
     mode: 'onChange',
   })
-  const { reset: resetConsultForm } = methods
+  const { reset: resetConsultForm, watch } = methods
+  const entryPath = watch('entryPath')
 
   const addressStepRef = useRef<{ focus: () => boolean }>(null)
   const addressComplementRef = useRef<{ handleBack: () => void }>(null)
@@ -112,10 +143,24 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
   }))
 
   useEffect(() => {
+    unlockPageScroll()
+  }, [])
+
+  useEffect(() => {
+    scrollConsultFlowToTop()
+  }, [flow])
+
+  useEffect(() => {
+    if (flow === 'summary') {
+      unlockPageScroll()
+    }
+  }, [flow])
+
+  useEffect(() => {
     if (searchParams.get(CONSULT_FLUXO_INICIO_QUERY) !== '1') return
 
     stack.current = []
-    entryPathRef.current = null
+    setNavStackDepth(0)
     hasTrackedFlowStart.current = false
     setFlow('entry')
     resetConsultForm(CONSULT_PROPERTY_FORM_DEFAULTS)
@@ -125,16 +170,28 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
     params.delete(CONSULT_FLUXO_INICIO_QUERY)
     const qs = params.toString()
     router.replace(qs ? `/consultar-imovel?${qs}` : '/consultar-imovel', { scroll: false })
-    window.scrollTo({ top: 0, behavior: 'auto' })
+    scrollConsultFlowToTop()
   }, [searchParams, resetConsultForm, router])
 
   useEffect(() => {
-    if (typeof window === 'undefined') return
+    if (!startAtEntry) return
+
+    stack.current = []
+    setNavStackDepth(0)
+    hasTrackedFlowStart.current = false
+    setFlow('entry')
+    resetConsultForm(CONSULT_PROPERTY_FORM_DEFAULTS)
+    sessionStorage.removeItem('autoFocusAddress')
+    scrollConsultFlowToTop()
+  }, [startAtEntry, resetConsultForm])
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || startAtEntry) return
     const params = new URLSearchParams(window.location.search)
     if (params.get('autoFocus') === 'true' || sessionStorage.getItem('autoFocusAddress')) {
       setFlow((f) => (f === 'entry' ? 'address' : f))
     }
-  }, [])
+  }, [startAtEntry])
 
   useEffect(() => {
     if (!isActive) return
@@ -199,10 +256,13 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
   }, [isInitialLoading])
 
   const go = useCallback((next: FlowState) => {
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur()
+    }
     stack.current.push(flow)
+    setNavStackDepth(stack.current.length)
     setFlow(next)
-    // Usar scroll imediato em vez de smooth para evitar atrasos na percepção de troca de página
-    window.scrollTo({ top: 0, behavior: 'auto' })
+    scrollConsultFlowToTop()
   }, [flow])
 
   const back = useCallback(() => {
@@ -246,7 +306,11 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
       }
 
       setFlow(previous)
-      window.scrollTo({ top: 0, behavior: 'auto' })
+      setNavStackDepth(stack.current.length)
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur()
+      }
+      scrollConsultFlowToTop()
     }
   }, [flow, router, methods])
 
@@ -307,62 +371,68 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
 
   if (isInitialLoading) {
     return (
-      <section className="min-h-screen bg-background">
+      <section className="flex min-h-dvh w-full flex-col overflow-x-hidden bg-background">
         <LoadingOverlay isLoading message="Carregando recursos..." />
       </section>
     )
   }
 
   return (
-    <section className="min-h-screen bg-background">
-      <header
-        className={`relative z-40 flex w-full flex-col pt-4 transition-colors duration-500 ${
-          isFinished ? 'bg-emerald-600' : 'bg-primary'
-        }`}
-      >
-        <div className="mx-auto mb-2 flex w-full max-w-lg items-center justify-between px-4 py-4.5 md:max-w-2xl md:px-6 xl:max-w-3xl xl:px-8 2xl:max-w-[52rem] 2xl:px-10">
-          <ChevronLeft
-            onClick={back}
-            className={`size-7 transition-opacity text-white ${
-              flow === 'address' && stack.current.length === 0 ? 'opacity-0 pointer-events-none' : 'cursor-pointer'
-            }`}
-            role="button"
-          />
-
-          <div className="relative">
-            <Image
-              src="/images/logo.svg"
-              alt="Logo"
-              width={72}
-              height={70}
-              className="object-contain -my-2.5"
-            />
-          </div>
-
-          <TrafficLightModal>
-            <CircleQuestionMark className="size-7 cursor-pointer text-white" />
-          </TrafficLightModal>
-        </div>
-      </header>
-
-      {/* Faixa clara: altura um pouco maior em desktop para respiro com o overlap do main */}
+    <section className="flex min-h-dvh w-full flex-col overflow-x-hidden bg-background">
       <div
-        className="relative h-36 shrink-0 bg-sky-200 transition-colors duration-500 sm:h-32 md:h-36 lg:h-40"
-        aria-hidden
-      />
+        className={cn(
+          consultFlowShellClass,
+          isFinished ? consultFlowShellGradientFinishedClass : consultFlowShellGradientClass,
+        )}
+      >
+        <header className="relative z-40 flex w-full flex-col bg-transparent pt-3">
+          <div className="mx-auto flex min-h-[3.25rem] w-full max-w-lg items-center justify-between px-4 py-3.5 sm:min-h-[3.5rem] sm:py-4 md:max-w-2xl md:px-6 xl:max-w-3xl xl:px-8 2xl:max-w-[52rem] 2xl:px-10">
+            <ChevronLeft
+              onClick={back}
+              className={`size-7 transition-opacity text-white ${
+                flow === 'address' && navStackDepth === 0 ? 'opacity-0 pointer-events-none' : 'cursor-pointer'
+              }`}
+              role="button"
+            />
+
+            <div className="relative flex justify-center">
+              <BrandLogoLink
+                tone="on-primary"
+                href={flow === 'entry' ? '/consultas' : CONSULTAR_IMOVEL_INICIO_HREF}
+              />
+            </div>
+
+            <TrafficLightModal>
+              <CircleQuestionMark className="size-7 cursor-pointer text-white" />
+            </TrafficLightModal>
+          </div>
+        </header>
+
+        <div className={consultFlowShellBandClass} aria-hidden />
+      </div>
 
       <FormProvider {...methods}>
-        <main className="relative z-10 mx-auto w-full max-w-lg -mt-28 px-0 pt-2 pb-8 sm:-mt-24 md:max-w-2xl md:pb-10 xl:max-w-3xl xl:pb-12 2xl:max-w-[52rem]">
+        <div role="main" className={cn('relative z-10 w-full flex-1', flowMainOverlap)}>
+          <div className="mx-auto w-full max-w-lg px-0 pt-0 pb-[max(2.5rem,env(safe-area-inset-bottom))] md:max-w-2xl md:pb-10 xl:max-w-3xl xl:pb-12 2xl:max-w-[52rem]">
           <Activity isActive={flow === 'entry'}>
             <ConsultEntryStep
               onChoose={(choice) => {
-                entryPathRef.current = choice
                 if (choice === 'address') {
+                  methods.setValue('entryPath', 'address', { shouldValidate: false })
+                  methods.setValue('includeCertificates', false, { shouldValidate: false })
                   go('address')
                 } else if (choice === 'document') {
+                  methods.setValue('entryPath', 'document', { shouldValidate: false })
+                  methods.setValue('includeCertificates', true, { shouldValidate: false })
                   methods.setValue('hasDocument', true, { shouldValidate: true })
+                  methods.setValue('address', '', { shouldValidate: false })
+                  methods.setValue('addressHint', '', { shouldValidate: false })
+                  methods.setValue('placeId', '', { shouldValidate: false })
+                  methods.setValue('registry', null, { shouldValidate: false })
                   go('doc-type')
                 } else {
+                  methods.setValue('entryPath', 'registry', { shouldValidate: false })
+                  methods.setValue('includeCertificates', true, { shouldValidate: false })
                   methods.setValue('registrationNumber', '', { shouldValidate: false })
                   methods.setValue('notaryName', '', { shouldValidate: false })
                   methods.setValue('unknownRegistration', undefined, { shouldValidate: false })
@@ -378,11 +448,10 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
 
           <Activity isActive={flow === 'address-hint'}>
             <AddressHintStep
-              afterDocument={entryPathRef.current === 'document'}
+              afterDocument={entryPath === 'document'}
               onBack={back}
               onNext={() => {
-                const ep = entryPathRef.current
-                if (ep === 'document') {
+                if (entryPath === 'document') {
                   go('address-complement')
                 } else {
                   go('address')
@@ -399,7 +468,7 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
             <AddressComplementStep 
               ref={addressComplementRef}
               onNext={() => {
-                if (entryPathRef.current === 'document') {
+                if (entryPath === 'document') {
                   go('summary')
                 } else {
                   go('doc-confirmation')
@@ -409,7 +478,7 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
                 const previous = stack.current.pop()
                 if (previous) {
                   setFlow(previous)
-                  window.scrollTo({ top: 0, behavior: 'auto' })
+                  scrollConsultFlowToTop()
                 }
               }} 
             />
@@ -421,8 +490,9 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
 
           <Activity isActive={flow === 'doc-type'}>
             <DocumentTypeStep
+              showAddressCard={entryPath !== 'document'}
               onNext={() => {
-                if (entryPathRef.current === 'document') {
+                if (entryPath === 'document') {
                   go('address-hint')
                 } else {
                   go('summary')
@@ -456,7 +526,8 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
           <Activity isActive={flow === 'finished'}>
             <SuccessStep onNavigateToOrders={() => router.push('/consultas')} />
           </Activity>
-        </main>
+          </div>
+        </div>
       </FormProvider>
     </section>
   )

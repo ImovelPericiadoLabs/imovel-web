@@ -33,8 +33,14 @@ import {
   Maximize2,
 } from 'lucide-react'
 import { cn } from '@/utils/tailwind'
-import TextTitle from '@/components/text-title'
-import TextSubtitle from '@/components/text-subtitle'
+import {
+  AdminKpiStrip,
+  AdminPageShell,
+  AdminPanelHeader,
+  ADMIN_KPI,
+  ADMIN_PANEL,
+  ADMIN_PANEL_INTELLIGENCE,
+} from '@/components/admin'
 import Button from '@/components/button'
 import Alert from '@/components/alert'
 import Skeleton from '@/components/skeleton'
@@ -747,48 +753,49 @@ export default function AdminOutreachPage() {
   const columns = campaign?.csv_columns ?? []
   const tplLoading = registryLoading || waLoading || emailLoading
 
-  return (
-    <div className="min-h-screen bg-[radial-gradient(ellipse_120%_80%_at_50%_-20%,rgba(11,27,58,0.06),transparent)] pb-28 md:pb-16">
-      <div className="border-b border-slate-800/10 bg-[#0b1b3a] text-center text-[11px] font-medium tracking-wide text-slate-300">
-        Área restrita · operações de campanha (superusuário)
-      </div>
-      <div className="border-b border-slate-200/90 bg-white shadow-sm">
-        <div className="mx-auto flex max-w-[1600px] flex-col gap-4 px-4 py-6 md:flex-row md:items-center md:justify-between md:px-8 lg:px-10 xl:py-7">
-          <div className="flex min-w-0 items-start gap-4">
-            <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/15 to-primary/5 ring-1 ring-primary/10">
-              <Megaphone className="size-7 text-primary" aria-hidden />
-            </div>
-            <div className="min-w-0">
-              <TextTitle className="text-xl text-gray-900 md:text-2xl">Outreach</TextTitle>
-              <TextSubtitle className="mt-1 max-w-xl text-sm text-gray-600 md:text-[15px]">
-                Campanhas em massa por e-mail e WhatsApp: modelos, CSV, mapeamento, pré-visualização e envio.
-              </TextSubtitle>
-            </div>
-          </div>
-          <div className="flex shrink-0 flex-wrap items-center gap-2 md:justify-end">
-            <Button
-              type="button"
-              variant="outline"
-              className="h-10 rounded-xl text-sm"
-              onClick={resetWizard}
-              icon={<RotateCcw className="size-4" />}
-            >
-              Novo fluxo
-            </Button>
-            <Link
-              href="/consultas"
-              className="inline-flex h-10 items-center rounded-xl border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-700 shadow-sm transition hover:border-primary/30 hover:bg-primary/[0.04] hover:text-primary"
-            >
-              Consultas
-            </Link>
-          </div>
-        </div>
-      </div>
+  const totalCampaigns = campaignTotal
 
-      <div className="mx-auto grid max-w-[1600px] gap-8 px-4 py-8 md:px-8 lg:grid-cols-[minmax(0,1fr)_minmax(17rem,22rem)] lg:items-start lg:gap-10 lg:px-10 xl:grid-cols-[minmax(0,56rem)_minmax(20rem,26rem)] 2xl:grid-cols-[minmax(0,58rem)_minmax(22rem,28rem)]">
-        <div id="outreach-main-wizard" className="min-w-0 space-y-6 xl:space-y-8">
-          {/* Stepper */}
-          <nav aria-label="Etapas da campanha" className="overflow-x-auto pb-1">
+  return (
+    <AdminPageShell
+      metrics={
+        <AdminKpiStrip
+          items={[
+            { id: 'all', label: 'Campanhas', value: totalCampaigns, icon: Megaphone, tone: 'brand' },
+            { id: 'draft', label: 'Rascunho', value: statusCounts.draft ?? 0 },
+            { id: 'live', label: 'Enviando', value: statusCounts.sending ?? 0, tone: 'warning' },
+            { id: 'done', label: 'Concluídas', value: statusCounts.completed ?? 0, tone: 'success' },
+          ]}
+        />
+      }
+      actions={
+        <>
+          <Button
+            type="button"
+            variant="outline"
+            className="h-9 rounded-lg text-xs"
+            onClick={resetWizard}
+            icon={<RotateCcw className="size-3.5" />}
+          >
+            Novo fluxo
+          </Button>
+          <Link
+            href="/admin/chat"
+            className="inline-flex h-9 items-center rounded-lg border border-[#dedee5] bg-white px-3 text-xs font-semibold text-[#686b82] hover:border-[#7132f5]/30 hover:text-[#7132f5]"
+          >
+            Chat
+          </Link>
+        </>
+      }
+      className="mx-auto w-full max-w-[1600px]"
+    >
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(17rem,22rem)] lg:items-start lg:gap-8 xl:grid-cols-[minmax(0,56rem)_minmax(20rem,26rem)] 2xl:grid-cols-[minmax(0,58rem)_minmax(22rem,28rem)]">
+        <div id="outreach-main-wizard" className="min-w-0 space-y-4">
+          <div className={cn(ADMIN_PANEL, 'p-3')}>
+            <AdminPanelHeader
+              title="Assistente de campanha"
+              meta={campaign ? `ID ${campaign.id.slice(0, 8)}…` : 'Novo fluxo'}
+            />
+          <nav aria-label="Etapas da campanha" className="mt-2 overflow-x-auto">
             <ol className="flex min-w-max items-center gap-1 sm:gap-2 md:min-w-0 md:flex-wrap">
               {STEPS.map((s, i) => {
                 const active = step === s.n
@@ -802,19 +809,19 @@ export default function AdminOutreachPage() {
                         if (s.n < step) setStep(s.n)
                       }}
                       className={cn(
-                        'flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold transition sm:text-sm',
-                        done && 'bg-emerald-50 text-emerald-900 ring-1 ring-emerald-200/70',
-                        active && !done && 'bg-primary text-white shadow-md shadow-primary/25',
-                        !active && !done && 'bg-white text-gray-500 ring-1 ring-gray-200 hover:bg-gray-50',
+                        'flex items-center gap-2 rounded-md px-2.5 py-1 text-xs font-semibold transition-colors',
+                        done && 'bg-[rgba(20,158,97,0.12)] text-[#026b3f] ring-1 ring-[#dedee5]',
+                        active && !done && 'bg-[#7132f5] text-white',
+                        !active && !done && 'bg-white text-[#686b82] ring-1 ring-[#dedee5] hover:bg-[rgba(148,151,169,0.08)]',
                         s.n > step && 'cursor-not-allowed opacity-50',
                       )}
                     >
                       <span
                         className={cn(
-                          'flex size-6 shrink-0 items-center justify-center rounded-full text-[11px] sm:size-7 sm:text-xs',
-                          done && 'bg-emerald-600 text-white',
+                          'flex size-5 shrink-0 items-center justify-center rounded text-[10px] sm:size-6 sm:text-[11px]',
+                          done && 'bg-[#026b3f] text-white',
                           active && !done && 'bg-white/20 text-white',
-                          !active && !done && 'bg-gray-100 text-gray-600',
+                          !active && !done && 'bg-[rgba(148,151,169,0.12)] text-[#686b82]',
                         )}
                       >
                         {done ? <Check className="size-3.5" strokeWidth={3} /> : s.short}
@@ -830,19 +837,14 @@ export default function AdminOutreachPage() {
               })}
             </ol>
           </nav>
+          </div>
 
           {pageError ? <Alert variant="error" message={pageError} /> : null}
 
           {step === 1 && (
-            <section className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm ring-1 ring-black/[0.02] md:p-8">
-              <div className="mb-6 flex items-center gap-2">
-                <ListChecks className="size-5 text-primary" />
-                <h2 className="text-lg font-bold text-gray-900">Canais de envio</h2>
-              </div>
-              <p className="mb-6 text-sm leading-relaxed text-gray-600">
-                Escolha pelo menos um canal. Você poderá combinar e-mail (HTML do banco) e WhatsApp (templates aprovados
-                na Meta).
-              </p>
+            <section className={cn(ADMIN_PANEL, 'p-4 md:p-6')}>
+              <AdminPanelHeader title="Canais" meta="E-mail e/ou WhatsApp" />
+              <p className="mb-4 text-xs text-[#9497a9]">Selecione ao menos um canal.</p>
               <div className="grid gap-3 sm:grid-cols-2">
                 {(
                   [
@@ -903,7 +905,7 @@ export default function AdminOutreachPage() {
           )}
 
           {step === 2 && (
-            <section className="space-y-6 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm ring-1 ring-black/[0.02] md:p-8">
+            <section className={cn(ADMIN_PANEL, 'space-y-5 p-4 md:p-6')}>
               <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start sm:gap-6">
                 <div className="min-w-0">
                   <h2 className="text-lg font-bold text-gray-900">Modelos e arquivo</h2>
@@ -1085,7 +1087,7 @@ export default function AdminOutreachPage() {
           )}
 
           {step === 3 && campaign && (
-            <section className="relative space-y-6 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm ring-1 ring-black/[0.02] md:p-8">
+            <section className={cn(ADMIN_PANEL, 'relative space-y-5 p-4 md:p-6')}>
               {previewMut.isPending ? (
                 <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 rounded-2xl bg-white/85 backdrop-blur-sm">
                   <Loader2 className="size-10 animate-spin text-primary" />
@@ -1252,7 +1254,7 @@ export default function AdminOutreachPage() {
           )}
 
           {step === 4 && previewResult !== null && (
-            <section className="space-y-6 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm ring-1 ring-black/[0.02] md:p-8">
+            <section className={cn(ADMIN_PANEL, 'space-y-5 p-4 md:p-6')}>
               <div className="flex items-center gap-2">
                 <Eye className="size-5 text-primary" />
                 <h2 className="text-lg font-bold text-gray-900">Pré-visualização (dry-run)</h2>
@@ -1386,7 +1388,7 @@ export default function AdminOutreachPage() {
         {/* Painel operacional: métricas, filtros e auditoria (API autenticada) */}
         <aside className="min-w-0 space-y-5 lg:sticky lg:top-4 lg:max-h-[calc(100vh-1.5rem)] lg:overflow-y-auto lg:pr-1 xl:top-6">
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
-            <div className="rounded-xl border border-slate-200/90 bg-gradient-to-b from-white to-slate-50/80 p-2.5 shadow-sm sm:p-3">
+            <div className={ADMIN_KPI}>
               <div className="flex items-center justify-between gap-1 text-[10px] font-bold uppercase tracking-wide text-slate-500">
                 <span>Com filtro</span>
                 <LayoutGrid className="size-3.5 shrink-0 text-slate-400" aria-hidden />
@@ -1394,14 +1396,14 @@ export default function AdminOutreachPage() {
               <p className="mt-0.5 text-lg font-bold tabular-nums text-slate-900 sm:text-xl">{campaignTotal}</p>
               <p className="text-[9px] text-slate-400">campanhas</p>
             </div>
-            <div className="rounded-xl border border-slate-200/90 bg-gradient-to-b from-white to-slate-50/80 p-2.5 shadow-sm sm:p-3">
+            <div className={ADMIN_KPI}>
               <div className="flex items-center justify-between gap-1 text-[10px] font-bold uppercase tracking-wide text-slate-500">
                 <span>Rascunho</span>
                 <BarChart3 className="size-3.5 shrink-0 text-slate-400" aria-hidden />
               </div>
               <p className="mt-0.5 text-lg font-bold tabular-nums text-slate-900 sm:text-xl">{statusCounts.draft ?? 0}</p>
             </div>
-            <div className="rounded-xl border border-slate-200/90 bg-gradient-to-b from-white to-slate-50/80 p-2.5 shadow-sm sm:p-3">
+            <div className={ADMIN_KPI}>
               <div className="flex items-center justify-between gap-1 text-[10px] font-bold uppercase tracking-wide text-slate-500">
                 <span>Prévia OK</span>
                 <Eye className="size-3.5 shrink-0 text-slate-400" aria-hidden />
@@ -1410,7 +1412,7 @@ export default function AdminOutreachPage() {
                 {statusCounts.preview_ready ?? 0}
               </p>
             </div>
-            <div className="rounded-xl border border-slate-200/90 bg-gradient-to-b from-white to-slate-50/80 p-2.5 shadow-sm sm:p-3">
+            <div className={ADMIN_KPI}>
               <div className="flex items-center justify-between gap-1 text-[10px] font-bold uppercase tracking-wide text-slate-500">
                 <span>Enviando</span>
                 <RefreshCw className="size-3.5 shrink-0 text-slate-400" aria-hidden />
@@ -1419,7 +1421,7 @@ export default function AdminOutreachPage() {
                 {statusCounts.sending ?? 0}
               </p>
             </div>
-            <div className="rounded-xl border border-slate-200/90 bg-gradient-to-b from-white to-slate-50/80 p-2.5 shadow-sm sm:p-3">
+            <div className={ADMIN_KPI}>
               <div className="flex items-center justify-between gap-1 text-[10px] font-bold uppercase tracking-wide text-slate-500">
                 <span>Concluído</span>
                 <Check className="size-3.5 shrink-0 text-slate-400" aria-hidden />
@@ -1428,7 +1430,7 @@ export default function AdminOutreachPage() {
                 {statusCounts.completed ?? 0}
               </p>
             </div>
-            <div className="rounded-xl border border-slate-200/90 bg-gradient-to-b from-white to-slate-50/80 p-2.5 shadow-sm sm:p-3">
+            <div className={ADMIN_KPI}>
               <div className="flex items-center justify-between gap-1 text-[10px] font-bold uppercase tracking-wide text-slate-500">
                 <span>Falhou</span>
                 <AlertTriangle className="size-3.5 shrink-0 text-slate-400" aria-hidden />
@@ -1437,23 +1439,16 @@ export default function AdminOutreachPage() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-primary/15 bg-gradient-to-br from-primary/[0.06] to-white p-5 shadow-sm ring-1 ring-primary/10">
-            <div className="flex items-center gap-2 text-primary">
-              <ShieldCheck className="size-5 shrink-0" />
-              <p className="text-sm font-bold">Boas práticas</p>
-            </div>
-            <ul className="mt-3 space-y-2 text-xs leading-relaxed text-slate-700 md:text-sm">
-              <li>• Sincronize templates após mudanças na Meta.</li>
-              <li>• Excel é convertido no navegador para CSV; o servidor só recebe texto.</li>
-              <li>• Use pré-visualização: métricas de nulos e regras JSON antes do envio.</li>
-              <li>• Confirme LGPD e origem da lista.</li>
-              <li>• Use colunas claras no CSV (sem espaços estranhos).</li>
-              <li>• Desative campanhas antigas ou elimine rascunhos no painel à direita.</li>
-            </ul>
+          <div className={cn(ADMIN_PANEL_INTELLIGENCE, 'p-3 text-[11px] text-[#686b82]')}>
+            <p className="flex items-center gap-1.5 font-bold text-[#5741d8]">
+              <ShieldCheck className="size-3.5" aria-hidden />
+              Checklist
+            </p>
+            <p className="mt-2 leading-relaxed">Sync Meta · Prévia · LGPD · Colunas CSV limpas</p>
           </div>
 
-          <div className="rounded-2xl border border-slate-200/90 bg-white p-4 shadow-md ring-1 ring-slate-900/[0.04] md:p-5">
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+          <div className={cn(ADMIN_PANEL, 'p-3 md:p-4')}>
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-[#dedee5] pb-2.5">
               <div className="flex items-center gap-2">
                 <Inbox className="size-5 text-slate-600" />
                 <h3 className="text-sm font-bold text-slate-900">Campanhas</h3>
@@ -1624,7 +1619,7 @@ export default function AdminOutreachPage() {
           </div>
 
           {selectedPanelId ? (
-            <div className="rounded-2xl border border-slate-200/90 bg-white p-4 shadow-md ring-1 ring-slate-900/[0.04] md:p-5">
+            <div className={cn(ADMIN_PANEL, 'p-3 md:p-4')}>
               <div className="mb-3 flex items-center gap-2 border-b border-slate-100 pb-3">
                 <Users className="size-5 text-slate-600" />
                 <h3 className="text-sm font-bold text-slate-900">Auditoria</h3>
@@ -2059,6 +2054,6 @@ export default function AdminOutreachPage() {
           ) : null}
         </aside>
       </div>
-    </div>
+    </AdminPageShell>
   )
 }

@@ -2,10 +2,6 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
 import Button from './button'
 
-vi.mock('@/utils/tailwind', () => ({
-  cn: vi.fn((...classes: string[]) => classes.filter(Boolean).join(' ')),
-}))
-
 describe('Button', () => {
   it('should render the button with children text', () => {
     render(<Button>Click me</Button>)
@@ -16,7 +12,7 @@ describe('Button', () => {
     render(<Button>Default</Button>)
     const button = screen.getByRole('button')
     expect(button.className).toContain('cursor-pointer')
-    expect(button.className).toContain('bg-primary')
+    expect(button.className).toContain('bg-[var(--color-button-primary)]')
     expect(button.className).toContain('text-white')
     expect(button.className).toContain('rounded-xl')
   })
@@ -25,7 +21,7 @@ describe('Button', () => {
     render(<Button className="custom-class">Custom</Button>)
     const button = screen.getByRole('button')
     expect(button.className).toContain('custom-class')
-    expect(button.className).toContain('bg-primary')
+    expect(button.className).toContain('bg-[var(--color-button-primary)]')
   })
 
   it('should call onClick when clicked', () => {

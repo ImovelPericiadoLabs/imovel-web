@@ -45,7 +45,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="pt-br" className="h-full">
+    <html lang="pt-br">
       <head>
         <Script
           id="google-tag-manager"
@@ -59,7 +59,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
           }}
         />
       </head>
-      <body className={`${plusJakartaSans.variable} antialiased h-full flex flex-col`}>
+      <body className={`${plusJakartaSans.variable} antialiased`}>
         <Suspense fallback={null}>
           <PageViewTracker />
         </Suspense>
@@ -72,9 +72,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
           />
         </noscript>
         <Providers>
-          <main className="flex-1 flex flex-col h-full w-full">
-            {children}
-          </main>
+          <div className="w-full">{children}</div>
         </Providers>
       </body>
     </html>

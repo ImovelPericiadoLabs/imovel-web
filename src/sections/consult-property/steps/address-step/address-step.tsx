@@ -5,13 +5,20 @@ import { Home, MouseOff, FileText, BellDot, Package, ArrowUp } from 'lucide-reac
 import { useFormContext } from 'react-hook-form'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import TextTitle from '@/components/text-title'
+import {
+  consultFlowHeroBlockClass,
+  consultFlowHeroSubtitleClass,
+  consultFlowHeroTitleClass,
+  consultFlowHeroTitleSizeLargeClass,
+} from '@/constants/consult-flow-hero-text'
+import { cn } from '@/utils/tailwind'
 import TextSubtitle from '@/components/text-subtitle'
 import AutoCompleteAddressInput from '@/components/auto-complete-address-input'
 import LoadingOverlay from '@/components/loading-overlay'
 import Button from '@/components/button'
 import useDebounce from '@/hooks/use-debounce'
 import { queryKey } from '@/constants/queries'
-import { listAddresses, listAddress, listRegistry } from '@/services/addresses'
+import { listAddresses, listAddress, listRegistry, type AddressConfirmPayload } from '@/services/addresses'
 import { trackGtmEvent } from '@/utils/analytics/gtm'
 
 const IS_DEBUG_MODE = process.env.NEXT_PUBLIC_ENABLE_DEBUG_MODE === 'true'
@@ -107,7 +114,7 @@ export const AddressStep = forwardRef<{ focus: () => boolean }, { onNext: () => 
   const { mutateAsync: listRegistryMutate, isPending: isLoadingListRegistry } = useMutation({
     mutationFn: listRegistry,
     onSuccess(data) {
-      setValue('registry', data)
+      setValue('registry', data ?? null)
       trackGtmEvent('address_registry_loaded', {
         event_category: 'address',
         event_label: 'registry_loaded',
@@ -115,6 +122,9 @@ export const AddressStep = forwardRef<{ focus: () => boolean }, { onNext: () => 
         registry_name: data?.name,
         has_registry: Boolean(data?.name),
       })
+    },
+    onError() {
+      setValue('registry', null)
     },
   })
 
@@ -135,22 +145,35 @@ export const AddressStep = forwardRef<{ focus: () => boolean }, { onNext: () => 
       address_length: address?.length || 0,
     })
 
-    return response as { address: string; addressNumber: string | null }
+    return response
   }, [setValue, listAddressMutate, address])
 
   const handleChangeAddress = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setAddress(e.target.value)
   }, [])
 
-  const handleSubmit = useCallback(async (value: string) => {
+  const handleSubmit = useCallback(async (payload: AddressConfirmPayload) => {
+    const value = payload.address
     setValue('address', value)
-    await listRegistryMutate(value)
+
+    if (payload.addressNumber) {
+      setValue('addressNumber', payload.addressNumber)
+      setValue('noAddressNumber', false)
+    }
+
+    if (payload.place_response) {
+      setValue('place_response', payload.place_response)
+    }
+
     trackGtmEvent('address_confirmed', {
       event_category: 'address',
       event_label: 'confirm',
       event_description: 'Endereço confirmado para avançar no fluxo.',
       address_length: value?.length || 0,
+      address_has_number: payload.place_response?.address_has_number ?? Boolean(payload.addressNumber),
     })
+
+    await listRegistryMutate(value).catch(() => undefined)
     onNext()
   }, [setValue, listRegistryMutate, onNext])
 
@@ -196,14 +219,14 @@ export const AddressStep = forwardRef<{ focus: () => boolean }, { onNext: () => 
   }, [isError, queryError])
 
   return (
-    <div className="relative flex h-full w-full flex-col px-4 pb-32 md:px-6 xl:px-8">
+    <div className="relative flex w-full flex-col px-4 pb-32 md:px-6 xl:px-8">
       <div className="flex-1 flex flex-col gap-4">
-        <div className="mb-6 flex max-w-[100%] flex-col gap-2 pb-1 lg:mx-auto lg:max-w-2xl lg:text-center">
-          <TextTitle className="text-balance text-black leading-snug sm:leading-6 md:text-xl lg:text-2xl">
+        <div className={cn(consultFlowHeroBlockClass, 'mb-6 pb-1')}>
+          <TextTitle className={cn(consultFlowHeroTitleClass, consultFlowHeroTitleSizeLargeClass)}>
             Digite o endereço do imóvel para começar
           </TextTitle>
-          <TextSubtitle className="text-pretty text-black/70 leading-snug sm:leading-4 md:text-[15px] lg:mx-auto lg:max-w-xl lg:text-base">
-            Escreva rua, número e bairro para avançar com segurança
+          <TextSubtitle className={consultFlowHeroSubtitleClass}>
+            Informe logradouro, número e bairro.
           </TextSubtitle>
         </div>
 

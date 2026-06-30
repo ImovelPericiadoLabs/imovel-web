@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { Controller, useFormContext } from 'react-hook-form'
-import Image from 'next/image'
-import { Mail, ArrowLeft } from 'lucide-react'
+import { Mail, ChevronLeft } from 'lucide-react'
+import { BrandLogoLink } from '@/components/brand-logo-link'
 import { signIn } from 'next-auth/react'
 
 import Button from '@/components/button'
@@ -102,23 +102,25 @@ export function AuthCodePage({ onBack, onSuccess }: AuthCodePageProps) {
     if (!email) return null;
 
     return (
-        <div className="min-h-screen w-full bg-white fixed inset-0 z-50 flex flex-col items-center justify-start pt-8 px-4">
-            <button type="button" onClick={onBack} className="absolute top-6 left-4 p-2 rounded-full hover:bg-gray-100 touch-manipulation">
-                <ArrowLeft className="size-6 text-dark" />
-            </button>
-
-            <div className="flex flex-col items-center max-w-sm w-full pt-6">
-                <div className="mb-12">
-                    <Image
-                        src="/images/logo.svg"
-                        alt="Logo"
-                        width={72}
-                        height={70}
-                        priority
-                        className="object-contain -my-2.5"
-                    />
+        <div className="min-h-screen w-full bg-white fixed inset-0 z-50 flex flex-col">
+            <header className="w-full shrink-0 bg-primary px-4 py-6 shadow-sm">
+                <div className="relative mx-auto flex min-h-[3.75rem] max-w-lg items-center justify-between sm:min-h-[4rem]">
+                    <button
+                        type="button"
+                        onClick={onBack}
+                        className="touch-manipulation"
+                        aria-label="Voltar"
+                    >
+                        <ChevronLeft className="size-8 text-white" />
+                    </button>
+                    <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+                        <BrandLogoLink tone="on-primary" />
+                    </div>
+                    <span className="size-8 shrink-0" aria-hidden />
                 </div>
+            </header>
 
+            <div className="flex flex-1 flex-col items-center px-4 pt-8 max-w-sm w-full mx-auto">
                 <div className="mb-6 flex items-center justify-center size-16 rounded-full bg-primary/10">
                     <Mail className="size-8 text-primary" />
                 </div>

@@ -12,10 +12,14 @@ export const validations = z
     lot: z.string().optional(),
     noLot: z.boolean().nullable().optional(),
     complement: z.string().optional(),
+    addressNumber: z.string().optional(),
+    noAddressNumber: z.boolean().nullable().optional(),
     unknownRegistration: z.boolean().nullable().optional(),
     registrationNumber: z.string().optional().nullable(),
     /** Nome do cartório quando o usuário não passou pelo mapa (fluxo matrícula + cartório). */
     notaryName: z.string().max(150, 'Nome do cartório muito longo').default(''),
+    notaryState: z.string().max(2, 'UF inválida').default(''),
+    notaryCity: z.string().max(120, 'Cidade muito longa').default(''),
     placeId: z.string().default(''),
     addressHint: z.string().default(''),
     registry: z.object({
@@ -39,6 +43,8 @@ export const validations = z
       .nullable(),
     documentPreview: z.any().optional(),
     paymentMethod: z.enum(['pix', 'credit_card', 'debit_card', 'boleto']),
+    entryPath: z.enum(['address', 'document', 'registry']).optional(),
+    includeCertificates: z.boolean().default(false),
   })
   .refine(
     (data) => {
@@ -92,6 +98,18 @@ export const validations = z
       message: 'O documento é obrigatório',
       path: ['document'],
     },
+  )
+  .refine(
+    (data) => {
+      if (data.noAddressNumber === false) {
+        return !!data.addressNumber && data.addressNumber.trim().length > 0
+      }
+      return true
+    },
+    {
+      message: 'Informe o número do endereço',
+      path: ['addressNumber'],
+    }
   )
   .refine(
     (data) => {

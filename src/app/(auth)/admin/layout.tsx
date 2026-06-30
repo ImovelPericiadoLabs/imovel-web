@@ -1,6 +1,7 @@
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 import AppLayout from '@/layouts/app-layout'
+import { AdminWorkspace } from '@/layouts/admin-workspace'
 import { Login } from '@/sections/login'
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -10,5 +11,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     return <Login />
   }
 
-  return <AppLayout>{children}</AppLayout>
+  return (
+    <AppLayout>
+      <AdminWorkspace>{children}</AdminWorkspace>
+    </AppLayout>
+  )
 }

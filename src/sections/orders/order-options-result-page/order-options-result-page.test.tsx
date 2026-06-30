@@ -2,27 +2,10 @@ import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import OrderOptionsResultPage from './order-options-result-page'
 
-vi.mock('@/utils/tailwind', () => ({
-  cn: (...inputs: any[]) => inputs.filter(Boolean).join(' '),
-}))
-
 vi.mock('@/components/badge', () => ({
   default: ({ children, variant }: any) => (
     <span data-testid="badge" data-variant={variant}>{children}</span>
   ),
-}))
-
-vi.mock('@/sections/orders/constants', () => ({
-  mapCircleStatus: {
-    ALL_GOOD: 'bg-green-500',
-    IRREGULARITIES_FOUND: 'bg-yellow-500',
-    PURCHASE_AND_SALE_BLOCKED: 'bg-red-500',
-  },
-  mapBadgeStatus: {
-    ALL_GOOD: 'success',
-    IRREGULARITIES_FOUND: 'warning',
-    PURCHASE_AND_SALE_BLOCKED: 'destructive',
-  },
 }))
 
 describe('OrderOptionsResultPage', () => {

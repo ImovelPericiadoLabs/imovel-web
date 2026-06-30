@@ -2,12 +2,6 @@ import { render, screen } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
 import RootLayout, { metadata } from './layout'
 
-vi.mock('next/font/google', () => ({
-  Noto_Sans: vi.fn(() => ({
-    variable: '--font-noto-sans',
-  })),
-}))
-
 vi.mock('@/providers', () => ({
   Providers: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }))

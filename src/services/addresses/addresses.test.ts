@@ -149,9 +149,17 @@ describe('Address Services', () => {
     })
 
     it('should return undefined when registry is missing', async () => {
-      mockPost.mockResolvedValue({} satisfies RegistryApiResponse)
+      mockPost.mockResolvedValue({ registry: null } satisfies RegistryApiResponse)
 
       const result = await listRegistry('Rua C')
+
+      expect(result).toBeUndefined()
+    })
+
+    it('should return undefined on 404 from API', async () => {
+      mockPost.mockRejectedValue(new Error('Erro 404'))
+
+      const result = await listRegistry('Rua D')
 
       expect(result).toBeUndefined()
     })
@@ -189,6 +197,11 @@ describe('Address Services', () => {
       expect(result).toEqual({
         address: 'Rua A, São Paulo',
         addressNumber: null,
+        postalCode: null,
+        place_response: {
+          formatted_address: 'Rua A, São Paulo',
+          address_has_number: false,
+        },
       })
     })
 
@@ -208,6 +221,12 @@ describe('Address Services', () => {
       expect(result).toEqual({
         address: 'Rua A, 123',
         addressNumber: '123',
+        postalCode: null,
+        place_response: {
+          formatted_address: 'Rua A, 123',
+          street_number: '123',
+          address_has_number: true,
+        },
       })
     })
 
@@ -222,6 +241,11 @@ describe('Address Services', () => {
       expect(result).toEqual({
         address: '',
         addressNumber: null,
+        postalCode: null,
+        place_response: {
+          formatted_address: undefined,
+          address_has_number: false,
+        },
       })
     })
   })

@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Controller, useFormContext } from 'react-hook-form'
-import Image from 'next/image'
 import { Mail, AlertCircle, ArrowRight } from 'lucide-react'
 import { signIn } from 'next-auth/react'
 import { FormTypes } from '@/sections/login/validations'
@@ -12,10 +11,12 @@ import { startAuth } from '@/services/account'
 
 export function VerifyCodeStep({
   onBack,
+  onSuccess,
   enableTimer = true,
   initialTimer = 59,
 }: {
   onBack: () => void
+  onSuccess?: () => void
   enableTimer?: boolean
   initialTimer?: number
 }) {
@@ -57,7 +58,10 @@ export function VerifyCodeStep({
         return setErrorMsg(cleanError || 'Código incorreto ou expirado.')
       }
 
+      // Refresh server components with the new session cookie, then let the
+      // parent react (e.g. close the re-auth modal) and stay on the same screen.
       router.refresh()
+      onSuccess?.()
     } catch {
       setErrorMsg('Ocorreu um erro ao validar o código.')
     }
@@ -84,17 +88,6 @@ export function VerifyCodeStep({
       onSubmit={handleSubmit(onSubmit)}
       className="flex flex-col items-center animate-in fade-in slide-in-from-right-4 duration-300 text-center"
     >
-      <div className="mb-12">
-        <Image
-          src="/images/logo.svg"
-          alt="Logo"
-          width={72}
-          height={70}
-          priority
-          className="object-contain -my-2.5"
-        />
-      </div>
-
       <div className="mb-6 flex items-center justify-center size-16 rounded-full bg-primary/10">
         <Mail className="size-8 text-primary" />
       </div>

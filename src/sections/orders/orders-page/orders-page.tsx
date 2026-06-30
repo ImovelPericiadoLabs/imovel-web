@@ -6,13 +6,14 @@ import { ChevronRight, Inbox } from 'lucide-react'
 import { useInfiniteQuery } from '@tanstack/react-query'
 
 import { CONSULTAR_IMOVEL_INICIO_HREF } from '@/constants/consult-flow'
-import TextTitle from '@/components/text-title'
+import { Surface } from '@/components/ui/surfaces'
+import { HeroTitle } from '@/components/ui/typography'
+import { cn } from '@/utils/tailwind'
 import Badge from '@/components/badge'
 import LoadingOverlay from '@/components/loading-overlay'
 import Button from '@/components/button'
 
 import { formatDateWithTime } from '@/utils/date'
-import { cn } from '@/utils/tailwind'
 
 import { listOrders, type Order } from '@/services/orders'
 import {
@@ -37,6 +38,8 @@ export default function OrdersPage() {
     queryFn: ({ pageParam }) =>
       listOrders({ limit: PAGE_SIZE, p: pageParam }),
     initialPageParam: 1,
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
     getNextPageParam: lastPage =>
       lastPage.meta.has_next ? lastPage.meta.page + 1 : undefined
   })
@@ -74,7 +77,9 @@ export default function OrdersPage() {
 
   return (
     <div className="relative z-40 flex-1 px-4 flex flex-col gap-5 pb-24 md:pb-0 max-w-4xl mx-auto w-full min-h-[80vh]">
-      <TextTitle className="text-white">Minhas Consultas</TextTitle>
+      <Surface variant="dark">
+        <HeroTitle variant="large">Minhas Consultas</HeroTitle>
+      </Surface>
 
       {!isLoading && orders.length === 0 ? (
         renderEmptyState()

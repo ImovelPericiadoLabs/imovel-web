@@ -1,31 +1,90 @@
 'use client'
 
-import { useMemo } from 'react'
-import { MapPin, Building, ChevronRight, Hash, Box, Layout, Package, Check } from 'lucide-react'
+import { useEffect, useMemo } from 'react'
+import { unlockPageScroll } from '@/utils/consult-flow-scroll'
+import { MapPin, Building, ChevronRight, Hash, Box, Layout, Package, Check, FileText } from 'lucide-react'
 import { useFormContext } from 'react-hook-form'
 import TextTitle from '@/components/text-title'
 import TextSubtitle from '@/components/text-subtitle'
+import {
+  consultFlowHeroBlockClass,
+  consultFlowHeroSubtitleClass,
+  consultFlowHeroTitleClass,
+  consultFlowHeroTitleSizeLargeClass,
+} from '@/constants/consult-flow-hero-text'
+import { cn } from '@/utils/tailwind'
 import Button from '@/components/button'
+import { Switch } from '@/components/switch/switch'
 import { SummaryItemsList, type SummaryItems } from '@/components/summary-items-list'
-import { trackGtmEvent, buildConsultItem, DEFAULT_CURRENCY } from '@/utils/analytics/gtm'
+import { trackGtmEvent, buildConsultItem, DEFAULT_CURRENCY, CERTIFICATES_UPSELL_PRICE } from '@/utils/analytics/gtm'
 import { formatMoney } from '@/utils/text/text'
-import { usePublicPlanPrice } from '@/hooks/use-public-plan-price'
+import { ANALYSIS_VALUE_BULLETS } from '@/constants/included-certificates'
+import { IncludedCertificatesPanel } from '@/components/included-certificates/included-certificates-panel'
+import { resolveConsultPrice, type EntryPath } from '@/hooks/use-consult-price'
+import type { FormTypes } from '@/sections/consult-property/validations'
 
-const VALUE_BULLETS = [
-  'Leitura assistida por IA da matrícula e dos documentos enviados',
-  'Sinais de risco, pendências e pontos que merecem atenção antes de negociar',
-  'Relatório em linguagem clara para apoiar sua decisão com segurança',
-] as const
+const VALUE_BULLETS = ANALYSIS_VALUE_BULLETS
+
+const DOCUMENT_TYPE_LABELS = {
+  agreement: 'Contrato de compra e venda',
+  registration: 'Matrícula',
+  deed: 'Escritura',
+} as const
 
 export function SummaryStep({ onNext }: { onNext: () => void }) {
-  const { watch } = useFormContext()
+  const { watch, setValue } = useFormContext<FormTypes>()
   const values = watch()
-  const { price: consultPrice } = usePublicPlanPrice()
+
+  const entryPath = values.entryPath as EntryPath | undefined
+  const includeCertificates = Boolean(values.includeCertificates)
+  const { price: consultPrice } = resolveConsultPrice(entryPath, includeCertificates)
+  const showCertificatesToggle = entryPath === 'address'
+
+  useEffect(() => {
+    unlockPageScroll()
+  }, [])
 
   const summary = useMemo(() => {
-    const { address, addressHint, registry, registrationNumber, notaryName, allotment, block, lot } = values
+    const {
+      address,
+      addressHint,
+      registry,
+      registrationNumber,
+      notaryName,
+      allotment,
+      block,
+      lot,
+      documentType,
+      document,
+      documentPreview,
+    } = values
 
     const items: SummaryItems = []
+
+    const docTypeKey = documentType as keyof typeof DOCUMENT_TYPE_LABELS | undefined
+    const docTypeLabel = docTypeKey ? DOCUMENT_TYPE_LABELS[docTypeKey] : ''
+    const docFileName =
+      (documentPreview as { name?: string } | undefined)?.name?.trim() ||
+      document?.original_name?.trim() ||
+      ''
+
+    if (docTypeLabel) {
+      items.push({
+        key: 'documentType',
+        icon: FileText,
+        title: 'Tipo de documento',
+        value: docTypeLabel,
+      })
+    }
+
+    if (docFileName) {
+      items.push({
+        key: 'documentFile',
+        icon: FileText,
+        title: 'Arquivo enviado',
+        value: docFileName,
+      })
+    }
 
     const loc = String(address || '').trim() || String(addressHint || '').trim()
     if (loc) {
@@ -109,11 +168,16 @@ export function SummaryStep({ onNext }: { onNext: () => void }) {
   }, [values])
 
   return (
-    <div className="relative flex min-h-[calc(100vh-7.5rem)] flex-col gap-4 pb-32 lg:min-h-[calc(100vh-6rem)] lg:pb-28">
-      <div className="flex flex-col gap-4 px-4 md:px-6 xl:px-8">
-        <div className="mb-6 flex flex-col gap-2 lg:mx-auto lg:max-w-3xl lg:text-center">
-          <TextTitle className="text-black md:text-xl lg:text-2xl">Resumo da Consulta do Imóvel</TextTitle>
-          <TextSubtitle className="text-black/70 md:text-[15px] lg:mx-auto lg:max-w-xl lg:text-base">
+    <div className="relative">
+      <div
+        className="flex flex-col gap-4 px-4 pb-[calc(6.5rem+env(safe-area-inset-bottom))] md:px-6 xl:px-8"
+        aria-label="Resumo da consulta"
+      >
+        <div className={cn(consultFlowHeroBlockClass, 'mb-6 max-w-3xl')}>
+          <TextTitle className={cn(consultFlowHeroTitleClass, consultFlowHeroTitleSizeLargeClass)}>
+            Resumo da Consulta do Imóvel
+          </TextTitle>
+          <TextSubtitle className={consultFlowHeroSubtitleClass}>
             Verifique se os dados abaixo estão corretos
           </TextSubtitle>
         </div>
@@ -150,14 +214,39 @@ export function SummaryStep({ onNext }: { onNext: () => void }) {
                   </li>
                 ))}
               </ul>
+
+              {showCertificatesToggle && (
+                <div className="flex items-center justify-between gap-3 rounded-xl border border-gray-100 bg-gray-50/80 px-4 py-3">
+                  <div className="min-w-0 flex flex-col gap-0.5">
+                    <p className="text-[13px] font-semibold text-gray-900">
+                      Incluir certidões oficiais
+                    </p>
+                    <p className="text-[12px] text-gray-600">
+                      +{formatMoney(CERTIFICATES_UPSELL_PRICE)} — emitidas após a análise
+                    </p>
+                  </div>
+                  <Switch
+                    checked={includeCertificates}
+                    onCheckedChange={(checked) => {
+                      setValue('includeCertificates', checked, { shouldValidate: false })
+                    }}
+                    aria-label="Incluir certidões oficiais"
+                  />
+                </div>
+              )}
+
+              <div className="border-t border-gray-100 pt-4">
+                <IncludedCertificatesPanel embedded included={includeCertificates} />
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 z-10 mt-auto border-t border-gray-200 bg-white px-4 pb-7 pt-5 md:px-6 lg:left-1/2 lg:right-auto lg:w-full lg:max-w-2xl lg:-translate-x-1/2 lg:rounded-t-2xl lg:border-x lg:px-8 lg:pb-8 lg:pt-6 lg:shadow-[0_-8px_30px_-12px_rgba(0,0,0,0.12)] xl:max-w-3xl">
-        <Button 
-          className="h-12 w-full rounded-xl text-base lg:h-11 lg:max-w-md lg:mx-auto" 
+      <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-gray-200 bg-white px-4 pb-[max(1.75rem,env(safe-area-inset-bottom))] pt-5 shadow-[0_-8px_30px_-12px_rgba(0,0,0,0.12)] md:px-6">
+        <div className="mx-auto w-full max-w-lg md:max-w-2xl xl:max-w-3xl">
+        <Button
+          className="h-12 w-full rounded-xl text-base lg:mx-auto lg:h-11 lg:max-w-md"
           onClick={() => {
             trackGtmEvent('begin_checkout', {
               event_category: 'checkout',
@@ -167,6 +256,8 @@ export function SummaryStep({ onNext }: { onNext: () => void }) {
               value: consultPrice,
               items: [buildConsultItem(consultPrice)],
               checkout_step: 'summary',
+              include_certificates: includeCertificates,
+              entry_path: entryPath,
             })
             trackGtmEvent('summary_continue', {
               event_category: 'summary',
@@ -178,6 +269,10 @@ export function SummaryStep({ onNext }: { onNext: () => void }) {
               has_allotment: Boolean(values.allotment),
               has_block: Boolean(values.block),
               has_lot: Boolean(values.lot),
+              has_document: Boolean(values.document?.id),
+              document_type: values.documentType,
+              include_certificates: includeCertificates,
+              entry_path: entryPath,
             })
             onNext()
           }}
@@ -185,6 +280,7 @@ export function SummaryStep({ onNext }: { onNext: () => void }) {
         >
           Continuar
         </Button>
+        </div>
       </div>
     </div>
   )

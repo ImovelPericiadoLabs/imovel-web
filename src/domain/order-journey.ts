@@ -166,6 +166,42 @@ export function resolveOrderStatusUI(
   return DEFAULT_UI
 }
 
+/** Statuses where the pipeline is actively running (worth polling). */
+export function isOrderPipelineActive(statusValue: string | undefined): boolean {
+  return (
+    statusValue === 'SEARCHING_DOCUMENT' || statusValue === 'IN_PROGRESS'
+  )
+}
+
+/** Terminal order statuses — polling must be off. */
+export function isOrderTerminalStatus(statusValue: string | undefined): boolean {
+  return (
+    statusValue === 'FINISHED' ||
+    statusValue === 'CANCELED' ||
+    statusValue === 'MANUAL_REVIEW_PENDING'
+  )
+}
+
+/** Polling interval for pipeline events timeline (ms); `false` = off. */
+export function getOrderEventsRefetchIntervalMs(
+  statusValue: string | undefined,
+): number | false {
+  if (isOrderTerminalStatus(statusValue)) return false
+  if (
+    statusValue === 'REJECTED_DATA' ||
+    statusValue === 'RETURNED_BY_NOTARY'
+  ) {
+    return 90_000
+  }
+  if (statusValue === 'IN_PROGRESS') {
+    return 8_000
+  }
+  if (isOrderPipelineActive(statusValue)) {
+    return 12_000
+  }
+  return false
+}
+
 /**
  * Adaptive polling (ms). Returns `false` when idle polling should stop.
  */
@@ -175,22 +211,23 @@ export function getOrderRefetchIntervalMs(
 ): number | false {
   switch (statusValue) {
     case 'SEARCHING_DOCUMENT':
-      return 12_000
+      return 15_000
     case 'IN_PROGRESS':
       return 8_000
     case 'PENDING':
       if (options?.paymentConfirmed) {
-        return 12_000
+        return 15_000
       }
-      return 30_000
+      return 45_000
     case 'FINISHED':
     case 'CANCELED':
+    case 'MANUAL_REVIEW_PENDING':
       return false
     case 'REJECTED_DATA':
     case 'RETURNED_BY_NOTARY':
-      return 60_000
+      return 90_000
     default:
-      return 45_000
+      return false
   }
 }
 
