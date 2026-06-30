@@ -4,6 +4,7 @@ import { useParams } from 'next/navigation'
 import { Files, Lock } from 'lucide-react'
 import { useOrderDetailQuery } from '@/hooks/use-order-detail-query'
 import { useOrderEventsQuery } from '@/hooks/use-order-events-query'
+import { useOrderRealtime } from '@/hooks/use-order-realtime'
 
 import { cn } from '@/utils/tailwind'
 import Button from '@/components/button'
@@ -14,9 +15,11 @@ export default function OrderPage() {
   const { id } = useParams()
   const orderId = id as string
 
-  const { data: order } = useOrderDetailQuery(orderId)
+  const { connected: realtimeConnected } = useOrderRealtime(orderId)
+
+  const { data: order } = useOrderDetailQuery(orderId, realtimeConnected)
   const { data: orderEvents = [], isFetching: eventsFetching } =
-    useOrderEventsQuery(orderId, order?.status?.value)
+    useOrderEventsQuery(orderId, order?.status?.value, realtimeConnected)
 
   const isAnalysisComplete = order?.status?.value === 'FINISHED'
 

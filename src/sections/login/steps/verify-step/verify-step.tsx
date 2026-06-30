@@ -11,10 +11,12 @@ import { startAuth } from '@/services/account'
 
 export function VerifyCodeStep({
   onBack,
+  onSuccess,
   enableTimer = true,
   initialTimer = 59,
 }: {
   onBack: () => void
+  onSuccess?: () => void
   enableTimer?: boolean
   initialTimer?: number
 }) {
@@ -56,7 +58,10 @@ export function VerifyCodeStep({
         return setErrorMsg(cleanError || 'Código incorreto ou expirado.')
       }
 
+      // Refresh server components with the new session cookie, then let the
+      // parent react (e.g. close the re-auth modal) and stay on the same screen.
       router.refresh()
+      onSuccess?.()
     } catch {
       setErrorMsg('Ocorreu um erro ao validar o código.')
     }

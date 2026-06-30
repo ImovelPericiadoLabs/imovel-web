@@ -47,7 +47,7 @@ function hasParentConsultContext(
   const notary = (notaryManual || registryName).trim()
   return hasDoc || hint.length >= 10 || (reg.length >= 1 && notary.length >= 3)
 }
-import { trackGtmEvent, buildConsultItem, DEFAULT_CURRENCY } from '@/utils/analytics/gtm'
+import { trackGtmEvent, trackPurchase, buildConsultItem, DEFAULT_CURRENCY } from '@/utils/analytics/gtm'
 import { formatMoney } from '@/utils/text/text'
 import { resolveConsultPrice, type EntryPath } from '@/hooks/use-consult-price'
 
@@ -359,15 +359,11 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
             payment_method: 'pix',
             payment_id: paymentId,
           })
-          trackGtmEvent('purchase', {
-            event_category: 'payment',
-            event_label: 'purchase',
-            event_description: 'Compra concluída com PIX.',
-            payment_method: 'pix',
-            payment_id: paymentId,
-            currency: DEFAULT_CURRENCY,
+          trackPurchase({
             value: consultPrice,
-            items: [buildConsultItem(consultPrice)],
+            transactionId: paymentId,
+            paymentMethod: 'pix',
+            eventDescription: 'Compra concluída com PIX.',
           })
         }
         onFinish()
@@ -442,14 +438,10 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
         setServerError('Saldo insuficiente. Recarregue os créditos ou pague com PIX.')
         return
       }
-      trackGtmEvent('purchase', {
-        event_category: 'payment',
-        event_label: 'purchase',
-        event_description: 'Compra concluída com saldo em créditos.',
-        payment_method: 'credits',
-        currency: DEFAULT_CURRENCY,
+      trackPurchase({
         value: consultPrice,
-        items: [buildConsultItem(consultPrice)],
+        paymentMethod: 'credits',
+        eventDescription: 'Compra concluída com saldo em créditos.',
       })
       onFinish()
     } catch (error) {
@@ -639,14 +631,10 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
       try {
         const paid = await attemptPayWithCredits(formData, finalPlaceId, whatsappClean)
         if (paid) {
-          trackGtmEvent('purchase', {
-            event_category: 'payment',
-            event_label: 'purchase',
-            event_description: 'Compra concluída com saldo em créditos.',
-            payment_method: 'credits',
-            currency: DEFAULT_CURRENCY,
+          trackPurchase({
             value: consultPrice,
-            items: [buildConsultItem(consultPrice)],
+            paymentMethod: 'credits',
+            eventDescription: 'Compra concluída com saldo em créditos.',
           })
           onFinish()
           return

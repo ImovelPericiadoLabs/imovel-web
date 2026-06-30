@@ -1,13 +1,7 @@
 import api from '@/utils/api/client'
 import { endpoint } from '@/constants/api'
-import { signOut } from 'next-auth/react'
 import { getSessionDeduplicated } from '@/utils/session'
-
-async function handleUnauthorized() {
-  if (typeof window === 'undefined') return
-  window.dispatchEvent(new Event('auth:unauthorized'))
-  await signOut({ redirect: false })
-}
+import { requestReauth } from '@/utils/auth-reauth'
 
 export type SemaphoreStatus = 'green' | 'yellow' | 'red' | 'blue' | 'gray'
 export type AnalisisStatus = {
@@ -175,6 +169,7 @@ async function guard<T>(callback: (token: string) => Promise<T>): Promise<T> {
   const token = session?.accessToken
 
   if (!token) {
+    requestReauth()
     throw new Error(
       'Não foi possível obter a sessão. Verifique sua conexão ou entre novamente.',
     )
@@ -185,7 +180,7 @@ async function guard<T>(callback: (token: string) => Promise<T>): Promise<T> {
   } catch (error: unknown) {
     const err = error as { status?: number }
     if (err?.status === 401) {
-      await handleUnauthorized()
+      requestReauth()
     }
     throw error
   }
@@ -267,6 +262,93 @@ export async function getAnalysisPdfBlob(orderId: string): Promise<Blob> {
 export async function getDocumentBlob(filePath: string): Promise<Blob> {
   return guard(async (token) => {
     return api.getBlob(filePath, token)
+  })
+}
+
+/** Proprietário extraído da matrícula (GET /orders/:id/owners). */
+export type OrderOwner = {
+  id: string
+  order_id: string
+  name: string
+  tax_id: string | null
+  undivided_interest: number | null
+  owner_type: string | null
+  group_id?: string | null
+  group_label?: string | null
+}
+
+/** Veredicto bruto por agente (GET /orders/:id/analyses). */
+export type OrderAnalysisApiItem = {
+  id: string
+  order_id: string
+  agent_id: string
+  title: string | null
+  signal: SemaphoreStatus
+  signal_label: string | null
+  reason: string
+  response: Record<string, unknown>
+  created_at: string
+}
+
+export type OrderRelatedDocumentKind = 'REGISTRATION' | 'CERTIFICATE' | 'REPORT'
+
+/** Documento relacionado ao pedido (GET /orders/:id/documents). */
+export type OrderRelatedDocument = {
+  id: string
+  kind: OrderRelatedDocumentKind
+  label: string
+  original_name: string
+  extension: string
+  /** URL assinada (GCS) para download direto; null no laudo (use getAnalysisPdfBlob). */
+  download_url: string | null
+  file_hash: string | null
+}
+
+export const orderOwnersQueryKey = (orderId: string) =>
+  ['order-owners', orderId] as const
+
+export const orderAnalysesQueryKey = (orderId: string) =>
+  ['order-analyses', orderId] as const
+
+export const orderDocumentsQueryKey = (orderId: string) =>
+  ['order-documents', orderId] as const
+
+/** GET /orders/:id/owners — proprietários (nome, documento, tipo, %). */
+export async function getOrderOwners(orderId: string) {
+  return guard(async (token) => {
+    return api.get(endpoint.orderOwners(orderId), token) as Promise<OrderOwner[]>
+  })
+}
+
+/** GET /orders/:id/analyses — veredictos por agente (semáforo + justificativa). */
+export async function getOrderAnalyses(orderId: string) {
+  return guard(async (token) => {
+    return api.get(
+      endpoint.orderAnalyses(orderId),
+      token,
+    ) as Promise<OrderAnalysisApiItem[]>
+  })
+}
+
+/** Mapeia o veredicto bruto para o shape consumido por OrderAnalysisList. */
+export function toOrderAnalysisResult(
+  item: OrderAnalysisApiItem,
+): OrderAnalysisResult {
+  return {
+    id: item.id,
+    title: item.title ?? 'Análise',
+    status: { value: item.signal, label: item.signal_label ?? item.signal },
+    reason: item.reason,
+  }
+}
+
+/** GET /orders/:id/documents — matrícula, certidões e laudo com URL assinada. */
+export async function getOrderDocuments(orderId: string) {
+  return guard(async (token) => {
+    return api.get(
+      endpoint.orderDocuments(orderId),
+      token,
+    ) as Promise<OrderRelatedDocument[]>
   })
 }
 
