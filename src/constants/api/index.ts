@@ -57,6 +57,14 @@ export const endpoint = {
     partnerAccounts: '/admin/staff/partner-accounts/',
     partnerAccount: (id: string) => `/admin/staff/partner-accounts/${id}/`,
     partnerAccountCredits: (id: string) => `/admin/staff/partner-accounts/${id}/credits/`,
+    /** Parceiros B2B (Organization + credenciais OAuth). */
+    partners: '/admin/staff/partners/',
+    partner: (id: string) => `/admin/staff/partners/${id}/`,
+    partnerRotateSecret: (id: string) => `/admin/staff/partners/${id}/rotate-secret/`,
+    partnerCredits: (id: string) => `/admin/staff/partners/${id}/credits/`,
+    partnerSendOnboarding: (id: string) => `/admin/staff/partners/${id}/send-onboarding/`,
+    /** Overview de custo/receita (dashboard financeiro). */
+    costsOverview: '/admin/staff/costs/overview/',
   },
   chat: {
     campaigns: '/admin/chat/campaigns/',
