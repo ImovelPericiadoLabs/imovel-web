@@ -9,6 +9,7 @@ import {
   listPlans,
   orderQueryKey,
   orderEventsQueryKey,
+  ordersListQueryKey,
   type ReRequestOrderBody,
   type PlaceResponse
 } from '@/services/orders'
@@ -27,7 +28,6 @@ import LoadingOverlay from '@/components/loading-overlay'
 import useDebounce from '@/hooks/use-debounce'
 import { queryKey } from '@/constants/queries'
 
-const ORDERS_QUERY_KEY = ['orders'] as const
 const REREQUEST_COOLDOWN_MS = 60_000
 
 type Step = 'address' | 'complement' | 'submit'
@@ -230,7 +230,7 @@ export default function ReRequestForm({ orderId, order, onClose }: Props) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: orderQueryKey(orderId) })
       queryClient.invalidateQueries({ queryKey: orderEventsQueryKey(orderId) })
-      queryClient.invalidateQueries({ queryKey: ORDERS_QUERY_KEY })
+      queryClient.invalidateQueries({ queryKey: ordersListQueryKey })
       onClose()
     },
     onError: (err: unknown) => {

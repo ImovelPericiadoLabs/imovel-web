@@ -211,6 +211,9 @@ export async function listOrders(params: ListOrdersRequest = {}) {
   })
 }
 
+/** Query key da listagem de consultas (infinite query). Centralizado p/ invalidação após pagamento/re-solicitação. */
+export const ordersListQueryKey = ['orders'] as const
+
 /** Query key para React Query: uso compartilhado entre OrderHeader, OrderOptionsPage, etc. */
 export const orderQueryKey = (orderId: string) => ['order', orderId] as const
 

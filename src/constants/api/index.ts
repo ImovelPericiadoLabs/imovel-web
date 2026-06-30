@@ -11,6 +11,7 @@ export const endpoint = {
   payments: {
     process: '/payments/',
     status: '/payments',
+    quote: '/payments/quote/',
   },
   start: '/auth/start/',
   verify: '/auth/verify/',

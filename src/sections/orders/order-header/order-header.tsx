@@ -19,13 +19,15 @@ import {
 
 type Props = {
   Badge?: React.ReactNode
+  /** Quando true, o header não faz polling próprio (o WebSocket da página dirige as atualizações). */
+  realtimeConnected?: boolean
 }
 
-export default function OrderHeader({ Badge: ExtraBadge }: Props) {
+export default function OrderHeader({ Badge: ExtraBadge, realtimeConnected = false }: Props) {
   const { id } = useParams()
   const orderId = id as string
 
-  const { data: order, isLoading } = useOrderDetailQuery(orderId)
+  const { data: order, isLoading } = useOrderDetailQuery(orderId, realtimeConnected)
 
   if (isLoading) {
     return (

@@ -25,7 +25,7 @@ export default function OrderPage() {
 
   return (
     <div className="flex flex-col gap-3 pb-10">
-      <OrderHeader />
+      <OrderHeader realtimeConnected={realtimeConnected} />
 
       <div className="flex flex-col gap-2 px-3 lg:px-0 w-full mx-auto lg:max-w-lg">
         {order && (

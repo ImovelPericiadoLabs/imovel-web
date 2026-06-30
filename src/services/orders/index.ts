@@ -4,6 +4,7 @@ export {
   listPlansPublic,
   getOrder,
   getOrderEvents,
+  ordersListQueryKey,
   orderQueryKey,
   orderEventsQueryKey,
   rerequestOrder,

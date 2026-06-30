@@ -47,6 +47,31 @@ export async function processPayment(
   return api.post(endpoint.payments.process, data, token, extraHeaders) as Promise<ProcessPaymentResult>
 }
 
+export type QuoteRequest = {
+  entry_path?: 'address' | 'document' | 'registry'
+  include_certificates?: boolean
+  uf?: string | null
+  place_id?: string
+  document_id?: string
+  registration_number?: string
+  notary?: string
+}
+
+export type PaymentQuote = {
+  entry_path: string
+  new_pricing: boolean
+  include_certificates: boolean
+  uf: string | null
+  base_price: number
+  surcharge: number
+  amount: number
+}
+
+/** POST /payments/quote/ — preço dinâmico (base + sobretaxa Inteiro-Teor por UF). Público. */
+export async function getQuote(data: QuoteRequest): Promise<PaymentQuote> {
+  return api.post(endpoint.payments.quote, data) as Promise<PaymentQuote>
+}
+
 export type PaymentStatusResponse = {
   status: string
 }

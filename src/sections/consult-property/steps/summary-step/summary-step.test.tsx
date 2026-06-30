@@ -5,6 +5,10 @@ import { SummaryStep } from './summary-step'
 
 const mockOnNext = vi.fn()
 
+vi.mock('@tanstack/react-query', () => ({
+  useQuery: () => ({ data: null, isLoading: false }),
+}))
+
 vi.mock('@/utils/analytics/gtm', () => ({
   trackGtmEvent: vi.fn(),
   buildConsultItem: (v: number) => ({ item_id: 'x', price: v, quantity: 1 }),

@@ -49,7 +49,7 @@ function hasParentConsultContext(
 }
 import { trackGtmEvent, trackPurchase, buildConsultItem, DEFAULT_CURRENCY } from '@/utils/analytics/gtm'
 import { formatMoney } from '@/utils/text/text'
-import { resolveConsultPrice, type EntryPath } from '@/hooks/use-consult-price'
+import { useConsultDynamicPrice, type EntryPath } from '@/hooks/use-consult-price'
 
 import { AuthCodePage } from './AuthCodePage/AuthCodePage'
 
@@ -100,7 +100,16 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
 
   const entryPath = parentForm?.watch('entryPath') as EntryPath | undefined
   const includeCertificates = Boolean(parentForm?.watch('includeCertificates'))
-  const { price: consultPrice } = resolveConsultPrice(entryPath, includeCertificates)
+  const propertyUf =
+    (parentForm?.getValues() as { place_response?: { state?: string } } | undefined)
+      ?.place_response?.state ||
+    parentForm?.watch('notaryState') ||
+    null
+  const { price: consultPrice } = useConsultDynamicPrice({
+    entryPath,
+    includeCertificates,
+    uf: propertyUf,
+  })
 
   const {
       complement,
@@ -361,7 +370,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
           })
           trackPurchase({
             value: consultPrice,
-            transactionId: paymentId,
+            transactionId: paymentId ?? undefined,
             paymentMethod: 'pix',
             eventDescription: 'Compra concluída com PIX.',
           })
