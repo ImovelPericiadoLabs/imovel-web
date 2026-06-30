@@ -27,6 +27,12 @@ export const endpoint = {
   plans: '/plans/',
   /** PDF do relatório de análise. GET com Bearer retorna application/pdf. Parâmetro: order ID. */
   analysisPdfView: (orderId: string) => `/analysis/pdfview/${orderId}`,
+  /** Consent delegado (authorization_code + PKCE). GET valida e retorna metadados; POST emite o code. */
+  partnerOAuthAuthorize: '/partner/oauth/authorize/',
+  /** Parceiros que o cliente final autorizou (consentimentos ativos). */
+  connectedPartners: '/me/connected-partners/',
+  /** Revoga o acesso de um parceiro (invalida tokens emitidos). */
+  connectedPartner: (id: string) => `/me/connected-partners/${id}/`,
   outreach: {
     registryTemplates: '/admin/outreach/templates/registry/',
     emailTemplates: '/admin/outreach/templates/email-db/',
