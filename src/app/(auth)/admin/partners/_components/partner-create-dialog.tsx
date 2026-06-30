@@ -120,12 +120,12 @@ export function PartnerCreateDialog({
               {provisioned.consent_client_id && (
                 <>
                   <CopyField
-                    label="Client ID (consent / authorization_code)"
+                    label="Client ID (login / authorization_code)"
                     value={provisioned.consent_client_id}
                   />
                   {provisioned.consent_client_secret && (
                     <CopyField
-                      label="Client Secret (consent)"
+                      label="Client Secret (login)"
                       value={provisioned.consent_client_secret}
                       sensitive
                     />
@@ -202,7 +202,7 @@ export function PartnerCreateDialog({
 
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="partner-redirects">
-                  Redirect URIs do consent delegado{' '}
+                  Redirect URIs do login do cliente{' '}
                   <span className="font-normal text-muted-foreground">(opcional)</span>
                 </Label>
                 <textarea
@@ -214,8 +214,9 @@ export function PartnerCreateDialog({
                   className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 />
                 <p className="text-xs text-muted-foreground">
-                  https, um por linha. Se preenchido, provisiona também o app de consent
-                  (authorization_code + PKCE). Deixe vazio para criar só a credencial M2M.
+                  https, um por linha. Se preenchido, provisiona também a credencial de{' '}
+                  <strong>login do cliente</strong> (authorization_code + PKCE). Deixe vazio para
+                  criar só a credencial M2M.
                 </p>
               </div>
 

@@ -75,10 +75,19 @@ function BrandMark() {
         height={BRAND_LOGO_HEIGHT}
         unoptimized
         priority
-        className="h-7 w-auto opacity-90"
+        className="h-12 w-auto sm:h-14"
       />
     </div>
   )
+}
+
+/** Nome de exibição do parceiro: a organização, sem sufixos técnicos do app. */
+function partnerDisplayName(partner: {
+  organization: string | null
+  application: string | null
+}): string {
+  const raw = partner.organization || partner.application || 'Parceiro'
+  return raw.replace(/\s*\((consent|login|m2m)\)\s*$/i, '').trim() || 'Parceiro'
 }
 
 function PartnerLogo({ src, name }: { src: string | null; name: string }) {
@@ -123,8 +132,9 @@ function InlineLogin() {
       <div className="mt-5 text-center">
         <h1 className="text-lg font-semibold text-slate-900">Entrar para continuar</h1>
         <p className="mt-1.5 text-sm text-slate-500">
-          Acesse sua conta Imóvel Periciado para concluir a autorização da integração. Não tem
-          conta? Ela é criada automaticamente ao validar o código.
+          Acesse sua conta <strong className="font-semibold text-slate-700">Imóvel Periciado</strong>{' '}
+          para concluir a autorização da integração. Não tem conta? Ela é criada automaticamente ao
+          validar o código.
         </p>
       </div>
 
@@ -192,7 +202,7 @@ export default function AuthorizeClient({ searchParams }: { searchParams: Search
   }
 
   const partner = data.partner
-  const partnerName = partner.application || partner.organization || 'Parceiro'
+  const partnerName = partnerDisplayName(partner)
   const websiteHost = safeHost(partner.website)
   const redirectHost = safeHost(data.redirect_uri)
   const userEmail = session?.user?.email
@@ -207,8 +217,16 @@ export default function AuthorizeClient({ searchParams }: { searchParams: Search
       <div className="mt-6 flex flex-col items-center text-center">
         <PartnerLogo src={partner.logo_url} name={partnerName} />
 
-        <h1 className="mt-4 text-lg font-semibold text-slate-900">
-          {reconnect ? `Reconectar ${partnerName}` : `${partnerName} quer acessar sua conta`}
+        <h1 className="mt-4 text-lg font-medium text-slate-900">
+          {reconnect ? (
+            <>
+              Reconectar <strong className="font-bold">{partnerName}</strong>
+            </>
+          ) : (
+            <>
+              <strong className="font-bold">{partnerName}</strong> quer acessar sua conta
+            </>
+          )}
         </h1>
 
         {partner.description ? (
@@ -232,7 +250,7 @@ export default function AuthorizeClient({ searchParams }: { searchParams: Search
 
         {userEmail ? (
           <p className="mt-3 text-xs text-slate-400">
-            Conectado como <span className="font-medium text-slate-600">{userEmail}</span>
+            Conectado como <strong className="font-semibold text-slate-700">{userEmail}</strong>
           </p>
         ) : null}
       </div>
@@ -288,7 +306,7 @@ export default function AuthorizeClient({ searchParams }: { searchParams: Search
         {redirectHost ? (
           <>
             Você será redirecionado para{' '}
-            <span className="font-medium text-slate-500">{redirectHost}</span>.{' '}
+            <strong className="font-semibold text-slate-600">{redirectHost}</strong>.{' '}
           </>
         ) : null}
         Revogue quando quiser em Conta › Parceiros conectados.

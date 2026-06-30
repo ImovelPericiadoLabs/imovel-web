@@ -330,11 +330,11 @@ export function PartnerDetailDialog({
                 <Separator />
 
                 <div className="flex flex-col gap-3">
-                  <Label>Consent delegado (authorization_code + PKCE)</Label>
+                  <Label>Login do cliente (authorization_code + PKCE)</Label>
 
                   {p.consent_client_id ? (
                     <>
-                      <CopyField label="Client ID (consent)" value={p.consent_client_id} />
+                      <CopyField label="Client ID (login)" value={p.consent_client_id} />
                       <Button
                         variant="outline"
                         size="sm"
@@ -343,13 +343,13 @@ export function PartnerDetailDialog({
                         disabled={rotate.isPending}
                       >
                         {rotate.isPending ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
-                        Rotacionar secret (consent)
+                        Rotacionar secret (login)
                       </Button>
                     </>
                   ) : (
                     <p className="text-xs text-muted-foreground">
-                      Sem app de consent. Cadastre os redirect URIs abaixo para provisioná-lo
-                      (libera o fluxo de criação de pedidos delegada pelo cliente final).
+                      Sem credencial de login. Cadastre os redirect URIs abaixo para provisioná-la
+                      (libera a criação de pedidos em nome do cliente final).
                     </p>
                   )}
 
@@ -377,7 +377,7 @@ export function PartnerDetailDialog({
                   </div>
 
                   {newConsentSecret && (
-                    <CopyField label="Client Secret (consent)" value={newConsentSecret} sensitive />
+                    <CopyField label="Client Secret (login)" value={newConsentSecret} sensitive />
                   )}
                 </div>
 

@@ -1,23 +1,32 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-/**
- * Redirect para compatibilidade com template do Meta (variável no final da URL).
- * Meta exige: https://www.imovelpericiado.com/consultas/opcoes/{{1}}
- * Redireciona para: /consultas/[id]/opcoes
- */
 export function middleware(request: NextRequest) {
-  const pathname = request.nextUrl.pathname
-  const match = pathname.match(/^\/consultas\/opcoes\/([^/]+)\/?$/)
+  const { nextUrl } = request
+  const host = request.headers.get('host') ?? nextUrl.host
+
+  // Canonicaliza domínio: www -> apex. A sessão (NextAuth) vive no apex, então acessar
+  // por www quebrava login/consent ("mismatch"). 308 preserva método, path e query.
+  if (host.startsWith('www.')) {
+    const url = nextUrl.clone()
+    url.protocol = 'https:'
+    url.host = host.slice(4)
+    url.port = ''
+    return NextResponse.redirect(url, 308)
+  }
+
+  // Compat com template do Meta: /consultas/opcoes/{id} -> /consultas/{id}/opcoes
+  const match = nextUrl.pathname.match(/^\/consultas\/opcoes\/([^/]+)\/?$/)
   if (match) {
-    const id = match[1]
-    const url = request.nextUrl.clone()
-    url.pathname = `/consultas/${id}/opcoes`
+    const url = nextUrl.clone()
+    url.pathname = `/consultas/${match[1]}/opcoes`
     return NextResponse.redirect(url, 307)
   }
+
   return NextResponse.next()
 }
 
 export const config = {
-  matcher: '/consultas/opcoes/:id',
+  // Roda em todas as rotas de página (exclui /api, assets estáticos e internos do Next).
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|images/|.*\\..*).*)'],
 }
