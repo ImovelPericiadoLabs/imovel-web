@@ -4,7 +4,7 @@ import React from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import OrderOptionsOwnersPage from './index'
 import { useParams } from 'next/navigation'
-import { getOrder } from '@/services/orders'
+import { getOrder, getOrderOwners } from '@/services/orders'
 
 const mockOwners = [
   { id: '1', name: 'JULIO BARBOSA LEMES FILHO', tax_id: '159.256.252-00', undivided_interest: 100, owner_type: 'proprietario_pleno' },
@@ -64,6 +64,7 @@ describe('OrderOptionsOwnersPage', () => {
   beforeEach(() => {
     vi.mocked(useParams).mockReturnValue({ id: '1' })
     vi.mocked(getOrder).mockResolvedValue(mockOrder as any)
+    vi.mocked(getOrderOwners).mockResolvedValue(mockOwners as any)
   })
 
   it('deve renderizar o header com o badge de sinal vermelho', async () => {

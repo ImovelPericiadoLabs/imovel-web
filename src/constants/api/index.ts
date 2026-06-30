@@ -19,6 +19,12 @@ export const endpoint = {
   me: '/me/',
   orders: '/orders/',
   reRequest: (orderId: string) => `/orders/${orderId}/re-request/`,
+  /** Proprietários extraídos da matrícula. GET /orders/:id/owners */
+  orderOwners: (orderId: string) => `/orders/${orderId}/owners`,
+  /** Veredictos por agente (semáforo + justificativa). GET /orders/:id/analyses */
+  orderAnalyses: (orderId: string) => `/orders/${orderId}/analyses`,
+  /** Documentos relacionados (matrícula, certidões, laudo) com URL assinada. GET /orders/:id/documents */
+  orderDocuments: (orderId: string) => `/orders/${orderId}/documents`,
   plans: '/plans/',
   /** PDF do relatório de análise. GET com Bearer retorna application/pdf. Parâmetro: order ID. */
   analysisPdfView: (orderId: string) => `/analysis/pdfview/${orderId}`,

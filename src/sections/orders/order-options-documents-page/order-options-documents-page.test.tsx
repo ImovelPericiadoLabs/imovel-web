@@ -4,7 +4,7 @@ import React from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import OrderOptionsDocumentsPage from './order-options-documents-page'
 import { useParams } from 'next/navigation'
-import { getOrder } from '@/services/orders'
+import { getOrder, getOrderDocuments } from '@/services/orders'
 
 // Anexos INLINE no detalhe (order.documents): matrícula + certidões anexas.
 // O laudo (REPORT) é sintetizado pelo hook quando status === FINISHED.
@@ -64,6 +64,7 @@ describe('OrderOptionsDocumentsPage', () => {
   beforeEach(() => {
     vi.mocked(useParams).mockReturnValue({ id: '1' })
     vi.mocked(getOrder).mockResolvedValue(mockOrder as any)
+    vi.mocked(getOrderDocuments).mockResolvedValue(mockDocuments as any)
   })
 
   it('deve renderizar o header com o badge de sinal vermelho', async () => {
