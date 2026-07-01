@@ -37,8 +37,10 @@ export type ConsultDynamicPrice = {
   price: number
   basePrice: number
   surcharge: number
+  certificatesSurcharge: number
   uf: string | null
   newPricing: boolean
+  surchargeConfigured: boolean
   includeCertificates: boolean
   isLoading: boolean
 }
@@ -74,8 +76,10 @@ export function useConsultDynamicPrice(params: {
       price: data.amount,
       basePrice: data.base_price,
       surcharge: data.surcharge,
+      certificatesSurcharge: data.certificates_surcharge,
       uf: data.uf,
       newPricing: true,
+      surchargeConfigured: data.surcharge_configured,
       includeCertificates: data.include_certificates,
       isLoading,
     }
@@ -85,8 +89,10 @@ export function useConsultDynamicPrice(params: {
     price: fallback.price,
     basePrice: fallback.price,
     surcharge: 0,
+    certificatesSurcharge: 0,
     uf: uf ? uf.trim().toUpperCase().slice(0, 2) : null,
     newPricing: false,
+    surchargeConfigured: false,
     includeCertificates: fallback.includeCertificates,
     isLoading,
   }

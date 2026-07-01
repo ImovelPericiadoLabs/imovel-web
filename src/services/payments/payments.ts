@@ -64,6 +64,8 @@ export type PaymentQuote = {
   uf: string | null
   base_price: number
   surcharge: number
+  surcharge_configured: boolean
+  certificates_surcharge: number
   amount: number
 }
 

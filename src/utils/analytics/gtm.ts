@@ -13,8 +13,8 @@ declare global {
 export const DEFAULT_CURRENCY = 'BRL'
 export const CONSULT_PRODUCT_ID = 'consulta-imovel'
 export const CONSULT_PRODUCT_NAME = 'Consulta Completa'
-export const CONSULT_PRODUCT_PRICE = 79.9
-export const CONSULT_PRICE_WITH_CERTIFICATES = 79.9
+export const CONSULT_PRODUCT_PRICE = 79
+export const CONSULT_PRICE_WITH_CERTIFICATES = 84.99
 export const CERTIFICATES_UPSELL_PRICE = 5.99
 
 export function buildConsultItem(value: number = CONSULT_PRODUCT_PRICE) {
