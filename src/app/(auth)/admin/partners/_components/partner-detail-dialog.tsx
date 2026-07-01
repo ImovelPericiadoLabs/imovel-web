@@ -61,6 +61,7 @@ export function PartnerDetailDialog({
 }) {
   const [rotatedSecret, setRotatedSecret] = useState<string | null>(null)
   const [rotatedLabel, setRotatedLabel] = useState('Novo Client Secret')
+  const [rotatedApp, setRotatedApp] = useState<'m2m' | 'consent' | null>(null)
   const [topUpAmount, setTopUpAmount] = useState('')
   const [scopesEdit, setScopesEdit] = useState<PartnerScope[] | null>(null)
   const [redirectUrisEdit, setRedirectUrisEdit] = useState<string | null>(null)
@@ -82,6 +83,7 @@ export function PartnerDetailDialog({
     if (!next) {
       setRotatedSecret(null)
       setRotatedLabel('Novo Client Secret')
+      setRotatedApp(null)
       setTopUpAmount('')
       setScopesEdit(null)
       setRedirectUrisEdit(null)
@@ -131,10 +133,14 @@ export function PartnerDetailDialog({
     mutationFn: (app: 'm2m' | 'consent') => rotatePartnerSecret(partnerId as string, app),
     onSuccess: (data) => {
       setRotatedSecret(data.client_secret)
+      setRotatedApp(data.app === 'consent' ? 'consent' : 'm2m')
       setRotatedLabel(
         data.app === 'consent' ? 'Novo Client Secret (consent)' : 'Novo Client Secret (M2M)',
       )
-      setFeedback({ kind: 'success', message: 'Secret rotacionado. Copie agora.' })
+      setFeedback({
+        kind: 'success',
+        message: 'Secret rotacionado. Copie agora — ou reenvie o onboarding para entregá-lo por e-mail.',
+      })
     },
     onError,
   })
@@ -164,8 +170,21 @@ export function PartnerDetailDialog({
   })
 
   const onboarding = useMutation({
-    mutationFn: () => sendPartnerOnboarding(partnerId as string),
-    onSuccess: (r) => setFeedback({ kind: 'success', message: `Onboarding enviado para ${r.email}.` }),
+    // Se houver um secret recém-gerado em memória (rotação ou consent recém-criado), ele vai
+    // no corpo do e-mail — entrega ao parceiro sem canal separado. Senão, reenvia só o guia.
+    mutationFn: () =>
+      sendPartnerOnboarding(partnerId as string, {
+        client_secret: rotatedApp === 'm2m' ? rotatedSecret ?? undefined : undefined,
+        consent_client_secret:
+          newConsentSecret ?? (rotatedApp === 'consent' ? rotatedSecret ?? undefined : undefined),
+      }),
+    onSuccess: (r) => {
+      const withSecret = Boolean(newConsentSecret || rotatedSecret)
+      setFeedback({
+        kind: 'success',
+        message: `Onboarding enviado para ${r.email}${withSecret ? ' (com as credenciais)' : ''}.`,
+      })
+    },
     onError,
   })
 

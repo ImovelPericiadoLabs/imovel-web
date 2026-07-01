@@ -149,7 +149,7 @@ export async function topUpPartnerCredits(
 
 export async function sendPartnerOnboarding(
   id: string,
-  body: { email?: string } = {},
+  body: { email?: string; client_secret?: string; consent_client_secret?: string } = {},
 ): Promise<{ detail: string; email: string }> {
   return withToken((token) =>
     api.post(endpoint.staff.partnerSendOnboarding(id), body, token),

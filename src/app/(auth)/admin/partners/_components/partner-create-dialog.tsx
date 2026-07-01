@@ -1,7 +1,7 @@
 'use client'
 
 import { useMutation } from '@tanstack/react-query'
-import { AlertTriangle, KeyRound, Loader2, ShieldCheck } from 'lucide-react'
+import { AlertTriangle, KeyRound, Loader2, Mail, ShieldCheck } from 'lucide-react'
 import { useState } from 'react'
 
 import {
@@ -17,6 +17,7 @@ import {
 } from '@/components/ui'
 import {
   createPartner,
+  sendPartnerOnboarding,
   type CreatePartnerBody,
   type PartnerProvisioned,
   type PartnerScope,
@@ -51,6 +52,9 @@ export function PartnerCreateDialog({
   const [description, setDescription] = useState('')
   const [logoUrl, setLogoUrl] = useState('')
   const [provisioned, setProvisioned] = useState<PartnerProvisioned | null>(null)
+  const [onboardingMsg, setOnboardingMsg] = useState<
+    { kind: 'success' | 'error'; text: string } | null
+  >(null)
 
   const reset = () => {
     setName('')
@@ -62,6 +66,7 @@ export function PartnerCreateDialog({
     setDescription('')
     setLogoUrl('')
     setProvisioned(null)
+    setOnboardingMsg(null)
     mutation.reset()
   }
 
@@ -71,6 +76,23 @@ export function PartnerCreateDialog({
       setProvisioned(data)
       onCreated()
     },
+  })
+
+  // Envia o onboarding já com os secrets em memória (corpo do e-mail, não no PDF) —
+  // entrega tudo de uma vez, sem precisar repassar credenciais por canal separado.
+  const onboardingMutation = useMutation({
+    mutationFn: () =>
+      sendPartnerOnboarding(provisioned!.id, {
+        client_secret: provisioned!.client_secret,
+        consent_client_secret: provisioned?.consent_client_secret,
+      }),
+    onSuccess: (r) =>
+      setOnboardingMsg({ kind: 'success', text: `Onboarding enviado para ${r.email} (com as credenciais).` }),
+    onError: (e) =>
+      setOnboardingMsg({
+        kind: 'error',
+        text: e instanceof Error ? e.message : 'Falha ao enviar o onboarding.',
+      }),
   })
 
   const parsedRedirectUris = redirectUris
@@ -141,6 +163,44 @@ export function PartnerCreateDialog({
                   não há como recuperá-lo depois.
                 </p>
               </div>
+
+              {provisioned.owner_email ? (
+                <div className="flex flex-col gap-2 rounded-lg border border-input p-3">
+                  <Button
+                    variant="outline"
+                    onClick={() => onboardingMutation.mutate()}
+                    disabled={onboardingMutation.isPending}
+                  >
+                    {onboardingMutation.isPending ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <Mail className="size-4" />
+                    )}
+                    Enviar onboarding por e-mail (com as credenciais)
+                  </Button>
+                  <p className="text-[11px] text-muted-foreground">
+                    Envia para <strong>{provisioned.owner_email}</strong> o guia (PDF), a coleção do
+                    Postman e as credenciais no corpo do e-mail — incluindo os Client Secrets. Os
+                    secrets não vão no PDF.
+                  </p>
+                  {onboardingMsg && (
+                    <p
+                      className={
+                        onboardingMsg.kind === 'success'
+                          ? 'text-xs text-emerald-600'
+                          : 'text-xs text-red-600'
+                      }
+                    >
+                      {onboardingMsg.text}
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <p className="text-[11px] text-muted-foreground">
+                  Sem e-mail de owner: cadastre um e-mail na criação para enviar o onboarding com as
+                  credenciais.
+                </p>
+              )}
             </div>
 
             <DialogFooter>
