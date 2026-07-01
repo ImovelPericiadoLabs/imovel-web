@@ -44,11 +44,14 @@ export function SummaryStep({ onNext }: { onNext: () => void }) {
   const {
     price: consultPrice,
     surcharge,
+    certificatesSurcharge,
     uf: quotedUf,
     newPricing,
+    surchargeConfigured,
   } = useConsultDynamicPrice({ entryPath, includeCertificates, uf: propertyUf })
   const showCertificatesToggle = entryPath === 'address'
-  const showSurchargeLine = newPricing && surcharge > 0
+  const showSurchargeLine = newPricing && surcharge > 0 && surchargeConfigured
+  const certificatesUpsellPrice = newPricing ? certificatesSurcharge || CERTIFICATES_UPSELL_PRICE : CERTIFICATES_UPSELL_PRICE
 
   useEffect(() => {
     unlockPageScroll()
@@ -248,7 +251,7 @@ export function SummaryStep({ onNext }: { onNext: () => void }) {
                       Incluir certidões oficiais
                     </p>
                     <p className="text-[12px] text-gray-600">
-                      +{formatMoney(CERTIFICATES_UPSELL_PRICE)} — emitidas após a análise
+                      +{formatMoney(certificatesUpsellPrice)} — emitidas após a análise
                     </p>
                   </div>
                   <Switch

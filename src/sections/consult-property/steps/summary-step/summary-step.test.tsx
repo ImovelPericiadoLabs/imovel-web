@@ -13,8 +13,8 @@ vi.mock('@/utils/analytics/gtm', () => ({
   trackGtmEvent: vi.fn(),
   buildConsultItem: (v: number) => ({ item_id: 'x', price: v, quantity: 1 }),
   DEFAULT_CURRENCY: 'BRL',
-  CONSULT_PRODUCT_PRICE: 79.9,
-  CONSULT_PRICE_WITH_CERTIFICATES: 79.9,
+  CONSULT_PRODUCT_PRICE: 79,
+  CONSULT_PRICE_WITH_CERTIFICATES: 84.99,
   CERTIFICATES_UPSELL_PRICE: 5.99,
 }))
 
