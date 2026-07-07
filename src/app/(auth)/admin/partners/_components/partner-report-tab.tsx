@@ -38,6 +38,20 @@ export function PartnerReportTab({ partnerId, ownerEmail, onFeedback }: Props) {
     setCommission(report.data.commission_per_order ?? '')
   }, [report.data])
 
+  const toggleWeekly = useMutation({
+    mutationFn: (next: boolean) =>
+      updatePartnerIntegrationReport(partnerId, { weekly_enabled: next }),
+    onSuccess: (data) => {
+      setEnabled(data.weekly_enabled)
+      onFeedback(data.weekly_enabled ? 'Relatório semanal ativado.' : 'Relatório semanal pausado.')
+      void report.refetch()
+    },
+    onError: (err: unknown) => {
+      setEnabled(report.data?.weekly_enabled ?? true)
+      onFeedback(err instanceof Error ? err.message : 'Falha ao atualizar o envio semanal.', 'error')
+    },
+  })
+
   const save = useMutation({
     mutationFn: () =>
       updatePartnerIntegrationReport(partnerId, {
@@ -111,7 +125,14 @@ export function PartnerReportTab({ partnerId, ownerEmail, onFeedback }: Props) {
             PDF de consumo da integração OAuth · toda segunda-feira às 08:00
           </p>
         </div>
-        <Switch checked={enabled} onCheckedChange={setEnabled} />
+        <Switch
+          checked={enabled}
+          disabled={toggleWeekly.isPending}
+          onCheckedChange={(next) => {
+            setEnabled(next)
+            toggleWeekly.mutate(next)
+          }}
+        />
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
