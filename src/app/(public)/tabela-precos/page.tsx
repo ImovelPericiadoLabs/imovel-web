@@ -98,13 +98,7 @@ export default async function PricingTablePage() {
           </div>
         </div>
 
-        {!table ? (
-          <div className="rounded-2xl border border-slate-200/90 bg-white p-10 text-center text-sm text-slate-600 shadow-[0_4px_24px_rgba(11,27,58,0.06)]">
-            Tabela temporariamente indisponível. Tente novamente em instantes.
-          </div>
-        ) : (
-          <PricingTableClient table={table} />
-        )}
+        <PricingTableClient initialTable={table} />
       </div>
     </section>
   )

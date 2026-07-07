@@ -2,9 +2,11 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
+import { useQuery } from '@tanstack/react-query'
 import { ArrowLeft, ArrowRight, BadgeCheck, Building2, Search, X } from 'lucide-react'
 
 import { CONSULTAR_IMOVEL_INICIO_HREF } from '@/constants/consult-flow'
+import { getPricingTable } from '@/services/payments'
 
 export type PricingRow = {
   uf: string
@@ -34,10 +36,23 @@ function normalize(text: string): string {
     .trim()
 }
 
-export function PricingTableClient({ table }: { table: PricingTable }) {
+export function PricingTableClient({ initialTable }: { initialTable: PricingTable | null }) {
   const [query, setQuery] = useState('')
 
+  // Fallback client-side: se o fetch no servidor falhou (build sem API no ar),
+  // busca direto do navegador em vez de exibir a tabela como indisponível.
+  const { data: fetched, isLoading } = useQuery({
+    queryKey: ['pricing-table-public'],
+    queryFn: getPricingTable,
+    enabled: !initialTable,
+    staleTime: 30 * 60_000,
+    retry: 2,
+  })
+
+  const table = initialTable ?? fetched ?? null
+
   const rows = useMemo(() => {
+    if (!table) return []
     const q = normalize(query)
     if (!q) return table.rows
     return table.rows.filter((row) => {
@@ -45,7 +60,7 @@ export function PricingTableClient({ table }: { table: PricingTable }) {
       const uf = row.uf.toLowerCase()
       return name.includes(q) || uf.startsWith(q) || q.split(/\s+/).every((part) => name.includes(part))
     })
-  }, [table.rows, query])
+  }, [table, query])
 
   return (
     <div className="flex flex-col gap-5">
@@ -58,7 +73,7 @@ export function PricingTableClient({ table }: { table: PricingTable }) {
             </h2>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            {table.updated_at && (
+            {table?.updated_at && (
               <span className="hidden text-xs text-slate-500 md:inline">
                 Atualizado em {new Date(table.updated_at).toLocaleDateString('pt-BR')}
               </span>
@@ -87,7 +102,11 @@ export function PricingTableClient({ table }: { table: PricingTable }) {
           </div>
         </div>
 
-        {rows.length === 0 ? (
+        {!table ? (
+          <div className="px-6 py-12 text-center text-sm text-slate-500">
+            {isLoading ? 'Carregando valores…' : 'Tabela temporariamente indisponível. Tente novamente em instantes.'}
+          </div>
+        ) : rows.length === 0 ? (
           <div className="px-6 py-12 text-center text-sm text-slate-500">
             Nenhum estado encontrado para «{query}».
           </div>
@@ -170,7 +189,7 @@ export function PricingTableClient({ table }: { table: PricingTable }) {
           <p className="flex items-start gap-2">
             <BadgeCheck className="mt-0.5 size-3.5 shrink-0 text-emerald-600" />
             Certidões oficiais complementares podem ser adicionadas no pedido por endereço por{' '}
-            {brl(table.certificates_upsell)}.
+            {brl(table?.certificates_upsell ?? 5.99)}.
           </p>
           <p className="flex items-start gap-2">
             <BadgeCheck className="mt-0.5 size-3.5 shrink-0 text-emerald-600" />
