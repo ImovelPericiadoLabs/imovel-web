@@ -287,7 +287,7 @@ export default function FinanceView() {
                           <TableCell className="max-w-[140px] truncate font-medium">
                             {row.name}
                             <span className="block text-[11px] font-normal text-muted-foreground">
-                              {row.orders} pedidos
+                              {row.orders} pagos · {row.commissionable_orders ?? 0} comissionáveis
                             </span>
                           </TableCell>
                           <TableCell className="hidden text-right tabular-nums text-emerald-700 sm:table-cell">

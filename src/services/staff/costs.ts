@@ -37,6 +37,7 @@ export type CostByPartner = {
   org_id: string
   name: string
   orders: number
+  commissionable_orders: number
   cost: number
   revenue: number
   commission: number
