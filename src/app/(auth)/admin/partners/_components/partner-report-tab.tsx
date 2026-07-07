@@ -21,7 +21,7 @@ type Props = {
 
 export function PartnerReportTab({ partnerId, ownerEmail, onFeedback }: Props) {
   const [enabled, setEnabled] = useState(true)
-  const [creditsCommission, setCreditsCommission] = useState(true)
+  const [creditsCommission, setCreditsCommission] = useState(false)
   const [emailsText, setEmailsText] = useState('')
   const [commission, setCommission] = useState('')
   const [testEmail, setTestEmail] = useState('')
@@ -35,7 +35,7 @@ export function PartnerReportTab({ partnerId, ownerEmail, onFeedback }: Props) {
   useEffect(() => {
     if (!report.data) return
     setEnabled(report.data.weekly_enabled)
-    setCreditsCommission(report.data.commission_on_credits ?? true)
+    setCreditsCommission(report.data.commission_on_credits ?? false)
     setEmailsText((report.data.recipient_emails ?? []).join(', '))
     setCommission(report.data.commission_per_order ?? '')
   }, [report.data])
@@ -67,7 +67,7 @@ export function PartnerReportTab({ partnerId, ownerEmail, onFeedback }: Props) {
       void report.refetch()
     },
     onError: (err: unknown) => {
-      setCreditsCommission(report.data?.commission_on_credits ?? true)
+      setCreditsCommission(report.data?.commission_on_credits ?? false)
       onFeedback(err instanceof Error ? err.message : 'Falha ao atualizar a regra de créditos.', 'error')
     },
   })
@@ -159,7 +159,7 @@ export function PartnerReportTab({ partnerId, ownerEmail, onFeedback }: Props) {
         <div>
           <p className="text-sm font-medium">Créditos contam para comissão</p>
           <p className="text-xs text-muted-foreground">
-            Desative para contas de teste/uso interno — consultas pagas via créditos saem da base de comissão
+            Desligado por padrão (créditos costumam ser estorno/teste) · ative se o consumo via créditos deste parceiro for legítimo
           </p>
         </div>
         <Switch
