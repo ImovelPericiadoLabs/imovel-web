@@ -26,6 +26,7 @@ import {
 } from 'recharts'
 
 import { AdminPageShell, AdminStaffGate } from '@/components/admin'
+import { Switch } from '@/components/switch/switch'
 import {
   Button,
   Card,
@@ -64,11 +65,15 @@ function isoDaysAgo(days: number): string {
 
 export default function FinanceView() {
   const [period, setPeriod] = useState('30')
+  const [showCredits, setShowCredits] = useState(false)
 
-  const params = useMemo(() => ({ from: isoDaysAgo(Number(period)), to: isoDaysAgo(0) }), [period])
+  const params = useMemo(
+    () => ({ from: isoDaysAgo(Number(period)), to: isoDaysAgo(0), credits: showCredits }),
+    [period, showCredits],
+  )
 
   const overview = useQuery({
-    queryKey: ['cost-overview', params.from, params.to],
+    queryKey: ['cost-overview', params.from, params.to, params.credits],
     queryFn: () => getCostOverview(params),
     staleTime: 60_000,
     refetchOnWindowFocus: false,
@@ -83,6 +88,13 @@ export default function FinanceView() {
       <AdminPageShell
         actions={
           <>
+            <label
+              className="flex items-center gap-2 text-sm text-muted-foreground"
+              title="Consultas pagas via créditos (estornos reaproveitados e contas de teste) ficam ocultas por padrão"
+            >
+              <Switch checked={showCredits} onCheckedChange={setShowCredits} />
+              Incluir créditos
+            </label>
             <Select value={period} onValueChange={setPeriod}>
               <SelectTrigger className="w-44">
                 <SelectValue />

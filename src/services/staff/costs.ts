@@ -49,6 +49,7 @@ export type CostByPartner = {
 export type CostOverview = {
   from: string
   to: string
+  include_credits: boolean
   totals: CostTotals
   risk: MarginRisk
   series: CostSeriesPoint[]
@@ -61,6 +62,7 @@ export type CostOverviewParams = {
   to?: string
   integration?: string
   org?: string
+  credits?: boolean
 }
 
 export async function getCostOverview(params: CostOverviewParams = {}): Promise<CostOverview> {
@@ -69,6 +71,7 @@ export async function getCostOverview(params: CostOverviewParams = {}): Promise<
   if (params.to) search.set('to', params.to)
   if (params.integration) search.set('integration', params.integration)
   if (params.org) search.set('org', params.org)
+  if (params.credits) search.set('credits', '1')
   const qs = search.toString()
   return withToken((token) =>
     api.get(`${endpoint.staff.costsOverview}${qs ? `?${qs}` : ''}`, token),

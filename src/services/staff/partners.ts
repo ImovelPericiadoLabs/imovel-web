@@ -158,6 +158,7 @@ export async function sendPartnerOnboarding(
 
 export type PartnerIntegrationReportConfig = {
   weekly_enabled: boolean
+  commission_on_credits: boolean
   recipient_emails: string[]
   commission_per_order: string | null
   last_sent_at: string | null
@@ -175,6 +176,7 @@ export async function updatePartnerIntegrationReport(
   id: string,
   body: Partial<{
     weekly_enabled: boolean
+    commission_on_credits: boolean
     recipient_emails: string[]
     commission_per_order: number | null
   }>,
