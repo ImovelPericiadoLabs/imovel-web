@@ -4,14 +4,19 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   AlertTriangle,
+  Building2,
   CheckCircle2,
   ClipboardList,
   Clock,
   FileUp,
+  History,
   Loader2,
+  MapPin,
   RefreshCw,
   Send,
+  ShieldAlert,
   User,
+  Wallet,
   X,
 } from 'lucide-react'
 import { cn } from '@/utils/tailwind'
@@ -54,9 +59,33 @@ function formatHours(h: number | null): string {
   return `${hh}h ${mm}m`
 }
 
+function brl(value: string | number): string {
+  const n = typeof value === 'string' ? Number(value) : value
+  if (Number.isNaN(n)) return 'R$ 0,00'
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(n)
+}
+
+const SOURCE_LABELS: Record<string, string> = {
+  margin_guard: 'Trava de margem',
+  'search_document_online:invalid_place_response': 'Endereço insuficiente',
+  'post_payment_dispatch:manual_acquisition_queue': 'Validação pós-pagamento',
+}
+
+function sourceLabel(source: string): string {
+  return SOURCE_LABELS[source] ?? (source ? 'Validação automática' : 'Origem desconhecida')
+}
+
+const SOURCE_FILTERS = [
+  { value: '', label: 'Todas as origens' },
+  { value: 'margin_guard', label: 'Trava de margem' },
+  { value: 'search_document_online:invalid_place_response', label: 'Endereço insuficiente' },
+  { value: 'post_payment_dispatch:manual_acquisition_queue', label: 'Validação pós-pagamento' },
+]
+
 export default function ManualReviewAdminPage() {
   const queryClient = useQueryClient()
   const [page, setPage] = useState(1)
+  const [sourceFilter, setSourceFilter] = useState('')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [rejectReason, setRejectReason] = useState<'invalid_data' | 'registration_not_found' | 'other'>('other')
   const [rejectNotes, setRejectNotes] = useState('')
@@ -70,8 +99,8 @@ export default function ManualReviewAdminPage() {
   const canAccess = Boolean(me?.is_staff || me?.is_superuser)
 
   const listQuery = useQuery({
-    queryKey: ['staff-manual-review', page],
-    queryFn: () => listManualReviewOrders(page),
+    queryKey: ['staff-manual-review', page, sourceFilter],
+    queryFn: () => listManualReviewOrders(page, sourceFilter || undefined),
     enabled: canAccess,
     staleTime: 20_000,
     refetchOnWindowFocus: false,
@@ -151,6 +180,8 @@ export default function ManualReviewAdminPage() {
     const h = hoursRemaining(r.manual_review_deadline)
     return h !== null && h <= 4
   }).length
+  const guarded = queue.filter((r) => r.review_source === 'margin_guard').length
+  const overLimit = queue.filter((r) => Number(r.cost_total) > Number(r.cost_limit)).length
 
   return (
     <AdminStaffGate>
@@ -171,25 +202,54 @@ export default function ManualReviewAdminPage() {
                 value: urgent,
                 tone: urgent > 0 ? 'warning' : 'default',
               },
-              { id: 'page', label: 'Página', value: page },
+              {
+                id: 'guarded',
+                label: 'Trava de margem',
+                value: guarded,
+                icon: ShieldAlert,
+                tone: guarded > 0 ? 'warning' : 'default',
+              },
+              {
+                id: 'over-limit',
+                label: 'Custo estourado',
+                value: overLimit,
+                tone: overLimit > 0 ? 'warning' : 'default',
+              },
             ]}
           />
         }
         actions={
-          <Button
-            type="button"
-            variant="outline"
-            className="h-9 gap-2 !w-auto rounded-lg px-4 text-xs"
-            onClick={() => listQuery.refetch()}
-            disabled={!canAccess || listQuery.isFetching}
-          >
-            {listQuery.isFetching ? (
-              <Loader2 className="size-3.5 animate-spin" />
-            ) : (
-              <RefreshCw className="size-3.5" />
-            )}
-            Atualizar
-          </Button>
+          <>
+            <select
+              value={sourceFilter}
+              onChange={(e) => {
+                setSourceFilter(e.target.value)
+                setPage(1)
+                setSelectedId(null)
+              }}
+              className="h-9 rounded-lg border border-[#dedee5] bg-white px-3 text-xs text-[#101114]"
+            >
+              {SOURCE_FILTERS.map((f) => (
+                <option key={f.value} value={f.value}>
+                  {f.label}
+                </option>
+              ))}
+            </select>
+            <Button
+              type="button"
+              variant="outline"
+              className="h-9 gap-2 !w-auto rounded-lg px-4 text-xs"
+              onClick={() => listQuery.refetch()}
+              disabled={!canAccess || listQuery.isFetching}
+            >
+              {listQuery.isFetching ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : (
+                <RefreshCw className="size-3.5" />
+              )}
+              Atualizar
+            </Button>
+          </>
         }
       >
 
@@ -215,6 +275,8 @@ export default function ManualReviewAdminPage() {
               {queue.map((row) => {
                 const h = hoursRemaining(row.manual_review_deadline)
                 const urgentRow = h !== null && h <= 4
+                const costOver = Number(row.cost_total) > Number(row.cost_limit)
+                const isGuarded = row.review_source === 'margin_guard'
                 return (
                   <li key={row.id}>
                     <button
@@ -229,7 +291,12 @@ export default function ManualReviewAdminPage() {
                       )}
                     >
                       <div className="flex w-full items-start justify-between gap-2">
-                        <p className="text-xs font-bold text-[#101114]">#{row.code}</p>
+                        <p className="text-xs font-bold text-[#101114]">
+                          #{row.code}
+                          {row.organization_name ? (
+                            <span className="ml-1.5 font-medium text-[#686b82]">{row.organization_name}</span>
+                          ) : null}
+                        </p>
                         <span
                           className={cn(
                             'shrink-0 text-[10px] font-semibold tabular-nums',
@@ -242,11 +309,31 @@ export default function ManualReviewAdminPage() {
                       <p className="line-clamp-1 text-[11px] text-[#686b82]">
                         {row.formatted_address ?? 'Sem endereço'}
                       </p>
-                      {row.registration_number ? (
-                        <span className="mt-0.5 inline-block rounded bg-[rgba(20,158,97,0.16)] px-1.5 py-0.5 text-[9px] font-bold uppercase text-[#026b3f]">
-                          Matrícula
+                      <div className="mt-0.5 flex flex-wrap items-center gap-1">
+                        <span
+                          className={cn(
+                            'inline-block rounded px-1.5 py-0.5 text-[9px] font-bold uppercase',
+                            isGuarded
+                              ? 'bg-[rgba(224,49,49,0.12)] text-[#a61e1e]'
+                              : 'bg-[rgba(113,50,245,0.1)] text-[#5741d8]',
+                          )}
+                        >
+                          {sourceLabel(row.review_source)}
                         </span>
-                      ) : null}
+                        {row.registration_number ? (
+                          <span className="inline-block rounded bg-[rgba(20,158,97,0.16)] px-1.5 py-0.5 text-[9px] font-bold uppercase text-[#026b3f]">
+                            Matrícula
+                          </span>
+                        ) : null}
+                        <span
+                          className={cn(
+                            'ml-auto text-[10px] font-semibold tabular-nums',
+                            costOver ? 'text-[#a61e1e]' : 'text-[#9497a9]',
+                          )}
+                        >
+                          {brl(row.cost_total)} / {brl(row.amount)}
+                        </span>
+                      </div>
                     </button>
                   </li>
                 )
@@ -382,6 +469,10 @@ function ManualReviewDetailPanel({
 }) {
   const msgs = order.manual_review?.validation_messages ?? []
   const doc = order.document_response as { staff_registration_uploaded_at?: string } | null
+  const cs = order.cost_summary
+  const usedPct = Math.min(cs?.used_pct ?? 0, 100)
+  const costOver = cs ? Number(cs.cost_total) > Number(cs.cost_limit) : false
+  const projectedLoss = cs ? Number(cs.projected_profit) < 0 : false
 
   return (
     <div className="p-4 space-y-4">
@@ -389,8 +480,18 @@ function ManualReviewDetailPanel({
         <div>
           <p className="text-xs uppercase tracking-wide text-[#9497a9]">Consulta</p>
           <p className="text-xl font-bold text-[#101114]">#{order.code}</p>
+          <span
+            className={cn(
+              'mt-1 inline-block rounded px-1.5 py-0.5 text-[9px] font-bold uppercase',
+              order.review_source === 'margin_guard'
+                ? 'bg-[rgba(224,49,49,0.12)] text-[#a61e1e]'
+                : 'bg-[rgba(113,50,245,0.1)] text-[#5741d8]',
+            )}
+          >
+            {sourceLabel(order.review_source)}
+          </span>
         </div>
-        <div className="flex items-center gap-2 rounded-xl bg-white border border-[#dedee5] px-3 py-2">
+        <div className="flex items-center gap-2 rounded-xl bg-white border border-[#dedee5] px-3 py-2 h-fit">
           <Clock className="size-4 text-[#7132f5]" />
           <span className="text-sm font-medium text-[#101114]">{formatHours(hoursLeft)}</span>
         </div>
@@ -403,6 +504,80 @@ function ManualReviewDetailPanel({
           <p className="text-xs text-[#9497a9]">{order.customer_whatsapp || 'WhatsApp não informado'}</p>
         </div>
       </div>
+
+      {order.organization_name && (
+        <div className="flex items-center gap-2 text-sm text-[#484b5e]">
+          <Building2 className="size-4 shrink-0 text-[#7132f5]" />
+          <p>
+            Parceiro: <span className="font-medium text-[#101114]">{order.organization_name}</span>
+          </p>
+        </div>
+      )}
+
+      <div className="flex items-start gap-2 text-sm text-[#484b5e]">
+        <MapPin className="size-4 mt-0.5 shrink-0 text-[#7132f5]" />
+        <div>
+          <p>{order.formatted_address ?? 'Sem endereço'}</p>
+          <p className="text-xs text-[#9497a9]">
+            {order.registration_number ? `Matrícula ${order.registration_number}` : 'Pedido via endereço'}
+            {order.notary ? ` · ${order.notary}` : ''}
+            {order.include_certificates ? ' · com certidões' : ''}
+          </p>
+        </div>
+      </div>
+
+      {cs && (
+        <div
+          className={cn(
+            'rounded-xl border p-3 space-y-2',
+            costOver ? 'border-red-200 bg-red-50' : 'border-[#dedee5] bg-white',
+          )}
+        >
+          <p className="flex items-center gap-2 text-sm font-semibold text-[#101114]">
+            <Wallet className="size-4 shrink-0 text-[#7132f5]" />
+            Custo x margem
+          </p>
+          <div className="grid grid-cols-3 gap-2 text-center">
+            <div>
+              <p className="text-[10px] uppercase text-[#9497a9]">Pago</p>
+              <p className="text-sm font-semibold tabular-nums text-[#101114]">{brl(cs.amount_paid)}</p>
+            </div>
+            <div>
+              <p className="text-[10px] uppercase text-[#9497a9]">Custo ({cs.records} registros)</p>
+              <p className={cn('text-sm font-semibold tabular-nums', costOver ? 'text-[#a61e1e]' : 'text-[#101114]')}>
+                {brl(cs.cost_total)}
+              </p>
+            </div>
+            <div>
+              <p className="text-[10px] uppercase text-[#9497a9]">Resultado projetado</p>
+              <p className={cn('text-sm font-semibold tabular-nums', projectedLoss ? 'text-[#a61e1e]' : 'text-[#026b3f]')}>
+                {brl(cs.projected_profit)}
+              </p>
+            </div>
+          </div>
+          <div>
+            <div className="h-2 w-full overflow-hidden rounded-full bg-[#eef0f4]">
+              <div
+                className={cn('h-full rounded-full', usedPct >= 100 ? 'bg-[#e03131]' : usedPct >= 75 ? 'bg-[#f59f00]' : 'bg-[#0ca678]')}
+                style={{ width: `${usedPct}%` }}
+              />
+            </div>
+            <p className="mt-1 text-[10px] text-[#9497a9]">
+              {cs.used_pct.toFixed(0)}% do teto da trava ({brl(cs.cost_limit)} = {cs.guard_pct.toFixed(0)}% do pago)
+            </p>
+          </div>
+          {cs.by_integration.length > 0 && (
+            <ul className="space-y-0.5 border-t border-[#eef0f4] pt-2">
+              {cs.by_integration.map((it) => (
+                <li key={it.integration} className="flex justify-between text-xs text-[#484b5e]">
+                  <span>{it.integration}</span>
+                  <span className="tabular-nums">{brl(it.cost)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
 
       {msgs.length > 0 && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
@@ -439,9 +614,9 @@ function ManualReviewDetailPanel({
         {uploadError && (
           <p className="text-xs text-red-600 mt-2">{uploadError}</p>
         )}
-        {doc?.staff_registration_uploaded_at && (
+        {(doc?.staff_registration_uploaded_at || order.has_registration_document) && (
           <p className="text-xs text-[#026b3f] mt-2 flex items-center gap-1">
-            <CheckCircle2 className="size-3.5" /> Upload registrado neste pedido.
+            <CheckCircle2 className="size-3.5" /> Matrícula anexada a este pedido.
           </p>
         )}
       </div>
@@ -456,8 +631,34 @@ function ManualReviewDetailPanel({
           {enqueuePending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
           Enviar para análise
         </Button>
-        <p className="text-xs text-[#9497a9] text-center">Exige PDF de matrícula anexado ao pedido.</p>
+        <p className="text-xs text-[#9497a9] text-center">
+          {order.has_registration_document
+            ? 'PDF anexado — pronto para análise.'
+            : 'Exige PDF de matrícula anexado ao pedido.'}
+        </p>
       </div>
+
+      {order.timeline?.length > 0 && (
+        <details className="rounded-xl border border-[#dedee5] bg-white">
+          <summary className="flex cursor-pointer items-center gap-2 px-3 py-2.5 text-sm font-semibold text-[#101114]">
+            <History className="size-4 shrink-0 text-[#7132f5]" />
+            Histórico da consulta ({order.timeline.length})
+          </summary>
+          <ul className="space-y-1.5 border-t border-[#eef0f4] px-3 py-2.5">
+            {order.timeline.map((entry, i) => (
+              <li key={`${entry.at}-${i}`} className="text-xs text-[#484b5e]">
+                <span className="font-medium text-[#101114]">
+                  {entry.from} → {entry.to}
+                </span>
+                <span className="block text-[10px] text-[#9497a9]">
+                  {new Date(entry.at).toLocaleString('pt-BR')}
+                  {entry.source ? ` · ${entry.source}` : ''}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
 
       <div className="border-t border-[#dedee5] pt-4 space-y-3">
         <p className="text-sm font-semibold text-[#101114]">Encerrar sem sucesso</p>

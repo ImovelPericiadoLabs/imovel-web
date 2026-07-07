@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { MapPin, FileText, Hash, LayoutList } from 'lucide-react'
+import { MapPin, FileText, Hash, LayoutList, ArrowUpRight } from 'lucide-react'
 import { TutorialBanner } from '@/components/tutorial-banner'
 import { CenteredContent } from '@/components/ui/layout'
 import { Surface } from '@/components/ui/surfaces'
@@ -10,7 +10,7 @@ import { cardSurface } from '@/styles/surfaces'
 import { cn } from '@/utils/tailwind'
 import { trackGtmEvent } from '@/utils/analytics/gtm'
 import { formatMoney } from '@/utils/text/text'
-import { usePublicPlanPrice } from '@/hooks/use-public-plan-price'
+import { usePricingSummary, TABELA_PRECOS_HREF } from '@/hooks/use-pricing-summary'
 import { INCLUDED_CERTIFICATES_COUNT } from '@/constants/included-certificates'
 
 export type ConsultEntryChoice = 'address' | 'document' | 'unsure'
@@ -55,7 +55,7 @@ const cards: {
 ]
 
 export function ConsultEntryStep({ onChoose }: ConsultEntryStepProps) {
-  const { price } = usePublicPlanPrice()
+  const { basePrice, minAddressPrice } = usePricingSummary()
 
   return (
     <div className="relative mx-auto min-w-0 w-full max-w-3xl px-4 pb-12 pointer-events-auto md:px-6 md:pb-14 xl:px-8">
@@ -74,32 +74,59 @@ export function ConsultEntryStep({ onChoose }: ConsultEntryStepProps) {
         </CenteredContent>
       </Surface>
 
-      <div className={cn(cardSurface, 'mb-4 w-full min-w-0 px-3 py-3 sm:px-4 lg:py-4')}>
+      <Link
+        href={TABELA_PRECOS_HREF}
+        prefetch={false}
+        onClick={() => {
+          trackGtmEvent('consult_entry_pricing_table', {
+            event_category: 'consult_flow',
+            event_label: 'banner',
+            event_description: 'Usuário abriu a tabela de preços a partir do banner de entrada.',
+          })
+        }}
+        className={cn(
+          cardSurface,
+          'mb-4 block w-full min-w-0 px-3 py-3 transition-colors hover:border-primary/30 hover:bg-primary/[0.03] sm:px-4 lg:py-4',
+        )}
+      >
         <p className="mx-auto max-w-full break-words text-center text-xs font-semibold leading-snug text-primary tabular-nums md:text-sm">
-          Consulta completa · {formatMoney(price)}
+          Consulta completa · a partir de {formatMoney(basePrice)}
         </p>
         <p className="mx-auto mt-1 max-w-full text-center text-[11px] font-medium text-gray-600 md:text-xs">
           Inclui análise por IA + {INCLUDED_CERTIFICATES_COUNT} certidões oficiais
         </p>
-      </div>
+        <p className="mx-auto mt-1.5 flex max-w-full items-center justify-center gap-1 text-center text-[11px] font-semibold text-primary underline underline-offset-2 md:text-xs">
+          Ver tabela de preços por estado
+          <ArrowUpRight className="size-3.5 shrink-0" aria-hidden />
+        </p>
+      </Link>
 
       <div className="mx-auto flex w-full flex-col gap-3 lg:grid lg:grid-cols-3 lg:gap-4 lg:items-stretch">
         {cards.map(({ id, title, subtitle, icon: Icon }) => {
           const badge = ENTRY_BADGE[id]
+          const priceVaries = id === 'address'
+          const choose = () => {
+            trackGtmEvent('consult_entry_choice', {
+              event_category: 'consult_flow',
+              event_label: id,
+              event_description: `Usuário escolheu entrada: ${id}`,
+            })
+            onChoose(id)
+          }
           return (
-            <button
+            <div
               key={id}
-              type="button"
+              role="button"
+              tabIndex={0}
               onMouseDown={(e) => e.preventDefault()}
-              onClick={() => {
-                trackGtmEvent('consult_entry_choice', {
-                  event_category: 'consult_flow',
-                  event_label: id,
-                  event_description: `Usuário escolheu entrada: ${id}`,
-                })
-                onChoose(id)
+              onClick={choose}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  choose()
+                }
               }}
-              className="flex w-full min-h-0 flex-col gap-3 rounded-2xl border border-gray-100 bg-white p-4 text-left shadow-sm transition-colors hover:border-primary/30 hover:bg-primary/[0.03] sm:p-5 lg:min-h-[11.5rem] lg:hover:shadow-md"
+              className="flex w-full min-h-0 cursor-pointer flex-col gap-3 rounded-2xl border border-gray-100 bg-white p-4 text-left shadow-sm transition-colors hover:border-primary/30 hover:bg-primary/[0.03] sm:p-5 lg:min-h-[13rem] lg:hover:shadow-md"
             >
               <div className="flex w-full items-center justify-between gap-2">
                 <div className="rounded-xl bg-primary/10 p-2.5 sm:p-3">
@@ -119,7 +146,33 @@ export function ConsultEntryStep({ onChoose }: ConsultEntryStepProps) {
                   {subtitle}
                 </p>
               </div>
-            </button>
+              <div className="mt-auto flex flex-wrap items-baseline gap-x-2 gap-y-0.5 border-t border-gray-100 pt-2.5">
+                <span className="text-sm font-bold tabular-nums text-primary lg:text-[15px]">
+                  {priceVaries
+                    ? `a partir de ${formatMoney(minAddressPrice)}`
+                    : formatMoney(basePrice)}
+                </span>
+                {priceVaries ? (
+                  <Link
+                    href={TABELA_PRECOS_HREF}
+                    prefetch={false}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      trackGtmEvent('consult_entry_pricing_table', {
+                        event_category: 'consult_flow',
+                        event_label: id,
+                        event_description: 'Usuário abriu a tabela de preços a partir do card de entrada.',
+                      })
+                    }}
+                    className="text-[11px] font-semibold text-gray-500 underline underline-offset-2 transition-colors hover:text-primary"
+                  >
+                    varia por estado · ver tabela
+                  </Link>
+                ) : (
+                  <span className="text-[11px] font-medium text-gray-500">preço único nacional</span>
+                )}
+              </div>
+            </div>
           )
         })}
       </div>

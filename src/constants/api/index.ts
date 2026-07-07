@@ -12,6 +12,7 @@ export const endpoint = {
     process: '/payments/',
     status: '/payments',
     quote: '/payments/quote/',
+    pricingTable: '/payments/pricing-table/',
   },
   start: '/auth/start/',
   verify: '/auth/verify/',
@@ -64,6 +65,11 @@ export const endpoint = {
     partnerCredits: (id: string) => `/admin/staff/partners/${id}/credits/`,
     partnerSendOnboarding: (id: string) => `/admin/staff/partners/${id}/send-onboarding/`,
     partnerLogo: (id: string) => `/admin/staff/partners/${id}/logo/`,
+    partnerIntegrationReport: (id: string) => `/admin/staff/partners/${id}/integration-report/`,
+    partnerIntegrationReportPreview: (id: string) =>
+      `/admin/staff/partners/${id}/integration-report/preview/`,
+    partnerIntegrationReportSend: (id: string) =>
+      `/admin/staff/partners/${id}/integration-report/send/`,
     /** Overview de custo/receita (dashboard financeiro). */
     costsOverview: '/admin/staff/costs/overview/',
   },

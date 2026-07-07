@@ -16,7 +16,8 @@ import { cn } from '@/utils/tailwind'
 import AddressSummaryCard from '@/components/address-summary-card'
 import { trackGtmEvent, DEFAULT_CURRENCY, buildConsultItem } from '@/utils/analytics/gtm'
 import { formatMoney } from '@/utils/text/text'
-import { usePublicPlanPrice } from '@/hooks/use-public-plan-price'
+import { useConsultDynamicPrice, type EntryPath } from '@/hooks/use-consult-price'
+import type { FormTypes as ConsultFormTypes } from '@/sections/consult-property/validations'
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
     label?: string
@@ -56,7 +57,20 @@ export function CreditCardPage({
 }: {
     onSave: () => void
 }) {
-    const { price: consultPrice } = usePublicPlanPrice()
+    const parentForm = useFormContext<ConsultFormTypes>()
+    const entryPath = parentForm?.watch('entryPath') as EntryPath | undefined
+    const includeCertificates = Boolean(parentForm?.watch('includeCertificates'))
+    const propertyUf =
+        (parentForm?.getValues() as { place_response?: { state?: string } } | undefined)
+            ?.place_response?.state ||
+        parentForm?.watch('notaryState') ||
+        null
+    const { price: consultPrice } = useConsultDynamicPrice({
+        entryPath,
+        includeCertificates,
+        uf: propertyUf,
+    })
+
     const [saveCard, setSaveCard] = useState(false)
 
     const [form, setForm] = useState({
@@ -119,11 +133,8 @@ export function CreditCardPage({
         onSave()
     }
 
-    const { getValues } = useFormContext()
-
-    const cardValues = (field: string) => {
-        return getValues(field)
-    }
+    const cardValues = (field: keyof ConsultFormTypes) =>
+        String(parentForm?.getValues(field) ?? '')
 
     useEffect(() => {
         trackGtmEvent('credit_card_view', {

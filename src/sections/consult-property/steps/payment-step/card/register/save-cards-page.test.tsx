@@ -4,8 +4,8 @@ import { describe, it, expect, vi } from 'vitest'
 import { FormProvider, useForm } from 'react-hook-form'
 import { CreditCardPage } from './save-cards-page'
 
-vi.mock('@/hooks/use-public-plan-price', () => ({
-  usePublicPlanPrice: () => ({ price: 59, isLoading: false }),
+vi.mock('@/hooks/use-consult-price', () => ({
+  useConsultDynamicPrice: () => ({ price: 59, isLoading: false }),
 }))
 
 function formWrapper() {

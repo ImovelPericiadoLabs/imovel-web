@@ -27,7 +27,30 @@ export type StaffManualReviewOrderListItem = {
   manual_review_deadline: string | null
   formatted_address: string | null
   customer_email: string | null
+  organization_name: string | null
+  amount: string
   manual_review: ManualReviewSlice | null
+  review_source: string
+  cost_total: string
+  cost_limit: string
+}
+
+export type ManualReviewCostSummary = {
+  amount_paid: string
+  cost_total: string
+  cost_limit: string
+  guard_pct: number
+  used_pct: number
+  projected_profit: string
+  records: number
+  by_integration: { integration: string; cost: string }[]
+}
+
+export type ManualReviewTimelineEntry = {
+  from: string
+  to: string
+  source: string
+  at: string
 }
 
 export type StaffManualReviewOrderDetail = StaffManualReviewOrderListItem & {
@@ -35,9 +58,13 @@ export type StaffManualReviewOrderDetail = StaffManualReviewOrderListItem & {
   document_response: Record<string, unknown> | null
   place_response: Record<string, unknown> | null
   notary: string | null
-  amount: string
   gateway: string
   payment_status: string
+  payment_confirmed_at: string | null
+  include_certificates: boolean
+  has_registration_document: boolean
+  cost_summary: ManualReviewCostSummary
+  timeline: ManualReviewTimelineEntry[]
 }
 
 export type Paginated<T> = {
@@ -47,9 +74,14 @@ export type Paginated<T> = {
   results: T[]
 }
 
-export async function listManualReviewOrders(page = 1): Promise<Paginated<StaffManualReviewOrderListItem>> {
+export async function listManualReviewOrders(
+  page = 1,
+  source?: string,
+): Promise<Paginated<StaffManualReviewOrderListItem>> {
+  const params = new URLSearchParams({ page: String(page) })
+  if (source) params.set('source', source)
   return withToken((token) =>
-    api.get(`${endpoint.staff.manualReviewOrders}?page=${page}`, token),
+    api.get(`${endpoint.staff.manualReviewOrders}?${params.toString()}`, token),
   ) as Promise<Paginated<StaffManualReviewOrderListItem>>
 }
 
