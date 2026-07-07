@@ -21,6 +21,7 @@ type Props = {
 
 export function PartnerReportTab({ partnerId, ownerEmail, onFeedback }: Props) {
   const [enabled, setEnabled] = useState(true)
+  const [creditsCommission, setCreditsCommission] = useState(true)
   const [emailsText, setEmailsText] = useState('')
   const [commission, setCommission] = useState('')
   const [testEmail, setTestEmail] = useState('')
@@ -34,6 +35,7 @@ export function PartnerReportTab({ partnerId, ownerEmail, onFeedback }: Props) {
   useEffect(() => {
     if (!report.data) return
     setEnabled(report.data.weekly_enabled)
+    setCreditsCommission(report.data.commission_on_credits ?? true)
     setEmailsText((report.data.recipient_emails ?? []).join(', '))
     setCommission(report.data.commission_per_order ?? '')
   }, [report.data])
@@ -49,6 +51,24 @@ export function PartnerReportTab({ partnerId, ownerEmail, onFeedback }: Props) {
     onError: (err: unknown) => {
       setEnabled(report.data?.weekly_enabled ?? true)
       onFeedback(err instanceof Error ? err.message : 'Falha ao atualizar o envio semanal.', 'error')
+    },
+  })
+
+  const toggleCreditsCommission = useMutation({
+    mutationFn: (next: boolean) =>
+      updatePartnerIntegrationReport(partnerId, { commission_on_credits: next }),
+    onSuccess: (data) => {
+      setCreditsCommission(data.commission_on_credits)
+      onFeedback(
+        data.commission_on_credits
+          ? 'Consultas via créditos voltam a gerar comissão.'
+          : 'Consultas via créditos não geram mais comissão.',
+      )
+      void report.refetch()
+    },
+    onError: (err: unknown) => {
+      setCreditsCommission(report.data?.commission_on_credits ?? true)
+      onFeedback(err instanceof Error ? err.message : 'Falha ao atualizar a regra de créditos.', 'error')
     },
   })
 
@@ -131,6 +151,23 @@ export function PartnerReportTab({ partnerId, ownerEmail, onFeedback }: Props) {
           onCheckedChange={(next) => {
             setEnabled(next)
             toggleWeekly.mutate(next)
+          }}
+        />
+      </div>
+
+      <div className="flex items-center justify-between rounded-lg border p-3">
+        <div>
+          <p className="text-sm font-medium">Créditos contam para comissão</p>
+          <p className="text-xs text-muted-foreground">
+            Desative para contas de teste/uso interno — consultas pagas via créditos saem da base de comissão
+          </p>
+        </div>
+        <Switch
+          checked={creditsCommission}
+          disabled={toggleCreditsCommission.isPending}
+          onCheckedChange={(next) => {
+            setCreditsCommission(next)
+            toggleCreditsCommission.mutate(next)
           }}
         />
       </div>
