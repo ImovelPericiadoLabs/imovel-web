@@ -13,24 +13,43 @@ export type CostTotals = {
   revenue: number
   cost: number
   profit: number
+  commission: number
+  refunds: number
+  net_profit: number
   margin: number
+  net_margin: number
   orders: number
+  avg_ticket: number
+  avg_cost_per_order: number
 }
 
-export type CostSeriesPoint = { date: string; cost: number; revenue: number }
-export type CostByIntegration = { integration: string; cost: number }
+export type MarginRisk = {
+  guard_pct: number
+  orders_near_limit: number
+  orders_over_limit: number
+  excess_cost: number
+  in_manual_review: number
+}
+
+export type CostSeriesPoint = { date: string; cost: number; revenue: number; profit: number }
+export type CostByIntegration = { integration: string; cost: number; calls: number; avg_cost: number }
 export type CostByPartner = {
   org_id: string
   name: string
+  orders: number
   cost: number
   revenue: number
+  commission: number
   profit: number
+  net_profit: number
+  net_margin: number
 }
 
 export type CostOverview = {
   from: string
   to: string
   totals: CostTotals
+  risk: MarginRisk
   series: CostSeriesPoint[]
   by_integration: CostByIntegration[]
   by_partner: CostByPartner[]

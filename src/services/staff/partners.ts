@@ -155,3 +155,49 @@ export async function sendPartnerOnboarding(
     api.post(endpoint.staff.partnerSendOnboarding(id), body, token),
   ) as Promise<{ detail: string; email: string }>
 }
+
+export type PartnerIntegrationReportConfig = {
+  weekly_enabled: boolean
+  recipient_emails: string[]
+  commission_per_order: string | null
+  last_sent_at: string | null
+  last_error: string
+  resolved_recipients: string[]
+}
+
+export async function getPartnerIntegrationReport(id: string): Promise<PartnerIntegrationReportConfig> {
+  return withToken((token) =>
+    api.get(endpoint.staff.partnerIntegrationReport(id), token),
+  ) as Promise<PartnerIntegrationReportConfig>
+}
+
+export async function updatePartnerIntegrationReport(
+  id: string,
+  body: Partial<{
+    weekly_enabled: boolean
+    recipient_emails: string[]
+    commission_per_order: number | null
+  }>,
+): Promise<PartnerIntegrationReportConfig> {
+  return withToken((token) =>
+    api.patch(endpoint.staff.partnerIntegrationReport(id), body, token),
+  ) as Promise<PartnerIntegrationReportConfig>
+}
+
+export async function previewPartnerIntegrationReport(
+  id: string,
+  format: 'html' | 'pdf' = 'html',
+): Promise<Blob> {
+  return withToken((token) =>
+    api.getBlob(`${endpoint.staff.partnerIntegrationReportPreview(id)}?format=${format}`, token),
+  )
+}
+
+export async function sendPartnerIntegrationReport(
+  id: string,
+  body: { email?: string; async?: boolean } = {},
+): Promise<{ detail: string; recipients?: string[]; async?: boolean }> {
+  return withToken((token) =>
+    api.post(endpoint.staff.partnerIntegrationReportSend(id), body, token),
+  ) as Promise<{ detail: string; recipients?: string[]; async?: boolean }>
+}

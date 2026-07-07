@@ -74,6 +74,27 @@ export async function getQuote(data: QuoteRequest): Promise<PaymentQuote> {
   return api.post(endpoint.payments.quote, data) as Promise<PaymentQuote>
 }
 
+export type PricingTableRow = {
+  uf: string
+  uf_name: string
+  registry_price: number
+  address_surcharge: number
+  address_price: number
+}
+
+export type PricingTableResponse = {
+  new_pricing: boolean
+  base_price: number
+  certificates_upsell: number
+  updated_at: string | null
+  rows: PricingTableRow[]
+}
+
+/** GET /payments/pricing-table/ — tabela pública de preços por UF. Público. */
+export async function getPricingTable(): Promise<PricingTableResponse> {
+  return api.get(endpoint.payments.pricingTable) as Promise<PricingTableResponse>
+}
+
 export type PaymentStatusResponse = {
   status: string
 }

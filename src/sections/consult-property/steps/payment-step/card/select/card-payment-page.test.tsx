@@ -4,8 +4,8 @@ import { render, screen, fireEvent, within } from '@testing-library/react'
 import { FormProvider, useForm } from 'react-hook-form'
 import { SavedCardsPage } from './card-payment-page'
 
-vi.mock('@/hooks/use-public-plan-price', () => ({
-  usePublicPlanPrice: () => ({ price: 59, isLoading: false }),
+vi.mock('@/hooks/use-consult-price', () => ({
+  useConsultDynamicPrice: () => ({ price: 59, isLoading: false }),
 }))
 
 function formWrapper() {

@@ -18,7 +18,8 @@ import AddressSummaryCard from '@/components/address-summary-card'
 import { IncludedCertificatesPanel } from '@/components/included-certificates/included-certificates-panel'
 import { trackGtmEvent } from '@/utils/analytics/gtm'
 import { formatMoney } from '@/utils/text/text'
-import { usePublicPlanPrice } from '@/hooks/use-public-plan-price'
+import { useConsultDynamicPrice, type EntryPath } from '@/hooks/use-consult-price'
+import type { FormTypes as ConsultFormTypes } from '@/sections/consult-property/validations'
 
 interface Card {
   id: string
@@ -33,7 +34,16 @@ export function SavedCardsPage({
 }: {
   onAddNewCard: () => void
 }) {
-  const { price } = usePublicPlanPrice()
+  const parentForm = useFormContext<ConsultFormTypes>()
+  const entryPath = parentForm?.watch('entryPath') as EntryPath | undefined
+  const includeCertificates = Boolean(parentForm?.watch('includeCertificates'))
+  const propertyUf =
+    (parentForm?.getValues() as { place_response?: { state?: string } } | undefined)
+      ?.place_response?.state ||
+    parentForm?.watch('notaryState') ||
+    null
+  const { price } = useConsultDynamicPrice({ entryPath, includeCertificates, uf: propertyUf })
+
   const [cards, setCards] = useState<Card[]>([
     { id: '1', number: '1234', expiry: '11/29', brand: 'Mastercard', isSelected: true },
     { id: '2', number: '7536', expiry: '11/28', brand: 'Visa', isSelected: false },
@@ -54,11 +64,10 @@ export function SavedCardsPage({
     })
   }, [])
 
-  const { getValues } = useFormContext()
-
-  const cardValues = useCallback((field: string) => {
-    return getValues(field)
-  }, [getValues])
+  const cardValues = useCallback(
+    (field: keyof ConsultFormTypes) => String(parentForm?.getValues(field) ?? ''),
+    [parentForm],
+  )
 
   const addressSummaryData = useMemo(() => ({
     address: cardValues('address'),

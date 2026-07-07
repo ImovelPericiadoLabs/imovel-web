@@ -42,7 +42,10 @@ import {
   type PartnerScope,
 } from '@/services/staff/partners'
 
+import { getCostOverview } from '@/services/staff/costs'
+
 import { CopyField } from './copy-field'
+import { PartnerReportTab } from './partner-report-tab'
 import { ScopePicker } from './scope-picker'
 import { formatBRL } from './partner-utils'
 
@@ -76,6 +79,14 @@ export function PartnerDetailDialog({
     queryFn: () => getPartner(partnerId as string),
     enabled: open && Boolean(partnerId),
     staleTime: 10_000,
+    refetchOnWindowFocus: false,
+  })
+
+  const pnl = useQuery({
+    queryKey: ['staff-partner-pnl', partnerId],
+    queryFn: () => getCostOverview({ org: partnerId as string }),
+    enabled: open && Boolean(partnerId),
+    staleTime: 60_000,
     refetchOnWindowFocus: false,
   })
 
@@ -275,6 +286,9 @@ export function PartnerDetailDialog({
               <TabsTrigger value="credits" className="flex-1">
                 Créditos
               </TabsTrigger>
+              <TabsTrigger value="report" className="flex-1">
+                Relatório
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview">
@@ -282,6 +296,31 @@ export function PartnerDetailDialog({
                 <div className="grid gap-3 sm:grid-cols-2">
                   <Stat label="Saldo" value={formatBRL(p.credits_balance)} />
                   <Stat label="Owner" value={p.owner_email ?? '—'} />
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <Label>Ganho / perda (últimos 30 dias)</Label>
+                  {pnl.isLoading ? (
+                    <Skeleton className="h-16 w-full" />
+                  ) : pnl.data ? (
+                    <div className="grid gap-3 sm:grid-cols-3">
+                      <Stat
+                        label={`Receita (${pnl.data.totals.orders} pedidos)`}
+                        value={formatBRL(pnl.data.totals.revenue)}
+                      />
+                      <Stat
+                        label="Custo + comissão"
+                        value={formatBRL(pnl.data.totals.cost + pnl.data.totals.commission)}
+                      />
+                      <Stat
+                        label={`Líquido (${pnl.data.totals.net_margin.toFixed(1)}%)`}
+                        value={formatBRL(pnl.data.totals.net_profit)}
+                        negative={pnl.data.totals.net_profit < 0}
+                      />
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">Sem dados de consumo no período.</p>
+                  )}
                 </div>
 
                 <div className="flex flex-col gap-2">
@@ -536,6 +575,16 @@ export function PartnerDetailDialog({
                 </div>
               </div>
             </TabsContent>
+
+            <TabsContent value="report">
+              {partnerId && (
+                <PartnerReportTab
+                  partnerId={partnerId}
+                  ownerEmail={p.owner_email}
+                  onFeedback={(message, kind = 'success') => setFeedback({ kind, message })}
+                />
+              )}
+            </TabsContent>
           </Tabs>
         )}
       </DialogContent>
@@ -543,11 +592,13 @@ export function PartnerDetailDialog({
   )
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({ label, value, negative }: { label: string; value: string; negative?: boolean }) {
   return (
     <div className="rounded-lg border border-border bg-muted/30 px-4 py-3">
       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className="mt-0.5 truncate text-sm font-semibold text-foreground">{value}</p>
+      <p className={`mt-0.5 truncate text-sm font-semibold ${negative ? 'text-red-600' : 'text-foreground'}`}>
+        {value}
+      </p>
     </div>
   )
 }
