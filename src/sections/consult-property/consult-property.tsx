@@ -67,6 +67,8 @@ const CONSULT_PROPERTY_FORM_DEFAULTS: FormTypes = {
   notaryCity: '',
   entryPath: undefined,
   includeCertificates: false,
+  jetimobPropertyCode: '',
+  jetimobSystemId: '',
 }
 
 type FlowState =
@@ -208,6 +210,8 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
     resetConsultForm({
       ...CONSULT_PROPERTY_FORM_DEFAULTS,
       ...(prefill.form as Partial<FormTypes>),
+      jetimobPropertyCode: prefill.propertyCode,
+      jetimobSystemId: prefill.systemId || '',
     })
 
     const nextFlow = prefill.initialFlow as FlowState
@@ -481,7 +485,11 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
               afterDocument={entryPath === 'document'}
               onBack={back}
               onNext={() => {
-                if (entryPath === 'document') {
+                const hint = String(methods.getValues('addressHint') || '').trim()
+                const placeId = String(methods.getValues('placeId') || '').trim()
+
+                // Hint suficiente (ex.: prefill Jetimob) dispensa a busca no mapa.
+                if (entryPath === 'document' || (hint.length >= 10 && !placeId)) {
                   go('address-complement')
                 } else {
                   go('address')
