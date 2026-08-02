@@ -1,5 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
+import { getServerSession } from 'next-auth'
 
+import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 import { apiV1Base, setJetimobSessionCookie } from '../_lib/session'
 
 export const runtime = 'nodejs'
@@ -15,11 +17,18 @@ export async function POST(req: NextRequest) {
     )
   }
 
+  // JWT do usuário logado permite ao backend vincular a conexão ao tenant Imóvel.
+  const session = await getServerSession(authOptions)
+  const accessToken = session?.accessToken
+
   let res: Response
   try {
     res = await fetch(`${apiV1Base()}/integrations/jetimob/oauth/token/`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      },
       body: JSON.stringify({ code }),
       cache: 'no-store',
     })

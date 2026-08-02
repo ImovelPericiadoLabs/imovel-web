@@ -45,6 +45,9 @@ export const validations = z
     paymentMethod: z.enum(['pix', 'credit_card', 'debit_card', 'boleto']),
     entryPath: z.enum(['address', 'document', 'registry']).optional(),
     includeCertificates: z.boolean().default(false),
+    /** Código do imóvel e tenant quando a consulta veio da integração Jetimob. */
+    jetimobPropertyCode: z.string().default(''),
+    jetimobSystemId: z.string().default(''),
   })
   .refine(
     (data) => {

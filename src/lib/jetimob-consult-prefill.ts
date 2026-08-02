@@ -11,6 +11,7 @@ export type JetimobConsultInitialFlow =
 export type JetimobConsultPrefill = {
   source: 'jetimob'
   propertyCode: string
+  systemId?: string
   entryPath: JetimobConsultEntryPath
   initialFlow: JetimobConsultInitialFlow
   form: Record<string, unknown>
@@ -39,10 +40,12 @@ export function buildJetimobConsultPrefill(
   propertyCode: string,
   mode: JetimobConsultModeDraft,
   entryPath: JetimobConsultEntryPath,
+  systemId?: string,
 ): JetimobConsultPrefill {
   return {
     source: 'jetimob',
     propertyCode,
+    systemId,
     entryPath,
     initialFlow: mode.initial_flow,
     form: mode.form,

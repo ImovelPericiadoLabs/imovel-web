@@ -32,6 +32,12 @@ type PropertiesPayload = {
   pagination?: { total_items?: number; page?: string | number }
 }
 
+const MISSING_FIELD_LABELS: Record<string, string> = {
+  address_hint: 'endereço',
+  registration_number: 'matrícula (não veio da Jetimob)',
+  notary_name: 'cartório (preencher no fluxo)',
+}
+
 const MODE_LABELS: Record<JetimobConsultEntryPath, { title: string; description: string }> = {
   address: {
     title: 'Endereço',
@@ -150,7 +156,9 @@ export default function JetimobIntegrationPage() {
   const startConsultation = (entryPath: JetimobConsultEntryPath, mode: JetimobConsultModeDraft | undefined) => {
     if (!selectedCode || !mode?.available) return
 
-    storeJetimobConsultPrefill(buildJetimobConsultPrefill(selectedCode, mode, entryPath))
+    storeJetimobConsultPrefill(
+      buildJetimobConsultPrefill(selectedCode, mode, entryPath, session?.jetimob_system_id),
+    )
     router.push('/consultar-imovel')
   }
 
@@ -312,9 +320,9 @@ export default function JetimobIntegrationPage() {
                           </ul>
                         )}
 
-                        {!mode?.available && mode?.missing_fields && mode.missing_fields.length > 0 && (
+                        {mode?.missing_fields && mode.missing_fields.length > 0 && (
                           <p className="text-xs text-amber-700">
-                            Faltam: {mode.missing_fields.join(', ')}
+                            Pendente: {mode.missing_fields.map((f) => MISSING_FIELD_LABELS[f] || f).join(', ')}
                           </p>
                         )}
 
