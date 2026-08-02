@@ -30,12 +30,22 @@ const initialHomeItems = [
   { Icon: BellDot, text: 'Decisão segura com alertas inteligentes.' },
 ]
 
-export const AddressStep = forwardRef<{ focus: () => boolean }, { onNext: () => void }>(({ onNext }, ref) => {
+type AddressStepProps = {
+  onNext: () => void
+  /** Busca pré-preenchida (ex.: endereço vindo da Jetimob) — usuário confirma nas opções. */
+  initialQuery?: string
+}
+
+export const AddressStep = forwardRef<{ focus: () => boolean }, AddressStepProps>(({ onNext, initialQuery }, ref) => {
   const { setValue } = useFormContext()
   const [address, setAddress] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
   const lastSearchQueryRef = useRef<string | null>(null)
   const lastSearchErrorRef = useRef<string | null>(null)
+
+  useEffect(() => {
+    if (initialQuery) setAddress(initialQuery)
+  }, [initialQuery])
 
   useImperativeHandle(ref, () => ({
     focus: () => {
@@ -223,10 +233,12 @@ export const AddressStep = forwardRef<{ focus: () => boolean }, { onNext: () => 
       <div className="flex-1 flex flex-col gap-4">
         <div className={cn(consultFlowHeroBlockClass, 'mb-6 pb-1')}>
           <TextTitle className={cn(consultFlowHeroTitleClass, consultFlowHeroTitleSizeLargeClass)}>
-            Digite o endereço do imóvel para começar
+            {initialQuery ? 'Confirme o endereço do imóvel' : 'Digite o endereço do imóvel para começar'}
           </TextTitle>
           <TextSubtitle className={consultFlowHeroSubtitleClass}>
-            Informe logradouro, número e bairro.
+            {initialQuery
+              ? 'Selecione a opção correta nos resultados da busca. Ajuste o texto se necessário.'
+              : 'Informe logradouro, número e bairro.'}
           </TextSubtitle>
         </div>
 

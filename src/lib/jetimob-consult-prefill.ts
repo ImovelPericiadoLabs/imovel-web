@@ -5,6 +5,7 @@ export type JetimobConsultEntryPath = 'address' | 'document' | 'registry'
 export type JetimobConsultInitialFlow =
   | 'entry'
   | 'registry-manual'
+  | 'address'
   | 'address-hint'
   | 'doc-type'
 

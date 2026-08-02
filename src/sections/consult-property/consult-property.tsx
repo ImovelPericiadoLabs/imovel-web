@@ -142,6 +142,7 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
   const { reset: resetConsultForm, watch } = methods
   const entryPath = watch('entryPath')
 
+  const [addressInitialQuery, setAddressInitialQuery] = useState('')
   const addressStepRef = useRef<{ focus: () => boolean }>(null)
   const addressComplementRef = useRef<{ handleBack: () => void }>(null)
 
@@ -174,6 +175,7 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
     setFlow('entry')
     resetConsultForm(CONSULT_PROPERTY_FORM_DEFAULTS)
     sessionStorage.removeItem('autoFocusAddress')
+    setAddressInitialQuery('')
 
     const params = new URLSearchParams(searchParams.toString())
     params.delete(CONSULT_FLUXO_INICIO_QUERY)
@@ -192,6 +194,7 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
     resetConsultForm(CONSULT_PROPERTY_FORM_DEFAULTS)
     sessionStorage.removeItem('autoFocusAddress')
     clearJetimobConsultPrefill()
+    setAddressInitialQuery('')
     scrollConsultFlowToTop()
   }, [startAtEntry, resetConsultForm])
 
@@ -213,6 +216,15 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
       jetimobPropertyCode: prefill.propertyCode,
       jetimobSystemId: prefill.systemId || '',
     })
+
+    // Endereço externo precisa de confirmação: vira busca pré-preenchida no
+    // Google Places e o usuário seleciona a opção correta.
+    if (prefill.initialFlow === 'address') {
+      const hint = String((prefill.form as Record<string, unknown>).addressHint || '')
+      setAddressInitialQuery(
+        hint.replace(/\n/g, ', ').replace(/ — /g, ', ').replace(/CEP /g, '').trim(),
+      )
+    }
 
     const nextFlow = prefill.initialFlow as FlowState
     setFlow(nextFlow)
@@ -499,7 +511,11 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
           </Activity>
 
           <Activity isActive={flow === 'address'}>
-            <AddressStep ref={addressStepRef} onNext={() => go('address-complement')} />
+            <AddressStep
+              ref={addressStepRef}
+              initialQuery={addressInitialQuery || undefined}
+              onNext={() => go('address-complement')}
+            />
           </Activity>
 
           <Activity isActive={flow === 'address-complement'}>
