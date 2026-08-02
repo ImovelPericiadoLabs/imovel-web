@@ -81,7 +81,9 @@ export type Order = {
   documents: Document[]
   place_id: string
   formatted_address: string | null
+  display_address_secondary?: string | null
   complement: string | null
+  legal_description?: string | null
   registration_number?: string | null
   lot_name?: string | null
   block_number?: string | null

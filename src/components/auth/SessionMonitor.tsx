@@ -1,10 +1,14 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useForm, FormProvider } from 'react-hook-form'
+import { useQueryClient } from '@tanstack/react-query'
 import { useSession } from 'next-auth/react'
 import { VerifyCodeStep } from '@/sections/login/steps/verify-step'
 import { InsertStep } from '@/sections/login/steps/insert-step'
+import { resetSessionDedupeCache } from '@/utils/session'
+import { AUTH_REAUTHENTICATED_EVENT } from '@/utils/auth-reauth'
 import { X } from 'lucide-react'
 
 type FormProps = {
@@ -19,6 +23,8 @@ export function SessionMonitor() {
   const [isOpen, setIsOpen] = useState(false)
   const [flow, setFlow] = useState<FlowState>('email')
 
+  const router = useRouter()
+  const queryClient = useQueryClient()
   const { update } = useSession()
 
   const methods = useForm<FormProps>({
@@ -58,12 +64,15 @@ export function SessionMonitor() {
     methods.reset({ email: '', code: '' })
   }, [methods])
 
-  const handleSuccess = useCallback(() => {
+  const handleSuccess = useCallback(async () => {
     handleClose()
-    // Refresh the client session on the same screen and let listeners retry.
-    void update()
-    window.dispatchEvent(new Event('auth:reauthenticated'))
-  }, [handleClose, update])
+    resetSessionDedupeCache()
+    await update()
+    await queryClient.invalidateQueries()
+    await queryClient.refetchQueries({ type: 'active' })
+    router.refresh()
+    window.dispatchEvent(new Event(AUTH_REAUTHENTICATED_EVENT))
+  }, [handleClose, update, queryClient, router])
 
   if (!isOpen) return null
 

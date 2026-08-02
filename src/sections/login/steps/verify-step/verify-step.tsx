@@ -16,7 +16,7 @@ export function VerifyCodeStep({
   initialTimer = 59,
 }: {
   onBack: () => void
-  onSuccess?: () => void
+  onSuccess?: () => void | Promise<void>
   enableTimer?: boolean
   initialTimer?: number
 }) {
@@ -58,10 +58,9 @@ export function VerifyCodeStep({
         return setErrorMsg(cleanError || 'Código incorreto ou expirado.')
       }
 
-      // Refresh server components with the new session cookie, then let the
-      // parent react (e.g. close the re-auth modal) and stay on the same screen.
+      // Re-auth modal: atualiza sessão + refetch antes do refresh de RSC.
+      await onSuccess?.()
       router.refresh()
-      onSuccess?.()
     } catch {
       setErrorMsg('Ocorreu um erro ao validar o código.')
     }
