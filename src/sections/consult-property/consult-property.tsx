@@ -34,6 +34,10 @@ import {
 import { flowMainOverlap } from '@/styles/layout'
 import { cn } from '@/utils/tailwind'
 import { validations, FormTypes } from '@/sections/consult-property/validations'
+import {
+  clearJetimobConsultPrefill,
+  readJetimobConsultPrefill,
+} from '@/lib/jetimob-consult-prefill'
 import { trackGtmEvent } from '@/utils/analytics/gtm'
 import { scrollConsultFlowToTop, unlockPageScroll } from '@/utils/consult-flow-scroll'
 
@@ -185,6 +189,29 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
     setFlow('entry')
     resetConsultForm(CONSULT_PROPERTY_FORM_DEFAULTS)
     sessionStorage.removeItem('autoFocusAddress')
+    clearJetimobConsultPrefill()
+    scrollConsultFlowToTop()
+  }, [startAtEntry, resetConsultForm])
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || startAtEntry) return
+
+    const prefill = readJetimobConsultPrefill()
+    if (!prefill) return
+
+    clearJetimobConsultPrefill()
+
+    stack.current = []
+    setNavStackDepth(0)
+    hasTrackedFlowStart.current = false
+
+    resetConsultForm({
+      ...CONSULT_PROPERTY_FORM_DEFAULTS,
+      ...(prefill.form as Partial<FormTypes>),
+    })
+
+    const nextFlow = prefill.initialFlow as FlowState
+    setFlow(nextFlow)
     scrollConsultFlowToTop()
   }, [startAtEntry, resetConsultForm])
 
