@@ -123,6 +123,12 @@ export default function OrdersPage() {
                         {order.formatted_address || 'Endereço não informado'}
                       </p>
 
+                      {order.display_address_secondary && (
+                        <p className="text-gray-400 text-xs break-words">
+                          {order.display_address_secondary}
+                        </p>
+                      )}
+
                       <p className="text-gray-400 text-xs mt-0.5">
                         {dateLabel}{' '}
                         {formatDateWithTime(

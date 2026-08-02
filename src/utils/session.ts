@@ -48,6 +48,11 @@ export async function fetchSessionJsonWithRetry(): Promise<Session | null> {
 /** Promessa em andamento, para deduplicar chamadas simultâneas a /api/auth/session. */
 let sessionPromise: Promise<Session | null> | null = null
 
+/** Limpa dedupe após re-auth para a próxima chamada ler o cookie novo. */
+export function resetSessionDedupeCache() {
+  sessionPromise = null
+}
+
 /**
  * Sessão deduplicada com retry (evita logout falso quando a rede falha uma vez).
  */

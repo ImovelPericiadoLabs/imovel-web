@@ -41,7 +41,8 @@ describe('VerifyCodeStep Senior Tests', () => {
 
   it('should process successful login', async () => {
     vi.mocked(signIn).mockResolvedValue({ error: null } as any)
-    render(<Wrapper><VerifyCodeStep onBack={vi.fn()} /></Wrapper>)
+    const onSuccess = vi.fn().mockResolvedValue(undefined)
+    render(<Wrapper><VerifyCodeStep onBack={vi.fn()} onSuccess={onSuccess} /></Wrapper>)
 
     fireEvent.change(screen.getByTestId('otp-input'), { target: { value: '123456' } })
 
@@ -50,6 +51,8 @@ describe('VerifyCodeStep Senior Tests', () => {
     })
 
     expect(signIn).toHaveBeenCalledWith('credentials', expect.objectContaining({ code: '123456' }))
+    expect(onSuccess).toHaveBeenCalled()
+    expect(mockRefresh).toHaveBeenCalled()
   })
 
   it('should handle timer expiration and resend', async () => {

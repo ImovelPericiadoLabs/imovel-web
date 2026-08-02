@@ -1,7 +1,8 @@
 'use client'
 
+import { useState } from 'react'
 import { useParams } from 'next/navigation'
-import { MapPin, Hash, Box, Layout, Package } from 'lucide-react'
+import { MapPin, Hash, Box, Layout, Package, ChevronDown, ChevronUp } from 'lucide-react'
 
 import TrafficLight from '@/components/traffic-light'
 import Badge from '@/components/badge'
@@ -26,6 +27,7 @@ type Props = {
 export default function OrderHeader({ Badge: ExtraBadge, realtimeConnected = false }: Props) {
   const { id } = useParams()
   const orderId = id as string
+  const [legalOpen, setLegalOpen] = useState(false)
 
   const { data: order, isLoading } = useOrderDetailQuery(orderId, realtimeConnected)
 
@@ -56,10 +58,34 @@ export default function OrderHeader({ Badge: ExtraBadge, realtimeConnected = fal
       value: (
         <div className="flex flex-col gap-1">
           <span>{order.formatted_address || 'Endereço não informado'}</span>
-          {order.complement && (
+          {order.display_address_secondary && (
+            <span className="text-[11px] text-gray-500">
+              {order.display_address_secondary}
+            </span>
+          )}
+          {order.complement && !order.display_address_secondary?.includes(order.complement) && (
             <span className="text-[10px] text-gray-400 italic">
               {order.complement}
             </span>
+          )}
+          {isFinished && order.legal_description && (
+            <button
+              type="button"
+              onClick={() => setLegalOpen(prev => !prev)}
+              className="mt-1 flex items-center gap-1 text-[10px] text-gray-400 hover:text-gray-600 text-left"
+            >
+              {legalOpen ? (
+                <ChevronUp className="size-3 shrink-0" aria-hidden />
+              ) : (
+                <ChevronDown className="size-3 shrink-0" aria-hidden />
+              )}
+              {legalOpen ? 'Ocultar descrição registral' : 'Ver descrição registral'}
+            </button>
+          )}
+          {legalOpen && order.legal_description && (
+            <p className="text-[10px] text-gray-500 leading-snug border-t border-gray-100 pt-2">
+              {order.legal_description}
+            </p>
           )}
         </div>
       )
