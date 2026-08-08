@@ -254,6 +254,8 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
       const hint = String(parentForm?.getValues('addressHint') || '').trim()
       const payloadEntryPath = parentForm?.getValues('entryPath') as EntryPath | undefined
       const payloadIncludeCerts = Boolean(parentForm?.getValues('includeCertificates'))
+      const jetimobCode = String(parentForm?.getValues('jetimobPropertyCode') || '').trim()
+      const jetimobSystemId = String(parentForm?.getValues('jetimobSystemId') || '').trim()
 
       return {
         place_id: finalPlaceId,
@@ -273,6 +275,15 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
         lot_number: lot,
         ...(payloadEntryPath ? { entry_path: payloadEntryPath } : {}),
         include_certificates: payloadIncludeCerts,
+        ...(jetimobCode
+          ? {
+              source_metadata: {
+                source: 'jetimob',
+                jetimob_property_code: jetimobCode,
+                ...(jetimobSystemId ? { jetimob_system_id: jetimobSystemId } : {}),
+              },
+            }
+          : {}),
       }
     },
     [parentForm, documentId, complement, registrationNumber, notary, notaryState, notaryCity, allotment, block, lot],
