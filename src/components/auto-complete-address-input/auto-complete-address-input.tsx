@@ -30,6 +30,8 @@ interface Props extends React.InputHTMLAttributes<HTMLInputElement> {
   isDirty?: boolean
   onClear?: () => void
   onFocus?: () => void
+  /** Preenche o campo com um valor externo (ex.: endereço vindo da Jetimob). */
+  initialValue?: string
 }
 
 const loadingOptions = Array.from({ length: 5 }, (_, i) => ({
@@ -70,9 +72,14 @@ const AutoCompleteInput = forwardRef<HTMLInputElement, Props>(({
   isDirty,
   onClear,
   onFocus,
+  initialValue,
   ...props
 }, ref) => {
   const [value, setValue] = useState('')
+
+  useEffect(() => {
+    if (initialValue) setValue(initialValue)
+  }, [initialValue])
   const [isOpenAddressSheet, setIsOpenAddressSheet] = useState(false)
   const [isOpenErrorSheet, setIsOpenErrorSheet] = useState(false)
   const [isOpenNotFoundAddressSheet, setIsOpenNotFoundAddressSheet] = useState(false)

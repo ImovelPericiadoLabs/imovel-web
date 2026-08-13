@@ -1,9 +1,9 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
+import dynamic from 'next/dynamic'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import {
   AlertTriangle,
   ArrowUpRight,
@@ -35,6 +35,15 @@ import {
 } from '@/lib/jetimob-consult-prefill'
 
 const JETIMOB_PANEL_URL = 'https://app.jetimob.io'
+
+const ConsultProperty = dynamic(() => import('@/sections/consult-property'), {
+  ssr: false,
+  loading: () => (
+    <div className="flex min-h-[50vh] items-center justify-center">
+      <div className="size-8 animate-spin rounded-full border-2 border-gray-200 border-t-primary" />
+    </div>
+  ),
+})
 
 type JetimobSession = {
   connection_id: string
@@ -234,8 +243,6 @@ function ModeButton({
 }
 
 export default function JetimobIntegrationPage() {
-  const router = useRouter()
-
   const [session, setSession] = useState<JetimobSession | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -254,6 +261,8 @@ export default function JetimobIntegrationPage() {
   const [draft, setDraft] = useState<JetimobConsultDraftResponse | null>(null)
   const [draftLoading, setDraftLoading] = useState(false)
   const [draftError, setDraftError] = useState<string | null>(null)
+
+  const [consultOpen, setConsultOpen] = useState(false)
 
   const panelRef = useRef<HTMLDivElement>(null)
 
@@ -360,7 +369,7 @@ export default function JetimobIntegrationPage() {
     storeJetimobConsultPrefill(
       buildJetimobConsultPrefill(code, mode, entryPath, session?.jetimob_system_id),
     )
-    router.push('/consultar-imovel')
+    setConsultOpen(true)
   }
 
   const disconnect = async () => {
@@ -378,7 +387,20 @@ export default function JetimobIntegrationPage() {
   const hasNext = totalPages !== null ? page < totalPages : properties.length > 0 && pageLimit !== null
 
   return (
-    <div className="flex min-h-dvh flex-col bg-background">
+    <>
+      {consultOpen && (
+        <Suspense
+          fallback={
+            <div className="flex min-h-[50vh] items-center justify-center">
+              <div className="size-8 animate-spin rounded-full border-2 border-gray-200 border-t-primary" />
+            </div>
+          }
+        >
+          <ConsultProperty onExit={() => setConsultOpen(false)} />
+        </Suspense>
+      )}
+
+    <div className={cn('flex min-h-dvh flex-col bg-background', consultOpen && 'hidden')}>
       {/* Hero */}
       <header className={cn(darkHeroSurfaceShell, darkHeroSurfaceGradient, 'pb-20 md:pb-24')}>
         <nav className="mx-auto flex w-full max-w-5xl items-center justify-between px-4 pt-4 md:px-6">
@@ -665,5 +687,6 @@ export default function JetimobIntegrationPage() {
         )}
       </main>
     </div>
+    </>
   )
 }

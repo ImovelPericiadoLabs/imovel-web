@@ -251,6 +251,7 @@ export const AddressStep = forwardRef<{ focus: () => boolean }, AddressStepProps
           >
             <AutoCompleteAddressInput
               ref={inputRef}
+              initialValue={initialQuery}
               placeholder="Buscar endereço"
               options={data}
               onChange={handleChangeAddress}
