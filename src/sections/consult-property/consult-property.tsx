@@ -115,10 +115,12 @@ type ConsultPropertyProps = {
   isActive?: boolean
   /** VSL e links diretos: abre em "Como quer começar?" sem pular para endereço */
   startAtEntry?: boolean
+  /** Fluxo embutido (ex.: painel Jetimob): voltar da primeira etapa sai do fluxo em vez de ir para "/" */
+  onExit?: () => void
 }
 
 const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(function ConsultProperty(
-  { isActive = true, startAtEntry = false },
+  { isActive = true, startAtEntry = false, onExit },
   ref,
 ) {
   const router = useRouter()
@@ -318,7 +320,11 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
     }
 
     if (flow === 'entry') {
-      router.push('/')
+      if (onExit) {
+        onExit()
+      } else {
+        router.push('/')
+      }
       return
     }
 
@@ -329,9 +335,15 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
 
     const previous = stack.current.pop()
 
-    if (!previous && (flow === 'address' || flow === 'address-hint')) {
-      router.push('/')
-      return
+    if (!previous) {
+      if (onExit) {
+        onExit()
+        return
+      }
+      if (flow === 'address' || flow === 'address-hint') {
+        router.push('/')
+        return
+      }
     }
 
     if (previous) {
@@ -358,7 +370,7 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
       }
       scrollConsultFlowToTop()
     }
-  }, [flow, router, methods])
+  }, [flow, router, methods, onExit])
 
   const progressSteps: Record<FlowState, number> = useMemo(() => ({
     entry: 0,
@@ -436,7 +448,9 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
             <ChevronLeft
               onClick={back}
               className={`size-7 transition-opacity text-white ${
-                flow === 'address' && navStackDepth === 0 ? 'opacity-0 pointer-events-none' : 'cursor-pointer'
+                flow === 'address' && navStackDepth === 0 && !onExit
+                  ? 'opacity-0 pointer-events-none'
+                  : 'cursor-pointer'
               }`}
               role="button"
             />
