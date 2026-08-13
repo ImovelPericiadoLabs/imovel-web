@@ -34,6 +34,10 @@ import {
 import { flowMainOverlap } from '@/styles/layout'
 import { cn } from '@/utils/tailwind'
 import { validations, FormTypes } from '@/sections/consult-property/validations'
+import {
+  clearJetimobConsultPrefill,
+  readJetimobConsultPrefill,
+} from '@/lib/jetimob-consult-prefill'
 import { trackGtmEvent } from '@/utils/analytics/gtm'
 import { scrollConsultFlowToTop, unlockPageScroll } from '@/utils/consult-flow-scroll'
 
@@ -63,6 +67,8 @@ const CONSULT_PROPERTY_FORM_DEFAULTS: FormTypes = {
   notaryCity: '',
   entryPath: undefined,
   includeCertificates: false,
+  jetimobPropertyCode: '',
+  jetimobSystemId: '',
 }
 
 type FlowState =
@@ -109,10 +115,12 @@ type ConsultPropertyProps = {
   isActive?: boolean
   /** VSL e links diretos: abre em "Como quer começar?" sem pular para endereço */
   startAtEntry?: boolean
+  /** Fluxo embutido (ex.: painel Jetimob): voltar da primeira etapa sai do fluxo em vez de ir para "/" */
+  onExit?: () => void
 }
 
 const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(function ConsultProperty(
-  { isActive = true, startAtEntry = false },
+  { isActive = true, startAtEntry = false, onExit },
   ref,
 ) {
   const router = useRouter()
@@ -136,6 +144,7 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
   const { reset: resetConsultForm, watch } = methods
   const entryPath = watch('entryPath')
 
+  const [addressInitialQuery, setAddressInitialQuery] = useState('')
   const addressStepRef = useRef<{ focus: () => boolean }>(null)
   const addressComplementRef = useRef<{ handleBack: () => void }>(null)
 
@@ -168,6 +177,7 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
     setFlow('entry')
     resetConsultForm(CONSULT_PROPERTY_FORM_DEFAULTS)
     sessionStorage.removeItem('autoFocusAddress')
+    setAddressInitialQuery('')
 
     const params = new URLSearchParams(searchParams.toString())
     params.delete(CONSULT_FLUXO_INICIO_QUERY)
@@ -185,6 +195,41 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
     setFlow('entry')
     resetConsultForm(CONSULT_PROPERTY_FORM_DEFAULTS)
     sessionStorage.removeItem('autoFocusAddress')
+    clearJetimobConsultPrefill()
+    setAddressInitialQuery('')
+    scrollConsultFlowToTop()
+  }, [startAtEntry, resetConsultForm])
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || startAtEntry) return
+
+    const prefill = readJetimobConsultPrefill()
+    if (!prefill) return
+
+    clearJetimobConsultPrefill()
+
+    stack.current = []
+    setNavStackDepth(0)
+    hasTrackedFlowStart.current = false
+
+    resetConsultForm({
+      ...CONSULT_PROPERTY_FORM_DEFAULTS,
+      ...(prefill.form as Partial<FormTypes>),
+      jetimobPropertyCode: prefill.propertyCode,
+      jetimobSystemId: prefill.systemId || '',
+    })
+
+    // Endereço externo precisa de confirmação: vira busca pré-preenchida no
+    // Google Places e o usuário seleciona a opção correta.
+    if (prefill.initialFlow === 'address') {
+      const hint = String((prefill.form as Record<string, unknown>).addressHint || '')
+      setAddressInitialQuery(
+        hint.replace(/\n/g, ', ').replace(/ — /g, ', ').replace(/CEP /g, '').trim(),
+      )
+    }
+
+    const nextFlow = prefill.initialFlow as FlowState
+    setFlow(nextFlow)
     scrollConsultFlowToTop()
   }, [startAtEntry, resetConsultForm])
 
@@ -275,7 +320,11 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
     }
 
     if (flow === 'entry') {
-      router.push('/')
+      if (onExit) {
+        onExit()
+      } else {
+        router.push('/')
+      }
       return
     }
 
@@ -286,9 +335,15 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
 
     const previous = stack.current.pop()
 
-    if (!previous && (flow === 'address' || flow === 'address-hint')) {
-      router.push('/')
-      return
+    if (!previous) {
+      if (onExit) {
+        onExit()
+        return
+      }
+      if (flow === 'address' || flow === 'address-hint') {
+        router.push('/')
+        return
+      }
     }
 
     if (previous) {
@@ -315,7 +370,7 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
       }
       scrollConsultFlowToTop()
     }
-  }, [flow, router, methods])
+  }, [flow, router, methods, onExit])
 
   const progressSteps: Record<FlowState, number> = useMemo(() => ({
     entry: 0,
@@ -393,7 +448,9 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
             <ChevronLeft
               onClick={back}
               className={`size-7 transition-opacity text-white ${
-                flow === 'address' && navStackDepth === 0 ? 'opacity-0 pointer-events-none' : 'cursor-pointer'
+                flow === 'address' && navStackDepth === 0 && !onExit
+                  ? 'opacity-0 pointer-events-none'
+                  : 'cursor-pointer'
               }`}
               role="button"
             />
@@ -454,7 +511,11 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
               afterDocument={entryPath === 'document'}
               onBack={back}
               onNext={() => {
-                if (entryPath === 'document') {
+                const hint = String(methods.getValues('addressHint') || '').trim()
+                const placeId = String(methods.getValues('placeId') || '').trim()
+
+                // Hint suficiente (ex.: prefill Jetimob) dispensa a busca no mapa.
+                if (entryPath === 'document' || (hint.length >= 10 && !placeId)) {
                   go('address-complement')
                 } else {
                   go('address')
@@ -464,7 +525,11 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
           </Activity>
 
           <Activity isActive={flow === 'address'}>
-            <AddressStep ref={addressStepRef} onNext={() => go('address-complement')} />
+            <AddressStep
+              ref={addressStepRef}
+              initialQuery={addressInitialQuery || undefined}
+              onNext={() => go('address-complement')}
+            />
           </Activity>
 
           <Activity isActive={flow === 'address-complement'}>
