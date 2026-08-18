@@ -1,7 +1,6 @@
 'use client'
 
 import { Suspense, useMemo, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Bot, RefreshCw, Search, UserRoundCog } from 'lucide-react'
 import Alert from '@/components/alert'
@@ -46,12 +45,6 @@ function previewOf(c: SupportConversation) {
   return raw.length > 80 ? `${raw.slice(0, 77)}…` : raw
 }
 
-const SOURCE_FILTERS = [
-  { id: 'all', label: 'Todas' },
-  { id: 'support', label: 'Suporte' },
-  { id: 'campaign', label: 'Campanhas' },
-] as const
-
 const FILTERS = [
   { id: 'all', label: 'Todas' },
   { id: 'new', label: 'Novas' },
@@ -62,29 +55,22 @@ const FILTERS = [
   { id: 'resolved', label: 'Resolvidas' },
 ] as const
 
-type SourceFilter = 'all' | 'support' | 'campaign'
 
 function InboxPageInner() {
   const qc = useQueryClient()
-  const searchParams = useSearchParams()
-  const initialSource = (searchParams.get('source') || 'all').toLowerCase()
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [draft, setDraft] = useState('')
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
-  const [sourceFilter, setSourceFilter] = useState<SourceFilter>(
-    initialSource === 'support' || initialSource === 'campaign' ? initialSource : 'all',
-  )
   const [detailsOpen, setDetailsOpen] = useState(false)
   const [resolveOpen, setResolveOpen] = useState(false)
   const [optimisticMsgs, setOptimisticMsgs] = useState<SupportMessage[]>([])
 
   const listQuery = useQuery({
-    queryKey: ['support-inbox-conversations', statusFilter, sourceFilter],
+    queryKey: ['support-inbox-conversations', statusFilter],
     queryFn: () =>
       listSupportConversations({
         status: statusFilter === 'all' ? undefined : statusFilter,
-        source: sourceFilter,
       }),
     refetchInterval: 20_000,
   })
@@ -187,11 +173,6 @@ function InboxPageInner() {
     label: f.label,
   }))
 
-  const sourceSegments = SOURCE_FILTERS.map((f) => ({
-    id: f.id,
-    label: f.label,
-  }))
-
   return (
     <AdminPageShell flush>
       <AdminInboxWorkspace
@@ -240,15 +221,6 @@ function InboxPageInner() {
                   className={cn(ADMIN_INPUT, 'h-8 rounded-lg py-1.5 pl-8 text-[12px]')}
                 />
               </label>
-              <div className="overflow-x-auto pb-0.5">
-                <AdminSegmentedControl
-                  segments={sourceSegments}
-                  value={sourceFilter}
-                  onChange={(id) => setSourceFilter(id as SourceFilter)}
-                  aria-label="Filtrar por origem"
-                  className="min-w-max"
-                />
-              </div>
               <div className="overflow-x-auto pb-0.5">
                 <AdminSegmentedControl
                   segments={statusSegments}
