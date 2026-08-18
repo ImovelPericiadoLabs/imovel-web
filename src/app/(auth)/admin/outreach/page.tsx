@@ -779,7 +779,7 @@ export default function AdminOutreachPage() {
             Novo fluxo
           </Button>
           <Link
-            href="/admin/inbox?source=campaign"
+            href="/admin/inbox"
             className="inline-flex h-9 items-center rounded-lg border border-[#dedee5] bg-white px-3 text-xs font-semibold text-[#686b82] hover:border-[#7132f5]/30 hover:text-[#7132f5]"
           >
             Inbox
