@@ -1,8 +1,9 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { Suspense, useMemo, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { RefreshCw, Search } from 'lucide-react'
+import { Bot, RefreshCw, Search, UserRoundCog } from 'lucide-react'
 import Alert from '@/components/alert'
 import {
   AdminConfirmDialog,
@@ -10,6 +11,7 @@ import {
   AdminPageShell,
   AdminSegmentedControl,
   AdminSupportOrdersPanel,
+  ADMIN_BTN_GHOST,
   ADMIN_ICON_BTN,
   ADMIN_INPUT,
 } from '@/components/admin'
@@ -18,6 +20,8 @@ import {
   getSupportConversation,
   listSupportConversations,
   patchSupportConversation,
+  postSupportHandoff,
+  postSupportToggleAi,
   sendSupportMessage,
   STATUS_LABELS,
   type SupportConversation,
@@ -42,6 +46,12 @@ function previewOf(c: SupportConversation) {
   return raw.length > 80 ? `${raw.slice(0, 77)}…` : raw
 }
 
+const SOURCE_FILTERS = [
+  { id: 'all', label: 'Todas' },
+  { id: 'support', label: 'Suporte' },
+  { id: 'campaign', label: 'Campanhas' },
+] as const
+
 const FILTERS = [
   { id: 'all', label: 'Todas' },
   { id: 'new', label: 'Novas' },
@@ -52,21 +62,29 @@ const FILTERS = [
   { id: 'resolved', label: 'Resolvidas' },
 ] as const
 
+type SourceFilter = 'all' | 'support' | 'campaign'
+
 function InboxPageInner() {
   const qc = useQueryClient()
+  const searchParams = useSearchParams()
+  const initialSource = (searchParams.get('source') || 'all').toLowerCase()
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [draft, setDraft] = useState('')
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [sourceFilter, setSourceFilter] = useState<SourceFilter>(
+    initialSource === 'support' || initialSource === 'campaign' ? initialSource : 'all',
+  )
   const [detailsOpen, setDetailsOpen] = useState(false)
   const [resolveOpen, setResolveOpen] = useState(false)
   const [optimisticMsgs, setOptimisticMsgs] = useState<SupportMessage[]>([])
 
   const listQuery = useQuery({
-    queryKey: ['support-inbox-conversations', statusFilter],
+    queryKey: ['support-inbox-conversations', statusFilter, sourceFilter],
     queryFn: () =>
       listSupportConversations({
         status: statusFilter === 'all' ? undefined : statusFilter,
+        source: sourceFilter,
       }),
     refetchInterval: 20_000,
   })
@@ -79,7 +97,7 @@ function InboxPageInner() {
     if (!q) return conversations
     return conversations.filter((c) => {
       const hay =
-        `${c.customer_name || ''} ${c.contact_phone_e164 || ''} ${c.last_message_preview || ''}`.toLowerCase()
+        `${c.customer_name || ''} ${c.contact_phone_e164 || ''} ${c.last_message_preview || ''} ${c.campaign_name || ''}`.toLowerCase()
       return hay.includes(q)
     })
   }, [conversations, search])
@@ -102,6 +120,7 @@ function InboxPageInner() {
   const orders = detail?.orders ?? selected?.related_orders ?? []
   const activeConv = detail?.conversation ?? selected
   const showMobileThread = Boolean(selectedId)
+  const isCampaign = activeConv?.source === 'campaign'
 
   const sendMut = useMutation({
     mutationFn: (content: string) => sendSupportMessage(selectedId!, content),
@@ -147,7 +166,28 @@ function InboxPageInner() {
     },
   })
 
-  const segments = FILTERS.map((f) => ({
+  const handoffMut = useMutation({
+    mutationFn: () => postSupportHandoff(selectedId!),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ['support-inbox-detail', selectedId] })
+      await qc.invalidateQueries({ queryKey: ['support-inbox-conversations'] })
+    },
+  })
+
+  const toggleAiMut = useMutation({
+    mutationFn: (aiActive: boolean) => postSupportToggleAi(selectedId!, aiActive),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ['support-inbox-detail', selectedId] })
+      await qc.invalidateQueries({ queryKey: ['support-inbox-conversations'] })
+    },
+  })
+
+  const statusSegments = FILTERS.map((f) => ({
+    id: f.id,
+    label: f.label,
+  }))
+
+  const sourceSegments = SOURCE_FILTERS.map((f) => ({
     id: f.id,
     label: f.label,
   }))
@@ -196,13 +236,22 @@ function InboxPageInner() {
                 <input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Buscar por nome ou número"
+                  placeholder="Buscar por nome, número ou campanha"
                   className={cn(ADMIN_INPUT, 'h-8 rounded-lg py-1.5 pl-8 text-[12px]')}
                 />
               </label>
               <div className="overflow-x-auto pb-0.5">
                 <AdminSegmentedControl
-                  segments={segments}
+                  segments={sourceSegments}
+                  value={sourceFilter}
+                  onChange={(id) => setSourceFilter(id as SourceFilter)}
+                  aria-label="Filtrar por origem"
+                  className="min-w-max"
+                />
+              </div>
+              <div className="overflow-x-auto pb-0.5">
+                <AdminSegmentedControl
+                  segments={statusSegments}
                   value={statusFilter}
                   onChange={setStatusFilter}
                   aria-label="Filtrar por status"
@@ -227,7 +276,7 @@ function InboxPageInner() {
               ) : filtered.length === 0 ? (
                 <InboxEmptyState
                   title="Nenhuma conversa"
-                  description="Quando o RelayHub receber mensagens, elas aparecem aqui vinculadas ao cliente e aos pedidos."
+                  description="Suporte (RelayHub) e campanhas (Meta) aparecem aqui no mesmo inbox."
                 />
               ) : (
                 <div className="space-y-0.5 p-2">
@@ -238,7 +287,13 @@ function InboxPageInner() {
                       preview={previewOf(c)}
                       time={c.last_message_at}
                       status={c.status}
+                      source={c.source || 'support'}
                       assigneeName={c.assignee?.name}
+                      campaignLabel={
+                        c.source === 'campaign' && c.campaign_name
+                          ? c.campaign_name
+                          : null
+                      }
                       orderLabel={
                         c.primary_order
                           ? `Pedido #${c.primary_order.code} · ${c.primary_order.status}`
@@ -273,7 +328,11 @@ function InboxPageInner() {
               <>
                 <InboxThreadHeader
                   title={titleOf(activeConv)}
-                  subtitle={activeConv.contact_phone_e164}
+                  subtitle={
+                    isCampaign && activeConv.campaign_name
+                      ? `${activeConv.contact_phone_e164 || '—'} · ${activeConv.campaign_name}`
+                      : activeConv.contact_phone_e164
+                  }
                   status={activeConv.status}
                   assigneeName={activeConv.assignee?.name}
                   showBack
@@ -287,18 +346,49 @@ function InboxPageInner() {
                   resolving={resolveMut.isPending}
                 />
 
+                {isCampaign ? (
+                  <div className="flex shrink-0 flex-wrap items-center gap-1.5 border-b border-[rgba(113,50,245,0.08)] bg-[rgba(113,50,245,0.03)] px-3 py-1.5">
+                    <button
+                      type="button"
+                      className={cn(ADMIN_BTN_GHOST, 'h-7 text-[11px]')}
+                      disabled={!perms.reply || toggleAiMut.isPending}
+                      onClick={() => toggleAiMut.mutate(!(activeConv.ai_active ?? false))}
+                    >
+                      <Bot className="size-3.5" />
+                      IA {activeConv.ai_active ? 'ligada' : 'desligada'}
+                    </button>
+                    <button
+                      type="button"
+                      className={cn(ADMIN_BTN_GHOST, 'h-7 text-[11px]')}
+                      disabled={
+                        !(perms.assign || perms.resolve) ||
+                        handoffMut.isPending ||
+                        activeConv.chat_state === 'handoff'
+                      }
+                      onClick={() => handoffMut.mutate()}
+                    >
+                      <UserRoundCog className="size-3.5" />
+                      Handoff
+                    </button>
+                  </div>
+                ) : null}
+
                 <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-3 pb-28 pt-4 lg:px-5">
                   {detailQuery.isError ? (
                     <Alert
                       variant="warning"
-                      message="Não foi possível carregar as mensagens do RelayHub."
+                      message={
+                        isCampaign
+                          ? 'Não foi possível carregar as mensagens da campanha.'
+                          : 'Não foi possível carregar as mensagens do RelayHub.'
+                      }
                     />
                   ) : null}
                   {detailQuery.isLoading && messages.length === 0 ? (
                     <InboxThreadSkeleton />
                   ) : messages.length === 0 ? (
                     <p className="py-10 text-center text-xs text-[#9497a9]">
-                      Sem mensagens carregadas do RelayHub.
+                      Sem mensagens carregadas.
                     </p>
                   ) : (
                     messages.map((m) => (
@@ -374,7 +464,9 @@ function InboxPageInner() {
 export default function AdminSupportInboxPage() {
   return (
     <AdminStaffGate>
-      <InboxPageInner />
+      <Suspense fallback={null}>
+        <InboxPageInner />
+      </Suspense>
     </AdminStaffGate>
   )
 }

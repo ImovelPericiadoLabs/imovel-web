@@ -25,8 +25,10 @@ type Props = {
   preview: string
   time?: string | null
   status: SupportInboxStatus
+  source?: 'support' | 'campaign'
   assigneeName?: string | null
   orderLabel?: string | null
+  campaignLabel?: string | null
   selected?: boolean
   onSelect: () => void
 }
@@ -36,8 +38,10 @@ export function InboxConversationRow({
   preview,
   time,
   status,
+  source = 'support',
   assigneeName,
   orderLabel,
+  campaignLabel,
   selected,
   onSelect,
 }: Props) {
@@ -60,6 +64,9 @@ export function InboxConversationRow({
         </div>
         <p className="mt-0.5 line-clamp-1 text-[12px] text-[#686b82]">{preview}</p>
         <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+          <AdminStatusBadge variant={source === 'campaign' ? 'brand' : 'neutral'}>
+            {source === 'campaign' ? 'Campanha' : 'Suporte'}
+          </AdminStatusBadge>
           <AdminStatusBadge variant={statusVariant(status)} dot>
             {STATUS_LABELS[status]}
           </AdminStatusBadge>
@@ -69,7 +76,9 @@ export function InboxConversationRow({
             <span className="text-[10px] font-medium text-[#9497a9]">Sem responsável</span>
           )}
         </div>
-        {orderLabel ? (
+        {campaignLabel ? (
+          <p className="mt-1 truncate text-[10px] font-medium text-[#5741d8]">{campaignLabel}</p>
+        ) : orderLabel ? (
           <p className="mt-1 truncate text-[10px] font-medium text-[#5741d8]">{orderLabel}</p>
         ) : null}
       </div>

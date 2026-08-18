@@ -3,6 +3,8 @@ export {
   getSupportConversation,
   sendSupportMessage,
   patchSupportConversation,
+  postSupportHandoff,
+  postSupportToggleAi,
   STATUS_LABELS,
   type SupportConversation,
   type SupportConversationDetail,

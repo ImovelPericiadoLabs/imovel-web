@@ -94,6 +94,8 @@ export const endpoint = {
   messaging: {
     conversations: '/staff/inbox/conversations/',
     conversation: (id: string) => `/staff/inbox/conversations/${id}/`,
+    conversationHandoff: (id: string) => `/staff/inbox/conversations/${id}/handoff/`,
+    conversationToggleAi: (id: string) => `/staff/inbox/conversations/${id}/toggle-ai/`,
     relayhubMeta: '/staff/integrations/relayhub/meta/',
     relayhubConnections: '/staff/integrations/relayhub/connections/',
     relayhubConnection: (id: string) => `/staff/integrations/relayhub/connections/${id}/`,

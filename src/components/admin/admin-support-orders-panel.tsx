@@ -189,7 +189,15 @@ export default function AdminSupportOrdersPanel({
           <AdminStatusBadge variant={convStatusVariant(c.status)} dot>
             {STATUS_LABELS[c.status]}
           </AdminStatusBadge>
+          {c.source === 'campaign' ? (
+            <AdminStatusBadge variant="neutral">Campanha</AdminStatusBadge>
+          ) : (
+            <AdminStatusBadge variant="neutral">Suporte</AdminStatusBadge>
+          )}
         </div>
+        {c.source === 'campaign' && c.campaign_name ? (
+          <p className="mt-2 truncate text-[11px] font-medium text-[#5741d8]">{c.campaign_name}</p>
+        ) : null}
       </div>
 
       <div className="flex-1 space-y-3 overflow-y-auto p-3">

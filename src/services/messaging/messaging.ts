@@ -51,6 +51,7 @@ export type SupportInboxPermissions = {
 
 export type SupportConversation = {
   id: string
+  source?: 'support' | 'campaign'
   external_conversation_id: string
   contact_phone_e164: string | null
   customer_id: string | null
@@ -61,8 +62,13 @@ export type SupportConversation = {
   related_orders: SupportOrderCard[]
   last_message_preview: string
   last_message_at: string | null
-  instance_name?: string
+  instance_name?: string | null
+  campaign_name?: string | null
+  ai_active?: boolean | null
+  chat_state?: string | null
+  chat_conversation_id?: string | null
 }
+
 
 export type SupportMessage = {
   id: string
@@ -130,12 +136,14 @@ export async function listSupportConversations(params?: {
   status?: string
   assignee?: string
   q?: string
+  source?: 'all' | 'support' | 'campaign'
 }): Promise<{ results: SupportConversation[]; permissions: SupportInboxPermissions }> {
   return guard(async (token) => {
     const sp = new URLSearchParams()
     if (params?.status) sp.set('status', params.status)
     if (params?.assignee) sp.set('assignee', params.assignee)
     if (params?.q) sp.set('q', params.q)
+    if (params?.source && params.source !== 'all') sp.set('source', params.source)
     const qs = sp.toString()
     const url = `${endpoint.messaging.conversations}${qs ? `?${qs}` : ''}`
     const data = (await api.get(url, token)) as {
@@ -178,6 +186,31 @@ export async function patchSupportConversation(
 ): Promise<SupportConversation> {
   return guard(async (token) => {
     const data = (await api.patch(endpoint.messaging.conversation(id), body, token)) as {
+      conversation: SupportConversation
+    }
+    return data.conversation
+  })
+}
+
+export async function postSupportHandoff(id: string): Promise<SupportConversation> {
+  return guard(async (token) => {
+    const data = (await api.post(endpoint.messaging.conversationHandoff(id), {}, token)) as {
+      conversation: SupportConversation
+    }
+    return data.conversation
+  })
+}
+
+export async function postSupportToggleAi(
+  id: string,
+  aiActive: boolean,
+): Promise<SupportConversation> {
+  return guard(async (token) => {
+    const data = (await api.post(
+      endpoint.messaging.conversationToggleAi(id),
+      { ai_active: aiActive },
+      token,
+    )) as {
       conversation: SupportConversation
     }
     return data.conversation
