@@ -165,6 +165,7 @@ export function resolveListBadgeLabel(order: OrderLike) {
 
   if (status === 'REJECTED_DATA') return 'Dados rejeitados'
   if (status === 'RETURNED_BY_NOTARY') return 'Devolvido pelo cartório'
+  if (status === 'AWAITING_CUSTOMER_REPLY') return 'Cartório pediu informações'
 
   if (status === 'FINISHED') {
     if (order.semaphore === 'green') return 'Tudo certo'

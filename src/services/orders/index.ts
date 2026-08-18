@@ -8,6 +8,7 @@ export {
   orderQueryKey,
   orderEventsQueryKey,
   rerequestOrder,
+  replyNotaryQuestion,
   getAnalysisPdfBlob,
   getDocumentBlob,
   toOrderRelatedDocuments,
