@@ -12,3 +12,17 @@ export {
   type SupportInboxPermissions,
   type SupportAssignee,
 } from './messaging'
+
+export {
+  getRelayHubMeta,
+  listRelayHubConnections,
+  createRelayHubConnection,
+  getRelayHubConnection,
+  deleteRelayHubConnection,
+  relayHubConnectionAction,
+  getRelayHubQr,
+  RELAYHUB_STATUS_LABELS,
+  type RelayHubConnection,
+  type RelayHubMeta,
+  type RelayHubConnectionStatus,
+} from './relayhub'

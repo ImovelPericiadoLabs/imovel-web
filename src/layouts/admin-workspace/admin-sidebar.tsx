@@ -133,7 +133,7 @@ function SidebarChrome({
         </Link>
       </div>
 
-      <nav className="relative z-10 flex-1 space-y-5 overflow-y-auto px-2 py-3">
+      <nav className="relative z-10 min-h-0 flex-1 space-y-5 overflow-x-hidden overflow-y-auto px-2 py-3">
         {sections.map((section) => (
           <div key={section.id}>
             {!collapsed && <p className={ADMIN_NAV_SECTION}>{section.label}</p>}
@@ -162,7 +162,7 @@ function SidebarChrome({
         ))}
       </nav>
 
-      <div className="relative z-10 space-y-1 border-t border-[rgba(255,255,255,0.06)] p-2">
+      <div className="relative z-10 shrink-0 space-y-1 border-t border-[rgba(255,255,255,0.06)] p-2">
         {!collapsed && (
           <div className="mb-1 flex items-center gap-2 rounded-lg bg-[rgba(255,255,255,0.04)] px-2.5 py-2 ring-1 ring-[rgba(255,255,255,0.06)]">
             <span className="flex size-8 items-center justify-center rounded-lg bg-[rgba(113,50,245,0.3)] text-xs font-bold text-white">
@@ -215,7 +215,10 @@ export default function AdminSidebar({ isStaff, isSuperuser }: Props) {
       )}
 
       <aside
-        className={cn(ADMIN_SIDEBAR, collapsed ? 'w-[4.5rem]' : 'w-[15.5rem] xl:w-64')}
+        className={cn(
+          ADMIN_SIDEBAR,
+          collapsed ? 'w-[4.5rem]' : 'w-[15.5rem] xl:w-64',
+        )}
         aria-label="Navegação administrativa"
       >
         <SidebarChrome
@@ -229,12 +232,12 @@ export default function AdminSidebar({ isStaff, isSuperuser }: Props) {
 
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-50 flex w-[17rem] flex-col bg-[#0f1220] shadow-[4px_0_32px_rgba(11,27,58,0.25)] transition-transform duration-[240ms] ease-in-out lg:hidden',
+          'fixed inset-y-0 left-0 z-50 flex h-dvh w-[17rem] flex-col overflow-hidden bg-[#0f1220] shadow-[4px_0_32px_rgba(11,27,58,0.25)] transition-transform duration-[240ms] ease-in-out lg:hidden',
           sidebar?.mobileOpen ? 'translate-x-0' : '-translate-x-full',
         )}
         aria-label="Menu administrativo"
       >
-        <div className="relative flex h-12 items-center justify-end border-b border-[rgba(255,255,255,0.06)] px-2">
+        <div className="relative flex h-12 shrink-0 items-center justify-end border-b border-[rgba(255,255,255,0.06)] px-2">
           <button
             type="button"
             className="rounded-lg p-2 text-[#9497a9] hover:bg-[rgba(255,255,255,0.06)] hover:text-white"
