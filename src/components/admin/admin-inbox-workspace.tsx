@@ -11,23 +11,23 @@ type Props = {
   className?: string
 }
 
-/** Layout inbox enterprise: rail + thread + painel de contexto opcional */
+/** Shell 3 colunas — altura via flex (sem calc frágil). */
 export default function AdminInboxWorkspace({ rail, thread, intelligence, className }: Props) {
   return (
     <div
       className={cn(
-        'grid min-h-[min(32rem,68vh)] gap-2',
+        'grid h-full min-h-0 flex-1 gap-2 overflow-hidden',
         intelligence
-          ? 'lg:grid-cols-[minmax(220px,260px)_minmax(0,1fr)] xl:grid-cols-[minmax(240px,280px)_minmax(0,1fr)_minmax(200px,260px)]'
-          : 'lg:grid-cols-[minmax(240px,300px)_minmax(0,1fr)]',
+          ? 'lg:grid-cols-[minmax(300px,360px)_minmax(0,1fr)] xl:grid-cols-[minmax(340px,400px)_minmax(0,1fr)_minmax(260px,300px)]'
+          : 'lg:grid-cols-[minmax(320px,380px)_minmax(0,1fr)]',
         className,
       )}
     >
       <div className={cn(ADMIN_PANEL, 'flex min-h-0 flex-col overflow-hidden')}>{rail}</div>
-      <div className={cn(ADMIN_PANEL, 'flex min-h-0 flex-col overflow-hidden')}>{thread}</div>
-      {intelligence && (
-        <div className="hidden min-h-0 xl:block">{intelligence}</div>
-      )}
+      <div className={cn(ADMIN_PANEL, 'relative flex min-h-0 flex-col overflow-hidden')}>{thread}</div>
+      {intelligence ? (
+        <div className="hidden h-full min-h-0 overflow-hidden xl:block">{intelligence}</div>
+      ) : null}
     </div>
   )
 }

@@ -229,7 +229,7 @@ export default function AdminSidebar({ isStaff, isSuperuser }: Props) {
 
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-50 flex w-[17rem] flex-col bg-[#0f1220] shadow-[4px_0_32px_rgba(11,27,58,0.25)] transition-transform duration-200 lg:hidden',
+          'fixed inset-y-0 left-0 z-50 flex w-[17rem] flex-col bg-[#0f1220] shadow-[4px_0_32px_rgba(11,27,58,0.25)] transition-transform duration-[240ms] ease-in-out lg:hidden',
           sidebar?.mobileOpen ? 'translate-x-0' : '-translate-x-full',
         )}
         aria-label="Menu administrativo"

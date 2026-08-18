@@ -87,7 +87,7 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
         label: 'Inbox suporte',
         shortLabel: 'Suporte',
         icon: Headphones,
-        superuserOnly: true,
+        staffOnly: true,
       },
       {
         href: '/admin/chat',

@@ -29,13 +29,21 @@ export const admin = {
 } as const
 
 export const ADMIN_SHELL =
-  'flex min-h-[100dvh] bg-[#E4E6EF] bg-[radial-gradient(ellipse_80%_50%_at_0%_0%,rgba(113,50,245,0.08),transparent_50%),radial-gradient(ellipse_60%_40%_at_100%_100%,rgba(11,27,58,0.06),transparent_50%)]'
+  'flex min-h-[100dvh] flex-row bg-[#E4E6EF] bg-[radial-gradient(ellipse_80%_50%_at_0%_0%,rgba(113,50,245,0.08),transparent_50%),radial-gradient(ellipse_60%_40%_at_100%_100%,rgba(11,27,58,0.06),transparent_50%)]'
+
+/** Viewport travado (inbox/chat) — preenche o shell do AppLayout (h-dvh). */
+export const ADMIN_SHELL_LOCKED =
+  'flex h-full min-h-0 flex-1 flex-row overflow-hidden bg-[#E4E6EF] bg-[radial-gradient(ellipse_80%_50%_at_0%_0%,rgba(113,50,245,0.08),transparent_50%),radial-gradient(ellipse_60%_40%_at_100%_100%,rgba(11,27,58,0.06),transparent_50%)]'
 
 export const ADMIN_WORKSPACE =
   'min-h-0 flex-1 overflow-auto bg-[#F4F5FA] px-3 py-3 sm:px-4 sm:py-4 lg:px-5'
 
+/** Conteúdo full-height sem scroll externo (lista/thread scrollam por dentro). */
+export const ADMIN_WORKSPACE_LOCKED =
+  'flex min-h-0 flex-1 flex-col overflow-hidden bg-[#F4F5FA] px-3 py-3 sm:px-4 sm:py-4'
+
 export const ADMIN_SIDEBAR =
-  'relative hidden shrink-0 flex-col overflow-hidden border-r border-[rgba(255,255,255,0.06)] bg-[#0f1220] transition-[width] duration-200 lg:flex'
+  'relative hidden h-full shrink-0 flex-col overflow-hidden border-r border-[rgba(255,255,255,0.06)] bg-[#0f1220] transition-[width] duration-[240ms] ease-in-out lg:flex'
 
 export const ADMIN_SIDEBAR_GLOW =
   'pointer-events-none absolute inset-x-0 top-0 h-32 bg-[radial-gradient(ellipse_80%_100%_at_50%_-20%,rgba(113,50,245,0.45),transparent_70%)]'
@@ -56,7 +64,7 @@ export const ADMIN_NAV_RAIL =
   'absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-[#7132f5] shadow-[0_0_12px_rgba(113,50,245,0.6)]'
 
 export const ADMIN_TOPBAR =
-  'relative flex h-[3.25rem] shrink-0 items-center gap-2 border-b border-[#dedee5] bg-white/90 px-3 backdrop-blur-md lg:px-4'
+  'relative flex h-14 shrink-0 items-center gap-2 border-b border-[#dedee5] bg-white/90 px-3 backdrop-blur-md lg:px-4'
 
 export const ADMIN_TOPBAR_ACCENT =
   'absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#7132f5] to-transparent opacity-80'

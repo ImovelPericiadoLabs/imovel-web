@@ -73,6 +73,8 @@ export default function AppLayout({ children }: PropsWithChildren) {
 
   const isConsultas = pathname.startsWith('/consultas')
   const isAdminArea = pathname.startsWith('/admin')
+  const isAdminLockedShell =
+    pathname.startsWith('/admin/inbox') || pathname.startsWith('/admin/chat')
   const currentEmail = me?.email ?? session?.user?.email ?? ''
 
   function handleGoBack() {
@@ -174,7 +176,15 @@ export default function AppLayout({ children }: PropsWithChildren) {
 
   return (
     <AdminSettingsProvider value={adminSettingsValue}>
-      <section className={cn('min-h-screen', isAdminArea ? 'bg-[#E4E6EF]' : 'bg-white pb-6')}>
+      <section
+        className={cn(
+          isAdminLockedShell
+            ? 'flex h-dvh max-h-dvh flex-col overflow-hidden bg-[#E4E6EF]'
+            : isAdminArea
+              ? 'min-h-screen bg-[#E4E6EF]'
+              : 'min-h-screen bg-white pb-6',
+        )}
+      >
         {!isAdminArea && (
         <header className="flex flex-col pt-4 px-4 bg-primary relative z-40">
           <div className="relative mb-6 grid min-h-[4rem] grid-cols-[auto_1fr_auto] items-center gap-2 py-5 sm:min-h-[4.25rem]">
@@ -215,7 +225,11 @@ export default function AppLayout({ children }: PropsWithChildren) {
         </header>
         )}
 
-        {children}
+        {isAdminLockedShell ? (
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{children}</div>
+        ) : (
+          children
+        )}
 
         {/* Painel lateral: configuração e logout */}
         {sidebarOpen && (

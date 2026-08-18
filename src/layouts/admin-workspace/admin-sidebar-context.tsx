@@ -1,8 +1,18 @@
 'use client'
 
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react'
 
 const STORAGE_KEY = 'imovel-admin-sidebar-collapsed'
+
+export { STORAGE_KEY as ADMIN_SIDEBAR_STORAGE_KEY }
 
 type AdminSidebarContextValue = {
   collapsed: boolean
@@ -40,17 +50,32 @@ export function AdminSidebarProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const toggleCollapsed = useCallback(() => {
-    setCollapsed(!collapsed)
-  }, [collapsed, setCollapsed])
+    setCollapsedState((cur) => {
+      const next = !cur
+      try {
+        localStorage.setItem(STORAGE_KEY, next ? '1' : '0')
+      } catch {
+        /* ignore */
+      }
+      return next
+    })
+  }, [])
 
-  const value: AdminSidebarContextValue = {
-    collapsed: hydrated ? collapsed : false,
-    mobileOpen,
-    setCollapsed,
-    toggleCollapsed,
-    setMobileOpen,
-    toggleMobileOpen: () => setMobileOpen((o) => !o),
-  }
+  const toggleMobileOpen = useCallback(() => {
+    setMobileOpen((o) => !o)
+  }, [])
+
+  const value = useMemo<AdminSidebarContextValue>(
+    () => ({
+      collapsed: hydrated ? collapsed : false,
+      mobileOpen,
+      setCollapsed,
+      toggleCollapsed,
+      setMobileOpen,
+      toggleMobileOpen,
+    }),
+    [hydrated, collapsed, mobileOpen, setCollapsed, toggleCollapsed, toggleMobileOpen],
+  )
 
   return (
     <AdminSidebarContext.Provider value={value}>{children}</AdminSidebarContext.Provider>

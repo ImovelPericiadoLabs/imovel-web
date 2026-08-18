@@ -13,6 +13,14 @@ async function guard<T>(callback: (token: string) => Promise<T>): Promise<T> {
   return callback(token)
 }
 
+export type SupportInboxStatus =
+  | 'new'
+  | 'unread'
+  | 'in_progress'
+  | 'waiting_customer'
+  | 'waiting_internal'
+  | 'resolved'
+
 export type SupportOrderCard = {
   id: string
   code: number | string
@@ -26,12 +34,29 @@ export type SupportOrderCard = {
   latest_notary_message?: string | null
 }
 
+export type SupportAssignee = {
+  id: string
+  name: string
+  email: string
+}
+
+export type SupportInboxPermissions = {
+  view_all?: boolean
+  reply?: boolean
+  assign?: boolean
+  resolve?: boolean
+  customer?: boolean
+  order?: boolean
+}
+
 export type SupportConversation = {
   id: string
   external_conversation_id: string
-  contact_phone_e164: string
+  contact_phone_e164: string | null
   customer_id: string | null
   customer_name: string | null
+  status: SupportInboxStatus
+  assignee: SupportAssignee | null
   primary_order: SupportOrderCard | null
   related_orders: SupportOrderCard[]
   last_message_preview: string
@@ -45,12 +70,23 @@ export type SupportMessage = {
   direction: 'in' | 'out' | 'unknown'
   created_at: string | null
   private?: boolean
+  sendState?: 'sending' | 'sent' | 'error'
 }
 
 export type SupportConversationDetail = {
-  conversation: Omit<SupportConversation, 'related_orders' | 'primary_order' | 'instance_name'>
+  conversation: SupportConversation
   orders: SupportOrderCard[]
   messages: SupportMessage[]
+  permissions?: SupportInboxPermissions
+}
+
+export const STATUS_LABELS: Record<SupportInboxStatus, string> = {
+  new: 'Nova',
+  unread: 'Não lida',
+  in_progress: 'Em atendimento',
+  waiting_customer: 'Aguardando cliente',
+  waiting_internal: 'Aguardando interno',
+  resolved: 'Resolvida',
 }
 
 function normalizeMessage(raw: unknown): SupportMessage | null {
@@ -59,9 +95,7 @@ function normalizeMessage(raw: unknown): SupportMessage | null {
   const id = String(m.id ?? m.message_id ?? '')
   if (!id) return null
 
-  const content = String(
-    m.content ?? m.processed_message_content ?? m.body ?? m.text ?? '',
-  )
+  const content = String(m.content ?? m.processed_message_content ?? m.body ?? m.text ?? '')
 
   let direction: SupportMessage['direction'] = 'unknown'
   const messageType = m.message_type ?? m.messageType ?? m.direction
@@ -88,29 +122,46 @@ function normalizeMessage(raw: unknown): SupportMessage | null {
     direction,
     created_at: created,
     private: Boolean(m.private),
+    sendState: 'sent',
   }
 }
 
-export async function listSupportConversations(): Promise<SupportConversation[]> {
+export async function listSupportConversations(params?: {
+  status?: string
+  assignee?: string
+  q?: string
+}): Promise<{ results: SupportConversation[]; permissions: SupportInboxPermissions }> {
   return guard(async (token) => {
-    const data = (await api.get(endpoint.messaging.conversations, token)) as {
+    const sp = new URLSearchParams()
+    if (params?.status) sp.set('status', params.status)
+    if (params?.assignee) sp.set('assignee', params.assignee)
+    if (params?.q) sp.set('q', params.q)
+    const qs = sp.toString()
+    const url = `${endpoint.messaging.conversations}${qs ? `?${qs}` : ''}`
+    const data = (await api.get(url, token)) as {
       results?: SupportConversation[]
+      permissions?: SupportInboxPermissions
     }
-    return data.results ?? []
+    return {
+      results: data.results ?? [],
+      permissions: data.permissions ?? {},
+    }
   })
 }
 
 export async function getSupportConversation(id: string): Promise<SupportConversationDetail> {
   return guard(async (token) => {
     const data = (await api.get(endpoint.messaging.conversation(id), token)) as {
-      conversation: SupportConversationDetail['conversation']
+      conversation: SupportConversation
       orders?: SupportOrderCard[]
       messages?: unknown[]
+      permissions?: SupportInboxPermissions
     }
     return {
       conversation: data.conversation,
       orders: data.orders ?? [],
       messages: (data.messages ?? []).map(normalizeMessage).filter(Boolean) as SupportMessage[],
+      permissions: data.permissions ?? {},
     }
   })
 }
@@ -118,5 +169,17 @@ export async function getSupportConversation(id: string): Promise<SupportConvers
 export async function sendSupportMessage(id: string, content: string): Promise<void> {
   await guard(async (token) => {
     await api.post(endpoint.messaging.conversation(id), { content }, token)
+  })
+}
+
+export async function patchSupportConversation(
+  id: string,
+  body: { assignee_id?: string | null; status?: SupportInboxStatus },
+): Promise<SupportConversation> {
+  return guard(async (token) => {
+    const data = (await api.patch(endpoint.messaging.conversation(id), body, token)) as {
+      conversation: SupportConversation
+    }
+    return data.conversation
   })
 }
