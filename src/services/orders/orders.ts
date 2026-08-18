@@ -91,10 +91,13 @@ export type Order = {
   created: string
   modified: string
   can_rerequest?: boolean
+  notary_question?: string | null
+  can_reply_notary?: boolean
   document_response?: {
     status?: string
     onr_protocol?: string
     return_reason?: string
+    latest_notary_message?: string
   }
   /** Endereço usado na análise; preencher re-solicitação e permitir edição. */
   place_response?: PlaceResponse | null
@@ -388,6 +391,19 @@ export async function rerequestOrder(
   return guard(async (token) => {
     const url = endpoint.reRequest(orderId)
     return api.post(url, body, token) as Promise<Order>
+  })
+}
+
+export async function replyNotaryQuestion(
+  orderId: string,
+  message: string
+): Promise<{ detail: string; queued?: boolean }> {
+  return guard(async (token) => {
+    const url = endpoint.notaryReply(orderId)
+    return api.post(url, { message }, token) as Promise<{
+      detail: string
+      queued?: boolean
+    }>
   })
 }
 

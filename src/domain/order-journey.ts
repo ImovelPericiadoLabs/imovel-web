@@ -11,6 +11,7 @@ export type BackendOrderStatus =
   | 'CANCELED'
   | 'REJECTED_DATA'
   | 'RETURNED_BY_NOTARY'
+  | 'AWAITING_CUSTOMER_REPLY'
   | 'FAILED'
 
 export type JourneyStepId =
@@ -124,6 +125,14 @@ export const ORDER_STATUS_UI: Record<
     expectation:
       'Revise a mensagem do cartório e envie os ajustes necessários via Re-solicitar, se aplicável.',
   },
+  AWAITING_CUSTOMER_REPLY: {
+    label: 'Cartório pediu informações',
+    progress: 40,
+    step: 'action_required',
+    headline: 'O cartório enviou uma pergunta sobre este pedido.',
+    expectation:
+      'Responda com as informações pedidas para o processo continuar no mesmo protocolo — sem cancelar.',
+  },
   FAILED: {
     label: 'Pagamento não concluído',
     progress: 5,
@@ -169,7 +178,9 @@ export function resolveOrderStatusUI(
 /** Statuses where the pipeline is actively running (worth polling). */
 export function isOrderPipelineActive(statusValue: string | undefined): boolean {
   return (
-    statusValue === 'SEARCHING_DOCUMENT' || statusValue === 'IN_PROGRESS'
+    statusValue === 'SEARCHING_DOCUMENT' ||
+    statusValue === 'IN_PROGRESS' ||
+    statusValue === 'AWAITING_CUSTOMER_REPLY'
   )
 }
 
@@ -189,7 +200,8 @@ export function getOrderEventsRefetchIntervalMs(
   if (isOrderTerminalStatus(statusValue)) return false
   if (
     statusValue === 'REJECTED_DATA' ||
-    statusValue === 'RETURNED_BY_NOTARY'
+    statusValue === 'RETURNED_BY_NOTARY' ||
+    statusValue === 'AWAITING_CUSTOMER_REPLY'
   ) {
     return 90_000
   }
@@ -225,6 +237,7 @@ export function getOrderRefetchIntervalMs(
       return false
     case 'REJECTED_DATA':
     case 'RETURNED_BY_NOTARY':
+    case 'AWAITING_CUSTOMER_REPLY':
       return 90_000
     default:
       return false
@@ -267,6 +280,8 @@ export function getOrderTimelineRows(
     case 'REJECTED_DATA':
       return rowsFromStates(['done', 'attention', 'pending', 'pending'])
     case 'RETURNED_BY_NOTARY':
+      return rowsFromStates(['done', 'attention', 'pending', 'pending'])
+    case 'AWAITING_CUSTOMER_REPLY':
       return rowsFromStates(['done', 'attention', 'pending', 'pending'])
     default:
       return rowsFromStates(['pending', 'pending', 'pending', 'pending'])

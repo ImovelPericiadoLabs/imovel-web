@@ -20,6 +20,7 @@ export const endpoint = {
   me: '/me/',
   orders: '/orders/',
   reRequest: (orderId: string) => `/orders/${orderId}/re-request/`,
+  notaryReply: (orderId: string) => `/orders/${orderId}/notary-reply/`,
   /** Proprietários extraídos da matrícula. GET /orders/:id/owners */
   orderOwners: (orderId: string) => `/orders/${orderId}/owners`,
   /** Veredictos por agente (semáforo + justificativa). GET /orders/:id/analyses */

@@ -2,19 +2,37 @@
 
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { ChevronRight, FileText, Files, Users, Info, RotateCcw } from 'lucide-react'
+import { useState } from 'react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { ChevronRight, FileText, Files, Users, RotateCcw } from 'lucide-react'
 import OrderHeader from '@/sections/orders/order-header'
 import { cn } from '@/utils/tailwind'
 
 import { useOrderDetailQuery } from '@/hooks/use-order-detail-query'
 import { isOrderPaymentConfirmed } from '@/domain/order-journey'
 import { REREQUESTABLE_STATUS_VALUES } from '@/sections/orders/constants'
+import { orderQueryKey, replyNotaryQuestion } from '@/services/orders'
 
 export default function OrderOptionsPage() {
   const { id } = useParams()
   const orderId = id as string
+  const queryClient = useQueryClient()
 
   const { data: order, isLoading } = useOrderDetailQuery(orderId)
+  const [reply, setReply] = useState('')
+  const [replyError, setReplyError] = useState<string | null>(null)
+
+  const replyMutation = useMutation({
+    mutationFn: (message: string) => replyNotaryQuestion(orderId, message),
+    onSuccess: async () => {
+      setReply('')
+      setReplyError(null)
+      await queryClient.invalidateQueries({ queryKey: orderQueryKey(orderId) })
+    },
+    onError: () => {
+      setReplyError('Não foi possível enviar a resposta. Tente novamente.')
+    },
+  })
 
   const buttons = [
     {
@@ -38,12 +56,16 @@ export default function OrderOptionsPage() {
   ]
 
   const returnReason = order?.document_response?.return_reason
+  const notaryQuestion =
+    order?.notary_question || order?.document_response?.latest_notary_message
   const onrProtocol = order?.document_response?.onr_protocol
   const statusValue = order?.status?.value
   const statusLabel = order?.status?.label ?? statusValue
 
   const inProgress =
     statusValue === 'SEARCHING_DOCUMENT' || statusValue === 'IN_PROGRESS'
+  const awaitingNotaryReply =
+    statusValue === 'AWAITING_CUSTOMER_REPLY' || order?.can_reply_notary === true
   const showRerequest = order?.can_rerequest === true
   const paymentConfirmed = isOrderPaymentConfirmed(order?.payment_status)
   const isFinalWithRerequest =
@@ -79,10 +101,8 @@ export default function OrderOptionsPage() {
             <div className="flex flex-col gap-2">
               <p
                 className={cn(
-                  'text-sm font-semibold leading-[130%]',
-                  button.title === 'Resultado'
-                    ? 'text-primary'
-                    : 'group-hover:text-primary'
+                  'text-sm font-semibold leading-[130%] group-hover:text-primary',
+                  button.title === 'Resultado' ? 'text-primary' : 'text-gray-900'
                 )}
               >
                 {button.title}
@@ -102,32 +122,15 @@ export default function OrderOptionsPage() {
     <div className="flex flex-col gap-3">
       <OrderHeader />
 
-      <div className="flex flex-col gap-2 px-3 lg:px-0 w-full mx-auto lg:max-w-lg">
-        {inProgress ? (
-          <div className="flex flex-col items-center justify-center p-6 border border-blue-100 rounded-2xl bg-blue-50/60 text-center gap-4 shadow-sm">
-            <div className="bg-blue-100 p-3 rounded-full">
-              <Info className="size-8 text-blue-600" />
-            </div>
-            <div className="flex flex-col gap-1">
-              <h3 className="text-sm font-semibold text-blue-900">
-                Consulta em Análise
-              </h3>
-              <p className="text-xs text-blue-700 leading-relaxed">
-                Esta consulta ainda está sendo processada pela nossa equipe. As
-                opções de visualização serão liberadas em breve.
-              </p>
-            </div>
-          </div>
-        ) : statusValue === 'PENDING' ? (
+      <div className="flex flex-col gap-3">
+        {statusValue === 'PENDING' ? (
           paymentConfirmed ? (
-            <div className="flex flex-col items-center justify-center p-6 border border-blue-100 rounded-2xl bg-blue-50/60 text-center gap-4 shadow-sm">
-              <h3 className="text-sm font-semibold text-blue-900">
-                Consulta em retomada
+            <div className="flex flex-col items-center justify-center p-6 border border-gray-200 rounded-2xl bg-gray-50/80 text-center gap-4 shadow-sm">
+              <h3 className="text-sm font-semibold text-gray-900">
+                Em processamento
               </h3>
-              <p className="text-xs text-blue-700 leading-relaxed">
-                O pagamento já está confirmado. Estamos iniciando ou retomando o
-                processamento — volte à página principal da consulta para ver o
-                andamento em tempo real.
+              <p className="text-xs text-gray-600 leading-relaxed">
+                Pagamento confirmado. Acompanhe o andamento em tempo real.
               </p>
             </div>
           ) : (
@@ -141,6 +144,49 @@ export default function OrderOptionsPage() {
           )
         ) : statusValue === 'FINISHED' ? (
           renderOptionCards()
+        ) : awaitingNotaryReply ? (
+          <div className="p-4 border border-amber-200 rounded-xl bg-amber-50/80 flex flex-col gap-3">
+            <h3 className="text-sm font-semibold text-amber-900">
+              {statusLabel || 'Cartório pediu informações'}
+            </h3>
+            {notaryQuestion ? (
+              <p className="text-sm text-amber-900 leading-relaxed whitespace-pre-line font-medium py-2 px-3 rounded-lg bg-amber-100/80 border border-amber-300">
+                {notaryQuestion}
+              </p>
+            ) : (
+              <p className="text-sm text-amber-900 leading-relaxed">
+                O cartório solicitou informações adicionais para continuar o
+                pedido.
+              </p>
+            )}
+            {onrProtocol && (
+              <p className="text-xs text-amber-700">Protocolo: {onrProtocol}</p>
+            )}
+            <textarea
+              value={reply}
+              onChange={(e) => setReply(e.target.value)}
+              rows={5}
+              placeholder="Escreva a resposta para o cartório…"
+              className="w-full text-sm rounded-lg border border-amber-300 bg-white px-3 py-2 text-gray-900 placeholder:text-gray-400"
+            />
+            {replyError && (
+              <p className="text-xs text-red-600">{replyError}</p>
+            )}
+            <button
+              type="button"
+              disabled={reply.trim().length < 5 || replyMutation.isPending}
+              onClick={() => replyMutation.mutate(reply.trim())}
+              className="self-end rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+            >
+              {replyMutation.isPending ? 'Enviando…' : 'Enviar resposta'}
+            </button>
+            {replyMutation.isSuccess && (
+              <p className="text-xs text-amber-800">
+                Resposta enfileirada. O pedido volta a acompanhar o cartório no
+                mesmo protocolo.
+              </p>
+            )}
+          </div>
         ) : isFinalWithRerequest ? (
           <>
             <div className="p-4 border border-amber-200 rounded-xl bg-amber-50/80">
@@ -205,6 +251,12 @@ export default function OrderOptionsPage() {
               </Link>
             )}
           </>
+        ) : inProgress ? (
+          <div className="p-4 border border-gray-200 rounded-xl bg-gray-50/80">
+            <h3 className="text-sm font-semibold text-gray-900">
+              {statusLabel}
+            </h3>
+          </div>
         ) : (
           <div className="p-4 border border-gray-200 rounded-xl bg-gray-50/80">
             <h3 className="text-sm font-semibold text-gray-900">
