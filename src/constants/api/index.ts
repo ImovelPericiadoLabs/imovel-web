@@ -90,4 +90,8 @@ export const endpoint = {
     scheduled: '/admin/chat/scheduled/',
     scheduledCancel: (id: string) => `/admin/chat/scheduled/${id}/cancel/`,
   },
+  messaging: {
+    conversations: '/staff/inbox/conversations/',
+    conversation: (id: string) => `/staff/inbox/conversations/${id}/`,
+  },
 }

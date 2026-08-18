@@ -1,6 +1,7 @@
 import type { LucideIcon } from 'lucide-react'
 import {
   ClipboardList,
+  Headphones,
   LayoutGrid,
   LineChart,
   Megaphone,
@@ -82,8 +83,15 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
     label: 'CRM & Chat',
     items: [
       {
+        href: '/admin/inbox',
+        label: 'Inbox suporte',
+        shortLabel: 'Suporte',
+        icon: Headphones,
+        superuserOnly: true,
+      },
+      {
         href: '/admin/chat',
-        label: 'Inbox WhatsApp',
+        label: 'Inbox campanhas',
         shortLabel: 'Chat',
         icon: MessageSquare,
         superuserOnly: true,
