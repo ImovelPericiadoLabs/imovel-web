@@ -91,4 +91,14 @@ export const endpoint = {
     scheduled: '/admin/chat/scheduled/',
     scheduledCancel: (id: string) => `/admin/chat/scheduled/${id}/cancel/`,
   },
+  messaging: {
+    conversations: '/staff/inbox/conversations/',
+    conversation: (id: string) => `/staff/inbox/conversations/${id}/`,
+    relayhubMeta: '/staff/integrations/relayhub/meta/',
+    relayhubConnections: '/staff/integrations/relayhub/connections/',
+    relayhubConnection: (id: string) => `/staff/integrations/relayhub/connections/${id}/`,
+    relayhubConnectionQr: (id: string) => `/staff/integrations/relayhub/connections/${id}/qr/`,
+    relayhubConnectionAction: (id: string, action: string) =>
+      `/staff/integrations/relayhub/connections/${id}/${action}/`,
+  },
 }

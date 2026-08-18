@@ -1,11 +1,13 @@
 import type { LucideIcon } from 'lucide-react'
 import {
   ClipboardList,
+  Headphones,
   LayoutGrid,
   LineChart,
   Megaphone,
   MessageSquare,
   Plug,
+  Radio,
   UserPlus,
 } from 'lucide-react'
 
@@ -78,12 +80,32 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
     ],
   },
   {
-    id: 'crm',
-    label: 'CRM & Chat',
+    id: 'support',
+    label: 'Atendimento',
     items: [
       {
+        href: '/admin/inbox',
+        label: 'Inbox suporte',
+        shortLabel: 'Suporte',
+        icon: Headphones,
+        staffOnly: true,
+      },
+    ],
+  },
+  {
+    id: 'campaigns',
+    label: 'Campanhas',
+    items: [
+      {
+        href: '/admin/outreach',
+        label: 'Campanhas',
+        shortLabel: 'Campanhas',
+        icon: Megaphone,
+        superuserOnly: true,
+      },
+      {
         href: '/admin/chat',
-        label: 'Inbox WhatsApp',
+        label: 'Inbox campanhas',
         shortLabel: 'Chat',
         icon: MessageSquare,
         superuserOnly: true,
@@ -91,15 +113,15 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
     ],
   },
   {
-    id: 'automations',
-    label: 'Automações',
+    id: 'integrations',
+    label: 'Integrações',
     items: [
       {
-        href: '/admin/outreach',
-        label: 'Campanhas',
-        shortLabel: 'Outreach',
-        icon: Megaphone,
-        superuserOnly: true,
+        href: '/admin/integrations/relayhub',
+        label: 'RelayHub',
+        shortLabel: 'RelayHub',
+        icon: Radio,
+        staffOnly: true,
       },
     ],
   },
@@ -130,7 +152,10 @@ export function resolveAdminPageMeta(pathname: string): {
   eyebrow?: string
 } {
   if (pathname.startsWith('/admin/outreach/campaigns/')) {
-    return { section: 'Automações', title: 'Editor de campanha', eyebrow: 'Outreach' }
+    return { section: 'Campanhas', title: 'Editor de campanha', eyebrow: 'Outreach' }
+  }
+  if (pathname.startsWith('/admin/integrations/relayhub')) {
+    return { section: 'Integrações', title: 'RelayHub', eyebrow: 'WhatsApp' }
   }
   for (const group of ADMIN_NAV_SECTIONS) {
     for (const item of group.items) {

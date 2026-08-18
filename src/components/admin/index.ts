@@ -1,7 +1,9 @@
 export { admin } from './admin-styles'
 export {
   ADMIN_SHELL,
+  ADMIN_SHELL_LOCKED,
   ADMIN_WORKSPACE,
+  ADMIN_WORKSPACE_LOCKED,
   ADMIN_PANEL,
   ADMIN_PANEL_INTELLIGENCE,
   ADMIN_PANEL_HEADER,
@@ -27,6 +29,7 @@ export { default as AdminKpiStrip } from './admin-kpi-strip'
 export { default as AdminPanelHeader } from './admin-panel-header'
 export { default as AdminInboxWorkspace } from './admin-inbox-workspace'
 export { default as AdminChatContextPanel } from './admin-chat-context-panel'
+export { default as AdminSupportOrdersPanel } from './admin-support-orders-panel'
 export { default as AdminStaffGate } from './admin-staff-gate'
 export { default as AdminEmptyState } from './admin-empty-state'
 export { default as AdminStatusBadge } from './admin-status-badge'

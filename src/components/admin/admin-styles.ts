@@ -1,6 +1,11 @@
 /**
  * Admin Visual Language — Imóvel Periciado / DESIGN.md
  * Dark operational rail + tinted workspace (não template branco genérico)
+ *
+ * Shell contract (imutável):
+ * - AppLayout admin = h-dvh + overflow hidden
+ * - ADMIN_SHELL = preenche o viewport; sidebar e main independentes
+ * - scroll só em ADMIN_WORKSPACE (ou painéis internos em páginas locked)
  */
 
 export const admin = {
@@ -26,22 +31,38 @@ export const admin = {
   successBg: 'rgba(20,158,97,0.16)',
   danger: '#D92D20',
   dangerBg: '#FEF3F2',
+  sidebarWidth: '15.5rem',
+  sidebarWidthXl: '16rem',
+  sidebarCollapsed: '4.5rem',
 } as const
 
+const SHELL_BG =
+  'bg-[#E4E6EF] bg-[radial-gradient(ellipse_80%_50%_at_0%_0%,rgba(113,50,245,0.08),transparent_50%),radial-gradient(ellipse_60%_40%_at_100%_100%,rgba(11,27,58,0.06),transparent_50%)]'
+
+/** Shell global — altura travada ao viewport; conteúdo nunca empurra a rail. */
 export const ADMIN_SHELL =
-  'flex min-h-[100dvh] bg-[#E4E6EF] bg-[radial-gradient(ellipse_80%_50%_at_0%_0%,rgba(113,50,245,0.08),transparent_50%),radial-gradient(ellipse_60%_40%_at_100%_100%,rgba(11,27,58,0.06),transparent_50%)]'
+  `flex h-full min-h-0 w-full flex-1 flex-row overflow-hidden ${SHELL_BG}`
 
+/** @deprecated alias — o shell único já é locked em todas as páginas admin. */
+export const ADMIN_SHELL_LOCKED = ADMIN_SHELL
+
+/** Área de conteúdo com scroll próprio (páginas longas: campanhas, custos, integrações). */
 export const ADMIN_WORKSPACE =
-  'min-h-0 flex-1 overflow-auto bg-[#F4F5FA] px-3 py-3 sm:px-4 sm:py-4 lg:px-5'
+  'min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto bg-[#F4F5FA] px-3 py-3 sm:px-4 sm:py-4 lg:px-5'
 
+/** Conteúdo full-height sem scroll externo (inbox/chat — scroll interno por painel). */
+export const ADMIN_WORKSPACE_LOCKED =
+  'flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-[#F4F5FA] px-3 py-3 sm:px-4 sm:py-4'
+
+/** Coluna da rail — largura via classes no componente; altura = 100% do shell. */
 export const ADMIN_SIDEBAR =
-  'relative hidden shrink-0 flex-col overflow-hidden border-r border-[rgba(255,255,255,0.06)] bg-[#0f1220] transition-[width] duration-200 lg:flex'
+  'relative hidden h-full min-h-0 shrink-0 flex-col overflow-hidden border-r border-[rgba(255,255,255,0.06)] bg-[#0f1220] transition-[width] duration-[240ms] ease-in-out lg:flex'
 
 export const ADMIN_SIDEBAR_GLOW =
   'pointer-events-none absolute inset-x-0 top-0 h-32 bg-[radial-gradient(ellipse_80%_100%_at_50%_-20%,rgba(113,50,245,0.45),transparent_70%)]'
 
 export const ADMIN_SIDEBAR_BRAND =
-  'relative z-10 flex items-center gap-3 border-b border-[rgba(255,255,255,0.06)] px-3 py-4'
+  'relative z-10 flex shrink-0 items-center gap-3 border-b border-[rgba(255,255,255,0.06)] px-3 py-4'
 
 export const ADMIN_NAV_SECTION =
   'mb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.12em] text-[rgba(148,151,169,0.65)]'
@@ -56,7 +77,7 @@ export const ADMIN_NAV_RAIL =
   'absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-[#7132f5] shadow-[0_0_12px_rgba(113,50,245,0.6)]'
 
 export const ADMIN_TOPBAR =
-  'relative flex h-[3.25rem] shrink-0 items-center gap-2 border-b border-[#dedee5] bg-white/90 px-3 backdrop-blur-md lg:px-4'
+  'relative flex h-14 shrink-0 items-center gap-2 border-b border-[#dedee5] bg-white/90 px-3 backdrop-blur-md lg:px-4'
 
 export const ADMIN_TOPBAR_ACCENT =
   'absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#7132f5] to-transparent opacity-80'

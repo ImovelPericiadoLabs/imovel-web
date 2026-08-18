@@ -3,7 +3,7 @@
 import { PropsWithChildren, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { BrandLogoLink } from '@/components/brand-logo-link'
-import { ChevronLeft, Menu, X, LogOut, Wallet, Mail, Search, List, FileText, Trash2, AlertTriangle, LoaderCircle, Megaphone, MessageSquare, ClipboardList, UserPlus, ShieldCheck } from 'lucide-react'
+import { ChevronLeft, Menu, X, LogOut, Wallet, Mail, Search, List, FileText, Trash2, AlertTriangle, LoaderCircle, Megaphone, MessageSquare, ClipboardList, UserPlus, ShieldCheck, Headphones, Plug } from 'lucide-react'
 import Link from 'next/link'
 import { useSession } from 'next-auth/react'
 import { useMutation, useQuery } from '@tanstack/react-query'
@@ -80,12 +80,20 @@ export default function AppLayout({ children }: PropsWithChildren) {
       push('/admin/outreach')
       return
     }
+    if (pathname.startsWith('/admin/integrations/')) {
+      push('/admin/integrations/relayhub')
+      return
+    }
     const mapRoutes: Record<string, string> = {
       '/consultas': CONSULTAR_IMOVEL_INICIO_HREF,
       '/admin/manual-review': '/consultas',
       '/admin/partner-accounts': '/consultas',
+      '/admin/partners': '/consultas',
       '/admin/outreach': '/consultas',
       '/admin/chat': '/admin/outreach',
+      '/admin/inbox': '/consultas',
+      '/admin/finance': '/consultas',
+      '/admin/integrations/relayhub': '/consultas',
     }
     if (mapRoutes[pathname]) {
       push(mapRoutes[pathname])
@@ -173,7 +181,13 @@ export default function AppLayout({ children }: PropsWithChildren) {
 
   return (
     <AdminSettingsProvider value={adminSettingsValue}>
-      <section className={cn('min-h-screen', isAdminArea ? 'bg-[#E4E6EF]' : 'bg-white pb-6')}>
+      <section
+        className={cn(
+          isAdminArea
+            ? 'flex h-dvh max-h-dvh flex-col overflow-hidden bg-[#E4E6EF]'
+            : 'min-h-screen bg-white pb-6',
+        )}
+      >
         {!isAdminArea && (
         <header className="flex flex-col pt-4 px-4 bg-primary relative z-40">
           <div className="relative mb-6 grid min-h-[4rem] grid-cols-[auto_1fr_auto] items-center gap-2 py-5 sm:min-h-[4.25rem]">
@@ -214,7 +228,11 @@ export default function AppLayout({ children }: PropsWithChildren) {
         </header>
         )}
 
-        {children}
+        {isAdminArea ? (
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">{children}</div>
+        ) : (
+          children
+        )}
 
         {/* Painel lateral: configuração e logout */}
         {sidebarOpen && (
@@ -330,7 +348,15 @@ export default function AppLayout({ children }: PropsWithChildren) {
                         className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-gray-700 hover:bg-gray-100 font-medium touch-manipulation"
                       >
                         <Megaphone className="size-5 text-primary shrink-0" />
-                        Divulgação (admin)
+                        Campanhas
+                      </Link>
+                      <Link
+                        href="/admin/inbox"
+                        onClick={() => setSidebarOpen(false)}
+                        className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-gray-700 hover:bg-gray-100 font-medium touch-manipulation"
+                      >
+                        <Headphones className="size-5 text-primary shrink-0" />
+                        Inbox suporte
                       </Link>
                       <Link
                         href="/admin/chat"
@@ -338,7 +364,15 @@ export default function AppLayout({ children }: PropsWithChildren) {
                         className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-gray-700 hover:bg-gray-100 font-medium touch-manipulation"
                       >
                         <MessageSquare className="size-5 text-primary shrink-0" />
-                        Chat (admin)
+                        Inbox campanhas
+                      </Link>
+                      <Link
+                        href="/admin/integrations/relayhub"
+                        onClick={() => setSidebarOpen(false)}
+                        className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-gray-700 hover:bg-gray-100 font-medium touch-manipulation"
+                      >
+                        <Plug className="size-5 text-primary shrink-0" />
+                        RelayHub
                       </Link>
                     </>
                   )}
