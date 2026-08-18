@@ -3,7 +3,7 @@
 import { PropsWithChildren, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { BrandLogoLink } from '@/components/brand-logo-link'
-import { ChevronLeft, Menu, X, LogOut, Wallet, Mail, Search, List, FileText, Trash2, AlertTriangle, LoaderCircle, Megaphone, MessageSquare, ClipboardList, UserPlus, ShieldCheck, Headphones, Plug } from 'lucide-react'
+import { ChevronLeft, Menu, X, LogOut, Wallet, Mail, Search, List, FileText, Trash2, AlertTriangle, LoaderCircle, Megaphone, ClipboardList, UserPlus, ShieldCheck, Headphones, Plug } from 'lucide-react'
 import Link from 'next/link'
 import { useSession } from 'next-auth/react'
 import { useMutation, useQuery } from '@tanstack/react-query'
@@ -90,7 +90,7 @@ export default function AppLayout({ children }: PropsWithChildren) {
       '/admin/partner-accounts': '/consultas',
       '/admin/partners': '/consultas',
       '/admin/outreach': '/consultas',
-      '/admin/chat': '/admin/outreach',
+      '/admin/chat': '/admin/inbox',
       '/admin/inbox': '/consultas',
       '/admin/finance': '/consultas',
       '/admin/integrations/relayhub': '/consultas',
@@ -356,15 +356,7 @@ export default function AppLayout({ children }: PropsWithChildren) {
                         className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-gray-700 hover:bg-gray-100 font-medium touch-manipulation"
                       >
                         <Headphones className="size-5 text-primary shrink-0" />
-                        Inbox suporte
-                      </Link>
-                      <Link
-                        href="/admin/chat"
-                        onClick={() => setSidebarOpen(false)}
-                        className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-gray-700 hover:bg-gray-100 font-medium touch-manipulation"
-                      >
-                        <MessageSquare className="size-5 text-primary shrink-0" />
-                        Inbox campanhas
+                        Inbox
                       </Link>
                       <Link
                         href="/admin/integrations/relayhub"

@@ -5,7 +5,6 @@ import {
   LayoutGrid,
   LineChart,
   Megaphone,
-  MessageSquare,
   Plug,
   Radio,
   UserPlus,
@@ -85,8 +84,8 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
     items: [
       {
         href: '/admin/inbox',
-        label: 'Inbox suporte',
-        shortLabel: 'Suporte',
+        label: 'Inbox',
+        shortLabel: 'Inbox',
         icon: Headphones,
         staffOnly: true,
       },
@@ -101,13 +100,6 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
         label: 'Campanhas',
         shortLabel: 'Campanhas',
         icon: Megaphone,
-        superuserOnly: true,
-      },
-      {
-        href: '/admin/chat',
-        label: 'Inbox campanhas',
-        shortLabel: 'Chat',
-        icon: MessageSquare,
         superuserOnly: true,
       },
     ],
@@ -156,6 +148,9 @@ export function resolveAdminPageMeta(pathname: string): {
   }
   if (pathname.startsWith('/admin/integrations/relayhub')) {
     return { section: 'Integrações', title: 'RelayHub', eyebrow: 'WhatsApp' }
+  }
+  if (pathname.startsWith('/admin/inbox')) {
+    return { section: 'Atendimento', title: 'Inbox', eyebrow: 'Imóvel Periciado' }
   }
   for (const group of ADMIN_NAV_SECTIONS) {
     for (const item of group.items) {
