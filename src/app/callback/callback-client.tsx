@@ -1,16 +1,25 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useSession, signIn } from 'next-auth/react'
-import { AlertCircle, ArrowRight, ExternalLink, Home, Mail } from 'lucide-react'
+import { AlertCircle, ArrowRight, ExternalLink, Link2, Mail } from 'lucide-react'
 
 import Button from '@/components/button'
+import { BRAND_LOGO_DARK_SRC, BRAND_LOGO_HEIGHT, BRAND_LOGO_WIDTH } from '@/constants/brand-logo'
 import { InputOtp } from '@/sections/login/components/InputOtp'
 import { startAuth } from '@/services/account'
 
 const JETIMOB_PANEL_URL = 'https://app.jetimob.io'
 const EMAIL_RE = /^\S+@\S+\.\S+$/
+
+const TAGLINES = [
+  'Matrícula analisada por IA em minutos',
+  'Riscos jurídicos revelados antes da venda',
+  'Relatório pericial pronto para compartilhar',
+  'Consultas direto da sua carteira de imóveis',
+]
 
 type FlowState =
   | 'exchanging'
@@ -31,6 +40,10 @@ function AnimationStyles() {
       @keyframes jm-pop { 0% { transform: scale(0.6); opacity: 0; } 70% { transform: scale(1.08); } 100% { transform: scale(1); opacity: 1; } }
       @keyframes jm-ring { 0% { transform: scale(0.9); opacity: 0.5; } 100% { transform: scale(1.5); opacity: 0; } }
       @keyframes jm-hand { to { transform: rotate(360deg); } }
+      @keyframes jm-fade-up { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+      @keyframes jm-travel { 0% { transform: translateX(0); opacity: 0; } 15% { opacity: 1; } 85% { opacity: 1; } 100% { transform: translateX(52px); opacity: 0; } }
+      .jm-fade-up { animation: jm-fade-up 0.45s ease-out both; }
+      .jm-travel { animation: jm-travel 1.3s ease-in-out infinite; }
       .jm-dash { stroke-dasharray: 6 6; animation: jm-dash 1s linear infinite; }
       .jm-draw-circle { stroke-dasharray: 1; stroke-dashoffset: 1; animation: jm-draw 0.5s ease-out forwards; }
       .jm-draw-check { stroke-dasharray: 1; stroke-dashoffset: 1; animation: jm-draw 0.35s ease-out 0.45s forwards; }
@@ -41,22 +54,66 @@ function AnimationStyles() {
   )
 }
 
+function BrandMark({ size = 'size-14' }: { size?: string }) {
+  return (
+    <span className={`relative flex ${size} items-center justify-center rounded-2xl bg-primary shadow-lg shadow-primary/25`}>
+      <span className="absolute inset-0 rounded-2xl border-2 border-primary/30 jm-ring" />
+      <Image src="/images/logo.svg" alt="" width={28} height={27} className="w-3/5" aria-hidden />
+    </span>
+  )
+}
+
 function ConnectingAnimation() {
   return (
     <div className="flex items-center gap-1" aria-hidden>
-      <span className="relative flex size-14 items-center justify-center rounded-2xl bg-primary/10">
-        <span className="absolute inset-0 rounded-2xl border-2 border-primary/30 jm-ring" />
-        <Home className="size-7 text-primary" />
+      <BrandMark />
+
+      <span className="relative">
+        <svg width="72" height="24" viewBox="0 0 72 24" className="text-primary/50">
+          <line x1="4" y1="12" x2="68" y2="12" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="jm-dash" />
+        </svg>
+        <span className="jm-travel absolute left-2 top-1/2 size-2 -translate-y-1/2 rounded-full bg-primary" />
       </span>
 
-      <svg width="72" height="24" viewBox="0 0 72 24" className="text-primary/60">
-        <line x1="4" y1="12" x2="68" y2="12" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="jm-dash" />
-      </svg>
-
-      <span className="relative flex size-14 items-center justify-center rounded-2xl bg-emerald-500/10">
-        <span className="absolute inset-0 rounded-2xl border-2 border-emerald-400/40 jm-ring" style={{ animationDelay: '0.8s' }} />
-        <span className="text-lg font-black text-emerald-600">J</span>
+      <span className="relative flex size-14 items-center justify-center rounded-2xl border border-gray-200 bg-white">
+        <span className="absolute inset-0 rounded-2xl border-2 border-gray-300/60 jm-ring" style={{ animationDelay: '0.8s' }} />
+        <Link2 className="size-6 text-gray-400" />
       </span>
+    </div>
+  )
+}
+
+function RotatingTaglines() {
+  const [index, setIndex] = useState(0)
+
+  useEffect(() => {
+    const id = setInterval(() => setIndex((i) => (i + 1) % TAGLINES.length), 2600)
+    return () => clearInterval(id)
+  }, [])
+
+  return (
+    <div className="mt-6 flex h-8 items-center justify-center" aria-live="polite">
+      <p
+        key={index}
+        className="jm-fade-up rounded-full bg-primary/5 px-4 py-1.5 text-xs font-medium text-primary"
+      >
+        {TAGLINES[index]}
+      </p>
+    </div>
+  )
+}
+
+function BrandFooter() {
+  return (
+    <div className="mt-12 flex flex-col items-center gap-1.5">
+      <Image
+        src={BRAND_LOGO_DARK_SRC}
+        alt="Imóvel Periciado"
+        width={BRAND_LOGO_WIDTH}
+        height={BRAND_LOGO_HEIGHT}
+        className="h-7 w-auto object-contain opacity-60"
+      />
+      <p className="text-[11px] text-gray-400">Perícia imobiliária com inteligência artificial</p>
     </div>
   )
 }
@@ -224,10 +281,12 @@ export function JetimobCallbackClient() {
         {flow === 'exchanging' && (
           <>
             <ConnectingAnimation />
-            <h1 className="mt-8 text-xl font-bold text-gray-900">Conectando à Jetimob…</h1>
+            <h1 className="mt-8 text-xl font-bold text-gray-900">Conectando sua carteira…</h1>
             <p className="mt-2 text-sm leading-relaxed text-gray-500">
-              Estamos validando sua autorização e carregando sua carteira de imóveis.
+              Estamos validando sua autorização. Em instantes seus imóveis estarão prontos para
+              consulta.
             </p>
+            <RotatingTaglines />
           </>
         )}
 
@@ -367,9 +426,10 @@ export function JetimobCallbackClient() {
 
         {flow === 'binding' && (
           <>
-            <div className="size-10 animate-spin rounded-full border-2 border-gray-200 border-t-primary" aria-hidden />
+            <BrandMark />
             <h1 className="mt-6 text-xl font-bold text-gray-900">Vinculando à sua conta…</h1>
             <p className="mt-2 text-sm text-gray-500">Só um instante.</p>
+            <RotatingTaglines />
           </>
         )}
 
@@ -467,6 +527,8 @@ export function JetimobCallbackClient() {
             </Button>
           </>
         )}
+
+        <BrandFooter />
       </div>
     </div>
   )
