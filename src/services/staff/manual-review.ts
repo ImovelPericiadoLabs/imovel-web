@@ -17,6 +17,14 @@ export type ManualReviewSlice = {
   source?: string
 }
 
+export type ExternalRetrySlice = {
+  attempts?: number
+  next_retry_at?: string
+  last_code?: number
+  last_error?: string[]
+  requested_by_staff_id?: string
+}
+
 export type StaffManualReviewOrderListItem = {
   id: string
   code: number
@@ -31,6 +39,7 @@ export type StaffManualReviewOrderListItem = {
   amount: string
   manual_review: ManualReviewSlice | null
   review_source: string
+  external_retry: ExternalRetrySlice | null
   cost_total: string
   cost_limit: string
 }
@@ -106,7 +115,7 @@ export async function enqueueManualReviewAnalysis(orderId: string): Promise<{ de
 }
 
 export type ResolveManualReviewBody = {
-  action: 'enqueue_analysis' | 'reject'
+  action: 'enqueue_analysis' | 'reject' | 'retry_search'
   reason_code?: 'invalid_data' | 'registration_not_found' | 'other'
   notes?: string
 }

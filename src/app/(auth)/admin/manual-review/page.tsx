@@ -65,10 +65,13 @@ function brl(value: string | number): string {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(n)
 }
 
+const EXTERNAL_SOURCE = 'search_document_online:external_unavailable'
+
 const SOURCE_LABELS: Record<string, string> = {
   margin_guard: 'Trava de margem',
   'search_document_online:invalid_place_response': 'Endereço insuficiente',
   'post_payment_dispatch:manual_acquisition_queue': 'Validação pós-pagamento',
+  [EXTERNAL_SOURCE]: 'Sistema externo indisponível',
 }
 
 function sourceLabel(source: string): string {
@@ -80,7 +83,18 @@ const SOURCE_FILTERS = [
   { value: 'margin_guard', label: 'Trava de margem' },
   { value: 'search_document_online:invalid_place_response', label: 'Endereço insuficiente' },
   { value: 'post_payment_dispatch:manual_acquisition_queue', label: 'Validação pós-pagamento' },
+  { value: EXTERNAL_SOURCE, label: 'Sistema externo indisponível' },
 ]
+
+function formatNextRetry(iso?: string): string {
+  if (!iso) return '—'
+  const t = new Date(iso).getTime()
+  if (Number.isNaN(t)) return '—'
+  const diffMin = Math.round((t - Date.now()) / 60000)
+  if (diffMin <= 0) return 'na próxima varredura'
+  if (diffMin < 60) return `em ~${diffMin}min`
+  return `em ~${Math.round(diffMin / 60)}h`
+}
 
 export default function ManualReviewAdminPage() {
   const queryClient = useQueryClient()
@@ -160,6 +174,14 @@ export default function ManualReviewAdminPage() {
     },
   })
 
+  const retryMutation = useMutation({
+    mutationFn: (orderId: string) => resolveManualReview(orderId, { action: 'retry_search' }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['staff-manual-review'] })
+      await queryClient.invalidateQueries({ queryKey: ['staff-manual-review-detail'] })
+    },
+  })
+
   const selectedSummary = useMemo(
     () => listQuery.data?.results?.find((r) => r.id === selectedId),
     [listQuery.data, selectedId],
@@ -182,6 +204,7 @@ export default function ManualReviewAdminPage() {
   }).length
   const guarded = queue.filter((r) => r.review_source === 'margin_guard').length
   const overLimit = queue.filter((r) => Number(r.cost_total) > Number(r.cost_limit)).length
+  const awaitingExternal = queue.filter((r) => r.review_source === EXTERNAL_SOURCE).length
 
   return (
     <AdminStaffGate>
@@ -208,6 +231,13 @@ export default function ManualReviewAdminPage() {
                 value: guarded,
                 icon: ShieldAlert,
                 tone: guarded > 0 ? 'warning' : 'default',
+              },
+              {
+                id: 'awaiting-external',
+                label: 'Aguardando sistema externo',
+                value: awaitingExternal,
+                icon: Clock,
+                tone: awaitingExternal > 0 ? 'brand' : 'default',
               },
               {
                 id: 'over-limit',
@@ -325,6 +355,12 @@ export default function ManualReviewAdminPage() {
                             Matrícula
                           </span>
                         ) : null}
+                        {row.review_source === EXTERNAL_SOURCE && row.external_retry ? (
+                          <span className="inline-block rounded bg-[rgba(240,140,0,0.14)] px-1.5 py-0.5 text-[9px] font-bold text-[#9a5b00]">
+                            {row.external_retry.attempts ?? 0}ª tentativa · retry{' '}
+                            {formatNextRetry(row.external_retry.next_retry_at)}
+                          </span>
+                        ) : null}
                         <span
                           className={cn(
                             'ml-auto text-[10px] font-semibold tabular-nums',
@@ -414,6 +450,8 @@ export default function ManualReviewAdminPage() {
                 uploading={uploadMutation.isPending}
                 onEnqueue={() => enqueueMutation.mutate(detailQuery.data.id)}
                 enqueuePending={enqueueMutation.isPending}
+                onRetrySearch={() => retryMutation.mutate(detailQuery.data.id)}
+                retryPending={retryMutation.isPending}
                 rejectReason={rejectReason}
                 setRejectReason={setRejectReason}
                 rejectNotes={rejectNotes}
@@ -446,6 +484,8 @@ function ManualReviewDetailPanel({
   uploading,
   onEnqueue,
   enqueuePending,
+  onRetrySearch,
+  retryPending,
   rejectReason,
   setRejectReason,
   rejectNotes,
@@ -460,6 +500,8 @@ function ManualReviewDetailPanel({
   uploading: boolean
   onEnqueue: () => void
   enqueuePending: boolean
+  onRetrySearch: () => void
+  retryPending: boolean
   rejectReason: 'invalid_data' | 'registration_not_found' | 'other'
   setRejectReason: (v: 'invalid_data' | 'registration_not_found' | 'other') => void
   rejectNotes: string
@@ -469,6 +511,8 @@ function ManualReviewDetailPanel({
 }) {
   const msgs = order.manual_review?.validation_messages ?? []
   const doc = order.document_response as { staff_registration_uploaded_at?: string } | null
+  const isExternalHold = order.review_source === EXTERNAL_SOURCE
+  const retry = order.external_retry
   const cs = order.cost_summary
   const usedPct = Math.min(cs?.used_pct ?? 0, 100)
   const costOver = cs ? Number(cs.cost_total) > Number(cs.cost_limit) : false
@@ -579,6 +623,41 @@ function ManualReviewDetailPanel({
         </div>
       )}
 
+      {isExternalHold && (
+        <div className="rounded-xl border border-[#dbe4ff] bg-[#f4f7ff] p-3 space-y-2">
+          <p className="flex items-center gap-2 text-sm font-semibold text-[#101114]">
+            <Clock className="size-4 shrink-0 text-[#3b5bdb]" />
+            Aguardando sistema externo (Registradores)
+          </p>
+          <p className="text-xs text-[#484b5e]">
+            A busca falhou por indisponibilidade do provedor — o pedido <strong>não foi cancelado</strong>.
+            Novas tentativas rodam automaticamente a cada 2h.
+          </p>
+          <div className="grid grid-cols-2 gap-2 text-center">
+            <div className="rounded-lg bg-white px-2 py-1.5">
+              <p className="text-[10px] uppercase text-[#9497a9]">Tentativas</p>
+              <p className="text-sm font-semibold tabular-nums text-[#101114]">{retry?.attempts ?? 0}</p>
+            </div>
+            <div className="rounded-lg bg-white px-2 py-1.5">
+              <p className="text-[10px] uppercase text-[#9497a9]">Próximo retry</p>
+              <p className="text-sm font-semibold text-[#101114]">{formatNextRetry(retry?.next_retry_at)}</p>
+            </div>
+          </div>
+          {retry?.last_error?.length ? (
+            <p className="text-[11px] text-[#686b82]">Último erro: {retry.last_error.join(' · ')}</p>
+          ) : null}
+          <Button
+            type="button"
+            className="w-full justify-center gap-2 rounded-xl border-0 bg-[#3b5bdb] py-2.5 text-white hover:bg-[#364fc7]"
+            onClick={onRetrySearch}
+            disabled={retryPending}
+          >
+            {retryPending ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
+            Tentar busca novamente agora
+          </Button>
+        </div>
+      )}
+
       {msgs.length > 0 && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
           <p className="font-semibold flex items-center gap-2">
@@ -591,6 +670,18 @@ function ManualReviewDetailPanel({
           </ul>
         </div>
       )}
+
+      {order.document_response ? (
+        <details className="rounded-xl border border-[#dedee5] bg-white">
+          <summary className="flex cursor-pointer items-center gap-2 px-3 py-2.5 text-sm font-semibold text-[#101114]">
+            <ClipboardList className="size-4 shrink-0 text-[#7132f5]" />
+            Resposta do sistema externo (dados sensíveis mascarados)
+          </summary>
+          <pre className="max-h-72 overflow-auto border-t border-[#eef0f4] p-3 text-[10px] leading-relaxed text-[#484b5e]">
+            {JSON.stringify(order.document_response, null, 2)}
+          </pre>
+        </details>
+      ) : null}
 
       <div>
         <label className="block text-sm font-medium text-[#101114] mb-2">Anexar matrícula (PDF)</label>
