@@ -8,11 +8,8 @@ import {
   AlertTriangle,
   ArrowUpRight,
   CheckCircle2,
-  ChevronLeft,
-  ChevronRight,
   ExternalLink,
   FileText,
-  Home,
   LogOut,
   MapPin,
   Package,
@@ -22,8 +19,9 @@ import {
 } from 'lucide-react'
 
 import Button from '@/components/button'
-import useDebounce from '@/hooks/use-debounce'
 import { BRAND_LOGO_LIGHT_SRC, BRAND_LOGO_HEIGHT, BRAND_LOGO_WIDTH } from '@/constants/brand-logo'
+import { PropertyCatalog, PropertyPhoto } from '@/sections/jetimob/property-catalog'
+import type { JetimobPropertyRow } from '@/services/jetimob'
 import { darkHeroSurfaceGradient, darkHeroSurfaceShell } from '@/styles/surfaces'
 import { cn } from '@/utils/tailwind'
 import {
@@ -33,6 +31,9 @@ import {
   type JetimobConsultEntryPath,
   type JetimobConsultModeDraft,
 } from '@/lib/jetimob-consult-prefill'
+
+/** Alias local — o catálogo já tipa a linha normalizada pelo backend (spec 06). */
+type PropertyRow = JetimobPropertyRow
 
 const JETIMOB_PANEL_URL = 'https://app.jetimob.io'
 
@@ -50,20 +51,6 @@ type JetimobSession = {
   jetimob_system_id: string
   user_email?: string
   expires_at: string
-}
-
-type PropertyRow = {
-  code?: string
-  title?: string
-  address?: string
-  photo?: string
-}
-
-type PropertiesPayload = {
-  items?: PropertyRow[]
-  total_items?: number
-  pagination?: { page?: string | number; page_limit?: string | number; total_items?: number }
-  error?: { message?: string }
 }
 
 const MISSING_FIELD_LABELS: Record<string, string> = {
@@ -110,26 +97,6 @@ function StatusPill({ session }: { session: JetimobSession | null }) {
         Conectado — {session.user_email || `conta ${session.jetimob_system_id}`}
       </span>
     </span>
-  )
-}
-
-function PropertyPhoto({ photo, title }: { photo?: string; title: string }) {
-  if (photo) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={photo}
-        alt={title}
-        loading="lazy"
-        className="size-full object-cover"
-      />
-    )
-  }
-
-  return (
-    <div className="flex size-full items-center justify-center bg-primary/5">
-      <Home className="size-6 text-primary/40" />
-    </div>
   )
 }
 
@@ -247,16 +214,6 @@ export default function JetimobIntegrationPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const [properties, setProperties] = useState<PropertyRow[]>([])
-  const [propertiesTotal, setPropertiesTotal] = useState<number | null>(null)
-  const [propertiesError, setPropertiesError] = useState<string | null>(null)
-  const [propertiesLoading, setPropertiesLoading] = useState(false)
-  const [page, setPage] = useState(1)
-  const [pageLimit, setPageLimit] = useState<number | null>(null)
-
-  const [search, setSearch] = useState('')
-  const debouncedSearch = useDebounce(search, 600)
-
   const [selected, setSelected] = useState<PropertyRow | null>(null)
   const [draft, setDraft] = useState<JetimobConsultDraftResponse | null>(null)
   const [draftLoading, setDraftLoading] = useState(false)
@@ -288,47 +245,9 @@ export default function JetimobIntegrationPage() {
     }
   }, [])
 
-  const loadProperties = useCallback(async (pageArg: number, searchArg: string) => {
-    setPropertiesLoading(true)
-    setPropertiesError(null)
-    try {
-      const params = new URLSearchParams({ page: String(pageArg) })
-      if (searchArg.trim()) params.set('search', searchArg.trim())
-
-      const res = await fetch(`/api/jetimob/properties?${params}`, { cache: 'no-store' })
-      const body = (await res.json()) as PropertiesPayload
-
-      if (!res.ok) {
-        setProperties([])
-        setPropertiesError(body?.error?.message || 'Não foi possível listar seus imóveis.')
-        return
-      }
-
-      setProperties(body.items ?? [])
-      const total = body.total_items ?? body.pagination?.total_items
-      setPropertiesTotal(typeof total === 'number' ? total : null)
-      const limit = Number(body.pagination?.page_limit)
-      setPageLimit(Number.isFinite(limit) && limit > 0 ? limit : null)
-    } catch {
-      setProperties([])
-      setPropertiesError('Sem conexão com o servidor ao listar imóveis.')
-    } finally {
-      setPropertiesLoading(false)
-    }
-  }, [])
-
   useEffect(() => {
     void loadSession()
   }, [loadSession])
-
-  useEffect(() => {
-    if (!session) return
-    void loadProperties(page, debouncedSearch)
-  }, [session, page, debouncedSearch, loadProperties])
-
-  useEffect(() => {
-    setPage(1)
-  }, [debouncedSearch])
 
   const selectProperty = async (row: PropertyRow) => {
     const code = String(row.code || '')
@@ -375,16 +294,9 @@ export default function JetimobIntegrationPage() {
   const disconnect = async () => {
     await fetch('/api/jetimob/session', { method: 'DELETE' })
     setSession(null)
-    setProperties([])
-    setPropertiesTotal(null)
     setSelected(null)
     setDraft(null)
   }
-
-  const totalPages =
-    propertiesTotal !== null && pageLimit ? Math.max(1, Math.ceil(propertiesTotal / pageLimit)) : null
-  const hasPrev = page > 1
-  const hasNext = totalPages !== null ? page < totalPages : properties.length > 0 && pageLimit !== null
 
   return (
     <>
@@ -480,134 +392,11 @@ export default function JetimobIntegrationPage() {
           <div className="flex flex-col gap-6 lg:grid lg:grid-cols-12 lg:items-start">
             {/* Carteira */}
             <section className="flex flex-col gap-3 lg:col-span-7">
-              <div className="rounded-2xl border border-gray-100 bg-white p-2 shadow-sm">
-                <label className="group flex items-center gap-2 rounded-xl px-3 py-2.5 transition focus-within:bg-gray-50">
-                  <Search className="size-4 shrink-0 text-gray-400 group-focus-within:text-primary" aria-hidden />
-                  <input
-                    type="search"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Buscar por código, endereço ou título"
-                    className="w-full bg-transparent text-sm outline-none placeholder:text-gray-400"
-                  />
-                </label>
-              </div>
-
-              <div className="flex items-baseline justify-between px-1">
-                <h2 className="text-sm font-semibold text-gray-700">Sua carteira</h2>
-                {propertiesTotal !== null && (
-                  <span className="text-xs text-gray-400">
-                    {propertiesTotal} {propertiesTotal === 1 ? 'imóvel' : 'imóveis'}
-                  </span>
-                )}
-              </div>
-
-              {propertiesError && (
-                <p className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-600">
-                  {propertiesError}
-                </p>
-              )}
-
-              {propertiesLoading ? (
-                <div className="flex flex-col gap-2">
-                  {[0, 1, 2].map((i) => (
-                    <div key={i} className="h-24 animate-pulse rounded-2xl bg-white shadow-sm" />
-                  ))}
-                </div>
-              ) : properties.length === 0 && !propertiesError ? (
-                <div className="rounded-2xl border border-dashed border-gray-200 bg-white p-8 text-center shadow-sm">
-                  <Home className="mx-auto size-8 text-gray-300" aria-hidden />
-                  <p className="mt-3 text-sm font-medium text-gray-700">
-                    {debouncedSearch
-                      ? 'Nenhum imóvel encontrado para essa busca.'
-                      : 'Sua carteira Jetimob ainda não tem imóveis.'}
-                  </p>
-                  <p className="mt-1 text-xs text-gray-400">
-                    {debouncedSearch
-                      ? 'Tente outro código, rua ou bairro.'
-                      : 'Cadastre um imóvel no painel da Jetimob e ele aparece aqui.'}
-                  </p>
-                </div>
-              ) : (
-                <ul className="flex flex-col gap-2">
-                  {properties.map((row, idx) => {
-                    const code = String(row.code || '')
-                    const isSelected = Boolean(code) && selected?.code === code
-                    const title = row.title || (code ? `Imóvel ${code}` : `Imóvel ${idx + 1}`)
-
-                    return (
-                      <li key={code || idx}>
-                        <button
-                          type="button"
-                          onClick={() => void selectProperty(row)}
-                          disabled={!code}
-                          className={cn(
-                            'flex w-full items-center gap-3 rounded-2xl border bg-white p-3 text-left shadow-sm transition',
-                            isSelected
-                              ? 'border-primary ring-2 ring-primary/20'
-                              : 'border-gray-100 hover:border-primary/40 hover:shadow-md',
-                          )}
-                        >
-                          <span className="size-16 shrink-0 overflow-hidden rounded-xl md:size-20">
-                            <PropertyPhoto photo={row.photo} title={title} />
-                          </span>
-
-                          <span className="min-w-0 flex-1">
-                            <span className="block truncate text-sm font-semibold text-gray-900">
-                              {title}
-                            </span>
-                            {row.address && (
-                              <span className="mt-0.5 block truncate text-xs text-gray-500">
-                                {row.address}
-                              </span>
-                            )}
-                            {code && (
-                              <span className="mt-1.5 inline-block rounded-md bg-primary/5 px-2 py-0.5 font-mono text-[11px] font-medium text-primary">
-                                #{code}
-                              </span>
-                            )}
-                          </span>
-
-                          <ChevronRight
-                            className={cn(
-                              'size-5 shrink-0 transition',
-                              isSelected ? 'text-primary' : 'text-gray-300',
-                            )}
-                            aria-hidden
-                          />
-                        </button>
-                      </li>
-                    )
-                  })}
-                </ul>
-              )}
-
-              {(hasPrev || hasNext) && (
-                <div className="mt-1 flex items-center justify-between px-1">
-                  <button
-                    type="button"
-                    disabled={!hasPrev || propertiesLoading}
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    className="inline-flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium text-primary transition hover:bg-primary/5 disabled:cursor-not-allowed disabled:text-gray-300"
-                  >
-                    <ChevronLeft className="size-4" aria-hidden />
-                    Anterior
-                  </button>
-                  <span className="text-xs text-gray-400">
-                    Página {page}
-                    {totalPages !== null ? ` de ${totalPages}` : ''}
-                  </span>
-                  <button
-                    type="button"
-                    disabled={!hasNext || propertiesLoading}
-                    onClick={() => setPage((p) => p + 1)}
-                    className="inline-flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium text-primary transition hover:bg-primary/5 disabled:cursor-not-allowed disabled:text-gray-300"
-                  >
-                    Próxima
-                    <ChevronRight className="size-4" aria-hidden />
-                  </button>
-                </div>
-              )}
+              <PropertyCatalog
+                enabled={Boolean(session)}
+                selectedCode={selected?.code}
+                onSelect={(row) => void selectProperty(row)}
+              />
             </section>
 
             {/* Painel de consulta */}
