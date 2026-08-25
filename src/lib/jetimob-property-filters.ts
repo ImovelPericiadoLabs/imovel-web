@@ -8,6 +8,7 @@ export type JetimobPropertyFilters = {
   propertyType: string
   status: string
   city: string
+  neighborhood: string
   priceMin: string
   priceMax: string
   /** ISO `YYYY-MM-DD`; filtra imóveis atualizados NESTA data ou depois. */
@@ -19,6 +20,7 @@ export const EMPTY_JETIMOB_FILTERS: JetimobPropertyFilters = {
   propertyType: FILTER_ALL,
   status: FILTER_ALL,
   city: FILTER_ALL,
+  neighborhood: FILTER_ALL,
   priceMin: '',
   priceMax: '',
   updatedSince: '',
@@ -30,10 +32,51 @@ export function hasActiveJetimobFilters(filters: JetimobPropertyFilters): boolea
     filters.propertyType !== FILTER_ALL ||
     filters.status !== FILTER_ALL ||
     filters.city !== FILTER_ALL ||
+    filters.neighborhood !== FILTER_ALL ||
     filters.priceMin.trim() !== '' ||
     filters.priceMax.trim() !== '' ||
     filters.updatedSince.trim() !== ''
   )
+}
+
+export type JetimobSortKey = 'recent' | 'price_asc' | 'price_desc' | 'address_asc'
+
+export const SORT_OPTIONS: { value: JetimobSortKey; label: string }[] = [
+  { value: 'recent', label: 'Mais recentes' },
+  { value: 'price_asc', label: 'Menor preço' },
+  { value: 'price_desc', label: 'Maior preço' },
+  { value: 'address_asc', label: 'Endereço (A-Z)' },
+]
+
+/** Ordena uma cópia da lista já filtrada — nunca muta o array recebido. */
+export function sortJetimobProperties(
+  items: JetimobPropertyRow[],
+  sortKey: JetimobSortKey,
+): JetimobPropertyRow[] {
+  const sorted = [...items]
+
+  switch (sortKey) {
+    case 'price_asc':
+    case 'price_desc': {
+      const dir = sortKey === 'price_asc' ? 1 : -1
+      sorted.sort((a, b) => {
+        const pa = referencePrice(a)
+        const pb = referencePrice(b)
+        if (pa === null && pb === null) return 0
+        if (pa === null) return 1 // sem preço vai pro fim, nas duas direções
+        if (pb === null) return -1
+        return (pa - pb) * dir
+      })
+      return sorted
+    }
+    case 'address_asc':
+      sorted.sort((a, b) => (a.address || '').localeCompare(b.address || '', 'pt-BR'))
+      return sorted
+    case 'recent':
+    default:
+      sorted.sort((a, b) => (b.updated_at || '').localeCompare(a.updated_at || ''))
+      return sorted
+  }
 }
 
 /** Preço de referência do imóvel para o filtro de faixa: venda se houver, senão locação. */
@@ -86,6 +129,10 @@ export function filterJetimobProperties(
       return false
     }
 
+    if (filters.neighborhood !== FILTER_ALL && row.neighborhood !== filters.neighborhood) {
+      return false
+    }
+
     if (priceMin !== null || priceMax !== null) {
       const price = referencePrice(row)
       if (price === null) return false
@@ -108,11 +155,13 @@ export function collectFilterOptions(items: JetimobPropertyRow[]) {
   const types = new Set<string>()
   const statuses = new Set<string>()
   const cities = new Set<string>()
+  const neighborhoods = new Set<string>()
 
   for (const row of items) {
     if (row.property_type) types.add(row.property_type)
     if (row.status) statuses.add(row.status)
     if (row.city) cities.add(row.city)
+    if (row.neighborhood) neighborhoods.add(row.neighborhood)
   }
 
   const sortBR = (a: string, b: string) => a.localeCompare(b, 'pt-BR')
@@ -121,5 +170,6 @@ export function collectFilterOptions(items: JetimobPropertyRow[]) {
     propertyTypes: Array.from(types).sort(sortBR),
     statuses: Array.from(statuses).sort(sortBR),
     cities: Array.from(cities).sort(sortBR),
+    neighborhoods: Array.from(neighborhoods).sort(sortBR),
   }
 }

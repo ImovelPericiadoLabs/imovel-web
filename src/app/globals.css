@@ -141,6 +141,32 @@
   .journey-roll-strip {
     animation: journey-roll-strip 0.56s cubic-bezier(0.22, 1, 0.36, 1) forwards;
   }
+
+  /* --- Catálogo Jetimob --- */
+
+  .jetimob-card-in {
+    animation: jetimob-card-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .jetimob-heart-pop {
+    animation: jetimob-heart-pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .jetimob-drawer-panel-in {
+    animation: jetimob-drawer-panel-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+
+  .jetimob-drawer-backdrop-in {
+    animation: jetimob-fade-in 0.2s ease-out forwards;
+  }
+
+  .jetimob-scan-sweep {
+    animation: jetimob-scan-sweep 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+
+  .jetimob-scan-pulse {
+    animation: jetimob-scan-pulse 2.4s ease-in-out infinite;
+  }
 }
 
 @layer base {
@@ -215,6 +241,79 @@
     }
   }
 
+  /* --- Catálogo Jetimob --- */
+
+  @keyframes jetimob-card-in {
+    from {
+      opacity: 0;
+      transform: translateY(6px) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  @keyframes jetimob-heart-pop {
+    0% {
+      transform: scale(1);
+    }
+    35% {
+      transform: scale(1.35);
+    }
+    60% {
+      transform: scale(0.92);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+
+  @keyframes jetimob-fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes jetimob-drawer-panel-in {
+    from {
+      transform: translateY(100%);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes jetimob-scan-sweep {
+    0% {
+      transform: translateY(-100%);
+      opacity: 0;
+    }
+    15% {
+      opacity: 1;
+    }
+    85% {
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(100%);
+      opacity: 0;
+    }
+  }
+
+  @keyframes jetimob-scan-pulse {
+    0%, 100% {
+      opacity: 0.35;
+      transform: scale(0.94);
+    }
+    50% {
+      opacity: 0.9;
+      transform: scale(1);
+    }
+  }
 }
 
 

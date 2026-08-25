@@ -20,6 +20,11 @@ export type JetimobPropertyRow = {
   neighborhood?: string
   /** ISO 8601 quando a Jetimob informa; string vazia quando não veio no payload. */
   updated_at?: string
+  /** Características do imóvel — best-effort, ausentes quando a Jetimob não informa. */
+  bedrooms?: number | null
+  bathrooms?: number | null
+  parking_spots?: number | null
+  area_m2?: number | null
 }
 
 export type JetimobPropertiesPayload = {
