@@ -154,6 +154,30 @@
   --gap-jetimob-grid: 24px;
 }
 
+/* --------------------------------------------------------------------------
+ * Fluxo de consulta — espaço escuro reservado ao hero.
+ * `--flow-hero-floor`: piso responsivo (cobre o hero típico já no 1º paint, sem
+ * flicker). `--flow-hero-measured`: preenchido em runtime pelo shell com a altura
+ * real do hero visível. O max() pega o maior, então heros mais altos (ex.: a tela de
+ * entrada, com 3 blocos de texto) nunca vazam para o fundo branco.
+ * -------------------------------------------------------------------------- */
+.flow-hero-scope {
+  --flow-hero-floor: 6rem;
+  --flow-hero-space: max(var(--flow-hero-floor), var(--flow-hero-measured, 0px));
+}
+
+@media (min-width: 640px) {
+  .flow-hero-scope { --flow-hero-floor: 6.75rem; }
+}
+
+@media (min-width: 768px) {
+  .flow-hero-scope { --flow-hero-floor: 7.25rem; }
+}
+
+@media (min-width: 1024px) {
+  .flow-hero-scope { --flow-hero-floor: 7.5rem; }
+}
+
 @media screen and (max-width: 768px) {
   input, select, textarea {
     font-size: 16px !important;
