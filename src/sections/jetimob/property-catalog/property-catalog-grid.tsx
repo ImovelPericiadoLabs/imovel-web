@@ -1,40 +1,35 @@
+'use client'
+
 import { useEffect, useRef, useState } from 'react'
-import { useVirtualizer } from '@tanstack/react-virtual'
 
 import type { JetimobPropertyRow } from '@/services/jetimob'
+import { cn } from '@/utils/tailwind'
 
 import { PropertyCard } from './property-card'
 import { PropertyCardSkeleton } from './property-card-skeleton'
 
 export type PropertyCatalogView = 'grid' | 'list'
 
-const GRID_ROW_HEIGHT_ESTIMATE = 400
-const LIST_ROW_HEIGHT_ESTIMATE = 104
-const ROW_GAP_PX = 16
-const CONTAINER_MAX_HEIGHT_PX = 900
+/** Quantos cards entram no DOM por vez (revelação progressiva ao rolar). */
+const PAGE_SIZE = 24
 
 type PropertyCatalogGridProps = {
   items: JetimobPropertyRow[]
   view: PropertyCatalogView
   selectedCode?: string
   onSelect: (row: JetimobPropertyRow) => void
-  /** Skeletons extras no fim da lista enquanto o catálogo completo ainda está carregando. */
+  /** Skeletons no fim enquanto o catálogo completo ainda carrega em background. */
   loadingMore?: boolean
 }
 
-/** Colunas por largura do CONTAINER (não do viewport) — funciona igual dentro de layouts
- * com sidebar de largura variável, sem depender de media query do documento inteiro. */
-function columnsForWidth(width: number): number {
-  if (width >= 900) return 3
-  if (width >= 560) return 2
-  return 1
-}
-
 /**
- * Grid/lista virtualizada por LINHA: o número de colunas é medido via ResizeObserver do
- * próprio container (não do viewport), então o grid se adapta corretamente mesmo
- * compartilhando espaço com outra coluna (ex.: painel de consulta ao lado). Cada linha
- * vira um item do virtualizer — o DOM nunca cresce com o tamanho do catálogo.
+ * Grade responsiva em fluxo normal (1 → 2 → 3 colunas), como no design de referência:
+ * a página rola naturalmente, sem caixa de scroll interna nem posicionamento absoluto.
+ *
+ * Para não montar milhares de cards de uma vez, revela em blocos de `PAGE_SIZE`
+ * conforme o sentinel entra na viewport. Isso mantém o DOM enxuto sem a matemática
+ * frágil de altura de linha da virtualização — que, com cards de altura variável,
+ * produzia sobras de espaço entre as linhas.
  */
 export function PropertyCatalogGrid({
   items,
@@ -43,88 +38,71 @@ export function PropertyCatalogGrid({
   onSelect,
   loadingMore,
 }: PropertyCatalogGridProps) {
-  const parentRef = useRef<HTMLDivElement>(null)
-  const [columns, setColumns] = useState(1)
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
+  const sentinelRef = useRef<HTMLDivElement>(null)
+
+  // Nova lista (filtro/ordenação/busca) volta ao primeiro bloco — ajuste de estado
+  // durante o render, sem effect.
+  const [committedItems, setCommittedItems] = useState(items)
+  if (items !== committedItems) {
+    setCommittedItems(items)
+    setVisibleCount(PAGE_SIZE)
+  }
+
+  const hasMore = visibleCount < items.length
 
   useEffect(() => {
-    const el = parentRef.current
-    if (!el) return undefined
+    const el = sentinelRef.current
+    if (!el || !hasMore) return undefined
 
-    const observer = new ResizeObserver((entries) => {
-      const width = entries[0]?.contentRect.width ?? el.clientWidth
-      setColumns(view === 'list' ? 1 : columnsForWidth(width))
-    })
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setVisibleCount((prev) => Math.min(prev + PAGE_SIZE, items.length))
+        }
+      },
+      { rootMargin: '600px 0px' },
+    )
     observer.observe(el)
     return () => observer.disconnect()
-  }, [view])
+  }, [hasMore, items.length])
 
-  const effectiveColumns = view === 'list' ? 1 : columns
-  const rowCount = Math.ceil(items.length / effectiveColumns) + (loadingMore ? 1 : 0)
-  const estimateRowHeight = view === 'list' ? LIST_ROW_HEIGHT_ESTIMATE : GRID_ROW_HEIGHT_ESTIMATE
-
-  const virtualizer = useVirtualizer({
-    count: rowCount,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => estimateRowHeight + ROW_GAP_PX,
-    overscan: 4,
-  })
-
-  const isSkeletonRow = (rowIndex: number) => loadingMore && rowIndex === rowCount - 1
+  const visible = items.slice(0, visibleCount)
 
   return (
-    <div
-      ref={parentRef}
-      data-testid="jetimob-catalog-grid"
-      className="overflow-y-auto"
-      style={{ maxHeight: CONTAINER_MAX_HEIGHT_PX }}
-    >
-      <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
-        {virtualizer.getVirtualItems().map((virtualRow) => {
-          const rowStart = virtualRow.index * effectiveColumns
-          const rowItems = isSkeletonRow(virtualRow.index)
-            ? []
-            : items.slice(rowStart, rowStart + effectiveColumns)
-
+    <div data-testid="jetimob-catalog-grid">
+      <div
+        className={cn(
+          'grid gap-[var(--gap-jetimob-grid)]',
+          view === 'grid'
+            ? // Colunas por largura do CONTAINER: o grid divide espaço com a sidebar de
+              // filtros, então media query do viewport daria o número errado.
+              '@container [grid-template-columns:repeat(auto-fill,minmax(min(100%,280px),1fr))]'
+            : 'grid-cols-1',
+        )}
+      >
+        {visible.map((row, index) => {
+          const code = String(row.code || '')
           return (
-            <div
-              key={virtualRow.key}
-              data-index={virtualRow.index}
-              ref={virtualizer.measureElement}
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                transform: `translateY(${virtualRow.start}px)`,
-                paddingBottom: ROW_GAP_PX,
-              }}
-            >
-              <div
-                className="grid gap-4"
-                style={{ gridTemplateColumns: `repeat(${effectiveColumns}, minmax(0, 1fr))` }}
-              >
-                {isSkeletonRow(virtualRow.index)
-                  ? Array.from({ length: effectiveColumns }).map((_, i) => (
-                      <PropertyCardSkeleton key={i} layout={view} />
-                    ))
-                  : rowItems.map((row, colIndex) => {
-                      const code = String(row.code || '')
-                      return (
-                        <PropertyCard
-                          key={code || `${virtualRow.index}-${colIndex}`}
-                          property={row}
-                          layout={view}
-                          selected={Boolean(code) && selectedCode === code}
-                          onSelect={onSelect}
-                          animationDelayMs={Math.min(colIndex * 40, 160)}
-                        />
-                      )
-                    })}
-              </div>
-            </div>
+            <PropertyCard
+              key={code || index}
+              property={row}
+              layout={view}
+              selected={Boolean(code) && selectedCode === code}
+              onSelect={onSelect}
+              animationDelayMs={Math.min((index % PAGE_SIZE) * 25, 200)}
+            />
           )
         })}
+
+        {/* Skeletons do carregamento em background ocupam o mesmo espaço do card final. */}
+        {loadingMore &&
+          Array.from({ length: view === 'list' ? 2 : 3 }).map((_, i) => (
+            <PropertyCardSkeleton key={`sk-${i}`} layout={view} />
+          ))}
       </div>
+
+      {hasMore && <div ref={sentinelRef} aria-hidden className="h-1 w-full" />}
     </div>
   )
 }

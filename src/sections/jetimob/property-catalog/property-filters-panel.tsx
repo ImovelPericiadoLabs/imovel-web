@@ -2,8 +2,6 @@ import { useState } from 'react'
 import { Bookmark, Check, Trash2, X } from 'lucide-react'
 
 import {
-  Button,
-  Input,
   Select,
   SelectContent,
   SelectItem,
@@ -18,7 +16,9 @@ import {
   EMPTY_JETIMOB_FILTERS,
   FILTER_ALL,
   hasActiveJetimobFilters,
+  SORT_OPTIONS,
   type JetimobPropertyFilters,
+  type JetimobSortKey,
 } from '@/lib/jetimob-property-filters'
 import { cn } from '@/utils/tailwind'
 
@@ -34,13 +34,35 @@ type PropertyFiltersPanelProps = {
   onApply: (next: JetimobPropertyFilters) => void
   options: FilterOptions
   className?: string
-  /** Fecha o drawer no mobile após aplicar/limpar — no-op no desktop (sidebar fixa). */
+  /** Fecha o sheet no mobile após aplicar/limpar — no-op no desktop (sidebar fixa). */
   onDone?: () => void
+  /** Ordenação: só renderizada no mobile, onde a toolbar não exibe o seletor. */
+  sort?: JetimobSortKey
+  onSortChange?: (sort: JetimobSortKey) => void
 }
 
-function FieldLabel({ children }: { children: React.ReactNode }) {
-  return <label className="mb-1.5 block text-xs font-medium text-gray-500">{children}</label>
+/** Campo de formulário: rótulo + controle, com o mesmo ritmo vertical da referência. */
+function Field({ label, htmlFor, children }: { label: string; htmlFor?: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label
+        htmlFor={htmlFor}
+        className="mb-2 block text-[13px] font-medium leading-none text-[var(--color-jetimob-text-body)]"
+      >
+        {label}
+      </label>
+      {children}
+    </div>
+  )
 }
+
+const FIELD_CLASS = cn(
+  'h-[var(--size-jetimob-field-h)] w-full rounded-[var(--radius-jetimob-field)]',
+  'border border-[var(--color-jetimob-border-field)] bg-white px-3.5',
+  'text-[14px] text-[var(--color-jetimob-text-title)] placeholder:text-[var(--color-jetimob-text-subtle)]',
+  'transition-colors hover:border-[var(--color-jetimob-border-strong)]',
+  'focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)] focus:ring-offset-1',
+)
 
 function OptionSelect({
   label,
@@ -56,10 +78,9 @@ function OptionSelect({
   emptyLabel: string
 }) {
   return (
-    <div>
-      <FieldLabel>{label}</FieldLabel>
+    <Field label={label}>
       <Select value={value} onValueChange={onValueChange}>
-        <SelectTrigger aria-label={label} className="h-11 w-full transition-shadow focus:ring-2">
+        <SelectTrigger aria-label={label} className={cn(FIELD_CLASS, 'justify-between font-normal')}>
           <SelectValue placeholder={emptyLabel} />
         </SelectTrigger>
         <SelectContent>
@@ -71,7 +92,7 @@ function OptionSelect({
           ))}
         </SelectContent>
       </Select>
-    </div>
+    </Field>
   )
 }
 
@@ -85,15 +106,19 @@ function SavedSearchChip({
   onRemove: () => void
 }) {
   return (
-    <span className="group inline-flex max-w-full items-center gap-1 rounded-full border border-gray-200 bg-gray-50 py-1 pl-3 pr-1 text-xs text-gray-600 transition hover:border-primary/40">
-      <button type="button" onClick={onApply} className="truncate font-medium hover:text-primary">
+    <span className="group inline-flex max-w-full items-center gap-1 rounded-full border border-[var(--color-jetimob-border-field)] bg-[var(--color-jetimob-surface-muted)] py-1 pl-3 pr-1 text-[12px] text-[var(--color-jetimob-text-body)] transition-colors hover:border-[var(--color-jetimob-accent)]">
+      <button
+        type="button"
+        onClick={onApply}
+        className="truncate font-medium hover:text-[var(--color-jetimob-accent)]"
+      >
         {entry.label}
       </button>
       <button
         type="button"
         onClick={onRemove}
-        aria-label="Remover busca salva"
-        className="flex size-5 shrink-0 items-center justify-center rounded-full text-gray-400 opacity-0 transition group-hover:opacity-100 hover:bg-gray-200 hover:text-gray-600"
+        aria-label={`Remover busca salva ${entry.label}`}
+        className="flex size-5 shrink-0 items-center justify-center rounded-full text-[var(--color-jetimob-text-subtle)] transition hover:bg-[var(--color-jetimob-border)] hover:text-[var(--color-jetimob-text-body)]"
       >
         <Trash2 className="size-3" aria-hidden />
       </button>
@@ -103,9 +128,9 @@ function SavedSearchChip({
 
 /**
  * Filtros combináveis (AND) — Cidade, Bairro, Tipo, Faixa de preço, Status, Atualizado
- * desde. Estado "rascunho": edições só valem para o catálogo ao clicar "Aplicar filtros"
- * (ou pressionar Enter), espelhando o botão explícito da referência de design. Lógica de
- * combinação em `filterJetimobProperties` (src/lib/jetimob-property-filters.ts).
+ * desde. Estado "rascunho": edições só valem para o catálogo ao submeter o formulário
+ * ("Aplicar filtros" ou Enter), espelhando o botão explícito da referência de design.
+ * Um único componente serve a sidebar do desktop e o sheet do mobile.
  */
 export function PropertyFiltersPanel({
   filters,
@@ -113,11 +138,13 @@ export function PropertyFiltersPanel({
   options,
   className,
   onDone,
+  sort,
+  onSortChange,
 }: PropertyFiltersPanelProps) {
   const [draft, setDraft] = useState(filters)
-  // Reajusta o rascunho quando `filters` muda por fora (limpar/aplicar busca salva) —
-  // ajuste de estado durante o render (padrão oficial do React para "resetar estado
-  // quando uma prop muda"), sem precisar de um effect.
+  // Reajusta o rascunho quando `filters` muda por fora (limpar / aplicar busca salva) —
+  // ajuste de estado durante o render, o padrão oficial do React para "resetar estado
+  // quando uma prop muda", sem effect.
   const [committedFilters, setCommittedFilters] = useState(filters)
   if (filters !== committedFilters) {
     setCommittedFilters(filters)
@@ -145,15 +172,20 @@ export function PropertyFiltersPanel({
         e.preventDefault()
         apply(draft)
       }}
-      className={cn('flex flex-col gap-4 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm', className)}
+      aria-label="Filtros do catálogo"
+      className={cn(
+        'flex flex-col gap-5 rounded-[var(--radius-jetimob-panel)] border border-[var(--color-jetimob-border)]',
+        'bg-[var(--color-jetimob-surface)] p-6 shadow-[var(--shadow-jetimob-panel)]',
+        className,
+      )}
     >
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-bold text-gray-900">Filtros</h2>
+        <h2 className="text-[15px] font-bold leading-none text-[var(--color-jetimob-text-title)]">Filtros</h2>
         {hasActiveJetimobFilters(filters) && (
           <button
             type="button"
             onClick={() => apply(EMPTY_JETIMOB_FILTERS)}
-            className="inline-flex items-center gap-1 text-xs font-medium text-primary transition hover:underline"
+            className="inline-flex items-center gap-1.5 text-[13px] text-[var(--color-jetimob-text-muted)] transition-colors hover:text-[var(--color-jetimob-accent)]"
           >
             <X className="size-3.5" aria-hidden />
             Limpar filtros
@@ -162,21 +194,39 @@ export function PropertyFiltersPanel({
       </div>
 
       {searches.length > 0 && (
-        <div className="flex flex-col gap-1.5">
-          <span className="text-xs font-medium text-gray-500">Buscas salvas</span>
+        <div className="flex flex-col gap-2">
+          <span className="text-[13px] font-medium leading-none text-[var(--color-jetimob-text-body)]">
+            Buscas salvas
+          </span>
           <div className="flex flex-wrap gap-1.5">
             {searches.map((entry) => (
               <SavedSearchChip
                 key={entry.id}
                 entry={entry}
-                onApply={() => {
-                  setDraft(entry.filters)
-                  apply(entry.filters)
-                }}
+                onApply={() => apply(entry.filters)}
                 onRemove={() => removeSearch(entry.id)}
               />
             ))}
           </div>
+        </div>
+      )}
+
+      {sort && onSortChange && (
+        <div className="lg:hidden">
+          <Field label="Ordenar por">
+            <Select value={sort} onValueChange={(v) => onSortChange(v as JetimobSortKey)}>
+              <SelectTrigger aria-label="Ordenar por" className={cn(FIELD_CLASS, 'justify-between font-normal')}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {SORT_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
         </div>
       )}
 
@@ -204,10 +254,12 @@ export function PropertyFiltersPanel({
         emptyLabel="Todos"
       />
 
-      <div>
-        <FieldLabel>Faixa de preço</FieldLabel>
-        <div className="flex items-center gap-2">
-          <Input
+      <fieldset>
+        <legend className="mb-2 block text-[13px] font-medium leading-none text-[var(--color-jetimob-text-body)]">
+          Faixa de preço
+        </legend>
+        <div className="flex items-center gap-2.5">
+          <input
             type="number"
             inputMode="numeric"
             min={0}
@@ -215,10 +267,10 @@ export function PropertyFiltersPanel({
             aria-label="Preço mínimo"
             value={draft.priceMin}
             onChange={(e) => setDraft({ ...draft, priceMin: e.target.value })}
-            className="h-11"
+            className={cn(FIELD_CLASS, 'min-w-0 flex-1')}
           />
-          <span className="shrink-0 text-xs text-gray-400">até</span>
-          <Input
+          <span className="shrink-0 text-[13px] text-[var(--color-jetimob-text-muted)]">até</span>
+          <input
             type="number"
             inputMode="numeric"
             min={0}
@@ -226,10 +278,10 @@ export function PropertyFiltersPanel({
             aria-label="Preço máximo"
             value={draft.priceMax}
             onChange={(e) => setDraft({ ...draft, priceMax: e.target.value })}
-            className="h-11"
+            className={cn(FIELD_CLASS, 'min-w-0 flex-1')}
           />
         </div>
-      </div>
+      </fieldset>
 
       <OptionSelect
         label="Status do imóvel"
@@ -239,31 +291,50 @@ export function PropertyFiltersPanel({
         emptyLabel="Todos"
       />
 
-      <div>
-        <FieldLabel>Atualizado desde</FieldLabel>
-        <Input
+      <Field label="Atualizado desde" htmlFor="jetimob-updated-since">
+        <input
+          id="jetimob-updated-since"
           type="date"
-          aria-label="Atualizado desde"
           value={draft.updatedSince}
           onChange={(e) => setDraft({ ...draft, updatedSince: e.target.value })}
-          className="h-11"
+          className={FIELD_CLASS}
         />
+      </Field>
+
+      <div className="flex flex-col gap-2.5 pt-1">
+        <button
+          type="submit"
+          className={cn(
+            'flex h-[var(--size-jetimob-action-h)] w-full items-center justify-center rounded-[var(--radius-jetimob-field)]',
+            'bg-[var(--color-jetimob-accent)] text-[14px] font-semibold text-white',
+            'transition-colors hover:bg-[var(--color-jetimob-accent-hover)]',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] focus-visible:ring-offset-2',
+          )}
+        >
+          Aplicar filtros
+        </button>
+
+        <button
+          type="button"
+          disabled={!draftActive}
+          onClick={handleSaveSearch}
+          className={cn(
+            'flex h-[var(--size-jetimob-action-h)] w-full items-center justify-center gap-2 rounded-[var(--radius-jetimob-field)]',
+            'border border-[var(--color-jetimob-border-field)] bg-white',
+            'text-[14px] font-semibold text-[var(--color-jetimob-text-title)]',
+            'transition-colors hover:border-[var(--color-jetimob-accent)] hover:bg-[var(--color-jetimob-surface-muted)]',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] focus-visible:ring-offset-2',
+            'disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-[var(--color-jetimob-border-field)] disabled:hover:bg-white',
+          )}
+        >
+          {justSaved ? (
+            <Check className="size-4 text-emerald-600" aria-hidden />
+          ) : (
+            <Bookmark className="size-4" aria-hidden />
+          )}
+          {justSaved ? 'Busca salva!' : 'Salvar busca'}
+        </button>
       </div>
-
-      <Button type="submit" className="h-11 w-full justify-center rounded-xl">
-        Aplicar filtros
-      </Button>
-
-      <Button
-        type="button"
-        variant="outline"
-        disabled={!draftActive}
-        onClick={handleSaveSearch}
-        className="h-11 w-full justify-center gap-2 rounded-xl"
-      >
-        {justSaved ? <Check className="size-4 text-emerald-600" /> : <Bookmark className="size-4" />}
-        {justSaved ? 'Busca salva!' : 'Salvar busca'}
-      </Button>
     </form>
   )
 }

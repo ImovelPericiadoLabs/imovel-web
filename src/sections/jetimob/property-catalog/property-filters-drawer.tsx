@@ -1,7 +1,7 @@
 import * as DialogPrimitive from '@radix-ui/react-dialog'
 import { X } from 'lucide-react'
 
-import type { JetimobPropertyFilters } from '@/lib/jetimob-property-filters'
+import type { JetimobPropertyFilters, JetimobSortKey } from '@/lib/jetimob-property-filters'
 
 import { PropertyFiltersPanel } from './property-filters-panel'
 
@@ -18,6 +18,8 @@ type PropertyFiltersDrawerProps = {
   filters: JetimobPropertyFilters
   onApply: (next: JetimobPropertyFilters) => void
   options: FilterOptions
+  sort: JetimobSortKey
+  onSortChange: (sort: JetimobSortKey) => void
 }
 
 /**
@@ -31,6 +33,8 @@ export function PropertyFiltersDrawer({
   filters,
   onApply,
   options,
+  sort,
+  onSortChange,
 }: PropertyFiltersDrawerProps) {
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
@@ -54,6 +58,8 @@ export function PropertyFiltersDrawer({
               filters={filters}
               onApply={onApply}
               options={options}
+              sort={sort}
+              onSortChange={onSortChange}
               onDone={() => onOpenChange(false)}
               className="border-0 p-0 shadow-none"
             />
