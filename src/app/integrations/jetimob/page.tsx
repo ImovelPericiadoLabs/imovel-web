@@ -189,6 +189,7 @@ export default function JetimobIntegrationPage() {
         entryPath,
         session?.jetimob_system_id,
         options.writeback,
+        selected?.property_id,
       ),
     )
     setSelected(null)

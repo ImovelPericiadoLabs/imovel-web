@@ -69,6 +69,13 @@ export function useJetimobCatalog(enabled: boolean): UseJetimobCatalogState {
         const total = data.total_items ?? data.pagination?.total_items
         if (typeof total === 'number') setTotalItems(total)
 
+        // DIVERGÊNCIA CONHECIDA (mantida de propósito — decisão do time).
+        // Pela doc da API legada (https://docs-apps.jetimob.io/legacy), `page_limit` na
+        // resposta é o TOTAL DE PÁGINAS, não o tamanho da página (exemplo oficial:
+        // total_items 8 com page_limit 1). Aqui ele é lido como tamanho, então o laço
+        // pede algumas páginas a mais e só para quando vem uma vazia — funciona, mas
+        // desperdiça round-trips. Corrigir junto com os nomes de parâmetro do request
+        // (`busca`/`per_page`), que também divergem.
         const limit = Number(data.pagination?.page_limit) || PAGE_LIMIT
         const reachedTotal = typeof total === 'number' && page * limit >= total
         const shortPage = pageItems.length < limit
