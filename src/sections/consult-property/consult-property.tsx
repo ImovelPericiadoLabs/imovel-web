@@ -31,7 +31,8 @@ import {
   consultFlowShellGradientClass,
   consultFlowShellGradientFinishedClass,
 } from '@/constants/consult-flow-hero-text'
-import { flowMainOverlap } from '@/styles/layout'
+import { flowHeroShell, flowMainOverlap } from '@/styles/layout'
+import { useFlowHeroSpace } from '@/hooks/use-flow-hero-space'
 import { cn } from '@/utils/tailwind'
 import { validations, FormTypes } from '@/sections/consult-property/validations'
 import {
@@ -135,6 +136,9 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
     if (typeof window === 'undefined') return true
     return sessionStorage.getItem('consultPropertyAssetsReady') !== 'true'
   })
+
+  // Faixa escura do hero: dimensionada pela altura real do passo visível.
+  const heroScopeRef = useFlowHeroSpace<HTMLElement>()
 
   const methods = useForm<FormTypes>({
     resolver: zodResolver(validations) as Resolver<FormTypes>,
@@ -438,7 +442,13 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
   }
 
   return (
-    <section className="flex min-h-dvh w-full flex-col overflow-x-hidden bg-background">
+    <section
+      ref={heroScopeRef}
+      className={cn(
+        'flex min-h-dvh w-full flex-col overflow-x-hidden bg-background',
+        flowHeroShell.scope,
+      )}
+    >
       <div
         className={cn(
           consultFlowShellClass,
