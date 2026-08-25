@@ -69,6 +69,7 @@ const CONSULT_PROPERTY_FORM_DEFAULTS: FormTypes = {
   includeCertificates: false,
   jetimobPropertyCode: '',
   jetimobSystemId: '',
+  jetimobWriteback: false,
 }
 
 type FlowState =
@@ -217,6 +218,7 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
       ...(prefill.form as Partial<FormTypes>),
       jetimobPropertyCode: prefill.propertyCode,
       jetimobSystemId: prefill.systemId || '',
+      jetimobWriteback: prefill.writeback ?? false,
     })
 
     // Endereço externo precisa de confirmação: vira busca pré-preenchida no

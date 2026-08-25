@@ -1,7 +1,8 @@
 'use client'
 
+import { useState } from 'react'
 import * as DialogPrimitive from '@radix-ui/react-dialog'
-import { AlertTriangle, ArrowUpRight, CheckCircle2, FileText, MapPin, ScrollText, X } from 'lucide-react'
+import { AlertTriangle, ArrowUpRight, CheckCircle2, FileText, MapPin, Paperclip, ScrollText, X } from 'lucide-react'
 
 import type {
   JetimobConsultDraftResponse,
@@ -121,7 +122,11 @@ type ConsultPropertyDialogProps = {
   loading: boolean
   error: string | null
   onOpenChange: (open: boolean) => void
-  onStart: (entryPath: JetimobConsultEntryPath, mode: JetimobConsultModeDraft) => void
+  onStart: (
+    entryPath: JetimobConsultEntryPath,
+    mode: JetimobConsultModeDraft,
+    options: { writeback: boolean },
+  ) => void
 }
 
 /**
@@ -138,6 +143,7 @@ export function ConsultPropertyDialog({
   onStart,
 }: ConsultPropertyDialogProps) {
   const title = property?.title || (property?.code ? `Imóvel ${property.code}` : 'Imóvel')
+  const [writeback, setWriteback] = useState(true)
 
   return (
     <DialogPrimitive.Root open={Boolean(property)} onOpenChange={onOpenChange}>
@@ -202,10 +208,31 @@ export function ConsultPropertyDialog({
                     key={entryPath}
                     entryPath={entryPath}
                     mode={draft.modes?.[entryPath]}
-                    onStart={onStart}
+                    onStart={(path, mode) => onStart(path, mode, { writeback })}
                   />
                 ))}
               </div>
+            )}
+
+            {draft?.modes && !loading && (
+              <label className="mt-4 flex cursor-pointer items-start gap-2.5 rounded-[var(--radius-jetimob-field)] border border-[var(--color-jetimob-border-field)] bg-[var(--color-jetimob-surface-muted)] p-3 transition-colors hover:border-[var(--color-jetimob-accent)]">
+                <input
+                  type="checkbox"
+                  checked={writeback}
+                  onChange={(e) => setWriteback(e.target.checked)}
+                  className="mt-0.5 size-4 shrink-0 accent-[var(--color-jetimob-accent)]"
+                />
+                <span className="min-w-0">
+                  <span className="flex items-center gap-1.5 text-[13px] font-semibold text-[var(--color-jetimob-text-title)]">
+                    <Paperclip className="size-3.5" aria-hidden />
+                    Atualizar o cadastro na Jetimob
+                  </span>
+                  <span className="mt-0.5 block text-[11px] leading-snug text-[var(--color-jetimob-text-muted)]">
+                    Ao concluir, anexamos os documentos da análise no cadastro deste imóvel e
+                    preenchemos os campos que estiverem vazios (matrícula, cartório).
+                  </span>
+                </span>
+              </label>
             )}
 
             <p className="mt-4 text-[11px] leading-relaxed text-[var(--color-jetimob-text-subtle)]">

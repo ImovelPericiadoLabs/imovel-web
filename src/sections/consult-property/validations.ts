@@ -48,6 +48,7 @@ export const validations = z
     /** Código do imóvel e tenant quando a consulta veio da integração Jetimob. */
     jetimobPropertyCode: z.string().default(''),
     jetimobSystemId: z.string().default(''),
+    jetimobWriteback: z.boolean().default(false),
   })
   .refine(
     (data) => {
