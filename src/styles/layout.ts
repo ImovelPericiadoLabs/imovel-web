@@ -33,12 +33,21 @@ export const centeredContent = {
 }
 
 /**
- * Faixa degradê + overlap (valores pareados).
- * Reserva ~3 linhas do título primary em branco + ~0.75rem abaixo do header.
+ * Faixa degradê + overlap (valores PAREADOS — alterar sempre os dois juntos).
+ *
+ * `band` estende a área escura para baixo; `overlap` puxa o conteúdo para cima sobre
+ * ela. A diferença entre os dois (12px em todo breakpoint) é o respiro abaixo do
+ * header, e é o que mantém o bloco do hero na MESMA posição visual: subindo band e
+ * overlap no mesmo delta, o conteúdo não se move e só a faixa escura cresce.
+ *
+ * Os degraus de sm+ existem porque o título/subtítulo crescem por `clamp()` no
+ * desktop: medido, o bloco vai de 91px (mobile, cabe) a 113px (lg+), e com os valores
+ * antigos a 2ª linha do subtítulo vazava 11–17px para fora do degradê, caindo no fundo
+ * branco com cor clara (ilegível). O base (mobile) fica intocado de propósito.
  */
 export const flowHeroShell = {
-  band: 'h-[6.75rem] shrink-0 sm:h-[6.5rem] md:h-[6.75rem]',
-  overlap: '-mt-[6rem] sm:-mt-[5.75rem] md:-mt-[6rem]',
+  band: 'h-[6.75rem] shrink-0 sm:h-[7.5rem] md:h-[8rem] lg:h-[8.25rem]',
+  overlap: '-mt-[6rem] sm:-mt-[6.75rem] md:-mt-[7.25rem] lg:-mt-[7.5rem]',
 } as const
 
 export const flowMainOverlap = flowHeroShell.overlap
