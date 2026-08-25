@@ -23,11 +23,11 @@ describe('order-journey', () => {
 
   it('getOrderRefetchIntervalMs polls while pipeline is active', () => {
     expect(getOrderRefetchIntervalMs('SEARCHING_DOCUMENT')).toBe(15_000)
-    expect(getOrderRefetchIntervalMs('IN_PROGRESS')).toBe(10_000)
+    expect(getOrderRefetchIntervalMs('IN_PROGRESS')).toBe(8_000)
   })
 
-  it('getOrderRefetchIntervalMs stops on manual review queue', () => {
-    expect(getOrderRefetchIntervalMs('MANUAL_REVIEW_PENDING')).toBe(false)
+  it('getOrderRefetchIntervalMs polls slowly on manual review queue (auto-retry externo)', () => {
+    expect(getOrderRefetchIntervalMs('MANUAL_REVIEW_PENDING')).toBe(300_000)
   })
 
   it('getOrderRefetchIntervalMs stops on unknown status', () => {
@@ -77,12 +77,12 @@ describe('order-journey', () => {
   it('isOrderTerminalStatus stops polling targets', () => {
     expect(isOrderTerminalStatus('FINISHED')).toBe(true)
     expect(isOrderTerminalStatus('CANCELED')).toBe(true)
-    expect(isOrderTerminalStatus('MANUAL_REVIEW_PENDING')).toBe(true)
+    expect(isOrderTerminalStatus('MANUAL_REVIEW_PENDING')).toBe(false)
     expect(isOrderTerminalStatus('IN_PROGRESS')).toBe(false)
   })
 
   it('getOrderEventsRefetchIntervalMs polls only during active pipeline', () => {
-    expect(getOrderEventsRefetchIntervalMs('IN_PROGRESS')).toBe(12_000)
+    expect(getOrderEventsRefetchIntervalMs('IN_PROGRESS')).toBe(8_000)
     expect(getOrderEventsRefetchIntervalMs('FINISHED')).toBe(false)
     expect(getOrderEventsRefetchIntervalMs('PENDING')).toBe(false)
   })

@@ -12,6 +12,7 @@ export type BackendOrderStatus =
   | 'REJECTED_DATA'
   | 'RETURNED_BY_NOTARY'
   | 'AWAITING_CUSTOMER_REPLY'
+  | 'MANUAL_REVIEW_PENDING'
   | 'FAILED'
 
 export type JourneyStepId =
@@ -133,6 +134,14 @@ export const ORDER_STATUS_UI: Record<
     expectation:
       'Responda com as informações pedidas para o processo continuar no mesmo protocolo — sem cancelar.',
   },
+  MANUAL_REVIEW_PENDING: {
+    label: 'Aguardando liberação do cartório',
+    progress: 45,
+    step: 'search',
+    headline: 'Sua consulta está garantida — aguardando o sistema do cartório.',
+    expectation:
+      'O sistema externo está temporariamente indisponível e novas tentativas são feitas automaticamente. Nossa equipe acompanha de perto; você não precisa fazer nada.',
+  },
   FAILED: {
     label: 'Pagamento não concluído',
     progress: 5,
@@ -186,11 +195,7 @@ export function isOrderPipelineActive(statusValue: string | undefined): boolean 
 
 /** Terminal order statuses — polling must be off. */
 export function isOrderTerminalStatus(statusValue: string | undefined): boolean {
-  return (
-    statusValue === 'FINISHED' ||
-    statusValue === 'CANCELED' ||
-    statusValue === 'MANUAL_REVIEW_PENDING'
-  )
+  return statusValue === 'FINISHED' || statusValue === 'CANCELED'
 }
 
 /** Polling interval for pipeline events timeline (ms); `false` = off. */
@@ -204,6 +209,9 @@ export function getOrderEventsRefetchIntervalMs(
     statusValue === 'AWAITING_CUSTOMER_REPLY'
   ) {
     return 90_000
+  }
+  if (statusValue === 'MANUAL_REVIEW_PENDING') {
+    return 300_000
   }
   if (statusValue === 'IN_PROGRESS') {
     return 8_000
@@ -233,8 +241,10 @@ export function getOrderRefetchIntervalMs(
       return 45_000
     case 'FINISHED':
     case 'CANCELED':
-    case 'MANUAL_REVIEW_PENDING':
       return false
+    // Retido aguardando sistema externo — retries automáticos 2/2h; polling lento.
+    case 'MANUAL_REVIEW_PENDING':
+      return 300_000
     case 'REJECTED_DATA':
     case 'RETURNED_BY_NOTARY':
     case 'AWAITING_CUSTOMER_REPLY':
@@ -283,6 +293,9 @@ export function getOrderTimelineRows(
       return rowsFromStates(['done', 'attention', 'pending', 'pending'])
     case 'AWAITING_CUSTOMER_REPLY':
       return rowsFromStates(['done', 'attention', 'pending', 'pending'])
+    // Busca segue ativa (retry automático) — mostra etapa em andamento, sem alarme.
+    case 'MANUAL_REVIEW_PENDING':
+      return rowsFromStates(['done', 'current', 'pending', 'pending'])
     default:
       return rowsFromStates(['pending', 'pending', 'pending', 'pending'])
   }
