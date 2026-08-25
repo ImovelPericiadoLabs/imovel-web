@@ -8,6 +8,7 @@ import {
   FILTER_ALL,
   filterJetimobProperties,
   hasActiveJetimobFilters,
+  sortJetimobProperties,
 } from './jetimob-property-filters'
 
 const APARTAMENTO: JetimobPropertyRow = {
@@ -17,6 +18,7 @@ const APARTAMENTO: JetimobPropertyRow = {
   property_type: 'Apartamento',
   status: 'Disponível',
   city: 'Fortaleza',
+  neighborhood: 'Centro',
   sale_price: 350_000,
   updated_at: '2026-08-01T10:00:00Z',
 }
@@ -28,6 +30,7 @@ const CASA: JetimobPropertyRow = {
   property_type: 'Casa',
   status: 'Vendido',
   city: 'Fortaleza',
+  neighborhood: 'Meireles',
   sale_price: 900_000,
   updated_at: '2026-06-01T10:00:00Z',
 }
@@ -84,6 +87,12 @@ describe('filterJetimobProperties', () => {
     ])
   })
 
+  it('filtra por bairro exato', () => {
+    expect(
+      filterJetimobProperties(ALL, { ...EMPTY_JETIMOB_FILTERS, neighborhood: 'Meireles' }),
+    ).toEqual([CASA])
+  })
+
   it('faixa de preço usa sale_price, com fallback para rent_price', () => {
     const result = filterJetimobProperties(ALL, {
       ...EMPTY_JETIMOB_FILTERS,
@@ -130,10 +139,45 @@ describe('collectFilterOptions', () => {
       propertyTypes: ['Apartamento', 'Casa', 'Terreno'],
       statuses: ['Disponível', 'Vendido'],
       cities: ['Aquiraz', 'Fortaleza'],
+      neighborhoods: ['Centro', 'Meireles'],
     })
   })
 
   it('lista vazia não quebra', () => {
-    expect(collectFilterOptions([])).toEqual({ propertyTypes: [], statuses: [], cities: [] })
+    expect(collectFilterOptions([])).toEqual({
+      propertyTypes: [],
+      statuses: [],
+      cities: [],
+      neighborhoods: [],
+    })
+  })
+})
+
+describe('sortJetimobProperties', () => {
+  it('recent ordena por updated_at desc, sem data vai para o fim', () => {
+    const result = sortJetimobProperties(ALL, 'recent')
+    expect(result.map((r) => r.code)).toEqual(['A1', 'C1', 'T1'])
+  })
+
+  it('price_asc ordena por preço de referência crescente, sem preço vai para o fim', () => {
+    const semPreco: JetimobPropertyRow = { code: 'X', title: 'Sem preço' }
+    const result = sortJetimobProperties([...ALL, semPreco], 'price_asc')
+    expect(result.map((r) => r.code)).toEqual(['T1', 'A1', 'C1', 'X'])
+  })
+
+  it('price_desc ordena por preço de referência decrescente', () => {
+    const result = sortJetimobProperties(ALL, 'price_desc')
+    expect(result.map((r) => r.code)).toEqual(['C1', 'A1', 'T1'])
+  })
+
+  it('address_asc ordena alfabeticamente pelo endereço', () => {
+    const result = sortJetimobProperties(ALL, 'address_asc')
+    expect(result.map((r) => r.code)).toEqual(['C1', 'T1', 'A1'])
+  })
+
+  it('não muta o array recebido', () => {
+    const copy = [...ALL]
+    sortJetimobProperties(ALL, 'price_desc')
+    expect(ALL).toEqual(copy)
   })
 })
