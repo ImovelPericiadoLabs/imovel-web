@@ -18,13 +18,25 @@ export const typographyWeight = {
   eyebrow: 'font-medium uppercase tracking-widest',
 }
 
-/** Cores de título (peso vem em composeHeroTitle). */
+/** Cores de título (peso vem em composeHeroTitle).
+ *
+ * Escala nas superfícies escuras: primary (branco) > secondary (slate-300) >
+ * description (slate-400) > lead. Cada degrau desce um passo na escala, preservando a
+ * hierarquia visual sem cair abaixo do contraste legível.
+ *
+ * `slate-300` no secundário não é escolha estética: com `slate-600` (o valor anterior)
+ * o contraste sobre o degradê do hero ficava em 1.8–2.3:1, bem abaixo do mínimo de
+ * 4.5:1 do WCAG AA — era uma cor de superfície CLARA usada por engano na escura (o par
+ * claro logo abaixo usa slate-700). Com slate-300 vai a 9.3:1 no pior ponto do
+ * degradê. Description e lead já passavam (4.7–6.7:1) e ficam como estão.
+ */
 export const titleColorPrimaryOnDark = 'text-white/95'
-export const titleColorSecondaryOnDark = 'text-slate-600'
+export const titleColorSecondaryOnDark = 'text-slate-300'
 export const titleColorPrimaryOnLight = 'text-slate-900'
 export const titleColorSecondaryOnLight = 'text-slate-700'
 export const titleColorPrimaryOnGlass = 'text-white/95'
-export const titleColorSecondaryOnGlass = 'text-slate-600'
+// Glass = branco translúcido sobre o mesmo degradê escuro: mesmo problema, mesma cura.
+export const titleColorSecondaryOnGlass = 'text-slate-300'
 export const titleColorPrimaryOnAccent = 'text-slate-900'
 export const titleColorSecondaryOnAccent = 'text-slate-600'
 
@@ -53,9 +65,13 @@ export const gradientAccentInlineOnLight = join(
   'bg-gradient-to-r from-[#64748b] via-[#6366F1] to-[#7C3AED] bg-clip-text font-medium text-transparent',
 )
 
-export const eyebrowOnDark = join(typographyWeight.eyebrow, 'text-[10px] text-slate-400/85')
+// Eyebrow é texto pequeno (10px), então cai na exigência de 4.5:1 do WCAG AA. Com o
+// /85 anterior ficava em 4.34:1 sobre o degradê — reprovava por pouco. Sólido vai a
+// 5.42:1, mesmo tom, sem mudança visual perceptível. Alinha com `leadOnDark`, que já
+// usa o slate-400 sólido.
+export const eyebrowOnDark = join(typographyWeight.eyebrow, 'text-[10px] text-slate-400')
 export const eyebrowOnLight = join(typographyWeight.eyebrow, 'text-[10px] text-slate-500')
-export const eyebrowOnGlass = join(typographyWeight.eyebrow, 'text-[10px] text-slate-400/85')
+export const eyebrowOnGlass = join(typographyWeight.eyebrow, 'text-[10px] text-slate-400')
 export const eyebrowOnAccent = join(typographyWeight.eyebrow, 'text-[10px] text-slate-500')
 
 type HeroTitleLevel = 'primary' | 'secondary' | 'large'
