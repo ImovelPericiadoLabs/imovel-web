@@ -104,6 +104,54 @@
   /* 3. ANIMATIONS                                                          */
   /* ====================================================================== */
   --animate-pulse-text: pulse-text 2s ease-in-out infinite;
+
+  /* ====================================================================== */
+  /* 4. CATÁLOGO JETIMOB — tokens extraídos da referência de design         */
+  /* ====================================================================== */
+  /* Superfícies */
+  --color-jetimob-hero-from: #0b1b3a;
+  --color-jetimob-hero-to: #12294f;
+  --color-jetimob-canvas: #ffffff;
+  --color-jetimob-surface: #ffffff;
+  --color-jetimob-surface-muted: #f9fafb;
+
+  /* Bordas */
+  --color-jetimob-border: #eceef1;
+  --color-jetimob-border-strong: #e2e5e9;
+  --color-jetimob-border-field: #e5e7eb;
+
+  /* Texto */
+  --color-jetimob-text-title: #111827;
+  --color-jetimob-text-body: #4b5563;
+  --color-jetimob-text-muted: #6b7280;
+  --color-jetimob-text-subtle: #9ca3af;
+  --color-jetimob-text-on-hero: #ffffff;
+
+  /* Acentos */
+  --color-jetimob-accent: #0b1b3a;
+  --color-jetimob-accent-hover: #142a5b;
+  --color-jetimob-active-dot: #22c55e;
+  --color-jetimob-active-text: #15803d;
+  --color-jetimob-active-bg: #ffffff;
+
+  /* Raios */
+  --radius-jetimob-panel: 16px;
+  --radius-jetimob-card: 14px;
+  --radius-jetimob-field: 10px;
+  --radius-jetimob-chip: 6px;
+
+  /* Sombras */
+  --shadow-jetimob-panel: 0 1px 2px 0 rgb(16 24 40 / 0.04), 0 1px 3px 0 rgb(16 24 40 / 0.06);
+  --shadow-jetimob-card: 0 1px 2px 0 rgb(16 24 40 / 0.04), 0 4px 12px -2px rgb(16 24 40 / 0.06);
+  --shadow-jetimob-card-hover: 0 8px 24px -4px rgb(16 24 40 / 0.12);
+  --shadow-jetimob-float: 0 1px 3px 0 rgb(16 24 40 / 0.12);
+
+  /* Métricas de layout */
+  --size-jetimob-sidebar: 332px;
+  --size-jetimob-field-h: 44px;
+  --size-jetimob-action-h: 48px;
+  --size-jetimob-shell-max: 1400px;
+  --gap-jetimob-grid: 24px;
 }
 
 @media screen and (max-width: 768px) {

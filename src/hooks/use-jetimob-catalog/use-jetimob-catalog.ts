@@ -58,6 +58,11 @@ export function useJetimobCatalog(enabled: boolean): UseJetimobCatalogState {
           signal: controller.signal,
         })
 
+        // `abort()` só rejeita fetch EM VOO: se a resposta já tinha resolvido, uma carga
+        // superseded continuaria concatenando itens duplicados no estado. Checar o sinal
+        // depois de cada await é o que garante "só a carga mais recente escreve".
+        if (controller.signal.aborted) return
+
         const pageItems = data.items ?? []
         setItems((prev) => [...prev, ...pageItems])
 
@@ -70,8 +75,9 @@ export function useJetimobCatalog(enabled: boolean): UseJetimobCatalogState {
 
         if (pageItems.length === 0 || shortPage || reachedTotal) break
       }
-      setComplete(true)
+      if (!controller.signal.aborted) setComplete(true)
     } catch (err) {
+      if (controller.signal.aborted) return
       if (err instanceof DOMException && err.name === 'AbortError') return
       setError('Não foi possível carregar o catálogo completo da Jetimob.')
       setComplete(true)
