@@ -174,12 +174,22 @@ export default function JetimobIntegrationPage() {
     }
   }
 
-  const startConsultation = (entryPath: JetimobConsultEntryPath, mode: JetimobConsultModeDraft) => {
+  const startConsultation = (
+    entryPath: JetimobConsultEntryPath,
+    mode: JetimobConsultModeDraft,
+    options: { writeback: boolean },
+  ) => {
     const code = String(selected?.code || '')
     if (!code) return
 
     storeJetimobConsultPrefill(
-      buildJetimobConsultPrefill(code, mode, entryPath, session?.jetimob_system_id),
+      buildJetimobConsultPrefill(
+        code,
+        mode,
+        entryPath,
+        session?.jetimob_system_id,
+        options.writeback,
+      ),
     )
     setSelected(null)
     setConsultOpen(true)
