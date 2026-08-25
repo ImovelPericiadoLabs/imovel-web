@@ -20,34 +20,47 @@ export const section = {
   paddingBottom: 'pb-12 md:pb-14',
 }
 
+/**
+ * Marcador (sem estilo) usado pelo shell do fluxo para medir o hero visível e
+ * dimensionar a faixa escura. Fica na constante compartilhada de propósito: assim todo
+ * bloco de hero — os que usam a classe crua e os que passam por
+ * <CenteredContent variant="hero|heroBlock"> — é rastreado sem marcação manual.
+ */
+export const FLOW_HERO_MARKER = 'js-flow-hero'
+
 export const centeredContent = {
   base: join(
     'mx-auto flex w-full min-w-0 flex-col items-center text-center',
   ),
   hero: join(
+    FLOW_HERO_MARKER,
     'mx-auto flex w-full min-w-0 max-w-2xl flex-col items-center gap-3.5 px-0 text-center sm:max-w-3xl sm:gap-4',
   ),
   heroBlock: join(
+    FLOW_HERO_MARKER,
     'mx-auto mb-3 flex w-full min-w-0 max-w-2xl flex-col items-center gap-2 px-0 text-center sm:max-w-3xl sm:mb-4 md:mb-5',
   ),
 }
 
 /**
- * Faixa degradê + overlap (valores PAREADOS — alterar sempre os dois juntos).
+ * Faixa degradê + overlap, dirigidos por `--flow-hero-space`.
  *
- * `band` estende a área escura para baixo; `overlap` puxa o conteúdo para cima sobre
- * ela. A diferença entre os dois (12px em todo breakpoint) é o respiro abaixo do
- * header, e é o que mantém o bloco do hero na MESMA posição visual: subindo band e
- * overlap no mesmo delta, o conteúdo não se move e só a faixa escura cresce.
+ * A área escura tem altura própria e o conteúdo a sobrepõe por margem negativa, então
+ * o espaço escuro útil é exatamente `--flow-hero-space`. Enquanto esse valor era fixo
+ * por breakpoint, qualquer hero mais alto vazava para o fundo branco com texto claro
+ * (ilegível) — e cada tela quebrava numa largura diferente, porque a altura do hero
+ * varia com `clamp()` e com quantos blocos de texto o passo tem (a tela de entrada,
+ * por exemplo, tem três).
  *
- * Os degraus de sm+ existem porque o título/subtítulo crescem por `clamp()` no
- * desktop: medido, o bloco vai de 91px (mobile, cabe) a 113px (lg+), e com os valores
- * antigos a 2ª linha do subtítulo vazava 11–17px para fora do degradê, caindo no fundo
- * branco com cor clara (ilegível). O base (mobile) fica intocado de propósito.
+ * Agora globals.css define um PISO responsivo e o shell eleva a variável em runtime
+ * conforme o hero realmente medido (`useFlowHeroSpace`). Serve qualquer conteúdo, em
+ * qualquer idioma/zoom, sem ajuste por tela. Os +12px são o respiro sob o header.
  */
 export const flowHeroShell = {
-  band: 'h-[6.75rem] shrink-0 sm:h-[7.5rem] md:h-[8rem] lg:h-[8.25rem]',
-  overlap: '-mt-[6rem] sm:-mt-[6.75rem] md:-mt-[7.25rem] lg:-mt-[7.5rem]',
+  band: 'h-[calc(var(--flow-hero-space)+12px)] shrink-0',
+  overlap: 'mt-[calc(var(--flow-hero-space)*-1)]',
+  /** Escopo onde a variável vive — precisa envolver band e overlap. */
+  scope: 'flow-hero-scope',
 } as const
 
 export const flowMainOverlap = flowHeroShell.overlap
