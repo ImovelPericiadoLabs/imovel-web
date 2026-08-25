@@ -49,6 +49,7 @@ export const validations = z
     jetimobPropertyCode: z.string().default(''),
     jetimobSystemId: z.string().default(''),
     jetimobWriteback: z.boolean().default(false),
+    jetimobPropertyId: z.string().default(''),
   })
   .refine(
     (data) => {

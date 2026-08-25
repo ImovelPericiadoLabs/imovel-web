@@ -257,6 +257,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
       const jetimobCode = String(parentForm?.getValues('jetimobPropertyCode') || '').trim()
       const jetimobSystemId = String(parentForm?.getValues('jetimobSystemId') || '').trim()
       const jetimobWriteback = Boolean(parentForm?.getValues('jetimobWriteback'))
+      const jetimobPropertyId = String(parentForm?.getValues('jetimobPropertyId') || '').trim()
 
       return {
         place_id: finalPlaceId,
@@ -283,6 +284,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
                 jetimob_property_code: jetimobCode,
                 ...(jetimobSystemId ? { jetimob_system_id: jetimobSystemId } : {}),
                 jetimob_writeback: jetimobWriteback,
+                ...(jetimobPropertyId ? { jetimob_property_id: jetimobPropertyId } : {}),
               },
             }
           : {}),

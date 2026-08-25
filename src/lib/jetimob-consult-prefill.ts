@@ -16,8 +16,10 @@ export type JetimobConsultPrefill = {
   entryPath: JetimobConsultEntryPath
   initialFlow: JetimobConsultInitialFlow
   form: Record<string, unknown>
-  /** Opt-in: devolver documentos/campos preenchidos ao cadastro do imóvel na Jetimob. */
+  /** Opt-in: completar campos vazios no cadastro do imóvel na Jetimob. */
   writeback?: boolean
+  /** `id` numérico do imóvel — a edição na Jetimob exige `property_id`. */
+  propertyId?: number | null
 }
 
 export type JetimobConsultModeDraft = {
@@ -45,6 +47,7 @@ export function buildJetimobConsultPrefill(
   entryPath: JetimobConsultEntryPath,
   systemId?: string,
   writeback = false,
+  propertyId?: number | null,
 ): JetimobConsultPrefill {
   return {
     source: 'jetimob',
@@ -54,6 +57,7 @@ export function buildJetimobConsultPrefill(
     initialFlow: mode.initial_flow,
     form: mode.form,
     writeback,
+    propertyId,
   }
 }
 

@@ -7,6 +7,8 @@
 
 export type JetimobPropertyRow = {
   code?: string
+  /** `id` numérico do imóvel (ImovelResumo.id). Exigido pelo POST /imoveis/{code}/editar. */
+  property_id?: number | null
   title?: string
   address?: string
   photo?: string
