@@ -56,13 +56,27 @@ export default function OrderOptionsDocumentsPage() {
         downloadBlob(blob, safeDocumentFilename(doc))
         return
       }
-      // Matrícula and certidões carry an absolute (GCS) URL: open it directly when present.
-      if (doc.download_url) {
-        window.open(doc.download_url, '_blank', 'noopener,noreferrer')
-        return
+      const source = doc.file_path ?? doc.download_url
+      if (source) {
+        try {
+          // Sempre baixa via blob + <a download>: garante nome/extensão corretos
+          // (ver safeDocumentFilename). Abrir a URL do GCS direto (window.open) deixa
+          // o navegador decidir o nome do arquivo a partir do objeto no bucket, que
+          // às vezes não tem extensão — resultando num arquivo .bin sem extensão.
+          const blob = await getDocumentBlob(source)
+          downloadBlob(blob, safeDocumentFilename(doc))
+          return
+        } catch {
+          // CORS ou falha de rede ao buscar o blob: cai para abrir a URL direto.
+          if (doc.download_url) {
+            window.open(doc.download_url, '_blank', 'noopener,noreferrer')
+            return
+          }
+          throw new Error('Não foi possível baixar o documento.')
+        }
       }
-      // Otherwise stream the attached file by its path (getBlob handles absolute/relative).
-      const blob = await getDocumentBlob(doc.file_path ?? doc.id)
+      // Sem file_path/download_url: tenta pelo id mesmo assim (compatibilidade).
+      const blob = await getDocumentBlob(doc.id)
       downloadBlob(blob, safeDocumentFilename(doc))
     } finally {
       setLoadingDocId(null)

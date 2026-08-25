@@ -78,7 +78,7 @@ export default function OrderOptionsPage() {
     return (
       <div className="flex flex-col gap-3">
         <OrderHeader />
-        <div className="flex justify-center p-10">
+        <div className="flex justify-center p-10 w-full mx-auto lg:max-w-lg">
           <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-primary" />
         </div>
       </div>
@@ -122,7 +122,7 @@ export default function OrderOptionsPage() {
     <div className="flex flex-col gap-3">
       <OrderHeader />
 
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-3 px-3 lg:px-0 w-full mx-auto lg:max-w-lg">
         {statusValue === 'PENDING' ? (
           paymentConfirmed ? (
             <div className="flex flex-col items-center justify-center p-6 border border-gray-200 rounded-2xl bg-gray-50/80 text-center gap-4 shadow-sm">
