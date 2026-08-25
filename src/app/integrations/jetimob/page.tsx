@@ -1,28 +1,15 @@
 'use client'
 
-import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
+import { Suspense, useCallback, useEffect, useState } from 'react'
 import dynamic from 'next/dynamic'
 import Image from 'next/image'
 import Link from 'next/link'
-import {
-  AlertTriangle,
-  ArrowUpRight,
-  CheckCircle2,
-  ExternalLink,
-  FileText,
-  LogOut,
-  MapPin,
-  Package,
-  RefreshCw,
-  ScrollText,
-  Search,
-} from 'lucide-react'
+import { ExternalLink, LogOut, Package, RefreshCw } from 'lucide-react'
 
 import Button from '@/components/button'
 import { BRAND_LOGO_LIGHT_SRC, BRAND_LOGO_HEIGHT, BRAND_LOGO_WIDTH } from '@/constants/brand-logo'
-import { PropertyCatalog, PropertyPhoto } from '@/sections/jetimob/property-catalog'
+import { ConsultPropertyDialog, PropertyCatalog } from '@/sections/jetimob/property-catalog'
 import type { JetimobPropertyRow } from '@/services/jetimob'
-import { darkHeroSurfaceGradient, darkHeroSurfaceShell } from '@/styles/surfaces'
 import { cn } from '@/utils/tailwind'
 import {
   buildJetimobConsultPrefill,
@@ -31,9 +18,6 @@ import {
   type JetimobConsultEntryPath,
   type JetimobConsultModeDraft,
 } from '@/lib/jetimob-consult-prefill'
-
-/** Alias local — o catálogo já tipa a linha normalizada pelo backend (spec 06). */
-type PropertyRow = JetimobPropertyRow
 
 const JETIMOB_PANEL_URL = 'https://app.jetimob.io'
 
@@ -53,37 +37,13 @@ type JetimobSession = {
   expires_at: string
 }
 
-const MISSING_FIELD_LABELS: Record<string, string> = {
-  address_hint: 'endereço incompleto na Jetimob',
-  registration_number: 'matrícula não cadastrada na Jetimob',
-  notary_name: 'cartório — você informa no fluxo',
-}
-
-const MODE_META: Record<
-  JetimobConsultEntryPath,
-  { title: string; description: string; Icon: typeof MapPin }
-> = {
-  address: {
-    title: 'Por endereço',
-    description: 'Você confirma o endereço no mapa e recebe a análise completa.',
-    Icon: MapPin,
-  },
-  registry: {
-    title: 'Por matrícula',
-    description: 'Matrícula + cartório. Vai direto ao registro do imóvel.',
-    Icon: ScrollText,
-  },
-  document: {
-    title: 'Por documento',
-    description: 'Envie matrícula, escritura ou contrato do imóvel.',
-    Icon: FileText,
-  },
-}
+/** Container do design: largura máxima e gutters iguais no hero e no conteúdo. */
+const SHELL = 'mx-auto w-full max-w-[var(--size-jetimob-shell-max)] px-4 sm:px-6 lg:px-8'
 
 function StatusPill({ session }: { session: JetimobSession | null }) {
   if (!session) {
     return (
-      <span className="inline-flex items-center gap-2 rounded-full border border-amber-300/40 bg-amber-400/10 px-3 py-1.5 text-xs font-medium text-amber-100">
+      <span className="inline-flex items-center gap-2 rounded-full border border-amber-300/40 bg-amber-400/10 px-3.5 py-2 text-[13px] font-medium text-amber-100">
         <span className="size-2 rounded-full bg-amber-400" aria-hidden />
         Conta Jetimob não conectada
       </span>
@@ -91,8 +51,8 @@ function StatusPill({ session }: { session: JetimobSession | null }) {
   }
 
   return (
-    <span className="inline-flex max-w-full items-center gap-2 rounded-full border border-emerald-300/30 bg-emerald-400/10 px-3 py-1.5 text-xs font-medium text-emerald-50">
-      <span className="size-2 shrink-0 animate-pulse rounded-full bg-emerald-400" aria-hidden />
+    <span className="inline-flex max-w-full items-center gap-2 rounded-full bg-white/10 px-3.5 py-2 text-[13px] font-medium text-white">
+      <span className="size-2 shrink-0 rounded-full bg-[var(--color-jetimob-active-dot)]" aria-hidden />
       <span className="truncate">
         Conectado — {session.user_email || `conta ${session.jetimob_system_id}`}
       </span>
@@ -108,19 +68,21 @@ function ConnectCard({ onReload }: { onReload: () => void }) {
   ]
 
   return (
-    <section className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm md:p-8">
-      <h2 className="text-lg font-bold text-primary">Conecte sua conta Jetimob</h2>
-      <p className="mt-1 text-sm text-gray-500">
+    <section className="mx-auto max-w-2xl rounded-[var(--radius-jetimob-panel)] border border-[var(--color-jetimob-border)] bg-[var(--color-jetimob-surface)] p-6 shadow-[var(--shadow-jetimob-panel)] md:p-8">
+      <h2 className="text-lg font-bold text-[var(--color-jetimob-text-title)]">
+        Conecte sua conta Jetimob
+      </h2>
+      <p className="mt-1 text-sm text-[var(--color-jetimob-text-muted)]">
         Uma única ativação libera consultas para toda a sua carteira de imóveis.
       </p>
 
       <ol className="mt-6 flex flex-col gap-4">
         {steps.map((step, idx) => (
           <li key={step} className="flex items-start gap-3">
-            <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+            <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[var(--color-jetimob-accent)]/10 text-xs font-bold text-[var(--color-jetimob-accent)]">
               {idx + 1}
             </span>
-            <p className="pt-1 text-sm text-gray-700">{step}</p>
+            <p className="pt-1 text-sm text-[var(--color-jetimob-text-body)]">{step}</p>
           </li>
         ))}
       </ol>
@@ -147,81 +109,17 @@ function ConnectCard({ onReload }: { onReload: () => void }) {
   )
 }
 
-function ModeButton({
-  entryPath,
-  mode,
-  onStart,
-}: {
-  entryPath: JetimobConsultEntryPath
-  mode?: JetimobConsultModeDraft
-  onStart: (entryPath: JetimobConsultEntryPath, mode: JetimobConsultModeDraft) => void
-}) {
-  const { title, description, Icon } = MODE_META[entryPath]
-  const available = Boolean(mode?.available)
-  const pending = (mode?.missing_fields || []).map((f) => MISSING_FIELD_LABELS[f] || f)
-
-  return (
-    <button
-      type="button"
-      disabled={!available}
-      onClick={() => mode && onStart(entryPath, mode)}
-      className={cn(
-        'group flex w-full items-start gap-3 rounded-xl border p-4 text-left transition',
-        available
-          ? 'border-gray-200 bg-white hover:border-primary hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary'
-          : 'cursor-not-allowed border-dashed border-gray-200 bg-gray-50/60',
-      )}
-    >
-      <span
-        className={cn(
-          'mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-lg',
-          available ? 'bg-primary/10 text-primary' : 'bg-gray-100 text-gray-400',
-        )}
-      >
-        <Icon className="size-5" />
-      </span>
-
-      <span className="min-w-0 flex-1">
-        <span className="flex items-center gap-2">
-          <span className={cn('text-sm font-semibold', available ? 'text-primary' : 'text-gray-400')}>
-            {title}
-          </span>
-          {available ? (
-            <CheckCircle2 className="size-4 text-emerald-500" aria-hidden />
-          ) : (
-            <AlertTriangle className="size-4 text-amber-500" aria-hidden />
-          )}
-        </span>
-        <span className={cn('mt-0.5 block text-xs', available ? 'text-gray-500' : 'text-gray-400')}>
-          {description}
-        </span>
-        {pending.length > 0 && (
-          <span className="mt-1.5 block text-[11px] leading-snug text-amber-700">
-            {pending.join(' · ')}
-          </span>
-        )}
-      </span>
-
-      {available && (
-        <ArrowUpRight className="mt-1 size-4 shrink-0 text-gray-300 transition group-hover:text-primary" aria-hidden />
-      )}
-    </button>
-  )
-}
-
 export default function JetimobIntegrationPage() {
   const [session, setSession] = useState<JetimobSession | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const [selected, setSelected] = useState<PropertyRow | null>(null)
+  const [selected, setSelected] = useState<JetimobPropertyRow | null>(null)
   const [draft, setDraft] = useState<JetimobConsultDraftResponse | null>(null)
   const [draftLoading, setDraftLoading] = useState(false)
   const [draftError, setDraftError] = useState<string | null>(null)
 
   const [consultOpen, setConsultOpen] = useState(false)
-
-  const panelRef = useRef<HTMLDivElement>(null)
 
   const loadSession = useCallback(async () => {
     setLoading(true)
@@ -249,7 +147,7 @@ export default function JetimobIntegrationPage() {
     void loadSession()
   }, [loadSession])
 
-  const selectProperty = async (row: PropertyRow) => {
+  const selectProperty = async (row: JetimobPropertyRow) => {
     const code = String(row.code || '')
     if (!code) return
 
@@ -257,11 +155,6 @@ export default function JetimobIntegrationPage() {
     setDraft(null)
     setDraftError(null)
     setDraftLoading(true)
-
-    // Mobile: painel fica após a lista — levar o usuário até ele.
-    requestAnimationFrame(() => {
-      panelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    })
 
     try {
       const res = await fetch(
@@ -288,6 +181,7 @@ export default function JetimobIntegrationPage() {
     storeJetimobConsultPrefill(
       buildJetimobConsultPrefill(code, mode, entryPath, session?.jetimob_system_id),
     )
+    setSelected(null)
     setConsultOpen(true)
   }
 
@@ -312,170 +206,98 @@ export default function JetimobIntegrationPage() {
         </Suspense>
       )}
 
-    <div className={cn('flex min-h-dvh flex-col bg-background', consultOpen && 'hidden')}>
-      {/* Hero */}
-      <header className={cn(darkHeroSurfaceShell, darkHeroSurfaceGradient, 'pb-20 md:pb-24')}>
-        <nav className="mx-auto flex w-full max-w-5xl items-center justify-between px-4 pt-4 md:px-6">
-          <Link href="/" aria-label="Ir para a página inicial">
-            <Image
-              src={BRAND_LOGO_LIGHT_SRC}
-              alt="Imóvel Periciado"
-              width={BRAND_LOGO_WIDTH}
-              height={BRAND_LOGO_HEIGHT}
-              className="h-10 w-auto object-contain md:h-12"
-              priority
-            />
-          </Link>
-          <Link
-            href="/consultas"
-            className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-white/85 transition hover:bg-white/10 hover:text-white"
-          >
-            <Package className="size-4" aria-hidden />
-            Minhas consultas
-          </Link>
-        </nav>
-
-        <div className="mx-auto w-full max-w-5xl px-4 pt-8 md:px-6 md:pt-12">
-          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-white/50">
-            Integração Jetimob
-          </p>
-          <h1 className="mt-2 max-w-xl text-2xl font-bold leading-tight text-white md:text-4xl">
-            Consulte imóveis direto da sua carteira
-          </h1>
-          <p className="mt-2 max-w-lg text-sm leading-relaxed text-white/75 md:text-base">
-            Escolha um imóvel da Jetimob, escolha como consultar e receba a análise completa do
-            Imóvel Periciado — sem redigitar nada.
-          </p>
-
-          <div className="mt-5 flex flex-wrap items-center gap-2">
-            <StatusPill session={session} />
-            {session && (
-              <button
-                type="button"
-                onClick={() => void disconnect()}
-                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium text-white/60 transition hover:bg-white/10 hover:text-white"
-              >
-                <LogOut className="size-3.5" aria-hidden />
-                Desconectar
-              </button>
-            )}
-          </div>
-        </div>
-      </header>
-
-      {/* Conteúdo sobreposto ao hero */}
-      <main className="mx-auto -mt-12 w-full max-w-5xl flex-1 px-4 pb-16 md:-mt-14 md:px-6">
-        {loading && (
-          <div className="flex min-h-[30vh] items-center justify-center">
-            <div className="size-8 animate-spin rounded-full border-2 border-gray-200 border-t-primary" />
-          </div>
-        )}
-
-        {!loading && error && (
-          <section className="rounded-2xl border border-red-100 bg-white p-6 shadow-sm">
-            <p className="text-sm text-red-600">{error}</p>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => void loadSession()}
-              className="mt-4 h-10 rounded-xl px-5"
-              icon={<RefreshCw className="size-4" />}
-            >
-              Tentar de novo
-            </Button>
-          </section>
-        )}
-
-        {!loading && !error && !session && <ConnectCard onReload={() => void loadSession()} />}
-
-        {!loading && !error && session && (
-          <div className="flex flex-col gap-6 lg:grid lg:grid-cols-12 lg:items-start">
-            {/* Carteira */}
-            <section className="flex flex-col gap-3 lg:col-span-7">
-              <PropertyCatalog
-                enabled={Boolean(session)}
-                selectedCode={selected?.code}
-                onSelect={(row) => void selectProperty(row)}
+      <div className={cn('flex min-h-dvh flex-col bg-[var(--color-jetimob-canvas)]', consultOpen && 'hidden')}>
+        <header className="bg-gradient-to-b from-[var(--color-jetimob-hero-from)] to-[var(--color-jetimob-hero-to)]">
+          <nav className={cn(SHELL, 'flex items-center justify-between gap-4 pt-5')}>
+            <Link href="/" aria-label="Ir para a página inicial">
+              <Image
+                src={BRAND_LOGO_LIGHT_SRC}
+                alt="Imóvel Periciado"
+                width={BRAND_LOGO_WIDTH}
+                height={BRAND_LOGO_HEIGHT}
+                className="h-9 w-auto object-contain md:h-11"
+                priority
               />
-            </section>
+            </Link>
+            <Link
+              href="/consultas"
+              className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-[14px] font-medium text-white/85 transition-colors hover:bg-white/10 hover:text-white"
+            >
+              <Package className="size-[18px]" aria-hidden />
+              Minhas consultas
+            </Link>
+          </nav>
 
-            {/* Painel de consulta */}
-            <aside ref={panelRef} className="scroll-mt-4 lg:sticky lg:top-6 lg:col-span-5">
-              <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm md:p-6">
-                {!selected ? (
-                  <div className="py-10 text-center">
-                    <Search className="mx-auto size-8 text-gray-200" aria-hidden />
-                    <h2 className="mt-3 text-sm font-semibold text-gray-700">
-                      Escolha um imóvel da carteira
-                    </h2>
-                    <p className="mx-auto mt-1 max-w-[240px] text-xs text-gray-400">
-                      Toque em um imóvel ao lado para ver as formas de consulta disponíveis.
-                    </p>
-                  </div>
-                ) : (
-                  <>
-                    <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
-                      <span className="size-12 shrink-0 overflow-hidden rounded-lg">
-                        <PropertyPhoto
-                          photo={selected.photo}
-                          title={selected.title || `Imóvel ${selected.code}`}
-                        />
-                      </span>
-                      <div className="min-w-0">
-                        <h2 className="truncate text-sm font-bold text-gray-900">
-                          {selected.title || `Imóvel ${selected.code}`}
-                        </h2>
-                        {selected.address && (
-                          <p className="truncate text-xs text-gray-500">{selected.address}</p>
-                        )}
-                      </div>
-                    </div>
+          <div className={cn(SHELL, 'pb-12 pt-7 md:pb-14')}>
+            <p className="text-[11px] font-bold uppercase leading-none tracking-[0.2em] text-white/50">
+              Integração Jetimob
+            </p>
+            <h1 className="mt-3 max-w-2xl text-[26px] font-bold leading-[1.15] tracking-[-0.02em] text-white md:text-[34px]">
+              Consulte imóveis direto da sua carteira
+            </h1>
+            <p className="mt-2.5 max-w-2xl text-[14px] leading-relaxed text-white/75">
+              Escolha um imóvel da Jetimob, escolha como consultar e receba a análise completa do
+              Imóvel Periciado — sem redigitar nada.
+            </p>
 
-                    <h3 className="mt-4 text-sm font-semibold text-gray-700">
-                      Como você quer consultar?
-                    </h3>
-
-                    {draftLoading && (
-                      <div className="mt-3 flex flex-col gap-2">
-                        {[0, 1, 2].map((i) => (
-                          <div key={i} className="h-20 animate-pulse rounded-xl bg-gray-50" />
-                        ))}
-                      </div>
-                    )}
-
-                    {draftError && (
-                      <p className="mt-3 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-600">
-                        {draftError}
-                      </p>
-                    )}
-
-                    {draft?.modes && !draftLoading && (
-                      <div className="mt-3 flex flex-col gap-2">
-                        {(['address', 'registry', 'document'] as JetimobConsultEntryPath[]).map(
-                          (entryPath) => (
-                            <ModeButton
-                              key={entryPath}
-                              entryPath={entryPath}
-                              mode={draft.modes?.[entryPath]}
-                              onStart={startConsultation}
-                            />
-                          ),
-                        )}
-                      </div>
-                    )}
-
-                    <p className="mt-4 text-[11px] leading-relaxed text-gray-400">
-                      Os dados do imóvel entram já preenchidos na consulta. Você revisa tudo antes
-                      de pagar.
-                    </p>
-                  </>
-                )}
-              </div>
-            </aside>
+            <div className="mt-5 flex flex-wrap items-center gap-2">
+              <StatusPill session={session} />
+              {session && (
+                <button
+                  type="button"
+                  onClick={() => void disconnect()}
+                  className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-[13px] font-medium text-white/60 transition-colors hover:bg-white/10 hover:text-white"
+                >
+                  <LogOut className="size-4" aria-hidden />
+                  Desconectar
+                </button>
+              )}
+            </div>
           </div>
-        )}
-      </main>
-    </div>
+        </header>
+
+        <main className={cn(SHELL, 'flex-1 py-8 md:py-10')}>
+          {loading && (
+            <div className="flex min-h-[30vh] items-center justify-center">
+              <div className="size-8 animate-spin rounded-full border-2 border-gray-200 border-t-primary" />
+            </div>
+          )}
+
+          {!loading && error && (
+            <section className="mx-auto max-w-2xl rounded-[var(--radius-jetimob-panel)] border border-red-100 bg-white p-6 shadow-[var(--shadow-jetimob-panel)]">
+              <p className="text-sm text-red-600">{error}</p>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => void loadSession()}
+                className="mt-4 h-10 rounded-xl px-5"
+                icon={<RefreshCw className="size-4" />}
+              >
+                Tentar de novo
+              </Button>
+            </section>
+          )}
+
+          {!loading && !error && !session && <ConnectCard onReload={() => void loadSession()} />}
+
+          {!loading && !error && session && (
+            <PropertyCatalog
+              enabled={Boolean(session)}
+              selectedCode={selected?.code}
+              onSelect={(row) => void selectProperty(row)}
+            />
+          )}
+        </main>
+      </div>
+
+      <ConsultPropertyDialog
+        property={selected}
+        draft={draft}
+        loading={draftLoading}
+        error={draftError}
+        onOpenChange={(open) => !open && setSelected(null)}
+        onStart={startConsultation}
+      />
     </>
   )
 }

@@ -74,6 +74,26 @@ describe('useJetimobCatalog', () => {
     expect(result.current.loading).toBe(false)
   })
 
+  it('não duplica itens quando uma carga é substituída por outra (reload rápido)', async () => {
+    // Regressão: abort() só rejeita fetch em voo. Com a resposta já resolvida, a carga
+    // antiga concatenava de novo no estado — 34 itens viravam 68.
+    vi.mocked(fetch).mockResolvedValue(
+      mockPage([{ code: 'A' }, { code: 'B' }], { page: 1, pageLimit: 200, total: 2 }) as Response,
+    )
+
+    const { result } = renderHook(() => useJetimobCatalog(true))
+    await waitFor(() => expect(result.current.complete).toBe(true))
+
+    act(() => {
+      result.current.reload()
+      result.current.reload()
+    })
+
+    await waitFor(() => expect(result.current.complete).toBe(true))
+    expect(result.current.items).toHaveLength(2)
+    expect(result.current.items.map((i) => i.code)).toEqual(['A', 'B'])
+  })
+
   it('reload() reinicia a busca do zero', async () => {
     vi.mocked(fetch).mockResolvedValue(
       mockPage([{ code: 'A1' }], { page: 1, pageLimit: 200, total: 1 }) as Response,
