@@ -336,20 +336,20 @@ export function toOrderRelatedDocuments(
 ): OrderRelatedDocument[] {
   if (!order) return []
 
-  const items: OrderRelatedDocument[] = (order.documents ?? []).map((doc) => {
-    const isHttp =
-      typeof doc.file_path === 'string' && doc.file_path.startsWith('http')
-    return {
-      id: doc.id,
-      kind: DOCUMENT_TYPE_KIND[doc.type ?? ''] ?? 'REGISTRATION',
-      label: DOCUMENT_TYPE_LABEL[doc.type ?? ''] ?? (doc.original_name || 'Documento'),
-      original_name: doc.original_name,
-      extension: doc.extension,
-      download_url: isHttp ? doc.file_path : null,
-      file_path: doc.file_path ?? null,
-      file_hash: doc.file_hash,
-    }
-  })
+  const items: OrderRelatedDocument[] = (order.documents ?? []).map((doc) => ({
+    id: doc.id,
+    kind: DOCUMENT_TYPE_KIND[doc.type ?? ''] ?? 'REGISTRATION',
+    label: DOCUMENT_TYPE_LABEL[doc.type ?? ''] ?? (doc.original_name || 'Documento'),
+    original_name: doc.original_name,
+    extension: doc.extension,
+    // Sempre pelo backend (mesma origem, sem CORS): a URL direta do GCS depende de
+    // CORS configurado no bucket para o fetch via JS funcionar, e o nome do objeto
+    // no bucket pode estar sem extensão em documentos antigos — o proxy sempre
+    // devolve o Content-Disposition com a extensão correta (ver DocumentDownloadView).
+    download_url: null,
+    file_path: endpoint.documents.download(doc.id),
+    file_hash: doc.file_hash,
+  }))
 
   if (order.status?.value === 'FINISHED') {
     items.push({

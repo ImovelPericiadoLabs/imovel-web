@@ -7,6 +7,8 @@ export const endpoint = {
   addresses: '/places/autocomplete/',
   documents: {
     upload: '/documents/upload/',
+    /** Proxy same-origin (sem CORS/GCS): nome de download com extensão sempre correta. */
+    download: (documentId: string) => `/documents/${documentId}/download/`,
   },
   payments: {
     process: '/payments/',
