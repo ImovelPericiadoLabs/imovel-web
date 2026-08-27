@@ -21,6 +21,22 @@ export const ENTRY_PATH_LABEL: Record<EntryPath, string> = {
   document: 'Por Documento',
 }
 
+export type BenefitKind = 'FREE' | 'PERCENT' | 'AMOUNT'
+
+export const BENEFIT_KIND_LABEL: Record<BenefitKind, string> = {
+  FREE: 'Grátis',
+  PERCENT: '% de desconto',
+  AMOUNT: 'R$ de desconto',
+}
+
+/** Regra de UMA modalidade. O mesmo voucher pode ser grátis numa e 50% em outra. */
+export type VoucherBenefit = {
+  entry_path: EntryPath
+  kind: BenefitKind
+  /** Percentual em PERCENT, reais em AMOUNT, nulo em FREE. */
+  value: string | null
+}
+
 export type VoucherBatch = {
   id: string
   name: string
@@ -29,6 +45,8 @@ export type VoucherBatch = {
   credit_amount: string
   allowed_entry_paths: EntryPath[]
   allowed_entry_paths_display: string
+  benefits: VoucherBenefit[]
+  benefits_display: string
   max_vouchers: number
   valid_from: string
   valid_until: string
@@ -90,7 +108,7 @@ export type CreateBatchPayload = {
   name: string
   event_name: string
   credit_amount: string
-  allowed_entry_paths: EntryPath[]
+  benefits: VoucherBenefit[]
   max_vouchers: number
   valid_from: string
   valid_until: string

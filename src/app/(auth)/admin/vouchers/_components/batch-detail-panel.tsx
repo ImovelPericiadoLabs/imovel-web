@@ -177,7 +177,7 @@ export default function BatchDetailPanel({ batch }: { batch: VoucherBatch }) {
             <AdminStatusBadge variant={batchStatusVariant(batch.status)}>
               {BATCH_STATUS_LABEL[batch.status]}
             </AdminStatusBadge>
-            <span>{batch.allowed_entry_paths_display}</span>
+            <span>{batch.benefits_display}</span>
             <span>·</span>
             <span>{formatDate(batch.valid_from)} a {formatDate(batch.valid_until)}</span>
           </div>

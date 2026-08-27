@@ -89,8 +89,12 @@ export default function VouchersView() {
         </AdminStatusBadge>
       ),
     },
-    { key: 'service', header: 'Serviço', render: (row) => row.allowed_entry_paths_display },
-    { key: 'amount', header: 'Valor', render: (row) => formatBRL(row.credit_amount) },
+    {
+      key: 'benefits',
+      header: 'Benefício',
+      render: (row) => <span className="text-xs">{row.benefits_display}</span>,
+    },
+    { key: 'amount', header: 'Referência', render: (row) => formatBRL(row.credit_amount) },
     {
       key: 'counts',
       header: 'Emitidos / Resgatados',
