@@ -4,7 +4,8 @@ import {
   CONSULT_PRODUCT_PRICE,
   CONSULT_PRICE_WITH_CERTIFICATES,
 } from '@/utils/analytics/gtm'
-import { getQuote } from '@/services/payments'
+import { getQuote, type QuoteVoucher } from '@/services/payments'
+import { readVoucherCode } from '@/utils/voucher-session'
 
 export type EntryPath = 'address' | 'document' | 'registry'
 
@@ -43,6 +44,10 @@ export type ConsultDynamicPrice = {
   surchargeConfigured: boolean
   includeCertificates: boolean
   isLoading: boolean
+  /** Desconto do voucher desta modalidade, calculado no backend. */
+  voucher: QuoteVoucher | null
+  /** O que o cliente ainda paga depois do voucher. Igual a `price` quando não há voucher. */
+  payable: number
 }
 
 /**
@@ -57,19 +62,29 @@ export function useConsultDynamicPrice(params: {
 }): ConsultDynamicPrice {
   const { entryPath, includeCertificates, uf } = params
   const fallback = resolveConsultPrice(entryPath, includeCertificates)
+  // Lido a cada render de propósito: o código chega por sessionStorage vindo de
+  // /resgate, sem passar por estado do React, então não há nada que dispare re-render.
+  const voucherCode = readVoucherCode()
 
   const { data, isLoading } = useQuery({
-    queryKey: ['payment-quote', entryPath ?? '', Boolean(includeCertificates), uf ?? ''],
+    queryKey: [
+      'payment-quote', entryPath ?? '', Boolean(includeCertificates), uf ?? '', voucherCode,
+    ],
     queryFn: () =>
       getQuote({
         entry_path: entryPath,
         include_certificates: Boolean(includeCertificates),
         uf: uf ?? undefined,
+        ...(voucherCode ? { voucher_code: voucherCode } : {}),
       }),
     enabled: Boolean(entryPath),
     staleTime: 5 * 60_000,
     retry: false,
   })
+
+  const voucher = data?.voucher ?? null
+  const payableFrom = (full: number) =>
+    voucher?.applied ? voucher.payable : full
 
   if (data?.new_pricing) {
     return {
@@ -82,6 +97,8 @@ export function useConsultDynamicPrice(params: {
       surchargeConfigured: data.surcharge_configured,
       includeCertificates: data.include_certificates,
       isLoading,
+      voucher,
+      payable: payableFrom(data.amount),
     }
   }
 
@@ -95,5 +112,7 @@ export function useConsultDynamicPrice(params: {
     surchargeConfigured: false,
     includeCertificates: fallback.includeCertificates,
     isLoading,
+    voucher,
+    payable: payableFrom(fallback.price),
   }
 }
