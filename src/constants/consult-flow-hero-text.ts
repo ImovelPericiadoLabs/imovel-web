@@ -24,6 +24,7 @@ export { darkHeroSurfaceShell as consultFlowShellClass }
 
 export const consultFlowHeroSectionClass = centeredContent.hero
 export const consultFlowHeroBlockClass = centeredContent.heroBlock
+export const consultFlowHeroBlockOnLightClass = centeredContent.heroBlockOnLight
 
 export const consultFlowHeroTitleClass = heroTitle.baseOnDark
 export const consultFlowHeroTitleSecondaryClass = heroTitle.secondaryOnDark

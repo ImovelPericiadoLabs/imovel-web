@@ -2,11 +2,12 @@
 
 import { useFormContext } from 'react-hook-form'
 import { HeroDescription, HeroTitle } from '@/components/ui/typography'
-import { consultFlowHeroBlockClass } from '@/constants/consult-flow-hero-text'
+import { consultFlowHeroBlockOnLightClass } from '@/constants/consult-flow-hero-text'
 import { cn } from '@/utils/tailwind'
 import { ChoiceCards } from '@/components/choice-cards'
 import SelectedAddressCard from '@/components/selected-address-card'
 import { trackGtmEvent } from '@/utils/analytics/gtm'
+import { FLOW_HERO_MARKER } from '@/styles/layout'
 
 export function DocumentConfirmationStep({
   onNext,
@@ -50,11 +51,14 @@ export function DocumentConfirmationStep({
   return (
     <div className="relative flex-1 px-4">
       <div className="flex flex-col gap-4 pb-24 md:pb-0">
+        {/* O card é o que ocupa a faixa escura neste passo, então é ele que a
+            dimensiona. O hero abaixo é `surface="light"` — fica sob a emenda. */}
         <SelectedAddressCard
+          className={FLOW_HERO_MARKER}
           address={currentAddress}
           variant={String(getValues('address') || '').trim() ? 'selected' : 'hint'}
         />
-        <div className={cn(consultFlowHeroBlockClass, 'mb-2')}>
+        <div className={cn(consultFlowHeroBlockOnLightClass, 'mb-2')}>
           <HeroTitle variant="primary" surface="light">
             Você tem o documento do imóvel?
           </HeroTitle>

@@ -31,7 +31,7 @@ import {
   consultFlowShellGradientClass,
   consultFlowShellGradientFinishedClass,
 } from '@/constants/consult-flow-hero-text'
-import { flowHeroShell, flowMainOverlap } from '@/styles/layout'
+import { FLOW_MAIN_MARKER, flowHeroShell, flowMainOverlap } from '@/styles/layout'
 import { useFlowHeroSpace } from '@/hooks/use-flow-hero-space'
 import { cn } from '@/utils/tailwind'
 import { validations, FormTypes } from '@/sections/consult-property/validations'
@@ -486,7 +486,7 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
       </div>
 
       <FormProvider {...methods}>
-        <div role="main" className={cn('relative z-10 w-full flex-1', flowMainOverlap)}>
+        <div role="main" className={cn('relative z-10 w-full flex-1', FLOW_MAIN_MARKER, flowMainOverlap)}>
           <div className="mx-auto w-full max-w-lg px-0 pt-0 pb-[max(2.5rem,env(safe-area-inset-bottom))] md:max-w-2xl md:pb-10 xl:max-w-3xl xl:pb-12 2xl:max-w-[52rem]">
           <Activity isActive={flow === 'entry'}>
             <ConsultEntryStep
