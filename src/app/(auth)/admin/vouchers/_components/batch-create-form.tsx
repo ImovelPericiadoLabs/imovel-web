@@ -7,7 +7,9 @@ import Alert from '@/components/alert'
 import Button from '@/components/button'
 import { ADMIN_INPUT, ADMIN_LABEL } from '@/components/admin'
 import {
+  BENEFIT_KIND_LABEL,
   ENTRY_PATH_LABEL,
+  type BenefitKind,
   type CreateBatchPayload,
   type EntryPath,
 } from '@/services/staff/vouchers'
@@ -28,22 +30,29 @@ export default function BatchCreateForm({ onSubmit, onCancel, isPending, error }
   const [quantity, setQuantity] = useState('300')
   const [validFrom, setValidFrom] = useState('')
   const [validUntil, setValidUntil] = useState('')
-  // Padrão é só "Por Documento": é a modalidade impressa na arte do voucher.
-  const [services, setServices] = useState<EntryPath[]>(['document'])
   const [localError, setLocalError] = useState<string | null>(null)
 
-  function toggleService(path: EntryPath) {
-    setServices((prev) =>
-      prev.includes(path) ? prev.filter((p) => p !== path) : [...prev, path],
-    )
-  }
+  /**
+   * Uma regra por modalidade. O benefício varia entre elas — o caso real é consulta
+   * grátis por documento e 50% de desconto por endereço e matrícula, no mesmo voucher.
+   * Só "Por Documento" vem marcada porque é a modalidade impressa na arte.
+   */
+  const [rules, setRules] = useState<Record<EntryPath, { on: boolean; kind: BenefitKind; value: string }>>({
+    document: { on: true, kind: 'FREE', value: '' },
+    registry: { on: false, kind: 'PERCENT', value: '50' },
+    address: { on: false, kind: 'PERCENT', value: '50' },
+  })
+
+  const setRule = (path: EntryPath, patch: Partial<{ on: boolean; kind: BenefitKind; value: string }>) =>
+    setRules((prev) => ({ ...prev, [path]: { ...prev[path], ...patch } }))
 
   function handleSubmit(event: React.FormEvent) {
     event.preventDefault()
     setLocalError(null)
 
-    if (!services.length) {
-      setLocalError('Selecione ao menos um serviço permitido.')
+    const selected = ENTRY_PATHS.filter((path) => rules[path].on)
+    if (!selected.length) {
+      setLocalError('Selecione ao menos uma modalidade.')
       return
     }
     if (new Date(validUntil) <= new Date(validFrom)) {
@@ -51,11 +60,29 @@ export default function BatchCreateForm({ onSubmit, onCancel, isPending, error }
       return
     }
 
+    for (const path of selected) {
+      const { kind, value } = rules[path]
+      if (kind === 'FREE') continue
+      const numeric = Number(value)
+      if (!value.trim() || Number.isNaN(numeric) || numeric <= 0) {
+        setLocalError(`Informe o desconto de ${ENTRY_PATH_LABEL[path]}.`)
+        return
+      }
+      if (kind === 'PERCENT' && numeric > 100) {
+        setLocalError(`O desconto de ${ENTRY_PATH_LABEL[path]} não pode passar de 100%.`)
+        return
+      }
+    }
+
     onSubmit({
       name: name.trim(),
       event_name: eventName.trim(),
       credit_amount: creditAmount,
-      allowed_entry_paths: services,
+      benefits: selected.map((path) => ({
+        entry_path: path,
+        kind: rules[path].kind,
+        value: rules[path].kind === 'FREE' ? null : rules[path].value,
+      })),
       max_vouchers: Number(quantity),
       valid_from: new Date(validFrom).toISOString(),
       valid_until: new Date(validUntil).toISOString(),
@@ -86,11 +113,22 @@ export default function BatchCreateForm({ onSubmit, onCancel, isPending, error }
           />
         </div>
         <div>
-          <label className={ADMIN_LABEL} htmlFor="batch-amount">Valor do voucher (R$)</label>
+          {/* NÃO é o benefício e não vira crédito para o cliente: só alimenta o
+              relatório de exposição do evento. O desconto real está em "Benefício por
+              modalidade", abaixo. O rótulo antigo dizia "Valor do voucher" e levava a
+              crer que o cliente ganhava esse dinheiro além da consulta. */}
+          <label className={ADMIN_LABEL} htmlFor="batch-amount">
+            Valor de referência (R$)
+          </label>
           <input
             id="batch-amount" className={ADMIN_INPUT} required inputMode="decimal"
             value={creditAmount} onChange={(e) => setCreditAmount(e.target.value)}
+            aria-describedby="batch-amount-help"
           />
+          <p id="batch-amount-help" className="mt-1 text-xs text-[#686b82]">
+            Só para o relatório do evento: custo estimado por voucher resgatado.
+            O desconto real é o de cada modalidade, abaixo.
+          </p>
         </div>
         <div>
           <label className={ADMIN_LABEL} htmlFor="batch-quantity">Quantidade</label>
@@ -116,24 +154,56 @@ export default function BatchCreateForm({ onSubmit, onCancel, isPending, error }
       </div>
 
       <fieldset>
-        <legend className={ADMIN_LABEL}>Serviços permitidos</legend>
-        <p className="mb-2 text-xs text-[#686b82]">
-          O voucher só pode ser usado nas modalidades marcadas. O texto impresso no
+        <legend className={ADMIN_LABEL}>Benefício por modalidade</legend>
+        <p className="mb-3 text-xs text-[#686b82]">
+          Cada modalidade pode ter um benefício diferente — por exemplo, consulta
+          grátis por documento e 50% de desconto por endereço. O texto impresso no
           verso do cartão sai desta escolha.
         </p>
-        <div className="flex flex-wrap gap-2">
-          {ENTRY_PATHS.map((path) => (
-            <label
-              key={path}
-              className="flex cursor-pointer items-center gap-2 rounded-lg border border-[#e4e5ea] px-3 py-2 text-sm"
-            >
-              <input
-                type="checkbox" checked={services.includes(path)}
-                onChange={() => toggleService(path)}
-              />
-              {ENTRY_PATH_LABEL[path]}
-            </label>
-          ))}
+        <div className="flex flex-col gap-2">
+          {ENTRY_PATHS.map((path) => {
+            const rule = rules[path]
+            return (
+              <div
+                key={path}
+                className="flex flex-wrap items-center gap-3 rounded-lg border border-[#e4e5ea] px-3 py-2"
+              >
+                <label className="flex min-w-[150px] cursor-pointer items-center gap-2 text-sm font-medium">
+                  <input
+                    type="checkbox"
+                    checked={rule.on}
+                    onChange={(e) => setRule(path, { on: e.target.checked })}
+                  />
+                  {ENTRY_PATH_LABEL[path]}
+                </label>
+
+                <select
+                  // max-w e não w-auto: ADMIN_INPUT traz `w-full`, e entre duas
+                  // utilitárias de width quem vence é a ordem no CSS do Tailwind,
+                  // não a ordem na string de classes.
+                  className={`${ADMIN_INPUT} max-w-[190px]`}
+                  value={rule.kind}
+                  disabled={!rule.on}
+                  onChange={(e) => setRule(path, { kind: e.target.value as BenefitKind })}
+                >
+                  {(Object.keys(BENEFIT_KIND_LABEL) as BenefitKind[]).map((kind) => (
+                    <option key={kind} value={kind}>{BENEFIT_KIND_LABEL[kind]}</option>
+                  ))}
+                </select>
+
+                {rule.on && rule.kind !== 'FREE' && (
+                  <input
+                    className={`${ADMIN_INPUT} max-w-[110px]`}
+                    inputMode="decimal"
+                    value={rule.value}
+                    onChange={(e) => setRule(path, { value: e.target.value })}
+                    placeholder={rule.kind === 'PERCENT' ? '50' : '39.90'}
+                    aria-label={`Desconto de ${ENTRY_PATH_LABEL[path]}`}
+                  />
+                )}
+              </div>
+            )
+          })}
         </div>
       </fieldset>
 

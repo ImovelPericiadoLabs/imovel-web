@@ -89,8 +89,20 @@ export default function VouchersView() {
         </AdminStatusBadge>
       ),
     },
-    { key: 'service', header: 'Serviço', render: (row) => row.allowed_entry_paths_display },
-    { key: 'amount', header: 'Valor', render: (row) => formatBRL(row.credit_amount) },
+    {
+      key: 'benefits',
+      header: 'Benefício',
+      render: (row) => <span className="text-xs">{row.benefits_display}</span>,
+    },
+    {
+      key: 'amount',
+      header: 'Ref. relatório',
+      render: (row) => (
+        <span className="text-xs text-[#686b82]" title="Custo estimado por voucher resgatado — não é crédito para o cliente">
+          {formatBRL(row.credit_amount)}
+        </span>
+      ),
+    },
     {
       key: 'counts',
       header: 'Emitidos / Resgatados',
