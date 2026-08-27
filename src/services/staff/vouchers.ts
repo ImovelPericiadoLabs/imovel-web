@@ -141,6 +141,16 @@ export async function updateBatch(id: string, payload: Partial<CreateBatchPayloa
   ) as Promise<VoucherBatch>
 }
 
+/**
+ * Exclui um lote NUNCA utilizado, com vouchers e trilha. O backend recusa com 409 se
+ * algum voucher já foi resgatado — nesse caso o caminho é encerrar o evento.
+ */
+export async function deleteBatch(id: string) {
+  return withToken((token) =>
+    api.delete(endpoint.staff.voucherBatch(id), token),
+  ) as Promise<{ batch: string; vouchers: number }>
+}
+
 export async function getBatchReport(id: string) {
   return withToken((token) =>
     api.get(endpoint.staff.voucherBatchReport(id), token),

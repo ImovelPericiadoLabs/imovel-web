@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Ban, FileDown, Loader2, Pause, Play, RefreshCw, Search } from 'lucide-react'
+import { Ban, FileDown, Loader2, Pause, Play, RefreshCw, Search, Trash2 } from 'lucide-react'
 
 import Alert from '@/components/alert'
 import Button from '@/components/button'
@@ -19,6 +19,7 @@ import {
 } from '@/components/admin'
 import {
   cancelVoucher,
+  deleteBatch,
   downloadBatchPdf,
   expireBatch,
   getBatchReport,
@@ -39,7 +40,13 @@ import {
   voucherStatusVariant,
 } from './voucher-utils'
 
-export default function BatchDetailPanel({ batch }: { batch: VoucherBatch }) {
+export default function BatchDetailPanel({
+  batch,
+  onDeleted,
+}: {
+  batch: VoucherBatch
+  onDeleted?: () => void
+}) {
   const queryClient = useQueryClient()
   const [page, setPage] = useState(1)
   const [statusFilter, setStatusFilter] = useState('')
@@ -88,6 +95,19 @@ export default function BatchDetailPanel({ batch }: { batch: VoucherBatch }) {
           updated.status === 'ACTIVE'
             ? 'Lote ATIVO. Os códigos impressos já resgatam dentro da janela de validade.'
             : 'Lote pausado. Nenhum resgate novo até reativar.',
+      })
+    },
+    onError: (error: Error) => setFeedback({ kind: 'error', message: error.message }),
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: () => deleteBatch(batch.id),
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['voucher-batches'] })
+      onDeleted?.()
+      setFeedback({
+        kind: 'success',
+        message: `Lote "${result.batch}" excluído com ${result.vouchers} voucher(s).`,
       })
     },
     onError: (error: Error) => setFeedback({ kind: 'error', message: error.message }),
@@ -214,6 +234,27 @@ export default function BatchDetailPanel({ batch }: { batch: VoucherBatch }) {
                 : <FileDown className="mr-2 size-4" />}
               PDF para impressão
             </Button>
+            {batch.redeemed === 0 && (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  if (
+                    window.confirm(
+                      `Excluir o lote "${batch.name}" e seus ${batch.issued} voucher(s)? ` +
+                      'Esta ação não pode ser desfeita.',
+                    )
+                  ) {
+                    deleteMutation.mutate()
+                  }
+                }}
+                disabled={deleteMutation.isPending}
+                className="w-auto px-5"
+                title="Só é possível enquanto nenhum voucher foi resgatado"
+              >
+                <Trash2 className="mr-2 size-4" />
+                Excluir lote
+              </Button>
+            )}
             <Button
               variant="outline"
               onClick={() => expireMutation.mutate()}
