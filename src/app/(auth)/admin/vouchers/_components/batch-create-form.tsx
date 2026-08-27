@@ -113,11 +113,22 @@ export default function BatchCreateForm({ onSubmit, onCancel, isPending, error }
           />
         </div>
         <div>
-          <label className={ADMIN_LABEL} htmlFor="batch-amount">Valor do voucher (R$)</label>
+          {/* NÃO é o benefício e não vira crédito para o cliente: só alimenta o
+              relatório de exposição do evento. O desconto real está em "Benefício por
+              modalidade", abaixo. O rótulo antigo dizia "Valor do voucher" e levava a
+              crer que o cliente ganhava esse dinheiro além da consulta. */}
+          <label className={ADMIN_LABEL} htmlFor="batch-amount">
+            Valor de referência (R$)
+          </label>
           <input
             id="batch-amount" className={ADMIN_INPUT} required inputMode="decimal"
             value={creditAmount} onChange={(e) => setCreditAmount(e.target.value)}
+            aria-describedby="batch-amount-help"
           />
+          <p id="batch-amount-help" className="mt-1 text-xs text-[#686b82]">
+            Só para o relatório do evento: custo estimado por voucher resgatado.
+            O desconto real é o de cada modalidade, abaixo.
+          </p>
         </div>
         <div>
           <label className={ADMIN_LABEL} htmlFor="batch-quantity">Quantidade</label>

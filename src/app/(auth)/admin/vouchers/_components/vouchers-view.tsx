@@ -94,7 +94,15 @@ export default function VouchersView() {
       header: 'Benefício',
       render: (row) => <span className="text-xs">{row.benefits_display}</span>,
     },
-    { key: 'amount', header: 'Referência', render: (row) => formatBRL(row.credit_amount) },
+    {
+      key: 'amount',
+      header: 'Ref. relatório',
+      render: (row) => (
+        <span className="text-xs text-[#686b82]" title="Custo estimado por voucher resgatado — não é crédito para o cliente">
+          {formatBRL(row.credit_amount)}
+        </span>
+      ),
+    },
     {
       key: 'counts',
       header: 'Emitidos / Resgatados',
