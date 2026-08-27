@@ -22,11 +22,15 @@ type PaymentRequest = {
   use_credits?: boolean
   include_certificates?: boolean
   entry_path?: 'address' | 'document' | 'registry'
+  /** Código do voucher de evento. O backend recusa em silêncio se a flag estiver off. */
+  voucher_code?: string
 }
 
 export type ProcessPaymentResult =
   | { encodedImage?: string; payload?: string; id?: string }
   | { id: string; paid_with_credits: true }
+  /** Voucher cobriu 100%: pedido criado sem cobrança, então não existe PIX a exibir. */
+  | { id: string; paid_with_voucher: true }
 
 export async function processPayment(
   data: PaymentRequest,
@@ -55,7 +59,14 @@ export type QuoteRequest = {
   document_id?: string
   registration_number?: string
   notary?: string
+  /** Faz a cotação já vir com o desconto do voucher aplicado. */
+  voucher_code?: string
 }
+
+/** Desconto do voucher sobre esta cotação. `null` quando não foi enviado código. */
+export type QuoteVoucher =
+  | { applied: true; event_name: string; describe: string; covered: number; payable: number }
+  | { applied: false; code: string; message: string }
 
 export type PaymentQuote = {
   entry_path: string
@@ -67,6 +78,7 @@ export type PaymentQuote = {
   surcharge_configured: boolean
   certificates_surcharge: number
   amount: number
+  voucher: QuoteVoucher | null
 }
 
 /** POST /payments/quote/ — preço dinâmico (base + sobretaxa Inteiro-Teor por UF). Público. */

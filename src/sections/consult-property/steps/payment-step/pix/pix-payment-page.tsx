@@ -25,6 +25,7 @@ import AddressSummaryCard from '@/components/address-summary-card'
 import { IncludedCertificatesPanel } from '@/components/included-certificates/included-certificates-panel'
 
 import { processPayment, getPaymentStatus, type ProcessPaymentResult } from '@/services/payments'
+import { forgetVoucherCode, readVoucherCode } from '@/utils/voucher-session'
 import { getMe, startAuth } from '@/services/account'
 import { ApiError } from '@/utils/api/errors'
 import { queryKey } from '@/constants/queries'
@@ -68,6 +69,8 @@ type MaskType = 'cpf' | 'whatsapp' | ((value: string) => string)
 function pixPayloadFromResult(data: ProcessPaymentResult | undefined): string {
   if (!data) return ''
   if ('paid_with_credits' in data && data.paid_with_credits) return ''
+  // Voucher de 100%: o pedido já nasceu pago, não há cobrança e portanto não há PIX.
+  if ('paid_with_voucher' in data && data.paid_with_voucher) return ''
   return 'payload' in data ? (data.payload ?? '') : ''
 }
 
@@ -105,11 +108,18 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
       ?.place_response?.state ||
     parentForm?.watch('notaryState') ||
     null
-  const { price: consultPrice } = useConsultDynamicPrice({
+  const {
+    price: consultPrice,
+    voucher,
+    payable: payablePrice,
+  } = useConsultDynamicPrice({
     entryPath,
     includeCertificates,
     uf: propertyUf,
   })
+  // `consultPrice` segue sendo o preço cheio: os eventos de analytics medem o valor do
+  // produto, não o que entrou no caixa. Quem manda no texto de cobrança é `payablePrice`.
+  const voucherApplied = voucher?.applied === true
 
   const {
       complement,
@@ -277,6 +287,9 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
         lot_number: lot,
         ...(payloadEntryPath ? { entry_path: payloadEntryPath } : {}),
         include_certificates: payloadIncludeCerts,
+        // Vai em toda tentativa: quem decide se o voucher cobre tudo, parte ou nada é
+        // o backend, no mesmo instante em que cria o pedido. A tela só transporta.
+        ...(readVoucherCode() ? { voucher_code: readVoucherCode() } : {}),
         ...(jetimobCode
           ? {
               source_metadata: {
@@ -314,6 +327,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
               : `${Date.now()}-${Math.random()}`,
         },
       )
+      forgetVoucherCode()
       return true
     },
     [buildPaymentPayload, consultPrice],
@@ -554,7 +568,15 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
 
     if (status === 'authenticated') {
       try {
-        await generatePix(buildPaymentPayload(formData, finalPlaceId, whatsappClean))
+        const created = await generatePix(buildPaymentPayload(formData, finalPlaceId, whatsappClean))
+        // Voucher cobrindo 100%: não há cobrança, e cair na tela de PIX mostraria um
+        // QR vazio para quem já terminou. Vai direto para a conclusão.
+        if (created && 'paid_with_voucher' in created && created.paid_with_voucher) {
+          forgetVoucherCode()
+          onFinish()
+          return
+        }
+        forgetVoucherCode()
         setStep('pix')
       } catch (error) {
         console.error('❌ Erro ao processar pagamento:', error);
@@ -625,6 +647,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
     parentForm,
     consultPrice,
     documentId,
+    onFinish,
   ])
 
   const handleAuthSuccess = useCallback(async (code: string) => {
@@ -770,14 +793,41 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
                     Último passo para sua consulta do imóvel
                   </TextTitle>
                   <TextSubtitle className="text-[13px] text-gray-500 leading-snug">
-                    {showCreditsOption
-                      ? status === 'authenticated'
-                        ? `Preencha os dados e escolha pagar com saldo ou PIX (${formatMoney(consultPrice)})`
-                        : 'Preencha os dados: você pode usar o saldo da sua conta após confirmar o e-mail ou pagar com PIX'
-                      : `Preencha seus dados para gerar o PIX de ${formatMoney(consultPrice)}`}
+                    {voucherApplied && payablePrice <= 0
+                      ? 'Seu voucher cobre a consulta inteira. Preencha os dados para concluir — não haverá cobrança.'
+                      : showCreditsOption
+                        ? status === 'authenticated'
+                          ? `Preencha os dados e escolha pagar com saldo ou PIX (${formatMoney(payablePrice)})`
+                          : 'Preencha os dados: você pode usar o saldo da sua conta após confirmar o e-mail ou pagar com PIX'
+                        : `Preencha seus dados para gerar o PIX de ${formatMoney(payablePrice)}`}
                   </TextSubtitle>
                 </div>
               </div>
+
+              {/* O voucher aparece aqui e não só em /resgate: entre escanear o QR e
+                  chegar neste passo a pessoa preencheu endereço e documento, e sem
+                  confirmação visível é natural achar que o benefício se perdeu. */}
+              {voucher?.applied === true && (
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5">
+                  <p className="text-[13px] font-semibold text-emerald-900">
+                    Voucher aplicado — {voucher.describe}
+                  </p>
+                  <p className="text-[12px] text-emerald-800">
+                    {payablePrice > 0
+                      ? `Desconto de ${formatMoney(voucher.covered)}. Você paga ${formatMoney(payablePrice)}.`
+                      : `${voucher.event_name}: consulta sem cobrança.`}
+                  </p>
+                </div>
+              )}
+
+              {/* Recusa não é erro de tela: o preço cheio continua válido e a pessoa
+                  precisa saber por que o benefício não entrou, em vez de só ver o valor. */}
+              {voucher?.applied === false && (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5">
+                  <p className="text-[13px] font-semibold text-amber-900">Voucher não aplicado</p>
+                  <p className="text-[12px] text-amber-800">{voucher.message}</p>
+                </div>
+              )}
 
               <div className="rounded-xl border border-gray-100 bg-gray-50/90 px-3 py-2.5 flex flex-col gap-1.5">
                 <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">

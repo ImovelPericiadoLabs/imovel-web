@@ -30,6 +30,8 @@ export const endpoint = {
   /** Documentos relacionados (matrícula, certidões, laudo) com URL assinada. GET /orders/:id/documents */
   orderDocuments: (orderId: string) => `/orders/${orderId}/documents`,
   plans: '/plans/',
+  /** Confere o código do cartão impresso sem consumir. Público: o QR é escaneado por quem ainda não tem conta. */
+  voucherValidate: '/vouchers/validate/',
   /** PDF do relatório de análise. GET com Bearer retorna application/pdf. Parâmetro: order ID. */
   analysisPdfView: (orderId: string) => `/analysis/pdfview/${orderId}`,
   /** Consent delegado (authorization_code + PKCE). GET valida e retorna metadados; POST emite o code. */
