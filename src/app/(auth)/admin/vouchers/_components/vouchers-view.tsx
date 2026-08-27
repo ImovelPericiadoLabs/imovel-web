@@ -174,7 +174,12 @@ export default function VouchersView() {
           </div>
         )}
 
-        {mode === 'detail' && selected && <BatchDetailPanel batch={selected} />}
+        {mode === 'detail' && selected && (
+          <BatchDetailPanel
+            batch={selected}
+            onDeleted={() => { setSelected(null); setMode('list') }}
+          />
+        )}
 
         {mode === 'list' && draftCount > 0 && (
           <Alert
