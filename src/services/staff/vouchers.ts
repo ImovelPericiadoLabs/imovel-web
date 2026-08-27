@@ -200,12 +200,42 @@ export async function listVoucherEvents(id: string) {
   ) as Promise<VoucherEvent[]>
 }
 
+type BatchPdfStatus = {
+  status: 'ready' | 'generating' | 'pending'
+  duplex: string
+  pdf_url?: string
+}
+
+const PDF_POLL_INTERVAL_MS = 2500
+const PDF_POLL_DEADLINE_MS = 180_000
+
 /**
  * Baixa o PDF de impressão do lote inteiro — um arquivo só, já imposto para a gráfica.
- * Vai como blob porque a resposta é binária, não JSON.
+ *
+ * A geração é assíncrona no backend (WeasyPrint leva ~40s num lote grande): o POST
+ * enfileira e responde o status; o GET é sondado até "ready" e o arquivo em si vem
+ * da URL assinada do storage — buscá-la SEM Authorization, o GCS rejeita header extra.
  */
-export async function downloadBatchPdf(id: string, duplex: 'long-edge' | 'short-edge' = 'long-edge') {
-  return withToken((token) =>
-    api.postBlob(endpoint.staff.voucherBatchPdf(id), { duplex }, token),
-  ) as Promise<Blob>
+export async function downloadBatchPdf(
+  id: string,
+  duplex: 'long-edge' | 'short-edge' = 'long-edge',
+): Promise<Blob> {
+  let state = (await withToken((token) =>
+    api.post(endpoint.staff.voucherBatchPdf(id), { duplex }, token),
+  )) as BatchPdfStatus
+
+  const deadline = Date.now() + PDF_POLL_DEADLINE_MS
+  while (state.status !== 'ready' || !state.pdf_url) {
+    if (Date.now() > deadline) {
+      throw new Error('A geração do PDF está demorando mais que o normal. Tente novamente em instantes.')
+    }
+    await new Promise((resolve) => setTimeout(resolve, PDF_POLL_INTERVAL_MS))
+    state = (await withToken((token) =>
+      api.get(`${endpoint.staff.voucherBatchPdf(id)}?duplex=${duplex}`, token),
+    )) as BatchPdfStatus
+  }
+
+  const file = await fetch(state.pdf_url)
+  if (!file.ok) throw new Error(`Erro ${file.status} ao baixar o PDF do storage`)
+  return file.blob()
 }
