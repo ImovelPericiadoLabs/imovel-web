@@ -28,6 +28,14 @@ export const section = {
  */
 export const FLOW_HERO_MARKER = 'js-flow-hero'
 
+/**
+ * Marcador do container de conteúdo do fluxo. A faixa escura precisa acomodar a
+ * distância entre o TOPO do conteúdo e o fim do último bloco marcado — não a altura
+ * do bloco isolada. Sem essa referência, um card renderizado ANTES do hero (ex.:
+ * "Local informado") não entrava na conta e o título saía cortado ao meio na emenda.
+ */
+export const FLOW_MAIN_MARKER = 'js-flow-main'
+
 export const centeredContent = {
   base: join(
     'mx-auto flex w-full min-w-0 flex-col items-center text-center',
@@ -38,6 +46,14 @@ export const centeredContent = {
   ),
   heroBlock: join(
     FLOW_HERO_MARKER,
+    'mx-auto mb-3 flex w-full min-w-0 max-w-2xl flex-col items-center gap-2 px-0 text-center sm:max-w-3xl sm:mb-4 md:mb-5',
+  ),
+  /**
+   * Mesmo bloco, SEM o marcador: para o passo cujo hero é desenhado para fundo claro
+   * (`surface="light"`), porque ele fica ABAIXO da emenda. Marcá-lo faria a faixa
+   * escura tentar acomodá-lo e passar por cima do conteúdo seguinte.
+   */
+  heroBlockOnLight: join(
     'mx-auto mb-3 flex w-full min-w-0 max-w-2xl flex-col items-center gap-2 px-0 text-center sm:max-w-3xl sm:mb-4 md:mb-5',
   ),
 }
@@ -52,9 +68,13 @@ export const centeredContent = {
  * varia com `clamp()` e com quantos blocos de texto o passo tem (a tela de entrada,
  * por exemplo, tem três).
  *
- * Agora globals.css define um PISO responsivo e o shell eleva a variável em runtime
- * conforme o hero realmente medido (`useFlowHeroSpace`). Serve qualquer conteúdo, em
- * qualquer idioma/zoom, sem ajuste por tela. Os +12px são o respiro sob o header.
+ * globals.css define um PISO usado só até a primeira medição (evita flicker no 1º
+ * paint) e o shell publica em runtime a altura real necessária (`useFlowHeroSpace`).
+ * O piso NÃO é um mínimo permanente: quando ele era maior que o conteúdo escuro, a
+ * faixa crescia além dele e engolia o que vinha depois — foi assim que o rótulo
+ * "Referência de localização" ficava escuro sobre escuro na emenda.
+ *
+ * Os +12px são o respiro sob o header.
  */
 export const flowHeroShell = {
   band: 'h-[calc(var(--flow-hero-space)+12px)] shrink-0',

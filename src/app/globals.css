@@ -156,14 +156,17 @@
 
 /* --------------------------------------------------------------------------
  * Fluxo de consulta — espaço escuro reservado ao hero.
- * `--flow-hero-floor`: piso responsivo (cobre o hero típico já no 1º paint, sem
- * flicker). `--flow-hero-measured`: preenchido em runtime pelo shell com a altura
- * real do hero visível. O max() pega o maior, então heros mais altos (ex.: a tela de
- * entrada, com 3 blocos de texto) nunca vazam para o fundo branco.
+ * `--flow-hero-floor`: valor usado só ATÉ a primeira medição, para o 1º paint não
+ * piscar. `--flow-hero-measured`: publicado em runtime pelo shell com o espaço escuro
+ * realmente necessário.
+ *
+ * O piso NÃO é um mínimo permanente. Enquanto era `max(piso, medido)`, hero curto
+ * fazia a faixa crescer além dele e engolir o conteúdo seguinte — o rótulo do campo
+ * ficava escuro sobre escuro, ilegível, exatamente na emenda.
  * -------------------------------------------------------------------------- */
 .flow-hero-scope {
   --flow-hero-floor: 6rem;
-  --flow-hero-space: max(var(--flow-hero-floor), var(--flow-hero-measured, 0px));
+  --flow-hero-space: var(--flow-hero-measured, var(--flow-hero-floor));
 }
 
 @media (min-width: 640px) {

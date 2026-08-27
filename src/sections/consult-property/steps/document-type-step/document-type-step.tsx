@@ -5,7 +5,11 @@ import { useFormContext } from 'react-hook-form'
 import { Check, FileText, Building, Scroll, LucideIcon, ChevronRight } from 'lucide-react'
 import { useMutation } from '@tanstack/react-query'
 import { HeroDescription, HeroTitle } from '@/components/ui/typography'
-import { consultFlowHeroBlockClass } from '@/constants/consult-flow-hero-text'
+import {
+  consultFlowHeroBlockClass,
+  consultFlowHeroBlockOnLightClass,
+} from '@/constants/consult-flow-hero-text'
+import { FLOW_HERO_MARKER } from '@/styles/layout'
 import { cn } from '@/utils/tailwind'
 import DocumentItem from '@/components/document-item'
 import Alert from '@/components/alert'
@@ -231,13 +235,21 @@ export function DocumentTypeStep({ onNext, showAddressCard = true }: DocumentTyp
   return (
     <div className="relative flex-1 px-4 -mt-6 pb-32">
       <div className="flex flex-col gap-4 pt-6">
+        {/* Quem dimensiona a faixa escura é quem fica nela: com o card, é o card (e o
+            hero desce para o fundo claro); sem ele, é o próprio hero. */}
         {showAddressCard && (
           <SelectedAddressCard
+            className={FLOW_HERO_MARKER}
             address={String(watch('address') || '').trim() || String(watch('addressHint') || '').trim()}
             variant={String(watch('address') || '').trim() ? 'selected' : 'hint'}
           />
         )}
-        <div className={cn(consultFlowHeroBlockClass, 'mb-2')}>
+        <div
+          className={cn(
+            showAddressCard ? consultFlowHeroBlockOnLightClass : consultFlowHeroBlockClass,
+            'mb-2',
+          )}
+        >
           <HeroTitle variant="primary" surface={showAddressCard ? 'light' : 'dark'}>
             Qual documento você tem?
           </HeroTitle>
