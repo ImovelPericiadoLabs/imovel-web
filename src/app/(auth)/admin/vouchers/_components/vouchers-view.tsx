@@ -66,6 +66,9 @@ export default function VouchersView() {
     onError: (error: Error) => setFeedback({ kind: 'error', message: error.message }),
   })
 
+  // O erro fácil de operação é imprimir o lote e esquecer de ativar no dia.
+  const draftCount = (listQuery.data?.results ?? []).filter((b) => b.status === 'DRAFT').length
+
   const columns: AdminTableColumn<VoucherBatch>[] = [
     {
       key: 'name',
@@ -151,6 +154,17 @@ export default function VouchersView() {
         )}
 
         {mode === 'detail' && selected && <BatchDetailPanel batch={selected} />}
+
+        {mode === 'list' && draftCount > 0 && (
+          <Alert
+            variant="warning"
+            className="mb-4"
+            message={
+              `${draftCount} lote(s) em rascunho. Voucher impresso de lote em rascunho ` +
+              'NÃO resgata: abra o lote e clique em "Ativar lote" quando o evento começar.'
+            }
+          />
+        )}
 
         {mode === 'list' && (
           <div className={ADMIN_CARD}>

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Ban, FileDown, Loader2, RefreshCw, Search } from 'lucide-react'
+import { Ban, FileDown, Loader2, Pause, Play, RefreshCw, Search } from 'lucide-react'
 
 import Alert from '@/components/alert'
 import Button from '@/components/button'
@@ -24,6 +24,7 @@ import {
   getBatchReport,
   listVouchers,
   reissueVoucher,
+  updateBatch,
   type Voucher,
   type VoucherBatch,
 } from '@/services/staff/vouchers'
@@ -72,6 +73,21 @@ export default function BatchDetailPanel({ batch }: { batch: VoucherBatch }) {
         message:
           'PDF gerado. Antes de rodar a tiragem, peça à gráfica uma folha de prova em ' +
           'duplex: imprime, vira e confere se o verso caiu atrás da própria frente.',
+      })
+    },
+    onError: (error: Error) => setFeedback({ kind: 'error', message: error.message }),
+  })
+
+  const statusMutation = useMutation({
+    mutationFn: (status: 'ACTIVE' | 'PAUSED') => updateBatch(batch.id, { status }),
+    onSuccess: (updated) => {
+      invalidate()
+      setFeedback({
+        kind: 'success',
+        message:
+          updated.status === 'ACTIVE'
+            ? 'Lote ATIVO. Os códigos impressos já resgatam dentro da janela de validade.'
+            : 'Lote pausado. Nenhum resgate novo até reativar.',
       })
     },
     onError: (error: Error) => setFeedback({ kind: 'error', message: error.message }),
@@ -167,7 +183,26 @@ export default function BatchDetailPanel({ batch }: { batch: VoucherBatch }) {
           </div>
         }
         actions={
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            {batch.status !== 'ACTIVE' && batch.status !== 'EXPIRED' && (
+              <Button
+                onClick={() => statusMutation.mutate('ACTIVE')}
+                disabled={statusMutation.isPending}
+              >
+                <Play className="mr-2 size-4" />
+                Ativar lote
+              </Button>
+            )}
+            {batch.status === 'ACTIVE' && (
+              <Button
+                variant="outline"
+                onClick={() => statusMutation.mutate('PAUSED')}
+                disabled={statusMutation.isPending}
+              >
+                <Pause className="mr-2 size-4" />
+                Pausar
+              </Button>
+            )}
             <Button onClick={() => pdfMutation.mutate()} disabled={pdfMutation.isPending}>
               {pdfMutation.isPending
                 ? <Loader2 className="mr-2 size-4 animate-spin" />
