@@ -148,7 +148,7 @@ export default function BatchDetailPanel({ batch }: { batch: VoucherBatch }) {
         row.status === 'REDEEMED' ? null : (
           <div className="flex gap-1">
             <Button
-              variant="outline" className="px-2 py-1"
+              variant="outline" className="w-auto px-2.5 py-1.5"
               onClick={() => cancelMutation.mutate(row.id)}
               disabled={row.status === 'CANCELED' || cancelMutation.isPending}
               title="Cancelar voucher"
@@ -156,7 +156,7 @@ export default function BatchDetailPanel({ batch }: { batch: VoucherBatch }) {
               <Ban className="size-3.5" />
             </Button>
             <Button
-              variant="outline" className="px-2 py-1"
+              variant="outline" className="w-auto px-2.5 py-1.5"
               onClick={() => reissueMutation.mutate(row.id)}
               disabled={reissueMutation.isPending}
               title="Reemitir (cancela este e cria um substituto)"
@@ -188,6 +188,7 @@ export default function BatchDetailPanel({ batch }: { batch: VoucherBatch }) {
               <Button
                 onClick={() => statusMutation.mutate('ACTIVE')}
                 disabled={statusMutation.isPending}
+                className="w-auto px-5"
               >
                 <Play className="mr-2 size-4" />
                 Ativar lote
@@ -198,12 +199,16 @@ export default function BatchDetailPanel({ batch }: { batch: VoucherBatch }) {
                 variant="outline"
                 onClick={() => statusMutation.mutate('PAUSED')}
                 disabled={statusMutation.isPending}
+                className="w-auto px-5"
               >
                 <Pause className="mr-2 size-4" />
                 Pausar
               </Button>
             )}
-            <Button onClick={() => pdfMutation.mutate()} disabled={pdfMutation.isPending}>
+            <Button
+              onClick={() => pdfMutation.mutate()} disabled={pdfMutation.isPending}
+              className="w-auto px-5"
+            >
               {pdfMutation.isPending
                 ? <Loader2 className="mr-2 size-4 animate-spin" />
                 : <FileDown className="mr-2 size-4" />}
@@ -213,6 +218,7 @@ export default function BatchDetailPanel({ batch }: { batch: VoucherBatch }) {
               variant="outline"
               onClick={() => expireMutation.mutate()}
               disabled={batch.status === 'EXPIRED' || expireMutation.isPending}
+              className="w-auto px-5"
             >
               Encerrar evento
             </Button>
@@ -252,7 +258,7 @@ export default function BatchDetailPanel({ batch }: { batch: VoucherBatch }) {
         />
       ) : null}
 
-      <div className={ADMIN_CARD}>
+      <div className={`${ADMIN_CARD} p-4`}>
         <div className="mb-3 flex flex-wrap gap-2">
           <div className="relative flex-1 min-w-[180px]">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#9497a9]" />
@@ -295,9 +301,9 @@ export default function BatchDetailPanel({ batch }: { batch: VoucherBatch }) {
           <div className="mt-3 flex items-center justify-between text-xs text-[#686b82]">
             <span>{vouchersQuery.data?.count} vouchers</span>
             <div className="flex gap-2">
-              <Button variant="outline" className="px-3 py-1 text-xs" disabled={page === 1}
+              <Button variant="outline" className="w-auto px-3 py-1.5 text-xs" disabled={page === 1}
                       onClick={() => setPage((p) => p - 1)}>Anterior</Button>
-              <Button variant="outline" className="px-3 py-1 text-xs" disabled={!vouchersQuery.data?.next}
+              <Button variant="outline" className="w-auto px-3 py-1.5 text-xs" disabled={!vouchersQuery.data?.next}
                       onClick={() => setPage((p) => p + 1)}>Próxima</Button>
             </div>
           </div>

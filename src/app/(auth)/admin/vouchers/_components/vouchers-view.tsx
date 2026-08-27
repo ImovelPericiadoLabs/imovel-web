@@ -123,12 +123,19 @@ export default function VouchersView() {
         description="Lotes de vouchers impressos para eventos presenciais, com validade própria e uso restrito a um tipo de consulta."
         actions={
           mode === 'list' ? (
-            <Button onClick={() => { setMode('create'); setFeedback(null) }}>
+            <Button
+              onClick={() => { setMode('create'); setFeedback(null) }}
+              className="w-auto px-5"
+            >
               <Plus className="mr-2 size-4" />
               Novo lote
             </Button>
           ) : (
-            <Button variant="outline" onClick={() => { setMode('list'); setSelected(null) }}>
+            <Button
+              variant="outline"
+              onClick={() => { setMode('list'); setSelected(null) }}
+              className="w-auto px-5"
+            >
               Voltar
             </Button>
           )
@@ -142,8 +149,10 @@ export default function VouchersView() {
           />
         )}
 
+        {/* Largura limitada: formulário de 6 campos esticado numa tela larga fica
+            ilegível e as colunas do grid ficam absurdamente longas. */}
         {mode === 'create' && (
-          <div className={ADMIN_CARD}>
+          <div className={`${ADMIN_CARD} max-w-4xl`}>
             <BatchCreateForm
               onSubmit={(payload) => createMutation.mutate(payload)}
               onCancel={() => setMode('list')}
@@ -167,7 +176,7 @@ export default function VouchersView() {
         )}
 
         {mode === 'list' && (
-          <div className={ADMIN_CARD}>
+          <div className={`${ADMIN_CARD} p-4`}>
             <AdminToolbar
               trailing={
                 <select
@@ -196,7 +205,11 @@ export default function VouchersView() {
                     icon={<Ticket className="size-6" />}
                     title="Nenhum lote de voucher"
                     description="Crie um lote para gerar os vouchers de um evento presencial."
-                    action={<Button onClick={() => setMode('create')}>Novo lote</Button>}
+                    action={
+                      <Button onClick={() => setMode('create')} className="w-auto px-5">
+                        Novo lote
+                      </Button>
+                    }
                   />
                 }
               />

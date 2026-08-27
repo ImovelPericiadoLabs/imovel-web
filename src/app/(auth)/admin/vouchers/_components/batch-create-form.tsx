@@ -67,7 +67,7 @@ export default function BatchCreateForm({ onSubmit, onCancel, isPending, error }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4 p-4">
       {(localError || error) && <Alert variant="error" message={localError || error || ""} />}
 
       <div className="grid gap-4 sm:grid-cols-2">
@@ -137,12 +137,15 @@ export default function BatchCreateForm({ onSubmit, onCancel, isPending, error }
         </div>
       </fieldset>
 
-      <div className="flex gap-2">
-        <Button type="submit" disabled={isPending}>
+      <div className="flex flex-wrap gap-2 pt-1">
+        <Button type="submit" disabled={isPending} className="w-auto px-6">
           {isPending && <Loader2 className="mr-2 size-4 animate-spin" />}
           Criar lote e emitir vouchers
         </Button>
-        <Button type="button" variant="outline" onClick={onCancel} disabled={isPending}>
+        <Button
+          type="button" variant="outline" onClick={onCancel} disabled={isPending}
+          className="w-auto px-6"
+        >
           Cancelar
         </Button>
       </div>
