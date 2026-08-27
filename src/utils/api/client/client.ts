@@ -132,6 +132,28 @@ const api = {
     return response.blob()
   },
 
+  /**
+   * POST que retorna o corpo como Blob. Usado pela geração do PDF de vouchers, que é
+   * POST (registra a exportação na trilha de auditoria) mas devolve binário.
+   */
+  async postBlob(pathOrUrl: string, body: object, token?: string): Promise<Blob> {
+    const fullUrl = pathOrUrl.startsWith('http') ? pathOrUrl : `${apiUrl}${pathOrUrl}`
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+    if (token) headers['Authorization'] = `Bearer ${token}`
+    appendInternalApiHeader(headers, 'POST', pathOrUrl)
+    const response = await fetch(fullUrl, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body),
+    })
+    if (response.status === 401) {
+      handleUnauthorized()
+      throw new Error('Não autorizado')
+    }
+    if (!response.ok) throw new Error(`Erro ${response.status}`)
+    return response.blob()
+  },
+
   async post(
     url: string,
     rawBody: object,
