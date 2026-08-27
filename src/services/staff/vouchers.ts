@@ -113,6 +113,16 @@ export async function createBatch(payload: CreateBatchPayload) {
   ) as Promise<VoucherBatch>
 }
 
+/**
+ * Altera o lote — na prática, o status. Ativar é o passo que liga o evento: em
+ * rascunho nenhum código resgata, por mais que já esteja impresso.
+ */
+export async function updateBatch(id: string, payload: Partial<CreateBatchPayload> & { status?: VoucherBatchStatus }) {
+  return withToken((token) =>
+    api.patch(endpoint.staff.voucherBatch(id), payload, token),
+  ) as Promise<VoucherBatch>
+}
+
 export async function getBatchReport(id: string) {
   return withToken((token) =>
     api.get(endpoint.staff.voucherBatchReport(id), token),
