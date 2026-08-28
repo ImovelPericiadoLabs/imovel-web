@@ -12,6 +12,7 @@ import {
   type BenefitKind,
   type CreateBatchPayload,
   type EntryPath,
+  type VoucherBatch,
 } from '@/services/staff/vouchers'
 
 const ENTRY_PATHS: EntryPath[] = ['document', 'registry', 'address']
@@ -21,15 +22,39 @@ type Props = {
   onCancel: () => void
   isPending: boolean
   error?: string | null
+  /** Lote existente: o formulário vira edição — prefill, sem quantidade e sem status. */
+  initial?: VoucherBatch
 }
 
-export default function BatchCreateForm({ onSubmit, onCancel, isPending, error }: Props) {
-  const [name, setName] = useState('')
-  const [eventName, setEventName] = useState('')
-  const [creditAmount, setCreditAmount] = useState('79.90')
+/** ISO -> valor aceito por <input type="datetime-local"> no fuso local. */
+function toLocalInput(iso: string): string {
+  const date = new Date(iso)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
+}
+
+function rulesFromBenefits(
+  benefits: VoucherBatch['benefits'],
+): Record<EntryPath, { on: boolean; kind: BenefitKind; value: string }> {
+  const base: Record<EntryPath, { on: boolean; kind: BenefitKind; value: string }> = {
+    document: { on: false, kind: 'FREE', value: '' },
+    registry: { on: false, kind: 'PERCENT', value: '50' },
+    address: { on: false, kind: 'PERCENT', value: '50' },
+  }
+  for (const b of benefits) {
+    base[b.entry_path] = { on: true, kind: b.kind, value: b.value ?? '' }
+  }
+  return base
+}
+
+export default function BatchCreateForm({ onSubmit, onCancel, isPending, error, initial }: Props) {
+  const isEdit = Boolean(initial)
+  const [name, setName] = useState(initial?.name ?? '')
+  const [eventName, setEventName] = useState(initial?.event_name ?? '')
+  const [creditAmount, setCreditAmount] = useState(initial?.credit_amount ?? '79.90')
   const [quantity, setQuantity] = useState('300')
-  const [validFrom, setValidFrom] = useState('')
-  const [validUntil, setValidUntil] = useState('')
+  const [validFrom, setValidFrom] = useState(initial ? toLocalInput(initial.valid_from) : '')
+  const [validUntil, setValidUntil] = useState(initial ? toLocalInput(initial.valid_until) : '')
   const [localError, setLocalError] = useState<string | null>(null)
 
   /**
@@ -37,11 +62,16 @@ export default function BatchCreateForm({ onSubmit, onCancel, isPending, error }
    * grátis por documento e 50% de desconto por endereço e matrícula, no mesmo voucher.
    * Só "Por Documento" vem marcada porque é a modalidade impressa na arte.
    */
-  const [rules, setRules] = useState<Record<EntryPath, { on: boolean; kind: BenefitKind; value: string }>>({
-    document: { on: true, kind: 'FREE', value: '' },
-    registry: { on: false, kind: 'PERCENT', value: '50' },
-    address: { on: false, kind: 'PERCENT', value: '50' },
-  })
+  const [rules, setRules] = useState<Record<EntryPath, { on: boolean; kind: BenefitKind; value: string }>>(
+    () =>
+      initial
+        ? rulesFromBenefits(initial.benefits)
+        : {
+            document: { on: true, kind: 'FREE', value: '' },
+            registry: { on: false, kind: 'PERCENT', value: '50' },
+            address: { on: false, kind: 'PERCENT', value: '50' },
+          },
+  )
 
   const setRule = (path: EntryPath, patch: Partial<{ on: boolean; kind: BenefitKind; value: string }>) =>
     setRules((prev) => ({ ...prev, [path]: { ...prev[path], ...patch } }))
@@ -74,7 +104,7 @@ export default function BatchCreateForm({ onSubmit, onCancel, isPending, error }
       }
     }
 
-    onSubmit({
+    const base = {
       name: name.trim(),
       event_name: eventName.trim(),
       credit_amount: creditAmount,
@@ -83,9 +113,17 @@ export default function BatchCreateForm({ onSubmit, onCancel, isPending, error }
         kind: rules[path].kind,
         value: rules[path].kind === 'FREE' ? null : rules[path].value,
       })),
-      max_vouchers: Number(quantity),
       valid_from: new Date(validFrom).toISOString(),
       valid_until: new Date(validUntil).toISOString(),
+    }
+    if (initial) {
+      // Edição não mexe em status nem na quantidade emitida.
+      onSubmit({ ...base, max_vouchers: initial.max_vouchers, quantity: initial.max_vouchers })
+      return
+    }
+    onSubmit({
+      ...base,
+      max_vouchers: Number(quantity),
       // Nasce em rascunho: o lote só resgata quando alguém ativa, de propósito.
       // Assim os códigos podem ser impressos dias antes sem valer nada ainda.
       status: 'DRAFT',
@@ -130,13 +168,15 @@ export default function BatchCreateForm({ onSubmit, onCancel, isPending, error }
             O desconto real é o de cada modalidade, abaixo.
           </p>
         </div>
-        <div>
-          <label className={ADMIN_LABEL} htmlFor="batch-quantity">Quantidade</label>
-          <input
-            id="batch-quantity" className={ADMIN_INPUT} required type="number" min={1}
-            value={quantity} onChange={(e) => setQuantity(e.target.value)}
-          />
-        </div>
+        {!isEdit && (
+          <div>
+            <label className={ADMIN_LABEL} htmlFor="batch-quantity">Quantidade</label>
+            <input
+              id="batch-quantity" className={ADMIN_INPUT} required type="number" min={1}
+              value={quantity} onChange={(e) => setQuantity(e.target.value)}
+            />
+          </div>
+        )}
         <div>
           <label className={ADMIN_LABEL} htmlFor="batch-from">Válido de</label>
           <input
@@ -210,7 +250,7 @@ export default function BatchCreateForm({ onSubmit, onCancel, isPending, error }
       <div className="flex flex-wrap gap-2 pt-1">
         <Button type="submit" disabled={isPending} className="w-auto px-6">
           {isPending && <Loader2 className="mr-2 size-4 animate-spin" />}
-          Criar lote e emitir vouchers
+          {isEdit ? 'Salvar alterações' : 'Criar lote e emitir vouchers'}
         </Button>
         <Button
           type="button" variant="outline" onClick={onCancel} disabled={isPending}
