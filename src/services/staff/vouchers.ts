@@ -219,9 +219,10 @@ const PDF_POLL_DEADLINE_MS = 180_000
 export async function downloadBatchPdf(
   id: string,
   duplex: 'long-edge' | 'short-edge' = 'long-edge',
+  opts: { force?: boolean } = {},
 ): Promise<Blob> {
   let state = (await withToken((token) =>
-    api.post(endpoint.staff.voucherBatchPdf(id), { duplex }, token),
+    api.post(endpoint.staff.voucherBatchPdf(id), { duplex, force: Boolean(opts.force) }, token),
   )) as BatchPdfStatus
 
   const deadline = Date.now() + PDF_POLL_DEADLINE_MS

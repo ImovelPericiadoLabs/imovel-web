@@ -178,6 +178,7 @@ export default function VouchersView() {
           <BatchDetailPanel
             batch={selected}
             onDeleted={() => { setSelected(null); setMode('list') }}
+            onUpdated={(updated) => setSelected(updated)}
           />
         )}
 

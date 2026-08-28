@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Ban, FileDown, Loader2, Pause, Play, RefreshCw, Search, Trash2 } from 'lucide-react'
+import { Ban, FileDown, Loader2, Pause, Pencil, Play, RefreshCw, Search, Trash2 } from 'lucide-react'
 
 import Alert from '@/components/alert'
 import Button from '@/components/button'
@@ -26,6 +26,7 @@ import {
   listVouchers,
   reissueVoucher,
   updateBatch,
+  type CreateBatchPayload,
   type Voucher,
   type VoucherBatch,
 } from '@/services/staff/vouchers'
@@ -39,19 +40,23 @@ import {
   triggerDownload,
   voucherStatusVariant,
 } from './voucher-utils'
+import BatchCreateForm from './batch-create-form'
 
 export default function BatchDetailPanel({
   batch,
   onDeleted,
+  onUpdated,
 }: {
   batch: VoucherBatch
   onDeleted?: () => void
+  onUpdated?: (batch: VoucherBatch) => void
 }) {
   const queryClient = useQueryClient()
   const [page, setPage] = useState(1)
   const [statusFilter, setStatusFilter] = useState('')
   const [search, setSearch] = useState('')
   const [feedback, setFeedback] = useState<{ kind: 'success' | 'error'; message: string } | null>(null)
+  const [editing, setEditing] = useState(false)
 
   const reportQuery = useQuery({
     queryKey: ['voucher-batch-report', batch.id],
@@ -80,6 +85,43 @@ export default function BatchDetailPanel({
         message:
           'PDF gerado. Antes de rodar a tiragem, peça à gráfica uma folha de prova em ' +
           'duplex: imprime, vira e confere se o verso caiu atrás da própria frente.',
+      })
+    },
+    onError: (error: Error) => setFeedback({ kind: 'error', message: error.message }),
+  })
+
+  const pdfRegenMutation = useMutation({
+    mutationFn: () => downloadBatchPdf(batch.id, 'long-edge', { force: true }),
+    onSuccess: (blob) => {
+      triggerDownload(blob, `vouchers-${batch.event_name}-${batch.name}.pdf`)
+      setFeedback({
+        kind: 'success',
+        message: 'PDF regerado do zero com os dados atuais da campanha.',
+      })
+    },
+    onError: (error: Error) => setFeedback({ kind: 'error', message: error.message }),
+  })
+
+  const editMutation = useMutation({
+    mutationFn: (payload: CreateBatchPayload & { quantity: number }) =>
+      updateBatch(batch.id, {
+        name: payload.name,
+        event_name: payload.event_name,
+        credit_amount: payload.credit_amount,
+        benefits: payload.benefits,
+        max_vouchers: payload.max_vouchers,
+        valid_from: payload.valid_from,
+        valid_until: payload.valid_until,
+      }),
+    onSuccess: (updated) => {
+      invalidate()
+      onUpdated?.(updated)
+      setEditing(false)
+      setFeedback({
+        kind: 'success',
+        message:
+          'Dados da campanha atualizados. O próximo "PDF para impressão" já sai com eles — ' +
+          'não precisa regerar manualmente.',
       })
     },
     onError: (error: Error) => setFeedback({ kind: 'error', message: error.message }),
@@ -234,6 +276,26 @@ export default function BatchDetailPanel({
                 : <FileDown className="mr-2 size-4" />}
               PDF para impressão
             </Button>
+            <Button
+              variant="outline"
+              onClick={() => pdfRegenMutation.mutate()}
+              disabled={pdfRegenMutation.isPending}
+              className="w-auto px-5"
+              title="Descarta o PDF já gerado e renderiza de novo com os dados atuais"
+            >
+              {pdfRegenMutation.isPending
+                ? <Loader2 className="mr-2 size-4 animate-spin" />
+                : <RefreshCw className="mr-2 size-4" />}
+              Regerar PDF
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => { setEditing((prev) => !prev); setFeedback(null) }}
+              className="w-auto px-5"
+            >
+              <Pencil className="mr-2 size-4" />
+              {editing ? 'Fechar edição' : 'Editar campanha'}
+            </Button>
             {batch.redeemed === 0 && (
               <Button
                 variant="outline"
@@ -272,6 +334,18 @@ export default function BatchDetailPanel({
           variant={feedback.kind === 'error' ? 'error' : 'success'}
           message={feedback.message}
         />
+      )}
+
+      {editing && (
+        <div className={ADMIN_CARD}>
+          <BatchCreateForm
+            key={batch.id}
+            initial={batch}
+            onSubmit={(payload) => editMutation.mutate(payload)}
+            onCancel={() => setEditing(false)}
+            isPending={editMutation.isPending}
+          />
+        </div>
       )}
 
       {reportQuery.isLoading ? (
