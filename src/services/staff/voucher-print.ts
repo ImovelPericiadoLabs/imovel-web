@@ -39,7 +39,7 @@ export function printProofHint(config: BatchPdfPrintConfig) {
       return 'PDF gerado. Imprima UMA folha, dobre no meio e confira se o verso fica em pé atrás da própria frente.'
     }
     if (config.verso === 'join') {
-      return 'PDF gerado. Imprima UMA folha e confira se frente e verso do mesmo cartão ficam juntos, sem dobrar nem cortar no meio.'
+      return 'PDF gerado. Imprima UMA folha e confira o panfleto: frente e verso do mesmo cartão devem parecer uma peça só.'
     }
     return 'PDF gerado. Imprima UMA folha, corte na linha central e confira se o verso bate com a frente.'
   }

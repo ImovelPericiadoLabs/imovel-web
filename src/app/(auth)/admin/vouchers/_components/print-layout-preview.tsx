@@ -1,6 +1,6 @@
 'use client'
 
-import type { BatchPdfPrintConfig } from '@/services/staff/voucher-print'
+import type { BatchPdfPrintConfig, StackedVerso } from '@/services/staff/voucher-print'
 
 function previewKey(config: BatchPdfPrintConfig) {
   return config.layout === 'stacked'
@@ -27,7 +27,7 @@ const COPY: Record<string, { title: string; body: string }> = {
   },
   'stacked-join': {
     title: 'Empilhado · junto',
-    body: 'Frente e verso do mesmo cartão ficam na mesma peça, mesma orientação, sem giro e sem corte no meio.',
+    body: 'Panfleto: frente e verso do mesmo cartão formam uma peça só. O brilho fica na costura, sem linha de corte e sem giro.',
   },
 }
 
@@ -81,11 +81,59 @@ function DuplexSvg({ axis }: { axis: 'y' | 'x' }) {
   )
 }
 
-function StackedSvg({ verso }: { verso: 'fold' | 'cut' | 'join' }) {
-  const scene =
-    verso === 'fold' ? 'vprint-folding' : verso === 'cut' ? 'vprint-cutting' : 'vprint-joining'
+function PamphletColumn({ x, front, back }: { x: number; front: string; back: string }) {
+  const y = 12
+  const w = 132
+  const h = 186
+  const gid = `pamph-glow-${x}`
   return (
-    <div className={`vprint-scene ${scene}`}>
+    <g>
+      <defs>
+        <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#0A0D24" />
+          <stop offset="48%" stopColor="#2A48C4" />
+          <stop offset="52%" stopColor="#20DEFA" stopOpacity="0.85" />
+          <stop offset="56%" stopColor="#2A48C4" />
+          <stop offset="100%" stopColor="#0A0D24" />
+        </linearGradient>
+      </defs>
+      <rect
+        x={x} y={y} width={w} height={h} rx={8}
+        fill={`url(#${gid})`} stroke="#7FE6FF" strokeWidth={1.6}
+      />
+      <ellipse className="vprint-seam" cx={x + w / 2} cy={y + h / 2} rx={w * 0.44} ry={22} fill="#20DEFA" />
+      <text
+        x={x + w / 2} y={y + 48} textAnchor="middle" dominantBaseline="middle"
+        fill="#fff" fontSize={13} fontWeight={800} fontFamily="system-ui, sans-serif"
+      >
+        {front}
+      </text>
+      <text
+        x={x + w / 2} y={y + h - 48} textAnchor="middle" dominantBaseline="middle"
+        fill="#fff" fontSize={13} fontWeight={800} fontFamily="system-ui, sans-serif"
+      >
+        {back}
+      </text>
+    </g>
+  )
+}
+
+function StackedSvg({ verso }: { verso: StackedVerso }) {
+  if (verso === 'join') {
+    return (
+      <div className="vprint-scene">
+        <svg className="vprint-base" viewBox="0 0 297 210" aria-hidden>
+          <rect width="297" height="210" rx="8" fill="#0f1220" />
+          <PamphletColumn x={12} front="F1" back="V1" />
+          <PamphletColumn x={153} front="F2" back="V2" />
+        </svg>
+      </div>
+    )
+  }
+
+  const fold = verso === 'fold'
+  return (
+    <div className={`vprint-scene ${fold ? 'vprint-folding' : 'vprint-cutting'}`}>
       <svg className="vprint-base" viewBox="0 0 297 210" aria-hidden>
         <rect width="297" height="210" rx="8" fill="#0f1220" />
         <MiniCard x={12} y={14} w={132} h={86} label="F1" tone="front" />
@@ -94,22 +142,16 @@ function StackedSvg({ verso }: { verso: 'fold' | 'cut' | 'join' }) {
       <div className="vprint-bottom">
         <svg viewBox="0 0 297 105" aria-hidden>
           <rect width="297" height="105" fill="#0f1220" />
-          <MiniCard x={12} y={9} w={132} h={86} label="V1" tone="back" rotate={verso === 'fold'} />
-          <MiniCard x={153} y={9} w={132} h={86} label="V2" tone="back" rotate={verso === 'fold'} />
+          <MiniCard x={12} y={9} w={132} h={86} label="V1" tone="back" rotate={fold} />
+          <MiniCard x={153} y={9} w={132} h={86} label="V2" tone="back" rotate={fold} />
         </svg>
       </div>
-      {verso === 'cut' && (
+      {!fold && (
         <svg className="vprint-cut-overlay" viewBox="0 0 297 210" aria-hidden>
           <line x1="10" y1="105" x2="287" y2="105" className="vprint-cut-line" />
           <g className="vprint-blade">
             <polygon points="0,-7 16,0 0,7" fill="#e8e9f2" />
           </g>
-        </svg>
-      )}
-      {verso === 'join' && (
-        <svg className="vprint-cut-overlay" viewBox="0 0 297 210" aria-hidden>
-          <rect className="vprint-join-box" x="8" y="10" width="140" height="190" rx="10" />
-          <rect className="vprint-join-box" x="149" y="10" width="140" height="190" rx="10" />
         </svg>
       )}
     </div>
@@ -164,12 +206,7 @@ export default function PrintLayoutPreview({ config }: { config: BatchPdfPrintCo
           animation: vprintDash 1s linear infinite;
         }
         .vprint-blade { animation: vprintBlade 5.2s ease-in-out infinite; }
-        .vprint-join-box {
-          fill: none;
-          stroke: #39d98a;
-          stroke-width: 3;
-          animation: vprintJoinPulse 2.4s ease-in-out infinite;
-        }
+        .vprint-seam { opacity: 0.42; animation: vprintSeam 2.4s ease-in-out infinite; }
         @keyframes vprintFlipY {
           0%, 28% { transform: rotateY(0deg); }
           48%, 78% { transform: rotateY(180deg); }
@@ -195,9 +232,9 @@ export default function PrintLayoutPreview({ config }: { config: BatchPdfPrintCo
           0%, 12% { transform: translate(12px, 105px); }
           55%, 100% { transform: translate(270px, 105px); }
         }
-        @keyframes vprintJoinPulse {
-          0%, 100% { stroke-opacity: 0.45; }
-          50% { stroke-opacity: 1; }
+        @keyframes vprintSeam {
+          0%, 100% { opacity: 0.32; }
+          50% { opacity: 0.7; }
         }
       `}</style>
       <div className="p-4">

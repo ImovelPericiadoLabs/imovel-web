@@ -4,6 +4,7 @@ import {
   batchPdfPayload,
   batchPdfQuery,
   DEFAULT_PRINT_CONFIG,
+  printProofHint,
 } from './voucher-print'
 
 describe('batchPdfPayload', () => {
@@ -35,5 +36,12 @@ describe('batchPdfQuery', () => {
   it('envia join no layout empilhado', () => {
     expect(batchPdfQuery({ layout: 'stacked', duplex: 'long-edge', verso: 'join' }))
       .toBe('layout=stacked&verso=join')
+  })
+})
+
+describe('printProofHint', () => {
+  it('pede prova de panfleto no modo junto', () => {
+    expect(printProofHint({ layout: 'stacked', duplex: 'long-edge', verso: 'join' }))
+      .toMatch(/panfleto/i)
   })
 })

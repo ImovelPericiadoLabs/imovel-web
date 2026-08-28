@@ -137,7 +137,7 @@ export default function PrintPdfDialog({
               <p className="mt-2 text-[11px] leading-relaxed text-[#9497a9]">
                 {config.layout === 'duplex'
                   ? '4 cartões por folha. Frente e verso em páginas intercaladas — a impressora vira o papel.'
-                  : '2 cartões por folha. Frente e verso na mesma página — dobra, corte, ou juntos sem giro.'}
+                  : '2 cartões por folha. Frente e verso na mesma página — dobra, corte, ou panfleto junto.'}
               </p>
             </div>
 
