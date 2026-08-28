@@ -14,9 +14,9 @@ import type { OrderAnalysisResult } from '@/services/orders'
 export function useOrderAnalysesQuery(
   orderId: string | undefined,
   _statusValue?: string,
-  realtimeConnected = false,
+  suppressPolling = false,
 ) {
-  const query = useOrderDetailQuery(orderId, realtimeConnected)
+  const query = useOrderDetailQuery(orderId, suppressPolling)
   const data = useMemo<OrderAnalysisResult[]>(
     () => query.data?.analysis ?? [],
     [query.data],

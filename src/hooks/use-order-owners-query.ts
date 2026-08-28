@@ -14,9 +14,9 @@ import type { OwnersDetails } from '@/services/orders'
 export function useOrderOwnersQuery(
   orderId: string | undefined,
   _statusValue?: string,
-  realtimeConnected = false,
+  suppressPolling = false,
 ) {
-  const query = useOrderDetailQuery(orderId, realtimeConnected)
+  const query = useOrderDetailQuery(orderId, suppressPolling)
   const data = useMemo<OwnersDetails[]>(
     () => query.data?.owners ?? [],
     [query.data],

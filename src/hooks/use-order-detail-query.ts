@@ -10,13 +10,17 @@ import {
 
 /**
  * Shared order detail query with adaptive polling by `status.value`
- * (SEARCHING_DOCUMENT / IN_PROGRESS vs terminals). Polling is suppressed
- * while `realtimeConnected` is true (WebSocket drives updates instead) and
- * automatically resumes as a fallback if the realtime channel drops.
+ * (SEARCHING_DOCUMENT / IN_PROGRESS vs terminals).
+ *
+ * `pollingSuppressed` is the WebSocket's veto over the HTTP fallback. Callers pass
+ * `!fallbackActive` (see `useOrderRealtime`), NOT `!connected`: a socket that is
+ * merely reconnecting must keep polling off, otherwise every drop turns into a burst
+ * of `GET /v1/orders/{id}/`. Polling only resumes once the realtime channel has
+ * failed repeatedly.
  */
 export function useOrderDetailQuery(
   orderId: string | undefined,
-  realtimeConnected = false,
+  pollingSuppressed = false,
 ) {
   return useQuery({
     queryKey: orderQueryKey(orderId ?? ''),
@@ -26,7 +30,7 @@ export function useOrderDetailQuery(
     refetchOnWindowFocus: false,
     retry: 1,
     refetchInterval: (q) => {
-      if (realtimeConnected) return false
+      if (pollingSuppressed) return false
       return getOrderRefetchIntervalMs(q.state.data?.status?.value, {
         paymentConfirmed: isOrderPaymentConfirmed(q.state.data?.payment_status),
       })

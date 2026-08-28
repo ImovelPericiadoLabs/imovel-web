@@ -10,13 +10,16 @@ import {
 
 /**
  * Pipeline events timeline; polling slows down on terminal / action-required states.
- * While `realtimeConnected` is true the WebSocket invalidates this query on new
- * events, so interval polling is disabled and only resumes as a fallback.
+ *
+ * While the WebSocket is the active channel it invalidates this query on each new
+ * event, so interval polling stays off. `pollingSuppressed` is `!fallbackActive` from
+ * `useOrderRealtime` — a reconnecting socket keeps polling disabled, so a WS drop no
+ * longer produces a burst of `GET /v1/orders/{id}/events/`.
  */
 export function useOrderEventsQuery(
   orderId: string | undefined,
   statusValue: string | undefined,
-  realtimeConnected = false,
+  pollingSuppressed = false,
 ) {
   return useQuery({
     queryKey: orderEventsQueryKey(orderId ?? ''),
@@ -26,6 +29,6 @@ export function useOrderEventsQuery(
     refetchOnWindowFocus: false,
     retry: 1,
     refetchInterval: () =>
-      realtimeConnected ? false : getOrderEventsRefetchIntervalMs(statusValue),
+      pollingSuppressed ? false : getOrderEventsRefetchIntervalMs(statusValue),
   })
 }

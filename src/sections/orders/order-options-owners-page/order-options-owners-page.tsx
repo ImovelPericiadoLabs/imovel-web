@@ -19,12 +19,15 @@ export default function OrderOptionsOwnersPage() {
   const { id } = useParams()
   const orderId = id as string
 
-  const { connected: realtimeConnected } = useOrderRealtime(orderId)
-  const { data: order } = useOrderDetailQuery(orderId, realtimeConnected)
+  // Suprime o polling enquanto o WS ainda é o canal viável (inclusive durante
+  // reconexões); `fallbackActive` só liga após N falhas consecutivas.
+  const { fallbackActive } = useOrderRealtime(orderId)
+  const suppressPolling = !fallbackActive
+  const { data: order } = useOrderDetailQuery(orderId, suppressPolling)
   const { data: owners, isLoading } = useOrderOwnersQuery(
     orderId,
     order?.status?.value,
-    realtimeConnected,
+    suppressPolling,
   )
 
   if (isLoading) {

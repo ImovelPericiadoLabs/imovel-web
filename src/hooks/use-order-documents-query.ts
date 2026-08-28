@@ -15,9 +15,9 @@ import { toOrderRelatedDocuments, type OrderRelatedDocument } from '@/services/o
 export function useOrderDocumentsQuery(
   orderId: string | undefined,
   _statusValue?: string,
-  realtimeConnected = false,
+  suppressPolling = false,
 ) {
-  const query = useOrderDetailQuery(orderId, realtimeConnected)
+  const query = useOrderDetailQuery(orderId, suppressPolling)
   const data = useMemo<OrderRelatedDocument[]>(
     () => toOrderRelatedDocuments(query.data),
     [query.data],

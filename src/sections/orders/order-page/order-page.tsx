@@ -15,17 +15,20 @@ export default function OrderPage() {
   const { id } = useParams()
   const orderId = id as string
 
-  const { connected: realtimeConnected } = useOrderRealtime(orderId)
+  // Suprime o polling enquanto o WS ainda é o canal viável (inclusive durante
+  // reconexões); `fallbackActive` só liga após N falhas consecutivas.
+  const { fallbackActive } = useOrderRealtime(orderId)
+  const suppressPolling = !fallbackActive
 
-  const { data: order } = useOrderDetailQuery(orderId, realtimeConnected)
+  const { data: order } = useOrderDetailQuery(orderId, suppressPolling)
   const { data: orderEvents = [], isFetching: eventsFetching } =
-    useOrderEventsQuery(orderId, order?.status?.value, realtimeConnected)
+    useOrderEventsQuery(orderId, order?.status?.value, suppressPolling)
 
   const isAnalysisComplete = order?.status?.value === 'FINISHED'
 
   return (
     <div className="flex flex-col gap-3 pb-10">
-      <OrderHeader realtimeConnected={realtimeConnected} />
+      <OrderHeader suppressPolling={suppressPolling} />
 
       <div className="flex flex-col gap-2 px-3 lg:px-0 w-full mx-auto lg:max-w-lg">
         {order && (

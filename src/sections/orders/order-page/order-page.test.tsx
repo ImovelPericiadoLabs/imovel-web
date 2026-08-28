@@ -57,7 +57,7 @@ vi.mock('@/components/order-journey', () => ({
 }))
 
 vi.mock('@/hooks/use-order-realtime', () => ({
-  useOrderRealtime: () => ({ connected: false }),
+  useOrderRealtime: () => ({ connected: false, fallbackActive: true }),
 }))
 
 vi.mock('lucide-react', () => ({

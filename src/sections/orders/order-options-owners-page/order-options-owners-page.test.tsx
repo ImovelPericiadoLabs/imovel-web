@@ -35,7 +35,7 @@ vi.mock('next/navigation', () => ({
 }))
 
 vi.mock('@/hooks/use-order-realtime', () => ({
-  useOrderRealtime: () => ({ connected: false }),
+  useOrderRealtime: () => ({ connected: false, fallbackActive: true }),
 }))
 
 vi.mock('@/services/orders', async (importOriginal) => {
