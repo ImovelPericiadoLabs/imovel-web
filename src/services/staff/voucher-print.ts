@@ -15,6 +15,7 @@ export type BatchPdfStatus = {
   verso?: string
   pdf_url?: string
   last_pdf_url?: string
+  stale?: boolean
 }
 
 export const DEFAULT_PRINT_CONFIG: BatchPdfPrintConfig = {

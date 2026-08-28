@@ -98,7 +98,7 @@ export default function BatchDetailPanel({
     mutationFn: async ({ config, force }: { config: BatchPdfPrintConfig; force: boolean }) => {
       const state = await downloadBatchPdf(batch.id, config, { force })
       try {
-        const blob = await fetchBatchPdfBlob(batch.id, config)
+        const blob = await fetchBatchPdfBlob(batch.id, config, { fresh: force })
         return { state, blob }
       } catch {
         return { state, blob: null }

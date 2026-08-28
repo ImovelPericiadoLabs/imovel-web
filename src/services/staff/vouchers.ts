@@ -212,7 +212,7 @@ export async function listVoucherEvents(id: string) {
 }
 
 const PDF_POLL_INTERVAL_MS = 2500
-const PDF_POLL_DEADLINE_MS = 180_000
+const PDF_POLL_DEADLINE_MS = 600_000
 
 /**
  * Baixa o PDF de impressão do lote inteiro — um arquivo só, já imposto para a gráfica.
@@ -249,9 +249,10 @@ export async function downloadBatchPdf(
   }
 
   const deadline = Date.now() + PDF_POLL_DEADLINE_MS
-  while (state.status !== 'ready' || !state.pdf_url) {
+  const fresh = () => state.status === 'ready' && Boolean(state.pdf_url) && state.stale === false
+  while (force ? !fresh() : (state.status !== 'ready' || !state.pdf_url)) {
     if (Date.now() > deadline) {
-      if (state.last_pdf_url || state.pdf_url) return state
+      if (!force && (state.last_pdf_url || state.pdf_url)) return state
       throw new Error('A geração do PDF está demorando mais que o normal. Use o último link se já existir, ou tente de novo.')
     }
     await new Promise((resolve) => setTimeout(resolve, PDF_POLL_INTERVAL_MS))
@@ -269,9 +270,11 @@ export async function downloadBatchPdf(
 export async function fetchBatchPdfBlob(
   id: string,
   config: BatchPdfPrintConfig = DEFAULT_PRINT_CONFIG,
+  opts: { fresh?: boolean } = {},
 ): Promise<Blob> {
   const query = batchPdfQuery(config)
+  const fresh = opts.fresh ? '&fresh=1' : ''
   return withToken((token) =>
-    api.getBlob(`${endpoint.staff.voucherBatchPdf(id)}?${query}&download=1`, token),
+    api.getBlob(`${endpoint.staff.voucherBatchPdf(id)}?${query}&download=1${fresh}`, token),
   )
 }
