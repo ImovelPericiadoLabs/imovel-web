@@ -30,6 +30,7 @@ import {
   type Voucher,
   type VoucherBatch,
 } from '@/services/staff/vouchers'
+import { printProofHint, type BatchPdfPrintConfig } from '@/services/staff/voucher-print'
 import {
   BATCH_STATUS_LABEL,
   VOUCHER_STATUS_LABEL,
@@ -41,6 +42,7 @@ import {
   voucherStatusVariant,
 } from './voucher-utils'
 import BatchCreateForm from './batch-create-form'
+import PrintPdfDialog from './print-pdf-dialog'
 
 export default function BatchDetailPanel({
   batch,
@@ -57,6 +59,7 @@ export default function BatchDetailPanel({
   const [search, setSearch] = useState('')
   const [feedback, setFeedback] = useState<{ kind: 'success' | 'error'; message: string } | null>(null)
   const [editing, setEditing] = useState(false)
+  const [printDialog, setPrintDialog] = useState<null | { force: boolean }>(null)
 
   const reportQuery = useQuery({
     queryKey: ['voucher-batch-report', batch.id],
@@ -77,26 +80,16 @@ export default function BatchDetailPanel({
   }
 
   const pdfMutation = useMutation({
-    mutationFn: () => downloadBatchPdf(batch.id),
-    onSuccess: (blob) => {
+    mutationFn: ({ config, force }: { config: BatchPdfPrintConfig; force: boolean }) =>
+      downloadBatchPdf(batch.id, config, { force }),
+    onSuccess: (blob, { config, force }) => {
       triggerDownload(blob, `vouchers-${batch.event_name}-${batch.name}.pdf`)
+      setPrintDialog(null)
       setFeedback({
         kind: 'success',
-        message:
-          'PDF gerado. Antes de rodar a tiragem, peça à gráfica uma folha de prova em ' +
-          'duplex: imprime, vira e confere se o verso caiu atrás da própria frente.',
-      })
-    },
-    onError: (error: Error) => setFeedback({ kind: 'error', message: error.message }),
-  })
-
-  const pdfRegenMutation = useMutation({
-    mutationFn: () => downloadBatchPdf(batch.id, 'long-edge', { force: true }),
-    onSuccess: (blob) => {
-      triggerDownload(blob, `vouchers-${batch.event_name}-${batch.name}.pdf`)
-      setFeedback({
-        kind: 'success',
-        message: 'PDF regerado do zero com os dados atuais da campanha.',
+        message: force
+          ? 'PDF regerado do zero com os dados atuais da campanha.'
+          : printProofHint(config),
       })
     },
     onError: (error: Error) => setFeedback({ kind: 'error', message: error.message }),
@@ -268,22 +261,23 @@ export default function BatchDetailPanel({
               </Button>
             )}
             <Button
-              onClick={() => pdfMutation.mutate()} disabled={pdfMutation.isPending}
+              onClick={() => { setPrintDialog({ force: false }); setFeedback(null) }}
+              disabled={pdfMutation.isPending}
               className="w-auto px-5"
             >
-              {pdfMutation.isPending
+              {pdfMutation.isPending && !printDialog?.force
                 ? <Loader2 className="mr-2 size-4 animate-spin" />
                 : <FileDown className="mr-2 size-4" />}
               PDF para impressão
             </Button>
             <Button
               variant="outline"
-              onClick={() => pdfRegenMutation.mutate()}
-              disabled={pdfRegenMutation.isPending}
+              onClick={() => { setPrintDialog({ force: true }); setFeedback(null) }}
+              disabled={pdfMutation.isPending}
               className="w-auto px-5"
               title="Descarta o PDF já gerado e renderiza de novo com os dados atuais"
             >
-              {pdfRegenMutation.isPending
+              {pdfMutation.isPending && printDialog?.force
                 ? <Loader2 className="mr-2 size-4 animate-spin" />
                 : <RefreshCw className="mr-2 size-4" />}
               Regerar PDF
@@ -335,6 +329,14 @@ export default function BatchDetailPanel({
           message={feedback.message}
         />
       )}
+
+      <PrintPdfDialog
+        open={printDialog !== null}
+        forceDefault={printDialog?.force ?? false}
+        loading={pdfMutation.isPending}
+        onClose={() => { if (!pdfMutation.isPending) setPrintDialog(null) }}
+        onConfirm={(config, force) => pdfMutation.mutate({ config, force })}
+      />
 
       {editing && (
         <div className={ADMIN_CARD}>
