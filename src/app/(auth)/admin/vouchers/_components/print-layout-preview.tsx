@@ -25,6 +25,10 @@ const COPY: Record<string, { title: string; body: string }> = {
     title: 'Empilhado · corte',
     body: 'Duas frentes em cima, dois versos embaixo na mesma página, mesma orientação. A máquina corta na linha central.',
   },
+  'stacked-join': {
+    title: 'Empilhado · junto',
+    body: 'Frente e verso do mesmo cartão ficam na mesma peça, mesma orientação, sem giro e sem corte no meio.',
+  },
 }
 
 function MiniCard({
@@ -77,9 +81,11 @@ function DuplexSvg({ axis }: { axis: 'y' | 'x' }) {
   )
 }
 
-function StackedSvg({ fold }: { fold: boolean }) {
+function StackedSvg({ verso }: { verso: 'fold' | 'cut' | 'join' }) {
+  const scene =
+    verso === 'fold' ? 'vprint-folding' : verso === 'cut' ? 'vprint-cutting' : 'vprint-joining'
   return (
-    <div className={`vprint-scene ${fold ? 'vprint-folding' : 'vprint-cutting'}`}>
+    <div className={`vprint-scene ${scene}`}>
       <svg className="vprint-base" viewBox="0 0 297 210" aria-hidden>
         <rect width="297" height="210" rx="8" fill="#0f1220" />
         <MiniCard x={12} y={14} w={132} h={86} label="F1" tone="front" />
@@ -88,16 +94,22 @@ function StackedSvg({ fold }: { fold: boolean }) {
       <div className="vprint-bottom">
         <svg viewBox="0 0 297 105" aria-hidden>
           <rect width="297" height="105" fill="#0f1220" />
-          <MiniCard x={12} y={9} w={132} h={86} label="V1" tone="back" rotate={fold} />
-          <MiniCard x={153} y={9} w={132} h={86} label="V2" tone="back" rotate={fold} />
+          <MiniCard x={12} y={9} w={132} h={86} label="V1" tone="back" rotate={verso === 'fold'} />
+          <MiniCard x={153} y={9} w={132} h={86} label="V2" tone="back" rotate={verso === 'fold'} />
         </svg>
       </div>
-      {!fold && (
+      {verso === 'cut' && (
         <svg className="vprint-cut-overlay" viewBox="0 0 297 210" aria-hidden>
           <line x1="10" y1="105" x2="287" y2="105" className="vprint-cut-line" />
           <g className="vprint-blade">
             <polygon points="0,-7 16,0 0,7" fill="#e8e9f2" />
           </g>
+        </svg>
+      )}
+      {verso === 'join' && (
+        <svg className="vprint-cut-overlay" viewBox="0 0 297 210" aria-hidden>
+          <rect className="vprint-join-box" x="8" y="10" width="140" height="190" rx="10" />
+          <rect className="vprint-join-box" x="149" y="10" width="140" height="190" rx="10" />
         </svg>
       )}
     </div>
@@ -152,6 +164,12 @@ export default function PrintLayoutPreview({ config }: { config: BatchPdfPrintCo
           animation: vprintDash 1s linear infinite;
         }
         .vprint-blade { animation: vprintBlade 5.2s ease-in-out infinite; }
+        .vprint-join-box {
+          fill: none;
+          stroke: #39d98a;
+          stroke-width: 3;
+          animation: vprintJoinPulse 2.4s ease-in-out infinite;
+        }
         @keyframes vprintFlipY {
           0%, 28% { transform: rotateY(0deg); }
           48%, 78% { transform: rotateY(180deg); }
@@ -177,11 +195,15 @@ export default function PrintLayoutPreview({ config }: { config: BatchPdfPrintCo
           0%, 12% { transform: translate(12px, 105px); }
           55%, 100% { transform: translate(270px, 105px); }
         }
+        @keyframes vprintJoinPulse {
+          0%, 100% { stroke-opacity: 0.45; }
+          50% { stroke-opacity: 1; }
+        }
       `}</style>
       <div className="p-4">
         {config.layout === 'duplex'
           ? <DuplexSvg axis={config.duplex === 'short-edge' ? 'x' : 'y'} />
-          : <StackedSvg fold={config.verso === 'fold'} />}
+          : <StackedSvg verso={config.verso} />}
       </div>
       <div className="border-t border-white/10 px-4 py-3">
         <p className="text-xs font-semibold text-white">{copy.title}</p>

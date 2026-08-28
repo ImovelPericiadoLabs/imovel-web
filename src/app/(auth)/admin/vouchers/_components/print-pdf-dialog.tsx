@@ -23,7 +23,7 @@ function loadPrefs(): BatchPdfPrintConfig {
     return {
       layout: parsed.layout === 'stacked' ? 'stacked' : 'duplex',
       duplex: parsed.duplex === 'short-edge' ? 'short-edge' : 'long-edge',
-      verso: parsed.verso === 'cut' ? 'cut' : 'fold',
+      verso: parsed.verso === 'cut' || parsed.verso === 'join' ? parsed.verso : 'fold',
     }
   } catch {
     return DEFAULT_PRINT_CONFIG
@@ -137,7 +137,7 @@ export default function PrintPdfDialog({
               <p className="mt-2 text-[11px] leading-relaxed text-[#9497a9]">
                 {config.layout === 'duplex'
                   ? '4 cartões por folha. Frente e verso em páginas intercaladas — a impressora vira o papel.'
-                  : '2 cartões por folha. Frente e verso na mesma página — dobra ou corte no meio.'}
+                  : '2 cartões por folha. Frente e verso na mesma página — dobra, corte, ou juntos sem giro.'}
               </p>
             </div>
 
@@ -166,6 +166,7 @@ export default function PrintPdfDialog({
                   segments={[
                     { id: 'fold', label: 'Dobra 180°' },
                     { id: 'cut', label: 'Corte' },
+                    { id: 'join', label: 'Junto' },
                   ]}
                 />
               </div>
