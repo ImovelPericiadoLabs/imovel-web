@@ -1,6 +1,15 @@
 import api from '@/utils/api/client'
 import { endpoint } from '@/constants/api'
 import { getSessionDeduplicated } from '@/utils/session'
+import {
+  batchPdfPayload,
+  batchPdfQuery,
+  DEFAULT_PRINT_CONFIG,
+  type BatchPdfPrintConfig,
+} from './voucher-print'
+
+export type { BatchPdfPrintConfig, DuplexFlip, PrintLayout, StackedVerso } from './voucher-print'
+export { batchPdfPayload, batchPdfQuery, DEFAULT_PRINT_CONFIG, printProofHint } from './voucher-print'
 
 async function withToken<T>(fn: (token: string) => Promise<T>): Promise<T> {
   const session = await getSessionDeduplicated()
@@ -203,6 +212,8 @@ export async function listVoucherEvents(id: string) {
 type BatchPdfStatus = {
   status: 'ready' | 'generating' | 'pending'
   duplex: string
+  layout?: string
+  verso?: string
   pdf_url?: string
 }
 
@@ -218,11 +229,14 @@ const PDF_POLL_DEADLINE_MS = 180_000
  */
 export async function downloadBatchPdf(
   id: string,
-  duplex: 'long-edge' | 'short-edge' = 'long-edge',
+  config: BatchPdfPrintConfig = DEFAULT_PRINT_CONFIG,
   opts: { force?: boolean } = {},
 ): Promise<Blob> {
+  const body = batchPdfPayload(config, Boolean(opts.force))
+  const query = batchPdfQuery(config)
+
   let state = (await withToken((token) =>
-    api.post(endpoint.staff.voucherBatchPdf(id), { duplex, force: Boolean(opts.force) }, token),
+    api.post(endpoint.staff.voucherBatchPdf(id), body, token),
   )) as BatchPdfStatus
 
   const deadline = Date.now() + PDF_POLL_DEADLINE_MS
@@ -232,7 +246,7 @@ export async function downloadBatchPdf(
     }
     await new Promise((resolve) => setTimeout(resolve, PDF_POLL_INTERVAL_MS))
     state = (await withToken((token) =>
-      api.get(`${endpoint.staff.voucherBatchPdf(id)}?duplex=${duplex}`, token),
+      api.get(`${endpoint.staff.voucherBatchPdf(id)}?${query}`, token),
     )) as BatchPdfStatus
   }
 
