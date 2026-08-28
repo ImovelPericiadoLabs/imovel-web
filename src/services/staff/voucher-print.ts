@@ -22,11 +22,14 @@ export function batchPdfPayload(config: BatchPdfPrintConfig, force = false) {
 }
 
 export function batchPdfQuery(config: BatchPdfPrintConfig) {
-  const payload = batchPdfPayload(config)
   const params = new URLSearchParams()
-  params.set('layout', payload.layout)
-  if ('verso' in payload) params.set('verso', payload.verso)
-  if ('duplex' in payload) params.set('duplex', payload.duplex)
+  if (config.layout === 'stacked') {
+    params.set('layout', 'stacked')
+    params.set('verso', config.verso)
+  } else {
+    params.set('layout', 'duplex')
+    params.set('duplex', config.duplex)
+  }
   return params.toString()
 }
 
