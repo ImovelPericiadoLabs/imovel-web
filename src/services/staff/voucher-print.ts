@@ -1,6 +1,6 @@
 export type PrintLayout = 'duplex' | 'stacked'
 export type DuplexFlip = 'long-edge' | 'short-edge'
-export type StackedVerso = 'fold' | 'cut'
+export type StackedVerso = 'fold' | 'cut' | 'join'
 
 export type BatchPdfPrintConfig = {
   layout: PrintLayout
@@ -35,9 +35,13 @@ export function batchPdfQuery(config: BatchPdfPrintConfig) {
 
 export function printProofHint(config: BatchPdfPrintConfig) {
   if (config.layout === 'stacked') {
-    return config.verso === 'fold'
-      ? 'PDF gerado. Imprima UMA folha, dobre no meio e confira se o verso fica em pé atrás da própria frente.'
-      : 'PDF gerado. Imprima UMA folha, corte na linha central e confira se o verso bate com a frente.'
+    if (config.verso === 'fold') {
+      return 'PDF gerado. Imprima UMA folha, dobre no meio e confira se o verso fica em pé atrás da própria frente.'
+    }
+    if (config.verso === 'join') {
+      return 'PDF gerado. Imprima UMA folha e confira se frente e verso do mesmo cartão ficam juntos, sem dobrar nem cortar no meio.'
+    }
+    return 'PDF gerado. Imprima UMA folha, corte na linha central e confira se o verso bate com a frente.'
   }
   return (
     'PDF gerado. Antes de rodar a tiragem, peça à gráfica uma folha de prova em ' +

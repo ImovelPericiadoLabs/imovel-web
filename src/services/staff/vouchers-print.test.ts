@@ -31,4 +31,9 @@ describe('batchPdfQuery', () => {
     expect(batchPdfQuery({ layout: 'stacked', duplex: 'long-edge', verso: 'fold' }))
       .toBe('layout=stacked&verso=fold')
   })
+
+  it('envia join no layout empilhado', () => {
+    expect(batchPdfQuery({ layout: 'stacked', duplex: 'long-edge', verso: 'join' }))
+      .toBe('layout=stacked&verso=join')
+  })
 })

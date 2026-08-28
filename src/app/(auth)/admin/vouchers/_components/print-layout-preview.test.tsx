@@ -21,4 +21,13 @@ describe('PrintLayoutPreview', () => {
     )
     expect(screen.getByText(/Empilhado · dobra/i)).toBeInTheDocument()
   })
+
+  it('explica empilhado junto', () => {
+    render(
+      <PrintLayoutPreview
+        config={{ layout: 'stacked', duplex: 'long-edge', verso: 'join' }}
+      />,
+    )
+    expect(screen.getByText(/Empilhado · junto/i)).toBeInTheDocument()
+  })
 })
