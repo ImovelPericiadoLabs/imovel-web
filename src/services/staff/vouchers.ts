@@ -6,10 +6,12 @@ import {
   batchPdfQuery,
   DEFAULT_PRINT_CONFIG,
   type BatchPdfPrintConfig,
+  type BatchPdfStatus,
 } from './voucher-print'
 
 export type { BatchPdfPrintConfig, DuplexFlip, PrintLayout, StackedVerso } from './voucher-print'
 export { batchPdfPayload, batchPdfQuery, DEFAULT_PRINT_CONFIG, printProofHint } from './voucher-print'
+export type { BatchPdfStatus } from './voucher-print'
 
 async function withToken<T>(fn: (token: string) => Promise<T>): Promise<T> {
   const session = await getSessionDeduplicated()
@@ -209,14 +211,6 @@ export async function listVoucherEvents(id: string) {
   ) as Promise<VoucherEvent[]>
 }
 
-type BatchPdfStatus = {
-  status: 'ready' | 'generating' | 'pending'
-  duplex: string
-  layout?: string
-  verso?: string
-  pdf_url?: string
-}
-
 const PDF_POLL_INTERVAL_MS = 2500
 const PDF_POLL_DEADLINE_MS = 180_000
 
@@ -224,33 +218,60 @@ const PDF_POLL_DEADLINE_MS = 180_000
  * Baixa o PDF de impressão do lote inteiro — um arquivo só, já imposto para a gráfica.
  *
  * A geração é assíncrona no backend (WeasyPrint leva ~40s num lote grande): o POST
- * enfileira e responde o status; o GET é sondado até "ready" e o arquivo em si vem
- * da URL assinada do storage — buscá-la SEM Authorization, o GCS rejeita header extra.
+ * enfileira e responde o status; o GET é sondado até "ready". O arquivo passa pelo
+ * backend (`download=1`) — o `fetch` direto no GCS quebra no CORS do bucket.
  */
+export async function getBatchPdfStatus(
+  id: string,
+  config: BatchPdfPrintConfig = DEFAULT_PRINT_CONFIG,
+) {
+  const query = batchPdfQuery(config)
+  return withToken((token) =>
+    api.get(`${endpoint.staff.voucherBatchPdf(id)}?${query}`, token),
+  ) as Promise<BatchPdfStatus>
+}
+
 export async function downloadBatchPdf(
   id: string,
   config: BatchPdfPrintConfig = DEFAULT_PRINT_CONFIG,
   opts: { force?: boolean } = {},
-): Promise<Blob> {
-  const body = batchPdfPayload(config, Boolean(opts.force))
+): Promise<BatchPdfStatus> {
+  const force = Boolean(opts.force)
+  const body = batchPdfPayload(config, force)
   const query = batchPdfQuery(config)
 
   let state = (await withToken((token) =>
     api.post(endpoint.staff.voucherBatchPdf(id), body, token),
   )) as BatchPdfStatus
 
+  if (!force && (state.pdf_url || state.last_pdf_url)) {
+    return state
+  }
+
   const deadline = Date.now() + PDF_POLL_DEADLINE_MS
   while (state.status !== 'ready' || !state.pdf_url) {
     if (Date.now() > deadline) {
-      throw new Error('A geração do PDF está demorando mais que o normal. Tente novamente em instantes.')
+      if (state.last_pdf_url || state.pdf_url) return state
+      throw new Error('A geração do PDF está demorando mais que o normal. Use o último link se já existir, ou tente de novo.')
     }
     await new Promise((resolve) => setTimeout(resolve, PDF_POLL_INTERVAL_MS))
     state = (await withToken((token) =>
       api.get(`${endpoint.staff.voucherBatchPdf(id)}?${query}`, token),
     )) as BatchPdfStatus
+    if (!force && (state.pdf_url || state.last_pdf_url)) {
+      return state
+    }
   }
 
-  const file = await fetch(state.pdf_url)
-  if (!file.ok) throw new Error(`Erro ${file.status} ao baixar o PDF do storage`)
-  return file.blob()
+  return state
+}
+
+export async function fetchBatchPdfBlob(
+  id: string,
+  config: BatchPdfPrintConfig = DEFAULT_PRINT_CONFIG,
+): Promise<Blob> {
+  const query = batchPdfQuery(config)
+  return withToken((token) =>
+    api.getBlob(`${endpoint.staff.voucherBatchPdf(id)}?${query}&download=1`, token),
+  )
 }

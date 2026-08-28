@@ -8,6 +8,15 @@ export type BatchPdfPrintConfig = {
   verso: StackedVerso
 }
 
+export type BatchPdfStatus = {
+  status: 'ready' | 'generating' | 'pending'
+  duplex: string
+  layout?: string
+  verso?: string
+  pdf_url?: string
+  last_pdf_url?: string
+}
+
 export const DEFAULT_PRINT_CONFIG: BatchPdfPrintConfig = {
   layout: 'duplex',
   duplex: 'long-edge',

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { FileDown, Loader2, RefreshCw, X } from 'lucide-react'
+import { ExternalLink, FileDown, Loader2, RefreshCw, X } from 'lucide-react'
 
 import Button from '@/components/button'
 import AdminSegmentedControl from '@/components/admin/admin-segmented-control'
@@ -10,6 +10,7 @@ import { cn } from '@/utils/tailwind'
 import {
   DEFAULT_PRINT_CONFIG,
   type BatchPdfPrintConfig,
+  type BatchPdfStatus,
 } from '@/services/staff/voucher-print'
 import PrintLayoutPreview from './print-layout-preview'
 
@@ -42,21 +43,25 @@ type Props = {
   open: boolean
   forceDefault?: boolean
   loading?: boolean
+  lastPdf?: BatchPdfStatus | null
   onClose: () => void
   onConfirm: (config: BatchPdfPrintConfig, force: boolean) => void
+  onConfigChange?: (config: BatchPdfPrintConfig) => void
 }
 
 export default function PrintPdfDialog({
-  open, forceDefault = false, loading = false, onClose, onConfirm,
+  open, forceDefault = false, loading = false, lastPdf = null, onClose, onConfirm, onConfigChange,
 }: Props) {
   const [config, setConfig] = useState<BatchPdfPrintConfig>(DEFAULT_PRINT_CONFIG)
   const [force, setForce] = useState(forceDefault)
 
   useEffect(() => {
     if (!open) return
-    setConfig(loadPrefs())
+    const next = loadPrefs()
+    setConfig(next)
     setForce(forceDefault)
-  }, [open, forceDefault])
+    onConfigChange?.(next)
+  }, [open, forceDefault, onConfigChange])
 
   useEffect(() => {
     if (!open) return
@@ -72,6 +77,13 @@ export default function PrintPdfDialog({
   }, [open, loading, onClose])
 
   if (!open) return null
+
+  const changeConfig = (next: BatchPdfPrintConfig) => {
+    setConfig(next)
+    onConfigChange?.(next)
+  }
+
+  const lastUrl = lastPdf?.pdf_url || lastPdf?.last_pdf_url
 
   const confirm = () => {
     savePrefs(config)
@@ -128,7 +140,7 @@ export default function PrintPdfDialog({
                 className="mt-2 w-full [&>button]:flex-1 [&>button]:justify-center"
                 aria-label="Layout de impressão"
                 value={config.layout}
-                onChange={(id) => setConfig((c) => ({ ...c, layout: id as BatchPdfPrintConfig['layout'] }))}
+                onChange={(id) => changeConfig({ ...config, layout: id as BatchPdfPrintConfig['layout'] })}
                 segments={[
                   { id: 'duplex', label: 'Duplex' },
                   { id: 'stacked', label: 'Empilhado' },
@@ -148,7 +160,7 @@ export default function PrintPdfDialog({
                   className="mt-2 w-full [&>button]:flex-1 [&>button]:justify-center"
                   aria-label="Borda da virada duplex"
                   value={config.duplex}
-                  onChange={(id) => setConfig((c) => ({ ...c, duplex: id as BatchPdfPrintConfig['duplex'] }))}
+                  onChange={(id) => changeConfig({ ...config, duplex: id as BatchPdfPrintConfig['duplex'] })}
                   segments={[
                     { id: 'long-edge', label: 'Borda longa' },
                     { id: 'short-edge', label: 'Borda curta' },
@@ -162,7 +174,7 @@ export default function PrintPdfDialog({
                   className="mt-2 w-full [&>button]:flex-1 [&>button]:justify-center"
                   aria-label="Orientação do verso"
                   value={config.verso}
-                  onChange={(id) => setConfig((c) => ({ ...c, verso: id as BatchPdfPrintConfig['verso'] }))}
+                  onChange={(id) => changeConfig({ ...config, verso: id as BatchPdfPrintConfig['verso'] })}
                   segments={[
                     { id: 'fold', label: 'Dobra 180°' },
                     { id: 'cut', label: 'Corte' },
@@ -170,6 +182,18 @@ export default function PrintPdfDialog({
                   ]}
                 />
               </div>
+            )}
+
+            {lastUrl && (
+              <a
+                href={lastUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 text-xs font-medium text-[#7132f5] hover:underline"
+              >
+                <ExternalLink className="size-3.5" />
+                Abrir último PDF gerado
+              </a>
             )}
 
             <label className="flex items-start gap-2 text-xs text-[#686b82]">
@@ -181,6 +205,7 @@ export default function PrintPdfDialog({
               />
               <span>
                 Descartar PDF já gerado e renderizar de novo com os dados atuais da campanha.
+                Sem isto, o último arquivo do GCS é reaproveitado.
               </span>
             </label>
           </div>

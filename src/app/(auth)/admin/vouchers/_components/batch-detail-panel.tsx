@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Ban, FileDown, Loader2, Pause, Pencil, Play, RefreshCw, Search, Trash2 } from 'lucide-react'
 
@@ -21,6 +21,8 @@ import {
   cancelVoucher,
   deleteBatch,
   downloadBatchPdf,
+  fetchBatchPdfBlob,
+  getBatchPdfStatus,
   expireBatch,
   getBatchReport,
   listVouchers,
@@ -30,7 +32,7 @@ import {
   type Voucher,
   type VoucherBatch,
 } from '@/services/staff/vouchers'
-import { printProofHint, type BatchPdfPrintConfig } from '@/services/staff/voucher-print'
+import { printProofHint, type BatchPdfPrintConfig, type BatchPdfStatus } from '@/services/staff/voucher-print'
 import {
   BATCH_STATUS_LABEL,
   VOUCHER_STATUS_LABEL,
@@ -60,6 +62,7 @@ export default function BatchDetailPanel({
   const [feedback, setFeedback] = useState<{ kind: 'success' | 'error'; message: string } | null>(null)
   const [editing, setEditing] = useState(false)
   const [printDialog, setPrintDialog] = useState<null | { force: boolean }>(null)
+  const [printConfig, setPrintConfig] = useState<BatchPdfPrintConfig | null>(null)
 
   const reportQuery = useQuery({
     queryKey: ['voucher-batch-report', batch.id],
@@ -79,17 +82,44 @@ export default function BatchDetailPanel({
     queryClient.invalidateQueries({ queryKey: ['voucher-batches'] })
   }
 
+  const pdfStatusQuery = useQuery({
+    queryKey: ['voucher-batch-pdf', batch.id, printConfig],
+    queryFn: () => getBatchPdfStatus(batch.id, printConfig as BatchPdfPrintConfig),
+    enabled: printDialog !== null && printConfig !== null,
+    staleTime: 5_000,
+    refetchInterval: printDialog !== null ? 8_000 : false,
+  })
+
+  const rememberPrintConfig = useCallback((config: BatchPdfPrintConfig) => {
+    setPrintConfig(config)
+  }, [])
+
   const pdfMutation = useMutation({
-    mutationFn: ({ config, force }: { config: BatchPdfPrintConfig; force: boolean }) =>
-      downloadBatchPdf(batch.id, config, { force }),
-    onSuccess: (blob, { config, force }) => {
-      triggerDownload(blob, `vouchers-${batch.event_name}-${batch.name}.pdf`)
+    mutationFn: async ({ config, force }: { config: BatchPdfPrintConfig; force: boolean }) => {
+      const state = await downloadBatchPdf(batch.id, config, { force })
+      try {
+        const blob = await fetchBatchPdfBlob(batch.id, config)
+        return { state, blob }
+      } catch {
+        return { state, blob: null }
+      }
+    },
+    onSuccess: ({ state, blob }, { config, force }) => {
+      if (blob) {
+        triggerDownload(blob, `vouchers-${batch.event_name}-${batch.name}.pdf`)
+      } else {
+        const url = state.pdf_url || state.last_pdf_url
+        if (url) window.open(url, '_blank', 'noopener,noreferrer')
+      }
       setPrintDialog(null)
+      const url = state.pdf_url || state.last_pdf_url
       setFeedback({
         kind: 'success',
-        message: force
-          ? 'PDF regerado do zero com os dados atuais da campanha.'
-          : printProofHint(config),
+        message: url
+          ? `${force ? 'PDF regerado.' : printProofHint(config)} Link: ${url}`
+          : force
+            ? 'PDF regerado do zero com os dados atuais da campanha.'
+            : printProofHint(config),
       })
     },
     onError: (error: Error) => setFeedback({ kind: 'error', message: error.message }),
@@ -334,6 +364,8 @@ export default function BatchDetailPanel({
         open={printDialog !== null}
         forceDefault={printDialog?.force ?? false}
         loading={pdfMutation.isPending}
+        lastPdf={pdfStatusQuery.data ?? null}
+        onConfigChange={rememberPrintConfig}
         onClose={() => { if (!pdfMutation.isPending) setPrintDialog(null) }}
         onConfirm={(config, force) => pdfMutation.mutate({ config, force })}
       />
