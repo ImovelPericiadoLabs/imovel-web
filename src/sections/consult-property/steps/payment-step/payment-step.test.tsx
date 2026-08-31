@@ -163,6 +163,6 @@ describe('PaymentStep', () => {
     expect(wrapper).toHaveClass('relative', 'flex-1')
 
     const contentDiv = wrapper.querySelector('.flex.flex-col')
-    expect(contentDiv).toHaveClass('gap-6')
+    expect(contentDiv).toHaveClass('gap-5')
   })
 })

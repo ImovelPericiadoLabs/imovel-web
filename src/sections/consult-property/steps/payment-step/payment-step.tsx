@@ -3,12 +3,10 @@
 import { useFormContext } from 'react-hook-form'
 import { useQuery } from '@tanstack/react-query'
 import { useSession } from 'next-auth/react'
-import { CreditCard } from 'lucide-react'
 import TextTitle from '@/components/text-title'
 import TextSubtitle from '@/components/text-subtitle'
 import {
   consultFlowHeroBlockClass,
-  consultFlowHeroSubtitleClass,
   consultFlowHeroTitleClass,
   consultFlowHeroTitleSizeLargeClass,
 } from '@/constants/consult-flow-hero-text'
@@ -144,21 +142,17 @@ export function PaymentStep({
     window.setTimeout(() => goToConfirm(value), 280)
   }
 
-  const gridOptions = GATEWAY_OPTIONS.filter((option) => option.id !== 'boleto')
-  const boleto = GATEWAY_OPTIONS.find((option) => option.id === 'boleto')
-
   return (
     <div className="relative flex-1 px-3 sm:px-4">
-      <div className="mx-auto flex w-full max-w-xl flex-col gap-6 pb-24 md:max-w-2xl md:pb-8">
-        <div className={cn(consultFlowHeroBlockClass, 'items-center px-1 text-center md:items-start md:text-left')}>
-          <CreditCard className="mb-1 hidden size-6 text-white/90 md:block" aria-hidden />
+      <div className="mx-auto flex w-full max-w-xl flex-col gap-5 pb-24 md:max-w-2xl md:pb-8">
+        <div className={cn(consultFlowHeroBlockClass, 'mb-0 items-center px-1 text-center')}>
           <TextTitle className={cn(consultFlowHeroTitleClass, consultFlowHeroTitleSizeLargeClass, 'w-full')}>
             Escolha como pagar
           </TextTitle>
-          <TextSubtitle className={cn(consultFlowHeroSubtitleClass, 'w-full')}>
-            Selecione o método de pagamento de sua preferência.
-          </TextSubtitle>
         </div>
+        <TextSubtitle className="mx-auto w-full max-w-[50ch] px-1 text-center text-[15px] font-medium leading-snug text-slate-600">
+          Selecione o método de pagamento de sua preferência.
+        </TextSubtitle>
 
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           {showBalanceOption && (
@@ -176,7 +170,7 @@ export function PaymentStep({
             />
           )}
 
-          {gridOptions.map((option, index) => {
+          {GATEWAY_OPTIONS.map((option, index) => {
             const available = isAvailable(option.code)
             return (
               <PaymentMethodCard
@@ -194,22 +188,6 @@ export function PaymentStep({
               />
             )
           })}
-
-          {boleto && (
-            <PaymentMethodCard
-              title={boleto.title}
-              status={isAvailable(boleto.code) ? boleto.availableStatus : UNAVAILABLE_STATUS}
-              statusTone={isAvailable(boleto.code) ? boleto.availableTone : 'warn'}
-              description={isAvailable(boleto.code) ? boleto.description : UNAVAILABLE_DESCRIPTION}
-              icon={boleto.icon}
-              available={isAvailable(boleto.code)}
-              selected={isAvailable(boleto.code) && paymentMethod === 'boleto'}
-              onSelect={() => handleSelectMethod('boleto', boleto.code)}
-              testId="option-Boleto"
-              delayMs={(showBalanceOption ? 3 : 2) * 45}
-              className="md:col-span-2"
-            />
-          )}
         </div>
       </div>
     </div>

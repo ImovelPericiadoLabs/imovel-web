@@ -77,6 +77,7 @@ export type Order = {
   /** Confirmado = pagamento ou créditos já cobertos; útil quando ``status`` analítico ainda é PENDING (re-solicitação / fila). */
   payment_status?: GenericStatus
   gateway?: string
+  billing_type?: string
   amount: string
   documents: Document[]
   place_id: string
