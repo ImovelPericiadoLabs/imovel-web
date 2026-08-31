@@ -1,7 +1,8 @@
 'use client'
 
 import { useFormContext } from 'react-hook-form'
-import { QrCode, CreditCard, Barcode, DollarSign, LucideIcon, Check } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
+import { QrCode, CreditCard, Barcode, DollarSign, LucideIcon, Check, TriangleAlert } from 'lucide-react'
 import TextTitle from '@/components/text-title'
 import TextSubtitle from '@/components/text-subtitle'
 import {
@@ -10,24 +11,27 @@ import {
   consultFlowHeroTitleClass,
   consultFlowHeroTitleSizePrimaryClass,
 } from '@/constants/consult-flow-hero-text'
+import { queryKey } from '@/constants/queries'
 import { cn } from '@/utils/tailwind'
 import { Switch } from '@/components/switch'
 import { trackGtmEvent } from '@/utils/analytics/gtm'
+import { getPaymentMethods, type CheckoutBillingType } from '@/services/payments'
 
 type PaymentMethodType = 'pix' | 'credit_card' | 'debit_card' | 'boleto'
 
 interface PaymentOption {
   id: PaymentMethodType
+  code: CheckoutBillingType
   title: string
   subtitle: string
   icon: LucideIcon
 }
 
 const PAYMENT_OPTIONS: PaymentOption[] = [
-  { id: 'pix', title: 'Pix', subtitle: 'Aprovação imediata', icon: QrCode },
-  { id: 'credit_card', title: 'Cartão de Crédito', subtitle: 'Em até 12x', icon: CreditCard },
-  { id: 'debit_card', title: 'Cartão de Débito', subtitle: 'Transferência instantânea', icon: CreditCard },
-  { id: 'boleto', title: 'Boleto', subtitle: 'Vencimento em 3 dias úteis', icon: Barcode },
+  { id: 'pix', code: 'PIX', title: 'Pix', subtitle: 'Aprovação imediata', icon: QrCode },
+  { id: 'credit_card', code: 'CREDIT_CARD', title: 'Cartão de Crédito', subtitle: 'Em até 12x', icon: CreditCard },
+  { id: 'debit_card', code: 'DEBIT_CARD', title: 'Cartão de Débito', subtitle: 'Transferência instantânea', icon: CreditCard },
+  { id: 'boleto', code: 'BOLETO', title: 'Boleto', subtitle: 'Vencimento em 3 dias úteis', icon: Barcode },
 ]
 
 export function PaymentStep({
@@ -46,13 +50,25 @@ export function PaymentStep({
   const { setValue, watch } = useFormContext()
   const useBalance = watch('useBalance')
   const paymentMethod = watch('paymentMethod')
+  const { data: catalog } = useQuery({
+    queryKey: [queryKey.paymentMethods],
+    queryFn: getPaymentMethods,
+    staleTime: 30_000,
+  })
 
   const formattedBalance = new Intl.NumberFormat('pt-BR', {
     style: 'currency',
     currency: 'BRL',
   }).format(currentBalance)
 
-  function handleSelectMethod(value: PaymentMethodType) {
+  function isAvailable(code: CheckoutBillingType): boolean {
+    const row = catalog?.methods?.find((item) => item.code === code)
+    return row ? row.available : true
+  }
+
+  function handleSelectMethod(value: PaymentMethodType, code: CheckoutBillingType) {
+    if (!isAvailable(code)) return
+
     setValue('paymentMethod', value, { shouldValidate: true })
 
     trackGtmEvent('payment_method_selected', {
@@ -108,26 +124,44 @@ export function PaymentStep({
           </div>
 
           {PAYMENT_OPTIONS.map((option) => {
-            const isSelected = paymentMethod === option.id
+            const available = isAvailable(option.code)
+            const isSelected = available && paymentMethod === option.id
             return (
               <button
                 key={option.id}
                 type="button"
-                onClick={() => handleSelectMethod(option.id)}
-                className={`
-                  w-full flex items-center gap-4 p-4 rounded-xl border transition-all duration-200 text-left
-                  ${isSelected
-                    ? 'bg-primary/5 border-primary shadow-sm shadow-primary/10'
-                    : 'bg-white border-gray-200 hover:border-gray-300'
-                  }
-                `}
+                data-testid={`option-${option.title}`}
+                disabled={!available}
+                aria-disabled={!available}
+                onClick={() => handleSelectMethod(option.id, option.code)}
+                className={cn(
+                  'w-full flex items-center gap-4 p-4 rounded-xl border text-left transition-all duration-200',
+                  !available && 'cursor-not-allowed bg-gray-50 border-gray-100 opacity-70',
+                  available && isSelected && 'bg-primary/5 border-primary shadow-sm shadow-primary/10',
+                  available && !isSelected && 'bg-white border-gray-200 hover:border-gray-300',
+                )}
               >
-                <div className={`size-10 rounded-full flex items-center justify-center shrink-0 transition-colors ${isSelected ? 'bg-primary' : 'bg-gray-100'}`}>
-                  <Check className={`size-6 ${isSelected ? 'text-white' : 'text-gray-400'} stroke-[3px]`} />
+                <div
+                  className={cn(
+                    'size-10 rounded-full flex items-center justify-center shrink-0 transition-colors',
+                    !available && 'bg-amber-50',
+                    available && isSelected && 'bg-primary',
+                    available && !isSelected && 'bg-gray-100',
+                  )}
+                >
+                  {available ? (
+                    <Check className={`size-6 ${isSelected ? 'text-white' : 'text-gray-400'} stroke-[3px]`} />
+                  ) : (
+                    <TriangleAlert className="size-5 text-amber-600" aria-hidden />
+                  )}
                 </div>
-                <div className="flex flex-col flex-1">
-                  <span className={`text-base font-semibold ${isSelected ? 'text-primary' : 'text-dark'}`}>{option.title}</span>
-                  <span className="text-xs text-gray-500">{option.subtitle}</span>
+                <div className="flex flex-col flex-1 min-w-0">
+                  <span className={`text-base font-semibold ${isSelected ? 'text-primary' : 'text-dark'}`}>
+                    {option.title}
+                  </span>
+                  <span className={cn('text-xs', available ? 'text-gray-500' : 'text-amber-700')}>
+                    {available ? option.subtitle : 'Indisponível'}
+                  </span>
                 </div>
                 {isSelected && (
                   <div className="size-6 bg-primary rounded-full flex items-center justify-center animate-in zoom-in duration-300">

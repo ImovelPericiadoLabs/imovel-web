@@ -15,6 +15,7 @@ import {
   DocumentConfirmationStep,
   DocumentTypeStep,
   SummaryStep,
+  PaymentStep,
   AddressComplementStep,
   SuccessStep,
 } from '@/sections/consult-property/steps'
@@ -83,6 +84,7 @@ type FlowState =
   | 'doc-confirmation'
   | 'doc-type'
   | 'summary'
+  | 'payment'
   | 'payment-cards'
   | 'payment-card-new'
   | 'payment-confirm'
@@ -389,6 +391,7 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
     'doc-confirmation': 2,
     'doc-type': 3,
     summary: 4,
+    payment: 5,
     'payment-confirm': 5,
     'payment-cards': 5,
     'payment-card-new': 5,
@@ -584,7 +587,16 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
           </Activity>
 
           <Activity isActive={flow === 'summary'}>
-            <SummaryStep onNext={() => go('payment-confirm')} />
+            <SummaryStep onNext={() => go('payment')} />
+          </Activity>
+
+          <Activity isActive={flow === 'payment'}>
+            <PaymentStep
+              onPix={() => go('payment-confirm')}
+              onCredit={() => go('payment-confirm')}
+              onDebit={() => go('payment-confirm')}
+              onBoleto={() => go('payment-confirm')}
+            />
           </Activity>
 
           <Activity isActive={flow === 'payment-cards'}>

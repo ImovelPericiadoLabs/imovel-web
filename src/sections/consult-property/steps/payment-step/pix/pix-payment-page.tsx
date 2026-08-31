@@ -1,11 +1,11 @@
 'use client'
 
 import Image from 'next/image'
-import { useState, useEffect, useMemo, useCallback, useRef, type ComponentType } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useForm, FormProvider, useFormContext } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Barcode, Check, Clock, Copy, CreditCard, ExternalLink, IdCard, Lock, Mail, MessageCircle, Phone, ShieldCheck, User, Wallet } from 'lucide-react'
+import { Check, Clock, Copy, ExternalLink, IdCard, Lock, Mail, MessageCircle, Phone, ShieldCheck, TriangleAlert, User, Wallet } from 'lucide-react'
 import { useSession, signOut } from 'next-auth/react'
 
 import TextTitle from '@/components/text-title'
@@ -70,12 +70,19 @@ type Step = 'details' | 'auth' | 'pix' | 'invoice'
 
 type GatewayMethod = CheckoutBillingType
 
-const GATEWAY_BUTTONS: { id: GatewayMethod; title: string; icon: ComponentType<{ className?: string }> }[] = [
-  { id: 'PIX', title: 'Pagar com PIX', icon: PixIcon },
-  { id: 'BOLETO', title: 'Pagar com boleto', icon: Barcode },
-  { id: 'CREDIT_CARD', title: 'Pagar com cartão de crédito', icon: CreditCard },
-  { id: 'DEBIT_CARD', title: 'Pagar com cartão de débito', icon: CreditCard },
-]
+const FORM_TO_BILLING: Record<string, GatewayMethod> = {
+  pix: 'PIX',
+  boleto: 'BOLETO',
+  credit_card: 'CREDIT_CARD',
+  debit_card: 'DEBIT_CARD',
+}
+
+const PAY_LABEL: Record<GatewayMethod, string> = {
+  PIX: 'Pagar com PIX',
+  BOLETO: 'Pagar com boleto',
+  CREDIT_CARD: 'Pagar com cartão de crédito',
+  DEBIT_CARD: 'Pagar com cartão de débito',
+}
 
 function billingFromResult(data: ProcessPaymentResult | undefined): GatewayMethod {
   if (!data || !('billing_type' in data) || !data.billing_type) return 'PIX'
@@ -98,7 +105,7 @@ function methodAvailable(
 ): { available: boolean; reason: string } {
   const row = catalog?.methods?.find((item) => item.code === code)
   if (!row) return { available: true, reason: '' }
-  return { available: row.available, reason: row.reason || 'Em manutenção' }
+  return { available: row.available, reason: row.reason || 'Indisponível' }
 }
 
 function checkoutErrorMessage(error: ApiError): string {
@@ -156,6 +163,8 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
   const { data: session, status } = useSession()
   const parentForm = useFormContext<ConsultFormTypes>()
 
+  const selectedBilling: GatewayMethod =
+    FORM_TO_BILLING[String(parentForm?.watch('paymentMethod') || 'pix')] ?? 'PIX'
   const entryPath = parentForm?.watch('entryPath') as EntryPath | undefined
   const includeCertificates = Boolean(parentForm?.watch('includeCertificates'))
   const propertyUf =
@@ -298,6 +307,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
     queryFn: getPaymentMethods,
     staleTime: 30_000,
   })
+  const selectedMethodState = methodAvailable(methodsCatalog, selectedBilling)
 
   const { data: meSnapshot } = useQuery({
     queryKey: ['me'],
@@ -1096,28 +1106,21 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
                           : 'Pagar com saldo'}
                     </Button>
                   )}
-                  {GATEWAY_BUTTONS.map((option) => {
-                    const state = methodAvailable(methodsCatalog, option.id)
-                    const Icon = option.icon
-                    const isPrimary = state.available && (option.id === methodsCatalog?.fallback || (!methodsCatalog?.fallback && option.id === 'PIX'))
-                    return (
-                      <Button
-                        key={option.id}
-                        type="button"
-                        variant={isPrimary ? undefined : 'outline'}
-                        onClick={() => void handlePay(option.id)}
-                        disabled={isLoading || !state.available}
-                        className="rounded-xl h-11"
-                        icon={<Icon className="size-4" />}
-                      >
-                        {isLoading
-                          ? 'Processando...'
-                          : state.available
-                            ? option.title
-                            : `${option.title.replace('Pagar com ', '')} em manutenção`}
-                      </Button>
-                    )
-                  })}
+                  <Button
+                    type="button"
+                    onClick={() => void handlePay(selectedBilling)}
+                    disabled={isLoading || !selectedMethodState.available}
+                    className="rounded-xl h-11"
+                    icon={
+                      selectedMethodState.available ? (
+                        <PixIcon className="size-4" />
+                      ) : (
+                        <TriangleAlert className="size-4" />
+                      )
+                    }
+                  >
+                    {isLoading ? 'Processando...' : PAY_LABEL[selectedBilling]}
+                  </Button>
                 </div>
               </form>
             </div>
