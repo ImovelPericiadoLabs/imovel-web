@@ -8,6 +8,12 @@ import { signIn } from 'next-auth/react'
 import { FormTypes } from '@/sections/login/validations'
 import { InputOtp } from '@/sections/login/components/InputOtp'
 import { startAuth } from '@/services/account'
+import {
+  AUTH_CODE_TTL_SECONDS,
+  resendCodeLabel,
+  secondsUntilExpiry,
+  validityLabel,
+} from '@/sections/login/auth-code-copy'
 
 export function VerifyCodeStep({
   onBack,
@@ -21,7 +27,8 @@ export function VerifyCodeStep({
   initialTimer?: number
 }) {
   const [timer, setTimer] = useState(initialTimer)
-  
+  const [validSeconds, setValidSeconds] = useState(AUTH_CODE_TTL_SECONDS)
+
   const router = useRouter()
   const { control, watch, handleSubmit, formState: { isSubmitting } } = useFormContext<FormTypes>()
 
@@ -43,6 +50,13 @@ export function VerifyCodeStep({
 
     return () => clearInterval(id)
   }, [enableTimer, timer])
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setValidSeconds((prev) => (prev <= 0 ? 0 : prev - 1))
+    }, 1000)
+    return () => clearInterval(id)
+  }, [])
 
   const onSubmit = async (data: FormTypes) => {
     setErrorMsg('')
@@ -71,7 +85,8 @@ export function VerifyCodeStep({
     setIsResending(true)
     setErrorMsg('')
     try {
-      await startAuth({ email })
+      const sent = await startAuth({ email })
+      setValidSeconds(secondsUntilExpiry(sent?.expires_at))
       setTimer(59)
     } catch {
       setErrorMsg('Aguarde alguns instantes antes de tentar novamente.')
@@ -92,9 +107,13 @@ export function VerifyCodeStep({
       </div>
 
       <h1 className="text-[1.375rem] font-bold text-[#1A1A1A] mb-2">Confira seu e-mail</h1>
-      <p className="text-sm text-[#4B4B4B] mb-8 max-w-xs">
+      <p className="text-sm text-[#4B4B4B] mb-2 max-w-xs">
         Enviamos um código de 6 dígitos para <span className="font-medium text-dark">{email}</span>.
       </p>
+      <p className="text-sm text-[#4B4B4B] mb-1 max-w-xs">
+        Use o e-mail mais recente.
+      </p>
+      <p className="text-xs text-primary font-medium mb-8">{validityLabel(validSeconds)}</p>
 
       <Controller
         name="code"
@@ -126,7 +145,7 @@ export function VerifyCodeStep({
             disabled={isResending}
             className="text-primary font-medium hover:text-primary/80 transition-colors disabled:opacity-50"
           >
-            {isResending ? 'Enviando...' : 'Reenviar agora'}
+            {resendCodeLabel(validSeconds, isResending)}
           </button>
         ) : (
           <span className="text-primary font-medium">Reenviar em {timer}s</span>

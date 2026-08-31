@@ -8,6 +8,8 @@ export type StartAuthRequest = {
 
 export type StartAuthResponse = {
   detail: string
+  expires_at?: string
+  ttl_minutes?: number
 }
 
 

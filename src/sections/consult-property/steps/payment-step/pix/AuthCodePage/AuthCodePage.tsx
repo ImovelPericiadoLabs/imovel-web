@@ -11,6 +11,12 @@ import Alert from '@/components/alert'
 import { InputOtp } from '@/sections/login/components/InputOtp'
 import { startAuth } from '@/services/account'
 import { FormTypes } from '@/sections/login/validations'
+import {
+  AUTH_CODE_TTL_SECONDS,
+  resendCodeLabel,
+  secondsUntilExpiry,
+  validityLabel,
+} from '@/sections/login/auth-code-copy'
 
 interface AuthCodePageProps {
     onBack: () => void;
@@ -23,6 +29,7 @@ export function AuthCodePage({ onBack, onSuccess }: AuthCodePageProps) {
     const email = watch('email')
 
     const [timer, setTimer] = useState(59)
+    const [validSeconds, setValidSeconds] = useState(AUTH_CODE_TTL_SECONDS)
     const [errorMsg, setErrorMsg] = useState('')
     const [isResending, setIsResending] = useState(false)
     const [isSubmitting, setIsSubmitting] = useState(false)
@@ -40,6 +47,13 @@ export function AuthCodePage({ onBack, onSuccess }: AuthCodePageProps) {
         }, 1000)
         return () => clearInterval(id)
     }, [timer])
+
+    useEffect(() => {
+        const id = setInterval(() => {
+            setValidSeconds((prev) => (prev <= 0 ? 0 : prev - 1))
+        }, 1000)
+        return () => clearInterval(id)
+    }, [])
 
     function clearError() {
         setErrorMsg('');
@@ -84,7 +98,8 @@ export function AuthCodePage({ onBack, onSuccess }: AuthCodePageProps) {
         try {
             setIsResending(true)
             clearError()
-            await startAuth({ email })
+            const sent = await startAuth({ email })
+            setValidSeconds(secondsUntilExpiry(sent?.expires_at))
             setTimer(59)
         } catch (error: unknown) {
             console.error('Erro ao reenviar:', error)
@@ -132,6 +147,10 @@ export function AuthCodePage({ onBack, onSuccess }: AuthCodePageProps) {
                     <p className="text-sm text-gray-500 max-w-xs">
                         Enviamos um código de 6 dígitos para <span className="font-medium text-dark">{email}</span>.
                     </p>
+                    <p className="text-sm text-gray-500 max-w-xs">
+                        Use o e-mail mais recente.
+                    </p>
+                    <p className="text-xs text-primary font-medium">{validityLabel(validSeconds)}</p>
                     <button
                         type="button"
                         onClick={onBack}
@@ -175,7 +194,7 @@ export function AuthCodePage({ onBack, onSuccess }: AuthCodePageProps) {
                                 disabled={isResending || isSubmitting}
                                 className="text-primary font-medium hover:underline transition-colors disabled:opacity-50"
                             >
-                                {isResending ? 'Enviando...' : 'Reenviar agora'}
+                                {resendCodeLabel(validSeconds, isResending)}
                             </button>
                         ) : (
                             <span className="text-primary font-medium">Reenviar em {timer}s</span>
