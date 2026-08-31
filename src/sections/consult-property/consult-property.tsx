@@ -45,6 +45,7 @@ import { scrollConsultFlowToTop, unlockPageScroll } from '@/utils/consult-flow-s
 
 const CONSULT_PROPERTY_FORM_DEFAULTS: FormTypes = {
   paymentMethod: 'pix',
+  useBalance: false,
   allotment: '',
   noAllotment: undefined,
   block: '',

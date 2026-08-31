@@ -5,7 +5,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useForm, FormProvider, useFormContext } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Check, Clock, Copy, ExternalLink, IdCard, Lock, Mail, MessageCircle, Phone, ShieldCheck, TriangleAlert, User, Wallet } from 'lucide-react'
+import { Barcode, Check, Clock, Copy, CreditCard, ExternalLink, IdCard, Lock, Mail, MessageCircle, Phone, ShieldCheck, User, Wallet } from 'lucide-react'
 import { useSession, signOut } from 'next-auth/react'
 
 import TextTitle from '@/components/text-title'
@@ -27,7 +27,6 @@ import { IncludedCertificatesPanel } from '@/components/included-certificates/in
 import {
   processPayment,
   getPaymentStatus,
-  getPaymentMethods,
   type CheckoutBillingType,
   type ProcessPaymentResult,
 } from '@/services/payments'
@@ -69,19 +68,20 @@ interface PixPaymentPageProps {
 type Step = 'details' | 'auth' | 'pix' | 'invoice'
 
 type GatewayMethod = CheckoutBillingType
+type FormPaymentMethod = 'pix' | 'credit_card' | 'debit_card' | 'boleto'
 
-const FORM_TO_BILLING: Record<string, GatewayMethod> = {
+const FORM_TO_BILLING: Record<FormPaymentMethod, GatewayMethod> = {
   pix: 'PIX',
-  boleto: 'BOLETO',
   credit_card: 'CREDIT_CARD',
   debit_card: 'DEBIT_CARD',
+  boleto: 'BOLETO',
 }
 
-const PAY_LABEL: Record<GatewayMethod, string> = {
-  PIX: 'Pagar com PIX',
-  BOLETO: 'Pagar com boleto',
-  CREDIT_CARD: 'Pagar com cartão de crédito',
-  DEBIT_CARD: 'Pagar com cartão de débito',
+const PAY_CTA: Record<GatewayMethod, { title: string; icon: typeof PixIcon | typeof Barcode | typeof CreditCard }> = {
+  PIX: { title: 'Pagar com PIX', icon: PixIcon },
+  BOLETO: { title: 'Pagar com boleto', icon: Barcode },
+  CREDIT_CARD: { title: 'Pagar com cartão de crédito', icon: CreditCard },
+  DEBIT_CARD: { title: 'Pagar com cartão de débito', icon: CreditCard },
 }
 
 function billingFromResult(data: ProcessPaymentResult | undefined): GatewayMethod {
@@ -97,15 +97,6 @@ function invoiceUrlFromResult(data: ProcessPaymentResult | undefined): string {
 function bankSlipUrlFromResult(data: ProcessPaymentResult | undefined): string {
   if (!data || !('bank_slip_url' in data)) return ''
   return data.bank_slip_url || ''
-}
-
-function methodAvailable(
-  catalog: { methods?: { code: string; available: boolean; reason?: string }[] } | null | undefined,
-  code: GatewayMethod,
-): { available: boolean; reason: string } {
-  const row = catalog?.methods?.find((item) => item.code === code)
-  if (!row) return { available: true, reason: '' }
-  return { available: row.available, reason: row.reason || 'Indisponível' }
 }
 
 function checkoutErrorMessage(error: ApiError): string {
@@ -163,8 +154,6 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
   const { data: session, status } = useSession()
   const parentForm = useFormContext<ConsultFormTypes>()
 
-  const selectedBilling: GatewayMethod =
-    FORM_TO_BILLING[String(parentForm?.watch('paymentMethod') || 'pix')] ?? 'PIX'
   const entryPath = parentForm?.watch('entryPath') as EntryPath | undefined
   const includeCertificates = Boolean(parentForm?.watch('includeCertificates'))
   const propertyUf =
@@ -302,12 +291,11 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
     }
   }, [status, session, setValue])
 
-  const { data: methodsCatalog } = useQuery({
-    queryKey: [queryKey.paymentMethods],
-    queryFn: getPaymentMethods,
-    staleTime: 30_000,
-  })
-  const selectedMethodState = methodAvailable(methodsCatalog, selectedBilling)
+  const selectedFormMethod = (parentForm?.watch('paymentMethod') || 'pix') as FormPaymentMethod
+  const selectedBilling = FORM_TO_BILLING[selectedFormMethod] ?? 'PIX'
+  const preferBalance = Boolean(parentForm?.watch('useBalance'))
+  const payCta = PAY_CTA[selectedBilling]
+  const PayIcon = payCta.icon
 
   const { data: meSnapshot } = useQuery({
     queryKey: ['me'],
@@ -883,7 +871,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
                         ? status === 'authenticated'
                           ? `Preencha os dados e escolha como pagar (${formatMoney(payablePrice)})`
                           : 'Preencha os dados: você pode usar o saldo da sua conta após confirmar o e-mail ou outro meio'
-                        : `Preencha seus dados e escolha como pagar ${formatMoney(payablePrice)}`}
+                        : `Preencha seus dados para pagar ${formatMoney(payablePrice)}`}
                   </TextSubtitle>
                 </div>
               </div>
@@ -1093,7 +1081,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
                   {showCreditsOption && (
                     <Button
                       type="button"
-                      variant="outline"
+                      variant={preferBalance ? undefined : 'outline'}
                       onClick={handlePayWithCreditsClick}
                       disabled={isLoading}
                       className="rounded-xl h-11"
@@ -1108,18 +1096,13 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
                   )}
                   <Button
                     type="button"
+                    variant={preferBalance && showCreditsOption ? 'outline' : undefined}
                     onClick={() => void handlePay(selectedBilling)}
-                    disabled={isLoading || !selectedMethodState.available}
+                    disabled={isLoading}
                     className="rounded-xl h-11"
-                    icon={
-                      selectedMethodState.available ? (
-                        <PixIcon className="size-4" />
-                      ) : (
-                        <TriangleAlert className="size-4" />
-                      )
-                    }
+                    icon={<PayIcon className="size-4" />}
                   >
-                    {isLoading ? 'Processando...' : PAY_LABEL[selectedBilling]}
+                    {isLoading ? 'Processando...' : payCta.title}
                   </Button>
                 </div>
               </form>

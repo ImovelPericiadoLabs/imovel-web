@@ -15,24 +15,51 @@ vi.mock('@/components/option-card/option-card.tsx', () => ({
 }))
 
 vi.mock('@/components/switch', () => ({
-  Switch: ({ checked, onCheckedChange }: { checked: boolean; onCheckedChange: (v: boolean) => void }) => (
+  Switch: ({
+    checked,
+    onCheckedChange,
+    disabled,
+  }: {
+    checked: boolean
+    onCheckedChange: (v: boolean) => void
+    disabled?: boolean
+  }) => (
     <button
       data-testid="switch"
       role="switch"
       aria-checked={checked}
-      onClick={() => onCheckedChange(!checked)}
+      disabled={disabled}
+      onClick={() => {
+        if (!disabled) onCheckedChange(!checked)
+      }}
     >
       Switch
     </button>
   ),
 }))
 
+const { mockUseQuery } = vi.hoisted(() => ({
+  mockUseQuery: vi.fn(() => ({ data: undefined as unknown })),
+}))
+
 vi.mock('@tanstack/react-query', () => ({
-  useQuery: () => ({ data: undefined }),
+  useQuery: mockUseQuery,
+}))
+
+vi.mock('next-auth/react', () => ({
+  useSession: () => ({ status: 'unauthenticated', data: null }),
+}))
+
+vi.mock('@/hooks/use-consult-price', () => ({
+  useConsultDynamicPrice: () => ({ payable: 79, price: 79 }),
 }))
 
 vi.mock('@/services/payments', () => ({
   getPaymentMethods: vi.fn(),
+}))
+
+vi.mock('@/services/account', () => ({
+  getMe: vi.fn(),
 }))
 
 const mockSetValue = vi.fn()
@@ -51,6 +78,7 @@ vi.mock('react-hook-form', () => ({
 
 describe('PaymentStep', () => {
   const defaultProps = {
+    currentBalance: 240,
     onPix: mockOnPix,
     onCredit: mockOnCredit,
     onDebit: mockOnDebit,
@@ -60,6 +88,7 @@ describe('PaymentStep', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockWatch.mockReturnValue(false)
+    mockUseQuery.mockReturnValue({ data: undefined })
   })
 
   it('should render TextTitle and default balance correctly', () => {
@@ -135,6 +164,31 @@ describe('PaymentStep', () => {
     expect(mockSetValue).toHaveBeenCalledWith('paymentMethod', 'boleto', { shouldValidate: true })
     expect(mockOnBoleto).toHaveBeenCalledTimes(1)
     vi.useRealTimers()
+  })
+
+  it('mostra alerta e não navega quando o meio está indisponível', () => {
+    mockUseQuery.mockReturnValue({
+      data: {
+        methods: [{ code: 'PIX', available: false, status: 'maintenance', reason: '' }],
+      },
+    })
+
+    render(<PaymentStep {...defaultProps} />)
+
+    fireEvent.click(screen.getByTestId('option-Pix'))
+
+    expect(mockOnPix).not.toHaveBeenCalled()
+    expect(screen.getByText('Indisponível')).toBeInTheDocument()
+    expect(screen.queryByText(/manutenção/i)).not.toBeInTheDocument()
+  })
+
+  it('não liga saldo quando não há créditos suficientes', () => {
+    render(<PaymentStep {...defaultProps} currentBalance={0} />)
+
+    const switchBtn = screen.getByTestId('switch')
+    expect(switchBtn).toBeDisabled()
+    fireEvent.click(switchBtn)
+    expect(mockSetValue).not.toHaveBeenCalledWith('useBalance', true)
   })
 
   it('should render the container with correct structure classes', () => {
