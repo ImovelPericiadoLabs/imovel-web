@@ -47,17 +47,14 @@ describe('PaymentConfirmationStep', () => {
     expect(defaultProps.onFinish).toHaveBeenCalled()
   })
 
-  it('deve renderizar SavedCardsPage e chamar os callbacks corretos quando o método for "credit_card"', () => {
+  it('deve renderizar PixPaymentPage quando o método for "credit_card"', () => {
     ; (useFormContext as Mock).mockReturnValue({
       watch: vi.fn().mockReturnValue('credit_card'),
     })
 
     render(<PaymentConfirmationStep {...defaultProps} />)
 
-    expect(screen.getByTestId('saved-cards-page')).toBeInTheDocument()
-
-    fireEvent.click(screen.getByTestId('card-add-btn'))
-    expect(defaultProps.onAddNewCard).toHaveBeenCalled()
+    expect(screen.getByTestId('pix-payment-page')).toBeInTheDocument()
   })
 
   it('não deve renderizar nada se o método de pagamento for undefined', () => {

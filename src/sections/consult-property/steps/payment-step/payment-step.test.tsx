@@ -27,6 +27,14 @@ vi.mock('@/components/switch', () => ({
   ),
 }))
 
+vi.mock('@tanstack/react-query', () => ({
+  useQuery: () => ({ data: undefined }),
+}))
+
+vi.mock('@/services/payments', () => ({
+  getPaymentMethods: vi.fn(),
+}))
+
 const mockSetValue = vi.fn()
 const mockWatch = vi.fn()
 const mockOnPix = vi.fn()
@@ -78,43 +86,55 @@ describe('PaymentStep', () => {
   })
 
   it('should handle Pix selection', () => {
+    vi.useFakeTimers()
     render(<PaymentStep {...defaultProps} />)
 
     const pixOption = screen.getByTestId('option-Pix')
     fireEvent.click(pixOption)
+    vi.advanceTimersByTime(300)
 
     expect(mockSetValue).toHaveBeenCalledWith('paymentMethod', 'pix', { shouldValidate: true })
     expect(mockOnPix).toHaveBeenCalledTimes(1)
+    vi.useRealTimers()
   })
 
   it('should handle Credit Card selection', () => {
+    vi.useFakeTimers()
     render(<PaymentStep {...defaultProps} />)
 
     const creditOption = screen.getByTestId('option-Cartão de Crédito')
     fireEvent.click(creditOption)
+    vi.advanceTimersByTime(300)
 
     expect(mockSetValue).toHaveBeenCalledWith('paymentMethod', 'credit_card', { shouldValidate: true })
     expect(mockOnCredit).toHaveBeenCalledTimes(1)
+    vi.useRealTimers()
   })
 
   it('should handle Debit Card selection', () => {
+    vi.useFakeTimers()
     render(<PaymentStep {...defaultProps} />)
 
     const debitOption = screen.getByTestId('option-Cartão de Débito')
     fireEvent.click(debitOption)
+    vi.advanceTimersByTime(300)
 
     expect(mockSetValue).toHaveBeenCalledWith('paymentMethod', 'debit_card', { shouldValidate: true })
     expect(mockOnDebit).toHaveBeenCalledTimes(1)
+    vi.useRealTimers()
   })
 
   it('should handle Boleto selection', () => {
+    vi.useFakeTimers()
     render(<PaymentStep {...defaultProps} />)
 
     const boletoOption = screen.getByTestId('option-Boleto')
     fireEvent.click(boletoOption)
+    vi.advanceTimersByTime(300)
 
     expect(mockSetValue).toHaveBeenCalledWith('paymentMethod', 'boleto', { shouldValidate: true })
     expect(mockOnBoleto).toHaveBeenCalledTimes(1)
+    vi.useRealTimers()
   })
 
   it('should render the container with correct structure classes', () => {

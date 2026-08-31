@@ -81,6 +81,9 @@ vi.mock('@/sections/consult-property/steps', () => ({
   SummaryStep: ({ onNext }: any) => (
     <div data-testid="summary-step"><button onClick={onNext}>Next Summary</button></div>
   ),
+  PaymentStep: ({ onPix }: any) => (
+    <div data-testid="payment-step"><button onClick={onPix}>Next Payment</button></div>
+  ),
   SuccessStep: ({ onNavigateToOrders }: any) => (
     <div data-testid="success-step"><button onClick={onNavigateToOrders}>Go Orders</button></div>
   ),
@@ -137,6 +140,9 @@ describe('ConsultProperty Flow', () => {
     expect(screen.getByTestId('summary-step')).toBeVisible()
 
     fireEvent.click(screen.getByText('Next Summary'))
+    expect(screen.getByTestId('payment-step')).toBeVisible()
+
+    fireEvent.click(screen.getByText('Next Payment'))
     expect(screen.getByTestId('payment-confirmation-step')).toBeVisible()
 
     fireEvent.click(screen.getByText('Finish Payment'))
