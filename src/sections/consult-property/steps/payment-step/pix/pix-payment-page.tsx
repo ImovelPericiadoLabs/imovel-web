@@ -773,7 +773,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
       return
     }
 
-    const method: GatewayMethod = creditsIntent && creditsIntent !== 'credits' ? creditsIntent : 'PIX'
+    const method: GatewayMethod = creditsIntent ?? 'PIX'
     try {
       const created = await generatePix(buildPaymentPayload(formData, finalPlaceId, whatsappClean, method))
       const billing = billingFromResult(created)
