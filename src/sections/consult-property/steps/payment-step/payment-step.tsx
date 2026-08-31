@@ -2,6 +2,7 @@
 
 import { useFormContext } from 'react-hook-form'
 import { useQuery } from '@tanstack/react-query'
+import { useSession } from 'next-auth/react'
 import { QrCode, CreditCard, Barcode, DollarSign, LucideIcon, Check, TriangleAlert } from 'lucide-react'
 import TextTitle from '@/components/text-title'
 import TextSubtitle from '@/components/text-subtitle'
@@ -16,6 +17,9 @@ import { cn } from '@/utils/tailwind'
 import { Switch } from '@/components/switch'
 import { trackGtmEvent } from '@/utils/analytics/gtm'
 import { getPaymentMethods, type CheckoutBillingType } from '@/services/payments'
+import { getMe } from '@/services/account'
+import { useConsultDynamicPrice, type EntryPath } from '@/hooks/use-consult-price'
+import type { FormTypes } from '@/sections/consult-property/validations'
 
 type PaymentMethodType = 'pix' | 'credit_card' | 'debit_card' | 'boleto'
 
@@ -35,7 +39,7 @@ const PAYMENT_OPTIONS: PaymentOption[] = [
 ]
 
 export function PaymentStep({
-  currentBalance = 240.0,
+  currentBalance,
   onPix,
   onCredit,
   onDebit,
@@ -47,19 +51,32 @@ export function PaymentStep({
   onDebit: () => void
   onBoleto: () => void
 }) {
-  const { setValue, watch } = useFormContext()
-  const useBalance = watch('useBalance')
+  const { setValue, watch } = useFormContext<FormTypes>()
+  const { status } = useSession()
+  const useBalance = Boolean(watch('useBalance'))
   const paymentMethod = watch('paymentMethod')
+  const entryPath = watch('entryPath') as EntryPath | undefined
+  const includeCertificates = Boolean(watch('includeCertificates'))
+  const { payable } = useConsultDynamicPrice({ entryPath, includeCertificates })
+
+  const { data: me } = useQuery({
+    queryKey: ['me'],
+    queryFn: getMe,
+    enabled: status === 'authenticated',
+  })
   const { data: catalog } = useQuery({
     queryKey: [queryKey.paymentMethods],
     queryFn: getPaymentMethods,
     staleTime: 30_000,
   })
 
+  const balance = currentBalance ?? Number(me?.credits_balance ?? 0)
+  const canUseBalance = balance > 0 && balance >= payable
+
   const formattedBalance = new Intl.NumberFormat('pt-BR', {
     style: 'currency',
     currency: 'BRL',
-  }).format(currentBalance)
+  }).format(balance)
 
   function isAvailable(code: CheckoutBillingType): boolean {
     const row = catalog?.methods?.find((item) => item.code === code)
@@ -88,6 +105,7 @@ export function PaymentStep({
   }
 
   function toggleBalance(checked: boolean) {
+    if (checked && !canUseBalance) return
     setValue('useBalance', checked)
     trackGtmEvent('payment_balance_toggle', {
       event_category: 'payment',
@@ -110,22 +128,28 @@ export function PaymentStep({
         </div>
 
         <div className="flex flex-col gap-3">
-          <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between mb-2">
-            <div className="flex items-center gap-4">
-              <div className="p-2 bg-gray-50 rounded-xl text-gray-600">
+          <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between gap-3 mb-2">
+            <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+              <div className="p-2 bg-gray-50 rounded-xl text-gray-600 shrink-0">
                 <DollarSign className="w-6 h-6" />
               </div>
-              <div className="flex flex-col">
+              <div className="flex flex-col min-w-0">
                 <span className="font-semibold text-gray-900">Saldo em conta</span>
-                <span className="text-sm text-gray-500">{formattedBalance}</span>
+                <span className="text-sm text-gray-500 truncate">{formattedBalance}</span>
               </div>
             </div>
-            <Switch checked={useBalance} onCheckedChange={toggleBalance} />
+            <Switch
+              checked={useBalance && canUseBalance}
+              disabled={!canUseBalance}
+              onCheckedChange={toggleBalance}
+              aria-label="Usar saldo em conta"
+            />
           </div>
 
           {PAYMENT_OPTIONS.map((option) => {
             const available = isAvailable(option.code)
             const isSelected = available && paymentMethod === option.id
+            const Icon = option.icon
             return (
               <button
                 key={option.id}
@@ -135,7 +159,7 @@ export function PaymentStep({
                 aria-disabled={!available}
                 onClick={() => handleSelectMethod(option.id, option.code)}
                 className={cn(
-                  'w-full flex items-center gap-4 p-4 rounded-xl border text-left transition-all duration-200',
+                  'w-full flex items-center gap-3 sm:gap-4 p-3.5 sm:p-4 rounded-xl border text-left transition-all duration-200',
                   !available && 'cursor-not-allowed bg-gray-50 border-gray-100 opacity-70',
                   available && isSelected && 'bg-primary/5 border-primary shadow-sm shadow-primary/10',
                   available && !isSelected && 'bg-white border-gray-200 hover:border-gray-300',
@@ -149,10 +173,12 @@ export function PaymentStep({
                     available && !isSelected && 'bg-gray-100',
                   )}
                 >
-                  {available ? (
-                    <Check className={`size-6 ${isSelected ? 'text-white' : 'text-gray-400'} stroke-[3px]`} />
-                  ) : (
+                  {!available ? (
                     <TriangleAlert className="size-5 text-amber-600" aria-hidden />
+                  ) : isSelected ? (
+                    <Check className="size-6 text-white stroke-[3px]" />
+                  ) : (
+                    <Icon className="size-5 text-gray-500" />
                   )}
                 </div>
                 <div className="flex flex-col flex-1 min-w-0">
@@ -164,7 +190,7 @@ export function PaymentStep({
                   </span>
                 </div>
                 {isSelected && (
-                  <div className="size-6 bg-primary rounded-full flex items-center justify-center animate-in zoom-in duration-300">
+                  <div className="size-6 bg-primary rounded-full flex items-center justify-center animate-in zoom-in duration-300 shrink-0">
                     <Check className="size-4 text-white stroke-[3px]" />
                   </div>
                 )}
