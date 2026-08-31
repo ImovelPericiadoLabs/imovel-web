@@ -6,7 +6,12 @@ import { useSession } from 'next-auth/react'
 import { CreditCard } from 'lucide-react'
 import TextTitle from '@/components/text-title'
 import TextSubtitle from '@/components/text-subtitle'
-import { consultFlowHeroBlockOnLightClass } from '@/constants/consult-flow-hero-text'
+import {
+  consultFlowHeroBlockClass,
+  consultFlowHeroSubtitleClass,
+  consultFlowHeroTitleClass,
+  consultFlowHeroTitleSizeLargeClass,
+} from '@/constants/consult-flow-hero-text'
 import { queryKey } from '@/constants/queries'
 import { cn } from '@/utils/tailwind'
 import { trackGtmEvent } from '@/utils/analytics/gtm'
@@ -145,12 +150,12 @@ export function PaymentStep({
   return (
     <div className="relative flex-1 px-3 sm:px-4">
       <div className="mx-auto flex w-full max-w-xl flex-col gap-6 pb-24 md:max-w-2xl md:pb-8">
-        <div className={cn(consultFlowHeroBlockOnLightClass, 'items-center px-1 text-center md:items-start md:text-left')}>
-          <CreditCard className="mb-1 hidden size-6 text-[#0b1b3a] md:block" aria-hidden />
-          <TextTitle className="w-full text-[clamp(1.35rem,2.4vw+0.7rem,1.85rem)] font-bold leading-tight text-[#0b1b3a]">
+        <div className={cn(consultFlowHeroBlockClass, 'items-center px-1 text-center md:items-start md:text-left')}>
+          <CreditCard className="mb-1 hidden size-6 text-white/90 md:block" aria-hidden />
+          <TextTitle className={cn(consultFlowHeroTitleClass, consultFlowHeroTitleSizeLargeClass, 'w-full')}>
             Escolha como pagar
           </TextTitle>
-          <TextSubtitle className="w-full text-[15px] font-normal text-slate-500">
+          <TextSubtitle className={cn(consultFlowHeroSubtitleClass, 'w-full')}>
             Selecione o método de pagamento de sua preferência.
           </TextSubtitle>
         </div>
