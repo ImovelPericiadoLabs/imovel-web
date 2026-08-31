@@ -13,6 +13,7 @@ export const endpoint = {
   payments: {
     process: '/payments/',
     status: '/payments',
+    methods: '/payments/methods/',
     quote: '/payments/quote/',
     pricingTable: '/payments/pricing-table/',
   },
@@ -88,6 +89,7 @@ export const endpoint = {
       `/admin/staff/partners/${id}/integration-report/send/`,
     /** Overview de custo/receita (dashboard financeiro). */
     costsOverview: '/admin/staff/costs/overview/',
+    paymentMethods: '/admin/staff/payment-methods/',
   },
   chat: {
     campaigns: '/admin/chat/campaigns/',

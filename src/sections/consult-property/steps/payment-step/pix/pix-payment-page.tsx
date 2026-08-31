@@ -1,11 +1,11 @@
 'use client'
 
 import Image from 'next/image'
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef, type ComponentType } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useForm, FormProvider, useFormContext } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Check, Clock, Copy, IdCard, Lock, Mail, MessageCircle, Phone, ShieldCheck, User, Wallet } from 'lucide-react'
+import { Barcode, Check, Clock, Copy, CreditCard, ExternalLink, IdCard, Lock, Mail, MessageCircle, Phone, ShieldCheck, User, Wallet } from 'lucide-react'
 import { useSession, signOut } from 'next-auth/react'
 
 import TextTitle from '@/components/text-title'
@@ -24,7 +24,13 @@ import Alert from '@/components/alert'
 import AddressSummaryCard from '@/components/address-summary-card'
 import { IncludedCertificatesPanel } from '@/components/included-certificates/included-certificates-panel'
 
-import { processPayment, getPaymentStatus, type ProcessPaymentResult } from '@/services/payments'
+import {
+  processPayment,
+  getPaymentStatus,
+  getPaymentMethods,
+  type CheckoutBillingType,
+  type ProcessPaymentResult,
+} from '@/services/payments'
 import { forgetVoucherCode, readVoucherCode } from '@/utils/voucher-session'
 import { getMe, startAuth } from '@/services/account'
 import { ApiError } from '@/utils/api/errors'
@@ -60,7 +66,56 @@ interface PixPaymentPageProps {
   placeId?: string
 }
 
-type Step = 'details' | 'auth' | 'pix'
+type Step = 'details' | 'auth' | 'pix' | 'invoice'
+
+type GatewayMethod = CheckoutBillingType
+
+const GATEWAY_BUTTONS: { id: GatewayMethod; title: string; icon: ComponentType<{ className?: string }> }[] = [
+  { id: 'PIX', title: 'Pagar com PIX', icon: PixIcon },
+  { id: 'BOLETO', title: 'Pagar com boleto', icon: Barcode },
+  { id: 'CREDIT_CARD', title: 'Pagar com cartão de crédito', icon: CreditCard },
+  { id: 'DEBIT_CARD', title: 'Pagar com cartão de débito', icon: CreditCard },
+]
+
+function billingFromResult(data: ProcessPaymentResult | undefined): GatewayMethod {
+  if (!data || !('billing_type' in data) || !data.billing_type) return 'PIX'
+  return data.billing_type
+}
+
+function invoiceUrlFromResult(data: ProcessPaymentResult | undefined): string {
+  if (!data || !('invoice_url' in data)) return ''
+  return data.invoice_url || ''
+}
+
+function bankSlipUrlFromResult(data: ProcessPaymentResult | undefined): string {
+  if (!data || !('bank_slip_url' in data)) return ''
+  return data.bank_slip_url || ''
+}
+
+function methodAvailable(
+  catalog: { methods?: { code: string; available: boolean; reason?: string }[] } | null | undefined,
+  code: GatewayMethod,
+): { available: boolean; reason: string } {
+  const row = catalog?.methods?.find((item) => item.code === code)
+  if (!row) return { available: true, reason: '' }
+  return { available: row.available, reason: row.reason || 'Em manutenção' }
+}
+
+function checkoutErrorMessage(error: ApiError): string {
+  const alternatives = error.extra?.alternatives
+  if (!Array.isArray(alternatives) || alternatives.length === 0) return error.message
+  const labels: Record<string, string> = {
+    PIX: 'Pix',
+    BOLETO: 'boleto',
+    CREDIT_CARD: 'cartão de crédito',
+    DEBIT_CARD: 'cartão de débito',
+  }
+  const alt = alternatives.map((code) => labels[String(code)] || String(code)).join(' ou ')
+  if (error.message.toLowerCase().includes('pague com') || error.message.toLowerCase().includes('use ')) {
+    return error.message
+  }
+  return `${error.message} Use ${alt}.`
+}
 
 const FIXED_PLAN_ID = '019aea72-ccab-76ee-883c-72cce61cedbb'
 const STORAGE_KEY = '@pix-payment:form-data'
@@ -166,8 +221,8 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
   const [isAuthLoading, setIsAuthLoading] = useState(false)
   const hasTrackedPaymentConfirmed = useRef(false)
   const hasTrackedPixView = useRef(false)
-  /** Após login por e-mail, segue para débito em créditos em vez de gerar PIX. */
-  const paymentIntentRef = useRef<'credits' | null>(null)
+  /** Após login por e-mail, segue para créditos ou o meio escolhido. */
+  const paymentIntentRef = useRef<'credits' | GatewayMethod | null>(null)
 
   const methods = useForm<FormTypes>({
     resolver: zodResolver(validations),
@@ -238,11 +293,11 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
     }
   }, [status, session, setValue])
 
-  useEffect(() => {
-    if (paymentId) {
-      setStep('pix')
-    }
-  }, [paymentId])
+  const { data: methodsCatalog } = useQuery({
+    queryKey: [queryKey.paymentMethods],
+    queryFn: getPaymentMethods,
+    staleTime: 30_000,
+  })
 
   const { data: meSnapshot } = useQuery({
     queryKey: ['me'],
@@ -260,6 +315,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
       formData: { name: string; document: string; email: string; whatsapp: string },
       finalPlaceId: string,
       whatsappClean: string,
+      billingType?: GatewayMethod,
     ) => {
       const hint = String(parentForm?.getValues('addressHint') || '').trim()
       const payloadEntryPath = parentForm?.getValues('entryPath') as EntryPath | undefined
@@ -287,6 +343,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
         lot_number: lot,
         ...(payloadEntryPath ? { entry_path: payloadEntryPath } : {}),
         include_certificates: payloadIncludeCerts,
+        ...(billingType ? { billing_type: billingType } : {}),
         // Vai em toda tentativa: quem decide se o voucher cobre tudo, parte ou nada é
         // o backend, no mesmo instante em que cria o pedido. A tela só transporta.
         ...(readVoucherCode() ? { voucher_code: readVoucherCode() } : {}),
@@ -381,6 +438,18 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
       })
     },
   })
+
+  useEffect(() => {
+    if (!paymentId) return
+    const billing = billingFromResult(pixData)
+    if (billing === 'PIX' && pixPayloadFromResult(pixData)) {
+      setStep('pix')
+      return
+    }
+    if (billing !== 'PIX' || invoiceUrlFromResult(pixData)) {
+      setStep('invoice')
+    }
+  }, [paymentId, pixData])
 
   useQuery({
     queryKey: [queryKey.paymentStatus, paymentId],
@@ -526,8 +595,8 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
     parentForm,
   ])
 
-  const handleDetailsSubmit = useCallback(async () => {
-    paymentIntentRef.current = null
+  const handlePay = useCallback(async (method: GatewayMethod) => {
+    paymentIntentRef.current = method
     const isValid = await trigger(['name', 'document', 'email', 'whatsapp'])
 
     if (!isValid) return
@@ -551,9 +620,9 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
 
     trackGtmEvent('add_payment_info', {
       event_category: 'payment',
-      event_label: 'pix_details',
-      event_description: 'Dados para pagamento via PIX foram preenchidos.',
-      payment_type: 'pix',
+      event_label: `${method.toLowerCase()}_details`,
+      event_description: `Dados para pagamento via ${method} foram preenchidos.`,
+      payment_type: method.toLowerCase(),
       place_id: finalPlaceId || undefined,
       has_document: Boolean(documentId),
       currency: DEFAULT_CURRENCY,
@@ -568,7 +637,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
 
     if (status === 'authenticated') {
       try {
-        const created = await generatePix(buildPaymentPayload(formData, finalPlaceId, whatsappClean))
+        const created = await generatePix(buildPaymentPayload(formData, finalPlaceId, whatsappClean, method))
         // Voucher cobrindo 100%: não há cobrança, e cair na tela de PIX mostraria um
         // QR vazio para quem já terminou. Vai direto para a conclusão.
         if (created && 'paid_with_voucher' in created && created.paid_with_voucher) {
@@ -577,7 +646,8 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
           return
         }
         forgetVoucherCode()
-        setStep('pix')
+        const billing = billingFromResult(created)
+        setStep(billing === 'PIX' && pixPayloadFromResult(created) ? 'pix' : 'invoice')
       } catch (error) {
         console.error('❌ Erro ao processar pagamento:', error);
 
@@ -613,7 +683,9 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
           }
         } else {
           setServerError(
-            error instanceof ApiError ? error.message : 'Erro ao processar pagamento. Tente novamente.'
+            error instanceof ApiError
+              ? checkoutErrorMessage(error)
+              : 'Erro ao processar pagamento. Tente novamente.',
           )
           setStep('details')
         }
@@ -701,14 +773,16 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
       return
     }
 
+    const method: GatewayMethod = creditsIntent && creditsIntent !== 'credits' ? creditsIntent : 'PIX'
     try {
-      await generatePix(buildPaymentPayload(formData, finalPlaceId, whatsappClean))
-
-      setStep('pix')
+      const created = await generatePix(buildPaymentPayload(formData, finalPlaceId, whatsappClean, method))
+      const billing = billingFromResult(created)
+      setStep(billing === 'PIX' && pixPayloadFromResult(created) ? 'pix' : 'invoice')
     } catch (error) {
       if (error instanceof ApiError) {
-        setServerError(error.message)
+        setServerError(checkoutErrorMessage(error))
       }
+      setStep('details')
     } finally {
       setIsAuthLoading(false)
     }
@@ -797,9 +871,9 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
                       ? 'Seu voucher cobre a consulta inteira. Preencha os dados para concluir — não haverá cobrança.'
                       : showCreditsOption
                         ? status === 'authenticated'
-                          ? `Preencha os dados e escolha pagar com saldo ou PIX (${formatMoney(payablePrice)})`
-                          : 'Preencha os dados: você pode usar o saldo da sua conta após confirmar o e-mail ou pagar com PIX'
-                        : `Preencha seus dados para gerar o PIX de ${formatMoney(payablePrice)}`}
+                          ? `Preencha os dados e escolha como pagar (${formatMoney(payablePrice)})`
+                          : 'Preencha os dados: você pode usar o saldo da sua conta após confirmar o e-mail ou outro meio'
+                        : `Preencha seus dados e escolha como pagar ${formatMoney(payablePrice)}`}
                   </TextSubtitle>
                 </div>
               </div>
@@ -836,7 +910,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
                 <ul className="flex flex-col gap-1.5 text-[11px] text-gray-600 leading-snug">
                   <li className="flex gap-2 items-start">
                     <ShieldCheck className="size-3.5 shrink-0 text-primary mt-0.5" aria-hidden />
-                    <span>PIX processado por parceiro de pagamentos; a confirmação costuma levar poucos minutos.</span>
+                    <span>Pagamento processado por parceiro; Pix e cartão costumam confirmar em poucos minutos. Boleto pode levar até 3 dias úteis.</span>
                   </li>
                   <li className="flex gap-2 items-start">
                     <Lock className="size-3.5 shrink-0 text-primary mt-0.5" aria-hidden />
@@ -1022,15 +1096,28 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
                           : 'Pagar com saldo'}
                     </Button>
                   )}
-                  <Button
-                    type="button"
-                    onClick={handleDetailsSubmit}
-                    disabled={isLoading}
-                    className="rounded-xl h-11"
-                    icon={<PixIcon className="size-4" />}
-                  >
-                    {isLoading ? 'Processando...' : 'Pagar com PIX'}
-                  </Button>
+                  {GATEWAY_BUTTONS.map((option) => {
+                    const state = methodAvailable(methodsCatalog, option.id)
+                    const Icon = option.icon
+                    const isPrimary = state.available && (option.id === methodsCatalog?.fallback || (!methodsCatalog?.fallback && option.id === 'PIX'))
+                    return (
+                      <Button
+                        key={option.id}
+                        type="button"
+                        variant={isPrimary ? undefined : 'outline'}
+                        onClick={() => void handlePay(option.id)}
+                        disabled={isLoading || !state.available}
+                        className="rounded-xl h-11"
+                        icon={<Icon className="size-4" />}
+                      >
+                        {isLoading
+                          ? 'Processando...'
+                          : state.available
+                            ? option.title
+                            : `${option.title.replace('Pagar com ', '')} em manutenção`}
+                      </Button>
+                    )
+                  })}
                 </div>
               </form>
             </div>
@@ -1112,7 +1199,56 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
           </div>
         )}
 
-        <LoadingOverlay isLoading={isLoading} message={step === 'details' ? "Gerando Pix..." : "Processando..."} />
+        {step === 'invoice' && !!pixData && (
+          <div className="flex flex-col items-center pt-10 -mt-20 px-1">
+            <p className={consultFlowHeroSubtitleClass}>
+              Realize o pagamento de{' '}
+              <span className={consultFlowHeroAccentClass}>{formatMoney(consultPrice)}</span> para iniciar a
+              consulta do imóvel.
+            </p>
+            <AddressSummaryCard
+              address={String(getConsultField('address') || getConsultField('addressHint') || '').trim()}
+              registrationNumber={getConsultField('registrationNumber') ?? undefined}
+              notary={String(getConsultField('notaryName') || '').trim() || getConsultField('registry')?.name?.trim() || undefined}
+              allotment={getConsultField('allotment') ?? undefined}
+              block={getConsultField('block') ?? undefined}
+              lot={getConsultField('lot') ?? undefined}
+            />
+            <div className="w-full rounded-xl border border-gray-200 bg-white p-4 mt-6 flex flex-col gap-3">
+              <p className="text-sm font-semibold text-dark">
+                {billingFromResult(pixData) === 'BOLETO'
+                  ? 'Boleto gerado. Abra o documento para pagar.'
+                  : 'Abra a página segura do cartão para concluir o pagamento.'}
+              </p>
+              {invoiceUrlFromResult(pixData) && (
+                <Button
+                  type="button"
+                  className="rounded-xl h-11"
+                  icon={<ExternalLink className="size-4" />}
+                  onClick={() => window.open(invoiceUrlFromResult(pixData), '_blank', 'noopener,noreferrer')}
+                >
+                  {billingFromResult(pixData) === 'BOLETO' ? 'Abrir boleto' : 'Pagar com cartão'}
+                </Button>
+              )}
+              {bankSlipUrlFromResult(pixData) && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="rounded-xl h-11"
+                  onClick={() => window.open(bankSlipUrlFromResult(pixData), '_blank', 'noopener,noreferrer')}
+                >
+                  Baixar PDF do boleto
+                </Button>
+              )}
+            </div>
+            <div className="flex items-center gap-2 text-dark font-semibold text-sm py-4">
+              <Clock size={18} className="animate-spin text-primary" />
+              <span>Aguardando pagamento</span>
+            </div>
+          </div>
+        )}
+
+        <LoadingOverlay isLoading={isLoading} message={step === 'details' ? 'Processando pagamento...' : 'Processando...'} />
       </div>
     </FormProvider>
   )
