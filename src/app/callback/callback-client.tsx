@@ -10,6 +10,12 @@ import Button from '@/components/button'
 import { BRAND_LOGO_DARK_SRC, BRAND_LOGO_HEIGHT, BRAND_LOGO_WIDTH } from '@/constants/brand-logo'
 import { InputOtp } from '@/sections/login/components/InputOtp'
 import { startAuth } from '@/services/account'
+import {
+  AUTH_CODE_TTL_SECONDS,
+  resendCodeLabel,
+  secondsUntilExpiry,
+  validityLabel,
+} from '@/sections/login/auth-code-copy'
 
 const JETIMOB_PANEL_URL = 'https://app.jetimob.io'
 const EMAIL_RE = /^\S+@\S+\.\S+$/
@@ -153,6 +159,7 @@ export function JetimobCallbackClient() {
   const [authError, setAuthError] = useState('')
   const [authBusy, setAuthBusy] = useState(false)
   const [resendTimer, setResendTimer] = useState(59)
+  const [validSeconds, setValidSeconds] = useState(AUTH_CODE_TTL_SECONDS)
 
   const exchangeRef = useRef(false)
 
@@ -216,6 +223,12 @@ export function JetimobCallbackClient() {
     return () => clearInterval(id)
   }, [flow, resendTimer])
 
+  useEffect(() => {
+    if (flow !== 'auth-code') return
+    const id = setInterval(() => setValidSeconds((t) => (t <= 0 ? 0 : t - 1)), 1000)
+    return () => clearInterval(id)
+  }, [flow])
+
   const sendCode = useCallback(async () => {
     if (!EMAIL_RE.test(email)) {
       setAuthError('Digite um e-mail válido.')
@@ -225,8 +238,9 @@ export function JetimobCallbackClient() {
     setAuthBusy(true)
     setAuthError('')
     try {
-      await startAuth({ email })
+      const sent = await startAuth({ email })
       setCode('')
+      setValidSeconds(secondsUntilExpiry(sent?.expires_at))
       setResendTimer(59)
       setFlow('auth-code')
     } catch {
@@ -369,6 +383,10 @@ export function JetimobCallbackClient() {
               Enviamos um código de 6 dígitos para{' '}
               <span className="font-medium text-gray-900">{email}</span>.
             </p>
+            <p className="mt-1 text-sm leading-relaxed text-gray-500">
+              Use o e-mail mais recente.
+            </p>
+            <p className="mt-1 text-xs font-medium text-primary">{validityLabel(validSeconds)}</p>
             <button
               type="button"
               onClick={() => setFlow('auth-email')}
@@ -410,7 +428,7 @@ export function JetimobCallbackClient() {
                     disabled={authBusy}
                     className="font-medium text-primary hover:underline disabled:opacity-50"
                   >
-                    Reenviar código
+                    {resendCodeLabel(validSeconds, false)}
                   </button>
                 ) : (
                   <span className="font-medium text-primary">Reenviar em {resendTimer}s</span>

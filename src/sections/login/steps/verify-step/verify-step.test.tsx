@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, act } from '@testing-library/react'
+import { render, screen, fireEvent, act, cleanup } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { useForm, FormProvider } from 'react-hook-form'
 import { VerifyCodeStep } from './verify-step'
@@ -33,9 +33,11 @@ const Wrapper = ({ children, defaultValues = { email: 'test@test.com', code: '' 
 describe('VerifyCodeStep Senior Tests', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.useFakeTimers({ toFake: ['setInterval'] })
   })
 
   afterEach(() => {
+    cleanup()
     vi.useRealTimers()
   })
 
@@ -68,8 +70,11 @@ describe('VerifyCodeStep Senior Tests', () => {
       </Wrapper>
     )
 
+    expect(screen.getByText('Use o e-mail mais recente.')).toBeInTheDocument()
+    expect(screen.getByText(/Válido por/)).toBeInTheDocument()
+
     const resendBtn = screen.getByRole('button', {
-      name: /reenviar agora/i,
+      name: /reenviar o mesmo código/i,
     })
 
     fireEvent.click(resendBtn)
