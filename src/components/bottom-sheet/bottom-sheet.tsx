@@ -105,19 +105,18 @@ export default function BottomSheet({ isOpen, onClose, children, variant = 'defa
         role="dialog"
         aria-modal={isOpen}
         className={cn(
-          'fixed bottom-0 left-0 right-0 lg:left-1/2 lg:right-auto lg:-translate-x-1/2 lg:w-1/2 lg:max-w-[50%] bg-white shadow-[0px_4px_8px_3px_rgba(0,0,0,0.15),0px_1px_3px_rgba(0,0,0,0.3)] rounded-t-xl z-50 transition-all duration-500 ease-out',
+          'fixed bottom-0 left-0 right-0 z-50 max-h-[90dvh] overflow-y-auto rounded-t-xl bg-white shadow-[0px_4px_8px_3px_rgba(0,0,0,0.15),0px_1px_3px_rgba(0,0,0,0.3)] transition-[transform,opacity] duration-500 ease-out',
+          'lg:left-1/2 lg:right-auto lg:w-full lg:max-w-lg',
+          isOpen
+            ? 'translate-y-0 opacity-100 pointer-events-auto lg:-translate-x-1/2'
+            : 'translate-y-full opacity-0 pointer-events-none lg:-translate-x-1/2',
           variant === 'alert' && 'border-t-4 border-yellow-400',
           className
         )}
         aria-hidden={!isOpen}
-        style={{
-          transform: isOpen ? 'translateY(0)' : 'translateY(100%)',
-          opacity: isOpen ? 1 : 0,
-          pointerEvents: isOpen ? 'auto' : 'none',
-        }}
       >
-        <div className="flex justify-center pt-4 pb-2">
-          <div className="w-8 h-1 rounded-full bg-handle" />
+        <div className="flex justify-center pt-4 pb-2 lg:pt-5">
+          <div className="h-1 w-8 rounded-full bg-handle lg:hidden" />
         </div>
 
         {children}

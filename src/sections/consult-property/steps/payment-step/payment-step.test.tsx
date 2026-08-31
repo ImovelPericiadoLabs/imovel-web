@@ -6,36 +6,8 @@ vi.mock('@/components/text-title', () => ({
   default: ({ children }: { children: React.ReactNode }) => <h1 data-testid="text-title">{children}</h1>,
 }))
 
-vi.mock('@/components/option-card/option-card.tsx', () => ({
-  default: ({ title, onClick }: { title: string; onClick: () => void }) => (
-    <button data-testid={`option-${title}`} onClick={onClick}>
-      {title}
-    </button>
-  ),
-}))
-
-vi.mock('@/components/switch', () => ({
-  Switch: ({
-    checked,
-    onCheckedChange,
-    disabled,
-  }: {
-    checked: boolean
-    onCheckedChange: (v: boolean) => void
-    disabled?: boolean
-  }) => (
-    <button
-      data-testid="switch"
-      role="switch"
-      aria-checked={checked}
-      disabled={disabled}
-      onClick={() => {
-        if (!disabled) onCheckedChange(!checked)
-      }}
-    >
-      Switch
-    </button>
-  ),
+vi.mock('@/components/text-subtitle', () => ({
+  default: ({ children }: { children: React.ReactNode }) => <p>{children}</p>,
 }))
 
 const { mockUseQuery } = vi.hoisted(() => ({
@@ -66,8 +38,8 @@ const mockSetValue = vi.fn()
 const mockWatch = vi.fn()
 const mockOnPix = vi.fn()
 const mockOnCredit = vi.fn()
-const mockOnDebit = vi.fn()
 const mockOnBoleto = vi.fn()
+const mockOnCredits = vi.fn()
 
 vi.mock('react-hook-form', () => ({
   useFormContext: () => ({
@@ -81,8 +53,8 @@ describe('PaymentStep', () => {
     currentBalance: 240,
     onPix: mockOnPix,
     onCredit: mockOnCredit,
-    onDebit: mockOnDebit,
     onBoleto: mockOnBoleto,
+    onCredits: mockOnCredits,
   }
 
   beforeEach(() => {
@@ -104,14 +76,18 @@ describe('PaymentStep', () => {
     expect(screen.getByText(/R\$\s1\.500,50/)).toBeInTheDocument()
   })
 
-  it('should toggle balance switch correctly', () => {
-    mockWatch.mockReturnValue(false)
+  it('escolhe saldo na listagem e não deixa o switch', () => {
+    vi.useFakeTimers()
     render(<PaymentStep {...defaultProps} />)
 
-    const switchBtn = screen.getByTestId('switch')
-    fireEvent.click(switchBtn)
+    expect(screen.queryByRole('switch')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('option-Saldo em conta'))
+    vi.advanceTimersByTime(300)
 
     expect(mockSetValue).toHaveBeenCalledWith('useBalance', true)
+    expect(mockSetValue).toHaveBeenCalledWith('paymentMethod', 'credits', { shouldValidate: true })
+    expect(mockOnCredits).toHaveBeenCalledTimes(1)
+    vi.useRealTimers()
   })
 
   it('should handle Pix selection', () => {
@@ -122,6 +98,7 @@ describe('PaymentStep', () => {
     fireEvent.click(pixOption)
     vi.advanceTimersByTime(300)
 
+    expect(mockSetValue).toHaveBeenCalledWith('useBalance', false)
     expect(mockSetValue).toHaveBeenCalledWith('paymentMethod', 'pix', { shouldValidate: true })
     expect(mockOnPix).toHaveBeenCalledTimes(1)
     vi.useRealTimers()
@@ -131,25 +108,13 @@ describe('PaymentStep', () => {
     vi.useFakeTimers()
     render(<PaymentStep {...defaultProps} />)
 
-    const creditOption = screen.getByTestId('option-Cartão de Crédito')
+    const creditOption = screen.getByTestId('option-Cartão')
     fireEvent.click(creditOption)
     vi.advanceTimersByTime(300)
 
     expect(mockSetValue).toHaveBeenCalledWith('paymentMethod', 'credit_card', { shouldValidate: true })
     expect(mockOnCredit).toHaveBeenCalledTimes(1)
-    vi.useRealTimers()
-  })
-
-  it('should handle Debit Card selection', () => {
-    vi.useFakeTimers()
-    render(<PaymentStep {...defaultProps} />)
-
-    const debitOption = screen.getByTestId('option-Cartão de Débito')
-    fireEvent.click(debitOption)
-    vi.advanceTimersByTime(300)
-
-    expect(mockSetValue).toHaveBeenCalledWith('paymentMethod', 'debit_card', { shouldValidate: true })
-    expect(mockOnDebit).toHaveBeenCalledTimes(1)
+    expect(screen.queryByTestId('option-Cartão de Débito')).not.toBeInTheDocument()
     vi.useRealTimers()
   })
 
@@ -178,26 +143,26 @@ describe('PaymentStep', () => {
     fireEvent.click(screen.getByTestId('option-Pix'))
 
     expect(mockOnPix).not.toHaveBeenCalled()
-    expect(screen.getByText('Indisponível')).toBeInTheDocument()
+    expect(screen.getByText('Instabilidade temporária')).toBeInTheDocument()
+    expect(screen.getByText('Instabilidade temporária com o banco. Tente outro método.')).toBeInTheDocument()
     expect(screen.queryByText(/manutenção/i)).not.toBeInTheDocument()
   })
 
-  it('não liga saldo quando não há créditos suficientes', () => {
+  it('não escolhe saldo quando não há créditos suficientes', () => {
     render(<PaymentStep {...defaultProps} currentBalance={0} />)
 
-    const switchBtn = screen.getByTestId('switch')
-    expect(switchBtn).toBeDisabled()
-    fireEvent.click(switchBtn)
+    fireEvent.click(screen.getByTestId('option-Saldo em conta'))
     expect(mockSetValue).not.toHaveBeenCalledWith('useBalance', true)
+    expect(mockOnCredits).not.toHaveBeenCalled()
   })
 
   it('should render the container with correct structure classes', () => {
     const { container } = render(<PaymentStep {...defaultProps} />)
 
     const wrapper = container.firstChild as HTMLElement
-    expect(wrapper).toHaveClass('relative', 'flex-1', 'px-4')
+    expect(wrapper).toHaveClass('relative', 'flex-1')
 
     const contentDiv = wrapper.querySelector('.flex.flex-col')
-    expect(contentDiv).toHaveClass('gap-5')
+    expect(contentDiv).toHaveClass('gap-6')
   })
 })

@@ -13,7 +13,6 @@ import {
   consultFlowHeroAccentClass,
   consultFlowHeroSubtitleClass,
 } from '@/constants/consult-flow-hero-text'
-import { cn } from '@/utils/tailwind'
 import TextSubtitle from '@/components/text-subtitle'
 import Button from '@/components/button'
 import Skeleton from '@/components/skeleton'
@@ -68,20 +67,20 @@ interface PixPaymentPageProps {
 type Step = 'details' | 'auth' | 'pix' | 'invoice'
 
 type GatewayMethod = CheckoutBillingType
-type FormPaymentMethod = 'pix' | 'credit_card' | 'debit_card' | 'boleto'
+type FormPaymentMethod = ConsultFormTypes['paymentMethod']
 
-const FORM_TO_BILLING: Record<FormPaymentMethod, GatewayMethod> = {
+const FORM_TO_BILLING: Record<Exclude<FormPaymentMethod, 'credits'>, GatewayMethod> = {
   pix: 'PIX',
   credit_card: 'CREDIT_CARD',
-  debit_card: 'DEBIT_CARD',
+  debit_card: 'CREDIT_CARD',
   boleto: 'BOLETO',
 }
 
-const PAY_CTA: Record<GatewayMethod, { title: string; icon: typeof PixIcon | typeof Barcode | typeof CreditCard }> = {
+const PAY_CTA: Record<GatewayMethod, { title: string; icon: typeof PixIcon | typeof Barcode | typeof CreditCard | typeof Wallet }> = {
   PIX: { title: 'Pagar com PIX', icon: PixIcon },
   BOLETO: { title: 'Pagar com boleto', icon: Barcode },
-  CREDIT_CARD: { title: 'Pagar com cartão de crédito', icon: CreditCard },
-  DEBIT_CARD: { title: 'Pagar com cartão de débito', icon: CreditCard },
+  CREDIT_CARD: { title: 'Pagar com cartão', icon: CreditCard },
+  DEBIT_CARD: { title: 'Pagar com cartão', icon: CreditCard },
 }
 
 function billingFromResult(data: ProcessPaymentResult | undefined): GatewayMethod {
@@ -105,8 +104,8 @@ function checkoutErrorMessage(error: ApiError): string {
   const labels: Record<string, string> = {
     PIX: 'Pix',
     BOLETO: 'boleto',
-    CREDIT_CARD: 'cartão de crédito',
-    DEBIT_CARD: 'cartão de débito',
+    CREDIT_CARD: 'cartão',
+    DEBIT_CARD: 'cartão',
   }
   const alt = alternatives.map((code) => labels[String(code)] || String(code)).join(' ou ')
   if (error.message.toLowerCase().includes('pague com') || error.message.toLowerCase().includes('use ')) {
@@ -292,10 +291,10 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
   }, [status, session, setValue])
 
   const selectedFormMethod = (parentForm?.watch('paymentMethod') || 'pix') as FormPaymentMethod
-  const selectedBilling = FORM_TO_BILLING[selectedFormMethod] ?? 'PIX'
-  const preferBalance = Boolean(parentForm?.watch('useBalance'))
+  const payWithCreditsOnly = selectedFormMethod === 'credits' || Boolean(parentForm?.watch('useBalance'))
+  const selectedBilling = selectedFormMethod === 'credits' ? 'PIX' : (FORM_TO_BILLING[selectedFormMethod] ?? 'PIX')
   const payCta = PAY_CTA[selectedBilling]
-  const PayIcon = payCta.icon
+  const PayIcon = payWithCreditsOnly ? Wallet : payCta.icon
 
   const { data: meSnapshot } = useQuery({
     queryKey: ['me'],
@@ -304,9 +303,6 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
   })
 
   const creditsForUi = Number(meSnapshot?.credits_balance ?? 0)
-  const showCreditsOption =
-    status !== 'loading' &&
-    (status !== 'authenticated' || creditsForUi >= consultPrice)
 
   const buildPaymentPayload = useCallback(
     (
@@ -867,10 +863,8 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
                   <TextSubtitle className="text-[13px] text-gray-500 leading-snug">
                     {voucherApplied && payablePrice <= 0
                       ? 'Seu voucher cobre a consulta inteira. Preencha os dados para concluir — não haverá cobrança.'
-                      : showCreditsOption
-                        ? status === 'authenticated'
-                          ? `Preencha os dados e escolha como pagar (${formatMoney(payablePrice)})`
-                          : 'Preencha os dados: você pode usar o saldo da sua conta após confirmar o e-mail ou outro meio'
+                      : payWithCreditsOnly
+                        ? `Confirme os dados e pague com o saldo (${formatMoney(payablePrice)})`
                         : `Preencha seus dados para pagar ${formatMoney(payablePrice)}`}
                   </TextSubtitle>
                 </div>
@@ -1078,32 +1072,31 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
                 </div>
 
                 <div className="flex flex-col gap-2 pt-1">
-                  {showCreditsOption && (
+                  {payWithCreditsOnly ? (
                     <Button
                       type="button"
-                      variant={preferBalance ? undefined : 'outline'}
                       onClick={handlePayWithCreditsClick}
                       disabled={isLoading}
                       className="rounded-xl h-11"
-                      icon={<Wallet className="size-4" />}
+                      icon={<PayIcon className="size-4" />}
                     >
                       {isLoading
                         ? 'Processando...'
                         : status === 'authenticated'
-                          ? `Pagar com saldo (R$ ${creditsForUi.toFixed(2).replace('.', ',')} disponíveis)`
+                          ? `Pagar com saldo (${formatMoney(creditsForUi)})`
                           : 'Pagar com saldo'}
                     </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      onClick={() => void handlePay(selectedBilling)}
+                      disabled={isLoading}
+                      className="rounded-xl h-11"
+                      icon={<PayIcon className="size-4" />}
+                    >
+                      {isLoading ? 'Processando...' : payCta.title}
+                    </Button>
                   )}
-                  <Button
-                    type="button"
-                    variant={preferBalance && showCreditsOption ? 'outline' : undefined}
-                    onClick={() => void handlePay(selectedBilling)}
-                    disabled={isLoading}
-                    className="rounded-xl h-11"
-                    icon={<PayIcon className="size-4" />}
-                  >
-                    {isLoading ? 'Processando...' : payCta.title}
-                  </Button>
                 </div>
               </form>
             </div>
