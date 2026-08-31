@@ -24,10 +24,28 @@ type PaymentRequest = {
   entry_path?: 'address' | 'document' | 'registry'
   /** Código do voucher de evento. O backend recusa em silêncio se a flag estiver off. */
   voucher_code?: string
+  billing_type?: 'PIX' | 'BOLETO' | 'CREDIT_CARD' | 'DEBIT_CARD'
+}
+
+export type CheckoutBillingType = 'PIX' | 'BOLETO' | 'CREDIT_CARD' | 'DEBIT_CARD'
+
+export type PaymentMethodItem = {
+  code: CheckoutBillingType
+  label: string
+  available: boolean
+  status: 'available' | 'maintenance'
+  reason: string
+}
+
+export type PaymentMethodsCatalog = {
+  methods: PaymentMethodItem[]
+  fallback: CheckoutBillingType | null
+  available: CheckoutBillingType[]
 }
 
 export type ProcessPaymentResult =
-  | { encodedImage?: string; payload?: string; id?: string }
+  | { encodedImage?: string; payload?: string; id?: string; billing_type?: CheckoutBillingType; invoice_url?: string }
+  | { id: string; billing_type: CheckoutBillingType; invoice_url?: string; bank_slip_url?: string; status?: string }
   | { id: string; paid_with_credits: true }
   /** Voucher cobriu 100%: pedido criado sem cobrança, então não existe PIX a exibir. */
   | { id: string; paid_with_voucher: true }
@@ -109,6 +127,10 @@ export async function getPricingTable(): Promise<PricingTableResponse> {
 
 export type PaymentStatusResponse = {
   status: string
+}
+
+export async function getPaymentMethods(): Promise<PaymentMethodsCatalog> {
+  return api.get(endpoint.payments.methods) as Promise<PaymentMethodsCatalog>
 }
 
 export async function getPaymentStatus(paymentId: string): Promise<PaymentStatusResponse> {

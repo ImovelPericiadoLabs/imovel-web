@@ -98,7 +98,7 @@ const api = {
       const body = result && typeof result === 'object' ? (result as Record<string, unknown>) : {}
       const err = body.error as { code?: string; message?: string } | undefined
       if (err && typeof err.code === 'string' && typeof err.message === 'string') {
-        throw new ApiError(err.code, err.message)
+        throw new ApiError(err.code, err.message, err as Record<string, unknown>)
       }
       const detail = body.detail
       if (typeof detail === 'string') {
@@ -205,7 +205,7 @@ const api = {
     if (response.status === 400 || response.status === 403 || response.status === 429 || response.status === 502) {
       const err = result?.error
       if (err && typeof err.code === 'string' && typeof err.message === 'string') {
-        throw new ApiError(err.code, err.message)
+        throw new ApiError(err.code, err.message, err as Record<string, unknown>)
       }
       const detail = result?.detail
       if (typeof detail === 'string') {
@@ -259,7 +259,7 @@ const api = {
     if (response.status === 400 || response.status === 403 || response.status === 429) {
       const err = result?.error
       if (err && typeof err.code === 'string' && typeof err.message === 'string') {
-        throw new ApiError(err.code, err.message)
+        throw new ApiError(err.code, err.message, err as Record<string, unknown>)
       }
       const detail = result?.detail
       if (typeof detail === 'string') {
@@ -326,7 +326,7 @@ const api = {
       }
       const err = result?.error
       if (err && typeof err.code === 'string' && typeof err.message === 'string') {
-        throw new ApiError(err.code, err.message)
+        throw new ApiError(err.code, err.message, err as Record<string, unknown>)
       }
       const detail = result?.detail
       if (typeof detail === 'string') {

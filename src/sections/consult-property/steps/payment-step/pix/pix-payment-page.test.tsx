@@ -68,7 +68,20 @@ vi.mock('@/components/alert', () => ({
 
 vi.mock('next/image', () => ({ default: (props: any) => <img {...props} /> }))
 
-vi.mock('@/services/payments', () => ({ processPayment: vi.fn(), getPaymentStatus: vi.fn() }))
+vi.mock('@/services/payments', () => ({
+  processPayment: vi.fn(),
+  getPaymentStatus: vi.fn(),
+  getPaymentMethods: vi.fn().mockResolvedValue({
+    methods: [
+      { code: 'PIX', label: 'Pix', available: true, status: 'available', reason: '' },
+      { code: 'BOLETO', label: 'boleto', available: true, status: 'available', reason: '' },
+      { code: 'CREDIT_CARD', label: 'cartão de crédito', available: true, status: 'available', reason: '' },
+      { code: 'DEBIT_CARD', label: 'cartão de débito', available: false, status: 'maintenance', reason: 'Asaas' },
+    ],
+    fallback: 'PIX',
+    available: ['PIX', 'BOLETO', 'CREDIT_CARD'],
+  }),
+}))
 vi.mock('@/services/account', () => ({ startAuth: vi.fn(), getMe: vi.fn() }))
 vi.mock('@/services/orders/orders', () => ({ listPlans: vi.fn().mockResolvedValue([{ price: 59 }]) }))
 vi.mock('@/utils/text/text', () => ({ formatMoney: (v: number) => `R$ ${v.toFixed(2).replace('.', ',')}` }))
