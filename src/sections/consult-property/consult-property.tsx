@@ -595,8 +595,8 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
             <PaymentStep
               onPix={() => go('payment-confirm')}
               onCredit={() => go('payment-confirm')}
-              onDebit={() => go('payment-confirm')}
               onBoleto={() => go('payment-confirm')}
+              onCredits={() => go('payment-confirm')}
             />
           </Activity>
 

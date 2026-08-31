@@ -42,7 +42,7 @@ export const validations = z
       .optional()
       .nullable(),
     documentPreview: z.any().optional(),
-    paymentMethod: z.enum(['pix', 'credit_card', 'debit_card', 'boleto']),
+    paymentMethod: z.enum(['pix', 'credit_card', 'debit_card', 'boleto', 'credits']),
     useBalance: z.boolean().default(false),
     entryPath: z.enum(['address', 'document', 'registry']).optional(),
     includeCertificates: z.boolean().default(false),

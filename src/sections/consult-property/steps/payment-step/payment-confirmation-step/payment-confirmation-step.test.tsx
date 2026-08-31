@@ -57,6 +57,16 @@ describe('PaymentConfirmationStep', () => {
     expect(screen.getByTestId('pix-payment-page')).toBeInTheDocument()
   })
 
+  it('deve renderizar PixPaymentPage quando o método for "credits"', () => {
+    ; (useFormContext as Mock).mockReturnValue({
+      watch: vi.fn().mockReturnValue('credits'),
+    })
+
+    render(<PaymentConfirmationStep {...defaultProps} />)
+
+    expect(screen.getByTestId('pix-payment-page')).toBeInTheDocument()
+  })
+
   it('não deve renderizar nada se o método de pagamento for undefined', () => {
     ; (useFormContext as Mock).mockReturnValue({
       watch: vi.fn().mockReturnValue(undefined),

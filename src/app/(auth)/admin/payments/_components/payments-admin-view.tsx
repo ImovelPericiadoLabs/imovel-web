@@ -15,8 +15,8 @@ import {
 const METHOD_HELP: Record<StaffPaymentMethod['code'], string> = {
   PIX: 'Cai sozinho em manutenção se o Asaas não tiver chave Pix cadastrada.',
   BOLETO: 'Gera fatura/PDF. Confirmação pode levar até 3 dias úteis.',
-  CREDIT_CARD: 'Abre a página segura do Asaas para o cliente pagar no cartão.',
-  DEBIT_CARD: 'Só aparece no checkout se o Asaas liberar débito nesta conta.',
+  CREDIT_CARD: 'Abre a página segura do Asaas. O link já aceita crédito e débito.',
+  DEBIT_CARD: 'Não entra no checkout: o link do cartão já cobre débito e crédito.',
 }
 
 export default function PaymentsAdminView() {
@@ -37,7 +37,7 @@ export default function PaymentsAdminView() {
   return (
     <AdminStaffGate>
       <AdminPageShell
-        description="Ligue ou desligue Pix, boleto e cartão no checkout. Um meio que o Asaas recusar (zero chaves Pix, chave inválida, débito não permitido) entra em manutenção sozinho para o cliente cair em outro."
+        description="Ligue ou desligue Pix, boleto e cartão no checkout. O cartão abre um link que já aceita crédito e débito. Um meio que o Asaas recusar (zero chaves Pix, chave inválida) entra em manutenção sozinho para o cliente cair em outro."
         actions={
           <Button variant="outline" onClick={() => methods.refetch()} disabled={methods.isFetching}>
             {methods.isFetching ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
@@ -46,7 +46,7 @@ export default function PaymentsAdminView() {
         }
       >
         <div className="flex flex-col gap-3">
-          {(methods.data ?? []).map((row) => {
+          {(methods.data ?? []).filter((row) => row.code !== 'DEBIT_CARD').map((row) => {
             const busy = toggle.isPending && toggle.variables?.code === row.code
             return (
               <Card key={row.code}>

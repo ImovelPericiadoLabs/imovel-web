@@ -106,6 +106,8 @@ describe('PixPaymentPage', () => {
       lot: '',
       entryPath: 'document',
       includeCertificates: true,
+      paymentMethod: 'pix',
+      useBalance: false,
     }
     vi.mocked(useFormContext).mockReturnValue({
       getValues: (field?: string) => {
@@ -191,5 +193,50 @@ describe('PixPaymentPage', () => {
 
     expect(shouldRefetch).toBe(false)
     expect(mockOnFinish).toHaveBeenCalled()
+  })
+
+  it('não mostra pagar com saldo quando o meio escolhido é boleto', () => {
+    vi.mocked(useFormContext).mockReturnValue({
+      getValues: () => ({
+        address: 'Rua Teste',
+        placeId: 'p1',
+        document: { id: 'doc-1' },
+        paymentMethod: 'boleto',
+        useBalance: false,
+      }),
+      watch: (field?: string) => {
+        if (field === 'paymentMethod') return 'boleto'
+        if (field === 'useBalance') return false
+        return undefined
+      },
+    } as unknown as ReturnType<typeof useFormContext>)
+
+    render(<PixPaymentPage onCancel={mockOnCancel} onFinish={mockOnFinish} placeId="p1" />)
+
+    expect(screen.getByText(/Pagar com boleto/i)).toBeInTheDocument()
+    expect(screen.queryByText(/Pagar com saldo/i)).not.toBeInTheDocument()
+  })
+
+  it('mostra só pagar com saldo quando o meio escolhido é saldo', () => {
+    vi.mocked(useFormContext).mockReturnValue({
+      getValues: () => ({
+        address: 'Rua Teste',
+        placeId: 'p1',
+        document: { id: 'doc-1' },
+        paymentMethod: 'credits',
+        useBalance: true,
+      }),
+      watch: (field?: string) => {
+        if (field === 'paymentMethod') return 'credits'
+        if (field === 'useBalance') return true
+        return undefined
+      },
+    } as unknown as ReturnType<typeof useFormContext>)
+
+    render(<PixPaymentPage onCancel={mockOnCancel} onFinish={mockOnFinish} placeId="p1" />)
+
+    expect(screen.getByText(/Pagar com saldo/i)).toBeInTheDocument()
+    expect(screen.queryByText(/Pagar com PIX/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Pagar com boleto/i)).not.toBeInTheDocument()
   })
 })

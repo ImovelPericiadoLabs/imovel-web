@@ -22,7 +22,7 @@ describe('BottomSheet', () => {
 
     const sheet = screen.getByTestId('bottom-sheet')
 
-    expect(sheet).toHaveStyle({ transform: 'translateY(0)', opacity: '1' })
+    expect(sheet).toHaveClass('translate-y-0', 'opacity-100')
   })
 
   it('should apply hidden classes when closed', () => {
@@ -34,7 +34,7 @@ describe('BottomSheet', () => {
 
     const sheet = screen.getByTestId('bottom-sheet')
 
-    expect(sheet).toHaveStyle({ transform: 'translateY(100%)', opacity: '0' })
+    expect(sheet).toHaveClass('translate-y-full', 'opacity-0')
   })
 
   it('should show overlay when open', () => {

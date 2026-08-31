@@ -3,57 +3,88 @@
 import { useFormContext } from 'react-hook-form'
 import { useQuery } from '@tanstack/react-query'
 import { useSession } from 'next-auth/react'
-import { QrCode, CreditCard, Barcode, DollarSign, LucideIcon, Check, TriangleAlert } from 'lucide-react'
+import { CreditCard } from 'lucide-react'
 import TextTitle from '@/components/text-title'
 import TextSubtitle from '@/components/text-subtitle'
 import {
   consultFlowHeroBlockClass,
   consultFlowHeroSubtitleClass,
   consultFlowHeroTitleClass,
-  consultFlowHeroTitleSizePrimaryClass,
+  consultFlowHeroTitleSizeLargeClass,
 } from '@/constants/consult-flow-hero-text'
 import { queryKey } from '@/constants/queries'
 import { cn } from '@/utils/tailwind'
-import { Switch } from '@/components/switch'
 import { trackGtmEvent } from '@/utils/analytics/gtm'
 import { getPaymentMethods, type CheckoutBillingType } from '@/services/payments'
 import { getMe } from '@/services/account'
 import { useConsultDynamicPrice, type EntryPath } from '@/hooks/use-consult-price'
+import {
+  BoletoMethodIcon,
+  CreditCardMethodIcon,
+  PixMethodIcon,
+  WalletBalanceIcon,
+} from '@/components/icons/payment-method-icons'
+import { PaymentMethodCard, type StatusTone } from './payment-method-card'
 import type { FormTypes } from '@/sections/consult-property/validations'
 
-type PaymentMethodType = 'pix' | 'credit_card' | 'debit_card' | 'boleto'
+type PaymentMethodType = FormTypes['paymentMethod']
 
-interface PaymentOption {
-  id: PaymentMethodType
+const GATEWAY_OPTIONS: Array<{
+  id: Exclude<PaymentMethodType, 'credits'>
   code: CheckoutBillingType
   title: string
-  subtitle: string
-  icon: LucideIcon
-}
-
-const PAYMENT_OPTIONS: PaymentOption[] = [
-  { id: 'pix', code: 'PIX', title: 'Pix', subtitle: 'Aprovação imediata', icon: QrCode },
-  { id: 'credit_card', code: 'CREDIT_CARD', title: 'Cartão de Crédito', subtitle: 'Em até 12x', icon: CreditCard },
-  { id: 'debit_card', code: 'DEBIT_CARD', title: 'Cartão de Débito', subtitle: 'Transferência instantânea', icon: CreditCard },
-  { id: 'boleto', code: 'BOLETO', title: 'Boleto', subtitle: 'Vencimento em 3 dias úteis', icon: Barcode },
+  availableStatus: string
+  availableTone: StatusTone
+  description: string
+  icon: typeof PixMethodIcon
+}> = [
+  {
+    id: 'pix',
+    code: 'PIX',
+    title: 'Pix',
+    availableStatus: 'Aprovação imediata',
+    availableTone: 'ok',
+    description: 'Pague com Pix',
+    icon: PixMethodIcon,
+  },
+  {
+    id: 'credit_card',
+    code: 'CREDIT_CARD',
+    title: 'Cartão',
+    availableStatus: 'Crédito ou débito · em até 12x',
+    availableTone: 'info',
+    description: 'O link seguro aceita crédito e débito',
+    icon: CreditCardMethodIcon,
+  },
+  {
+    id: 'boleto',
+    code: 'BOLETO',
+    title: 'Boleto',
+    availableStatus: '',
+    availableTone: 'muted',
+    description: 'Vencimento em 3 dias úteis',
+    icon: BoletoMethodIcon,
+  },
 ]
+
+const UNAVAILABLE_STATUS = 'Instabilidade temporária'
+const UNAVAILABLE_DESCRIPTION = 'Instabilidade temporária com o banco. Tente outro método.'
 
 export function PaymentStep({
   currentBalance,
   onPix,
   onCredit,
-  onDebit,
   onBoleto,
+  onCredits,
 }: {
   currentBalance?: number
   onPix: () => void
   onCredit: () => void
-  onDebit: () => void
   onBoleto: () => void
+  onCredits: () => void
 }) {
   const { setValue, watch } = useFormContext<FormTypes>()
   const { status } = useSession()
-  const useBalance = Boolean(watch('useBalance'))
   const paymentMethod = watch('paymentMethod')
   const entryPath = watch('entryPath') as EntryPath | undefined
   const includeCertificates = Boolean(watch('includeCertificates'))
@@ -72,6 +103,7 @@ export function PaymentStep({
 
   const balance = currentBalance ?? Number(me?.credits_balance ?? 0)
   const canUseBalance = balance > 0 && balance >= payable
+  const showBalanceOption = status === 'authenticated' || typeof currentBalance === 'number'
 
   const formattedBalance = new Intl.NumberFormat('pt-BR', {
     style: 'currency',
@@ -83,8 +115,21 @@ export function PaymentStep({
     return row ? row.available : true
   }
 
-  function handleSelectMethod(value: PaymentMethodType, code: CheckoutBillingType) {
-    if (!isAvailable(code)) return
+  function goToConfirm(value: PaymentMethodType) {
+    if (value === 'credits') return onCredits()
+    if (value === 'pix') return onPix()
+    if (value === 'credit_card' || value === 'debit_card') return onCredit()
+    return onBoleto()
+  }
+
+  function handleSelectMethod(value: PaymentMethodType, code?: CheckoutBillingType) {
+    if (value === 'credits') {
+      if (!canUseBalance) return
+      setValue('useBalance', true)
+    } else {
+      if (code && !isAvailable(code)) return
+      setValue('useBalance', false)
+    }
 
     setValue('paymentMethod', value, { shouldValidate: true })
 
@@ -93,110 +138,78 @@ export function PaymentStep({
       event_label: value,
       event_description: 'Método de pagamento selecionado.',
       payment_method: value,
-      use_balance: Boolean(useBalance),
+      use_balance: value === 'credits',
     })
 
-    setTimeout(() => {
-      if (value === 'pix') return onPix()
-      if (value === 'credit_card') return onCredit()
-      if (value === 'debit_card') return onDebit()
-      if (value === 'boleto') return onBoleto()
-    }, 300)
+    window.setTimeout(() => goToConfirm(value), 280)
   }
 
-  function toggleBalance(checked: boolean) {
-    if (checked && !canUseBalance) return
-    setValue('useBalance', checked)
-    trackGtmEvent('payment_balance_toggle', {
-      event_category: 'payment',
-      event_label: checked ? 'on' : 'off',
-      event_description: 'Usuário ativou/desativou o uso de saldo.',
-      use_balance: checked,
-    })
-  }
+  const gridOptions = GATEWAY_OPTIONS.filter((option) => option.id !== 'boleto')
+  const boleto = GATEWAY_OPTIONS.find((option) => option.id === 'boleto')
 
   return (
-    <div className="relative flex-1 px-4">
-      <div className="flex flex-col gap-5 pb-24 md:pb-0">
-        <div className={cn(consultFlowHeroBlockClass, 'px-1')}>
-          <TextTitle className={cn(consultFlowHeroTitleClass, consultFlowHeroTitleSizePrimaryClass)}>
+    <div className="relative flex-1 px-3 sm:px-4">
+      <div className="mx-auto flex w-full max-w-xl flex-col gap-6 pb-24 md:max-w-2xl md:pb-8">
+        <div className={cn(consultFlowHeroBlockClass, 'items-center px-1 text-center md:items-start md:text-left')}>
+          <CreditCard className="mb-1 hidden size-6 text-white/90 md:block" aria-hidden />
+          <TextTitle className={cn(consultFlowHeroTitleClass, consultFlowHeroTitleSizeLargeClass, 'w-full')}>
             Escolha como pagar
           </TextTitle>
-          <TextSubtitle className={consultFlowHeroSubtitleClass}>
-            Selecione o método de pagamento de sua preferência
+          <TextSubtitle className={cn(consultFlowHeroSubtitleClass, 'w-full')}>
+            Selecione o método de pagamento de sua preferência.
           </TextSubtitle>
         </div>
 
-        <div className="flex flex-col gap-3">
-          <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between gap-3 mb-2">
-            <div className="flex items-center gap-3 sm:gap-4 min-w-0">
-              <div className="p-2 bg-gray-50 rounded-xl text-gray-600 shrink-0">
-                <DollarSign className="w-6 h-6" />
-              </div>
-              <div className="flex flex-col min-w-0">
-                <span className="font-semibold text-gray-900">Saldo em conta</span>
-                <span className="text-sm text-gray-500 truncate">{formattedBalance}</span>
-              </div>
-            </div>
-            <Switch
-              checked={useBalance && canUseBalance}
-              disabled={!canUseBalance}
-              onCheckedChange={toggleBalance}
-              aria-label="Usar saldo em conta"
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          {showBalanceOption && (
+            <PaymentMethodCard
+              title="Saldo em conta"
+              status={canUseBalance ? formattedBalance : `${formattedBalance} · insuficiente`}
+              statusTone={canUseBalance ? 'ok' : 'bad'}
+              description="Use seu saldo disponível"
+              icon={WalletBalanceIcon}
+              available={canUseBalance}
+              selected={canUseBalance && paymentMethod === 'credits'}
+              onSelect={() => handleSelectMethod('credits')}
+              testId="option-Saldo em conta"
+              delayMs={0}
             />
-          </div>
+          )}
 
-          {PAYMENT_OPTIONS.map((option) => {
+          {gridOptions.map((option, index) => {
             const available = isAvailable(option.code)
-            const isSelected = available && paymentMethod === option.id
-            const Icon = option.icon
             return (
-              <button
+              <PaymentMethodCard
                 key={option.id}
-                type="button"
-                data-testid={`option-${option.title}`}
-                disabled={!available}
-                aria-disabled={!available}
-                onClick={() => handleSelectMethod(option.id, option.code)}
-                className={cn(
-                  'w-full flex items-center gap-3 sm:gap-4 p-3.5 sm:p-4 rounded-xl border text-left transition-all duration-200',
-                  !available && 'cursor-not-allowed bg-gray-50 border-gray-100 opacity-70',
-                  available && isSelected && 'bg-primary/5 border-primary shadow-sm shadow-primary/10',
-                  available && !isSelected && 'bg-white border-gray-200 hover:border-gray-300',
-                )}
-              >
-                <div
-                  className={cn(
-                    'size-10 rounded-full flex items-center justify-center shrink-0 transition-colors',
-                    !available && 'bg-amber-50',
-                    available && isSelected && 'bg-primary',
-                    available && !isSelected && 'bg-gray-100',
-                  )}
-                >
-                  {!available ? (
-                    <TriangleAlert className="size-5 text-amber-600" aria-hidden />
-                  ) : isSelected ? (
-                    <Check className="size-6 text-white stroke-[3px]" />
-                  ) : (
-                    <Icon className="size-5 text-gray-500" />
-                  )}
-                </div>
-                <div className="flex flex-col flex-1 min-w-0">
-                  <span className={`text-base font-semibold ${isSelected ? 'text-primary' : 'text-dark'}`}>
-                    {option.title}
-                  </span>
-                  <span className={cn('text-xs', available ? 'text-gray-500' : 'text-amber-700')}>
-                    {available ? option.subtitle : 'Indisponível'}
-                  </span>
-                </div>
-                {isSelected && (
-                  <div className="size-6 bg-primary rounded-full flex items-center justify-center animate-in zoom-in duration-300 shrink-0">
-                    <Check className="size-4 text-white stroke-[3px]" />
-                  </div>
-                )}
-              </button>
+                title={option.title}
+                status={available ? option.availableStatus : UNAVAILABLE_STATUS}
+                statusTone={available ? option.availableTone : 'warn'}
+                description={available ? option.description : UNAVAILABLE_DESCRIPTION}
+                icon={option.icon}
+                available={available}
+                selected={available && paymentMethod === option.id}
+                onSelect={() => handleSelectMethod(option.id, option.code)}
+                testId={`option-${option.title}`}
+                delayMs={(showBalanceOption ? index + 1 : index) * 45}
+              />
             )
           })}
+
+          {boleto && (
+            <PaymentMethodCard
+              title={boleto.title}
+              status={isAvailable(boleto.code) ? boleto.availableStatus : UNAVAILABLE_STATUS}
+              statusTone={isAvailable(boleto.code) ? boleto.availableTone : 'warn'}
+              description={isAvailable(boleto.code) ? boleto.description : UNAVAILABLE_DESCRIPTION}
+              icon={boleto.icon}
+              available={isAvailable(boleto.code)}
+              selected={isAvailable(boleto.code) && paymentMethod === 'boleto'}
+              onSelect={() => handleSelectMethod('boleto', boleto.code)}
+              testId="option-Boleto"
+              delayMs={(showBalanceOption ? 3 : 2) * 45}
+              className="md:col-span-2"
+            />
+          )}
         </div>
       </div>
     </div>
