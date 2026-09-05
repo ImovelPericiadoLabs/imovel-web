@@ -152,7 +152,7 @@ describe('SendDocumentStep', () => {
     fireEvent.click(screen.getByText('Select File'))
 
     await waitFor(() => {
-      expect(mockSetValue).toHaveBeenCalledWith('document', { ok: true })
+      expect(mockSetValue).toHaveBeenCalledWith('document', { ok: true }, { shouldDirty: true })
     })
 
     expect(mockSetValue).toHaveBeenCalledWith(

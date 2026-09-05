@@ -18,7 +18,7 @@ export default function DocumentItem({ document, onRemove }: DocumentItemProps) 
   const icon = useMemo(() => {
     const className = 'size-6 text-primary'
 
-    if (document.type.includes('image')) {
+    if (document.type?.includes('image')) {
       return <ImageIcon className={className} />
     }
 

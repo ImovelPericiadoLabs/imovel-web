@@ -49,6 +49,18 @@ describe('DocumentItem', () => {
     expect(onRemoveMock).toHaveBeenCalledTimes(1)
   })
 
+  it('should not crash when mime type is missing', () => {
+    render(
+      <DocumentItem
+        document={{ id: '3', name: 'foto.jpg', size: 1, type: '' }}
+        onRemove={() => {}}
+      />,
+    )
+
+    expect(screen.getByText('foto.jpg')).toBeInTheDocument()
+    expect(screen.getByTestId('icon-File')).toBeInTheDocument()
+  })
+
   it('should render the trash icon', () => {
     render(<DocumentItem document={mockDocumentImage} onRemove={() => {}} />)
 

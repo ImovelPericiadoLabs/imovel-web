@@ -15,6 +15,12 @@ import DocumentItem from '@/components/document-item'
 import Alert from '@/components/alert'
 import LoadingOverlay from '@/components/loading-overlay'
 import { uploadDocument, type UploadDocumentResponse } from '@/services/documents'
+import {
+  CONSULT_DOCUMENT_ACCEPT,
+  CONSULT_DOCUMENT_MAX_BYTES,
+  isAcceptedConsultDocument,
+  normalizeConsultDocumentFile,
+} from '@/components/document-upload/accepted-document'
 import SelectedAddressCard from '@/components/selected-address-card'
 import Button from '@/components/button'
 import { trackGtmEvent } from '@/utils/analytics/gtm'
@@ -59,6 +65,7 @@ export function DocumentTypeStep({ onNext, showAddressCard = true }: DocumentTyp
   const { setValue, getValues, watch, formState, trigger, clearErrors, setError } = useFormContext()
   const documentType = watch('documentType')
   const documentPreview = watch('documentPreview')
+  const uploadedDocument = watch('document') as { id?: string } | undefined
   const [uploadProgress, setUploadProgress] = useState(0)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const uploadCounterRef = useRef(0)
@@ -66,7 +73,7 @@ export function DocumentTypeStep({ onNext, showAddressCard = true }: DocumentTyp
   const { mutateAsync, isPending } = useMutation<UploadDocumentResponse, Error, File>({
     mutationFn: async (file: File) => uploadDocument(file, documentType, setUploadProgress),
     onSuccess(data) {
-      setValue('document', data)
+      setValue('document', data, { shouldDirty: true })
       trackGtmEvent('document_upload_success', {
         event_category: 'document',
         event_label: 'upload_success',
@@ -114,33 +121,10 @@ export function DocumentTypeStep({ onNext, showAddressCard = true }: DocumentTyp
   }
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.currentTarget.files?.[0]
-    if (!file) return
+    const selected = e.currentTarget.files?.[0]
+    if (!selected) return
 
-    // Validar arquivo antes de prosseguir
-    const validTypes = [
-      'application/pdf',
-      'image/jpeg',
-      'image/png',
-      'application/msword',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    ]
-    const maxSize = 250 * 1024 * 1024
-
-    if (!validTypes.includes(file.type)) {
-      setError('document', { message: 'Formato de arquivo não suportado. Use PDF, Word ou Imagem.' })
-      e.target.value = ''
-      trackGtmEvent('document_upload_rejected', {
-        event_category: 'document',
-        event_label: 'invalid_type',
-        event_description: 'Upload rejeitado por tipo de arquivo inválido.',
-        document_type: documentType,
-        file_type: file.type,
-      })
-      return
-    }
-
-    if (file.size > maxSize) {
+    if (selected.size > CONSULT_DOCUMENT_MAX_BYTES) {
       setError('document', { message: 'O arquivo é muito grande. O limite é 250 MB.' })
       e.target.value = ''
       trackGtmEvent('document_upload_rejected', {
@@ -148,10 +132,25 @@ export function DocumentTypeStep({ onNext, showAddressCard = true }: DocumentTyp
         event_label: 'file_too_large',
         event_description: 'Upload rejeitado por tamanho excedido.',
         document_type: documentType,
-        file_size_mb: Math.round((file.size / (1024 * 1024)) * 10) / 10,
+        file_size_mb: Math.round((selected.size / (1024 * 1024)) * 10) / 10,
       })
       return
     }
+
+    if (!isAcceptedConsultDocument(selected)) {
+      setError('document', { message: 'Formato de arquivo não suportado. Use PDF, Word ou Imagem (JPG/PNG).' })
+      e.target.value = ''
+      trackGtmEvent('document_upload_rejected', {
+        event_category: 'document',
+        event_label: 'invalid_type',
+        event_description: 'Upload rejeitado por tipo de arquivo inválido.',
+        document_type: documentType,
+        file_type: selected.type,
+      })
+      return
+    }
+
+    const file = normalizeConsultDocumentFile(selected)
 
     clearErrors('document')
 
@@ -196,18 +195,17 @@ export function DocumentTypeStep({ onNext, showAddressCard = true }: DocumentTyp
   }
 
   async function handleContinue() {
+    const uploaded = getValues('document') as { id?: string } | undefined
     const isValid = await trigger(['documentType', 'document'])
-    if (isValid) {
-      trackGtmEvent('document_step_continue', {
-        event_category: 'document',
-        event_label: 'continue',
-        event_description: 'Usuário avançou após envio do documento.',
-        document_type: documentType,
-        has_document: Boolean(getValues('document')),
-      })
-      // Se estamos avançando, garantimos que o estado está correto
-      onNext()
-    }
+    if (!isValid && !uploaded?.id) return
+    trackGtmEvent('document_step_continue', {
+      event_category: 'document',
+      event_label: 'continue',
+      event_description: 'Usuário avançou após envio do documento.',
+      document_type: documentType,
+      has_document: Boolean(uploaded?.id),
+    })
+    onNext()
   }
 
   useEffect(() => {
@@ -254,7 +252,7 @@ export function DocumentTypeStep({ onNext, showAddressCard = true }: DocumentTyp
             Qual documento você tem?
           </HeroTitle>
           <HeroDescription surface={showAddressCard ? 'light' : 'dark'}>
-            Selecione o tipo e envie o arquivo.
+            Selecione o tipo e envie o arquivo (PDF, JPG, PNG ou Word).
           </HeroDescription>
         </div>
 
@@ -263,7 +261,7 @@ export function DocumentTypeStep({ onNext, showAddressCard = true }: DocumentTyp
             ref={fileInputRef}
             type="file"
             onChange={handleFileChange}
-            accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+            accept={CONSULT_DOCUMENT_ACCEPT}
             className="hidden"
           />
           {OPTIONS.map((option) => {
@@ -313,7 +311,7 @@ export function DocumentTypeStep({ onNext, showAddressCard = true }: DocumentTyp
         )}
       </div>
 
-      {documentType && !!watch('document') && (
+      {documentType && Boolean(uploadedDocument?.id) && (
         <div className="fixed bottom-0 left-0 right-0 px-4 pt-5 pb-7 bg-white mt-auto border-t border-gray-200 z-10">
           <Button
             type="button"

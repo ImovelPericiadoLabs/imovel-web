@@ -11,6 +11,7 @@ import {
 } from '@/constants/consult-flow-hero-text'
 import { cn } from '@/utils/tailwind'
 import DocumentUpload from '@/components/document-upload'
+import { normalizeConsultDocumentFile } from '@/components/document-upload/accepted-document'
 import DocumentItem from '@/components/document-item'
 import Button from '@/components/button'
 import Alert from '@/components/alert'
@@ -35,7 +36,7 @@ export function SendDocumentStep({ onNext }: { onNext: () => void }) {
   const { mutateAsync, isPending } = useMutation({
     mutationFn: async (file: File) => uploadDocument(file, documentType, setUploadProgress),
     onSuccess(data) {
-      setValue('document', data)
+      setValue('document', data, { shouldDirty: true })
     },
     onError() {
       setError('document', {
@@ -48,17 +49,18 @@ export function SendDocumentStep({ onNext }: { onNext: () => void }) {
   async function handleFileSelect(file: File) {
     clearErrors('document')
 
-    const sizeMB = Math.round((file.size / (1024 * 1024)) * 10) / 10
+    const uploadFile = normalizeConsultDocumentFile(file)
+    const sizeMB = Math.round((uploadFile.size / (1024 * 1024)) * 10) / 10
     const newDoc: UploadedDocument = {
       id: Date.now().toString(),
-      name: file.name,
+      name: uploadFile.name,
       size: sizeMB,
-      file,
-      type: file.type,
+      file: uploadFile,
+      type: uploadFile.type,
     }
 
     setValue('documentPreview', newDoc)
-    await mutateAsync(file)
+    await mutateAsync(uploadFile)
   }
 
   function handleRemoveDocument() {
@@ -68,8 +70,9 @@ export function SendDocumentStep({ onNext }: { onNext: () => void }) {
   }
 
   async function handleContinue() {
+    const uploaded = getValues('document') as { id?: string } | undefined
     const isValid = await trigger('document')
-    if (isValid) onNext()
+    if (isValid || uploaded?.id) onNext()
   }
 
   return (
@@ -92,7 +95,10 @@ export function SendDocumentStep({ onNext }: { onNext: () => void }) {
 
       {!!documentPreview && (
         <div className="mt-32">
-          <Button disabled={!!formState.errors?.document?.message} onClick={handleContinue}>
+          <Button
+            disabled={isPending || !!formState.errors?.document?.message}
+            onClick={handleContinue}
+          >
             Continuar
           </Button>
         </div>

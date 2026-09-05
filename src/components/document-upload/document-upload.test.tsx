@@ -19,6 +19,8 @@ describe('DocumentUpload', () => {
   }
 
   const validPdfFile = createFile('document.pdf', 'application/pdf', 1024)
+  const validJpgEmptyMime = createFile('matricula.jpg', '', 1024)
+  const validPngFile = createFile('matricula.png', 'image/png', 1024)
   const invalidTypeFile = createFile('script.js', 'text/javascript', 1024)
   const oversizedFile = createFile('large.png', 'image/png', 251 * 1024 * 1024)
 
@@ -51,6 +53,27 @@ describe('DocumentUpload', () => {
 
     expect(mockOnFileSelect).toHaveBeenCalledTimes(1)
     expect(mockOnFileSelect).toHaveBeenCalledWith(validPdfFile)
+  })
+
+  it('should call onFileSelect with a jpg even when mime type is empty', () => {
+    render(<DocumentUpload onFileSelect={mockOnFileSelect} />)
+    const fileInput = screen.getByTestId('file-input')
+
+    fireEvent.change(fileInput, { target: { files: [validJpgEmptyMime] } })
+
+    expect(mockOnFileSelect).toHaveBeenCalledTimes(1)
+    expect(mockOnFileSelect.mock.calls[0][0].name).toBe('matricula.jpg')
+    expect(mockOnFileSelect.mock.calls[0][0].type).toBe('image/jpeg')
+  })
+
+  it('should call onFileSelect with a png image', () => {
+    render(<DocumentUpload onFileSelect={mockOnFileSelect} />)
+    const fileInput = screen.getByTestId('file-input')
+
+    fireEvent.change(fileInput, { target: { files: [validPngFile] } })
+
+    expect(mockOnFileSelect).toHaveBeenCalledTimes(1)
+    expect(mockOnFileSelect).toHaveBeenCalledWith(validPngFile)
   })
 
   it('should not call onFileSelect when an invalid file type is selected', () => {

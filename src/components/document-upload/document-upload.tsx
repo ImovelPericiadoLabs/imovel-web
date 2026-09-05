@@ -2,6 +2,11 @@
 
 import { useState, useRef } from 'react'
 import { CloudUpload } from 'lucide-react'
+import {
+  CONSULT_DOCUMENT_ACCEPT,
+  isAcceptedConsultDocument,
+  normalizeConsultDocumentFile,
+} from './accepted-document'
 
 interface DocumentUploadAreaProps {
   onFileSelect: (file: File) => void
@@ -24,30 +29,18 @@ export default function DocumentUpload({ onFileSelect }: DocumentUploadAreaProps
     e.preventDefault()
     setIsDragging(false)
     const file = e?.dataTransfer?.files[0]
-    if (file && isValidFile(file)) {
-      onFileSelect(file)
+    if (file && isAcceptedConsultDocument(file)) {
+      onFileSelect(normalizeConsultDocumentFile(file))
     }
   }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.currentTarget.files?.[0]
-    if (file && isValidFile(file)) {
-      onFileSelect(file)
+    if (file && isAcceptedConsultDocument(file)) {
+      onFileSelect(normalizeConsultDocumentFile(file))
     }
 
     e.currentTarget.value = ''
-  }
-
-  const isValidFile = (file: File): boolean => {
-    const validTypes = [
-      'application/pdf',
-      'image/jpeg',
-      'image/png',
-      'application/msword',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    ]
-    const maxSize = 250 * 1024 * 1024
-    return validTypes.includes(file.type) && file.size <= maxSize
   }
 
   const handleClick = () => {
@@ -71,7 +64,7 @@ export default function DocumentUpload({ onFileSelect }: DocumentUploadAreaProps
         ref={inputRef}
         type="file"
         onChange={handleFileChange}
-        accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+        accept={CONSULT_DOCUMENT_ACCEPT}
         className="hidden"
       />
 
