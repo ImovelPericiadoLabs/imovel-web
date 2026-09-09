@@ -34,6 +34,7 @@ import { InboxEmptyState } from './_components/inbox-empty-state'
 import { InboxMessageBubble } from './_components/inbox-message-bubble'
 import { InboxListSkeleton, InboxThreadSkeleton } from './_components/inbox-skeletons'
 import { InboxThreadHeader } from './_components/inbox-thread-header'
+import { useChatScroll } from '@/hooks/use-chat-scroll'
 
 function titleOf(c: SupportConversation) {
   return (c.customer_name || '').trim() || c.contact_phone_e164 || 'Conversa'
@@ -103,6 +104,8 @@ function InboxPageInner() {
   const detail = detailQuery.data
   const perms = detail?.permissions ?? listPerms
   const messages = [...(detail?.messages ?? []), ...optimisticMsgs]
+  const messageKey = `${messages.length}:${messages.at(-1)?.id ?? ''}`
+  const { viewportRef, handleScroll, followNextMessage } = useChatScroll(selectedId, messageKey)
   const orders = detail?.orders ?? selected?.related_orders ?? []
   const activeConv = detail?.conversation ?? selected
   const showMobileThread = Boolean(selectedId)
@@ -345,7 +348,11 @@ function InboxPageInner() {
                   </div>
                 ) : null}
 
-                <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-3 pb-28 pt-4 lg:px-5">
+                <div
+                  ref={viewportRef}
+                  onScroll={handleScroll}
+                  className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-3 pb-28 pt-4 lg:px-5"
+                >
                   {detailQuery.isError ? (
                     <Alert
                       variant="warning"
@@ -379,7 +386,10 @@ function InboxPageInner() {
                 <InboxComposer
                   draft={draft}
                   onDraftChange={setDraft}
-                  onSend={() => sendMut.mutate(draft.trim())}
+                  onSend={() => {
+                    followNextMessage()
+                    sendMut.mutate(draft.trim())
+                  }}
                   pending={sendMut.isPending}
                   disabled={!perms.reply}
                   error={
@@ -389,7 +399,10 @@ function InboxPageInner() {
                   }
                   onRetry={() => {
                     const text = draft.trim() || optimisticMsgs.at(-1)?.content
-                    if (text) sendMut.mutate(text)
+                    if (text) {
+                      followNextMessage()
+                      sendMut.mutate(text)
+                    }
                   }}
                 />
               </>

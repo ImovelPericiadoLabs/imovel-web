@@ -611,16 +611,18 @@ const ConsultProperty = forwardRef<ConsultPropertyHandle, ConsultPropertyProps>(
           </Activity>
 
           <Activity isActive={flow === 'payment-confirm'}>
-            <PaymentConfirmationStep
-              onFinish={() => {
-                // Nova consulta acabou de ser paga: invalida a lista para que apareça
-                // imediatamente em "Acompanhar consultas" (sem refresh manual).
-                void queryClient.invalidateQueries({ queryKey: ordersListQueryKey })
-                go('finished')
-              }}
-              onBackToMethods={back}
-              onAddNewCard={() => go('payment-card-new')}
-            />
+            {flow === 'payment-confirm' && (
+              <PaymentConfirmationStep
+                onFinish={() => {
+                  // Nova consulta acabou de ser paga: invalida a lista para que apareça
+                  // imediatamente em "Acompanhar consultas" (sem refresh manual).
+                  void queryClient.invalidateQueries({ queryKey: ordersListQueryKey })
+                  go('finished')
+                }}
+                onBackToMethods={back}
+                onAddNewCard={() => go('payment-card-new')}
+              />
+            )}
           </Activity>
 
           <Activity isActive={flow === 'finished'}>

@@ -5,7 +5,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useForm, FormProvider, useFormContext } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Barcode, Check, Clock, Copy, CreditCard, ExternalLink, IdCard, Lock, Mail, MessageCircle, Phone, ShieldCheck, User, Wallet } from 'lucide-react'
+import { Barcode, Check, Clock, Copy, CreditCard, ExternalLink, IdCard, Lock, Mail, MessageCircle, Phone, RefreshCw, ShieldCheck, User, Wallet } from 'lucide-react'
 import { useSession, signOut } from 'next-auth/react'
 
 import TextTitle from '@/components/text-title'
@@ -216,6 +216,7 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
   const [serverError, setServerError] = useState('')
   const [paymentId, setPaymentId] = useState<string | null>(null)
   const [isAuthLoading, setIsAuthLoading] = useState(false)
+  const [paymentCheckMessage, setPaymentCheckMessage] = useState('')
   const hasTrackedPaymentConfirmed = useRef(false)
   const hasTrackedPixView = useRef(false)
   /** Após login por e-mail, segue para créditos ou o meio escolhido. */
@@ -445,35 +446,56 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
     }
   }, [paymentId, pixData])
 
-  useQuery({
+  const {
+    data: paymentStatus,
+    refetch: refetchPaymentStatus,
+    isFetching: isPaymentStatusFetching,
+  } = useQuery({
     queryKey: [queryKey.paymentStatus, paymentId],
     queryFn: () => getPaymentStatus(paymentId as string),
     enabled: !!paymentId,
-    refetchInterval: (query) => {
-      if (query.state.data?.status === 'CONFIRMED') {
-        if (!hasTrackedPaymentConfirmed.current) {
-          hasTrackedPaymentConfirmed.current = true
-          trackGtmEvent('payment_confirmed', {
-            event_category: 'payment',
-            event_label: 'confirmed',
-            event_description: 'Pagamento confirmado com sucesso.',
-            payment_method: 'pix',
-            payment_id: paymentId,
-          })
-          trackPurchase({
-            value: consultPrice,
-            transactionId: paymentId ?? undefined,
-            paymentMethod: 'pix',
-            eventDescription: 'Compra concluída com PIX.',
-          })
-        }
-        onFinish()
-        return false
-      }
-      return 5000
-    },
+    refetchInterval: (query) => query.state.data?.status === 'CONFIRMED' ? false : 5000,
     refetchIntervalInBackground: false,
+    refetchOnWindowFocus: 'always',
   })
+
+  useEffect(() => {
+    if (!paymentId || paymentStatus?.status !== 'CONFIRMED' || hasTrackedPaymentConfirmed.current) return
+
+    hasTrackedPaymentConfirmed.current = true
+    const billing = billingFromResult(pixData)
+    const trackedMethod = billing === 'BOLETO' ? 'boleto' : billing === 'PIX' ? 'pix' : 'credit_card'
+    trackGtmEvent('payment_confirmed', {
+      event_category: 'payment',
+      event_label: 'confirmed',
+      event_description: 'Pagamento confirmado com sucesso.',
+      payment_method: trackedMethod,
+      payment_id: paymentId,
+    })
+    trackPurchase({
+      value: consultPrice,
+      transactionId: paymentId ?? undefined,
+      paymentMethod: trackedMethod,
+      eventDescription: `Compra concluída com ${billing}.`,
+    })
+    onFinish()
+  }, [paymentStatus?.status, pixData, paymentId, consultPrice, onFinish])
+
+  const handleCheckPayment = useCallback(async () => {
+    setPaymentCheckMessage('')
+    const result = await refetchPaymentStatus()
+    if (result.error) {
+      setPaymentCheckMessage('Não foi possível verificar agora. Tente novamente em instantes.')
+      return
+    }
+    if (result.data?.status !== 'CONFIRMED') {
+      setPaymentCheckMessage(
+        billingFromResult(pixData) === 'BOLETO'
+          ? 'O boleto ainda não foi compensado. Isso pode levar até 3 dias úteis.'
+          : 'O pagamento ainda não foi confirmado. Aguarde alguns segundos e verifique novamente.',
+      )
+    }
+  }, [refetchPaymentStatus, pixData])
 
   const handlePayWithCreditsClick = useCallback(async () => {
     const isValid = await trigger(['name', 'document', 'email', 'whatsapp'])
@@ -1199,12 +1221,19 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
                   ? 'Boleto gerado. Abra o documento para pagar.'
                   : 'Abra a página segura do cartão para concluir o pagamento.'}
               </p>
+              <p className="text-xs leading-relaxed text-gray-600">
+                O pagamento abre em outra aba. Depois de concluir, volte para esta aba: a confirmação
+                será atualizada automaticamente.
+              </p>
               {invoiceUrlFromResult(pixData) && (
                 <Button
                   type="button"
                   className="rounded-xl h-11"
                   icon={<ExternalLink className="size-4" />}
-                  onClick={() => window.open(invoiceUrlFromResult(pixData), '_blank', 'noopener,noreferrer')}
+                  onClick={() => {
+                    window.open(invoiceUrlFromResult(pixData), '_blank', 'noopener,noreferrer')
+                    setPaymentCheckMessage('Quando terminar o pagamento, volte para esta aba e confirme abaixo.')
+                  }}
                 >
                   {billingFromResult(pixData) === 'BOLETO' ? 'Abrir boleto' : 'Pagar com cartão'}
                 </Button>
@@ -1214,10 +1243,28 @@ export function PixPaymentPage({ onCancel, onFinish, placeId }: PixPaymentPagePr
                   type="button"
                   variant="outline"
                   className="rounded-xl h-11"
-                  onClick={() => window.open(bankSlipUrlFromResult(pixData), '_blank', 'noopener,noreferrer')}
+                  onClick={() => {
+                    window.open(bankSlipUrlFromResult(pixData), '_blank', 'noopener,noreferrer')
+                    setPaymentCheckMessage('Quando pagar o boleto, volte para esta aba e confirme abaixo.')
+                  }}
                 >
                   Baixar PDF do boleto
                 </Button>
+              )}
+              <Button
+                type="button"
+                variant="outline"
+                className="rounded-xl h-11"
+                icon={<RefreshCw className={isPaymentStatusFetching ? 'size-4 animate-spin' : 'size-4'} />}
+                disabled={isPaymentStatusFetching}
+                onClick={handleCheckPayment}
+              >
+                Já paguei, verificar agora
+              </Button>
+              {paymentCheckMessage && (
+                <p role="status" className="text-xs leading-relaxed text-gray-600">
+                  {paymentCheckMessage}
+                </p>
               )}
             </div>
             <div className="flex items-center gap-2 text-dark font-semibold text-sm py-4">

@@ -1,4 +1,5 @@
 import { cn } from '@/utils/tailwind'
+import { lockPageScroll } from '@/utils/page-scroll-lock'
 import { PropsWithChildren, useEffect, useRef } from 'react'
 
 type Props = {
@@ -21,7 +22,7 @@ export default function BottomSheet({ isOpen, onClose, children, variant = 'defa
       'input, button, select, textarea, a[href], [tabindex]'
     )
 
-    const elementsToRestore: HTMLElement[] = []
+    const elementsToRestore: Array<{ element: HTMLElement; tabindex: string | null }> = []
 
     // Remover elementos fora do modal do tab order
     allFocusableElements.forEach((el) => {
@@ -29,14 +30,15 @@ export default function BottomSheet({ isOpen, onClose, children, variant = 'defa
       if (!modalRef.current?.contains(el)) {
         const originalTabindex = htmlEl.getAttribute('tabindex')
         htmlEl.setAttribute('tabindex', '-1')
-        elementsToRestore.push(htmlEl)
+        elementsToRestore.push({ element: htmlEl, tabindex: originalTabindex })
       }
     })
 
     return () => {
       // Restaurar tabindex original
-      elementsToRestore.forEach((el) => {
-        el.removeAttribute('tabindex')
+      elementsToRestore.forEach(({ element, tabindex }) => {
+        if (tabindex == null) element.removeAttribute('tabindex')
+        else element.setAttribute('tabindex', tabindex)
       })
     }
   }, [isOpen])
@@ -69,21 +71,8 @@ export default function BottomSheet({ isOpen, onClose, children, variant = 'defa
   }, [isOpen, onClose])
 
   useEffect(() => {
-    if (!isOpen) {
-      document.documentElement.style.overflow = ''
-      document.body.style.overflow = ''
-      return
-    }
-
-    const prevHtmlOverflow = document.documentElement.style.overflow
-    const prevBodyOverflow = document.body.style.overflow
-    document.documentElement.style.overflow = 'hidden'
-    document.body.style.overflow = 'hidden'
-
-    return () => {
-      document.documentElement.style.overflow = prevHtmlOverflow
-      document.body.style.overflow = prevBodyOverflow
-    }
+    if (!isOpen) return
+    return lockPageScroll()
   }, [isOpen])
 
   return (

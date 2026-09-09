@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { AlertTriangle, Loader2, X } from 'lucide-react'
 import { cn } from '@/utils/tailwind'
 import Button from '@/components/button'
+import { lockPageScroll } from '@/utils/page-scroll-lock'
 
 type Props = {
   open: boolean
@@ -34,10 +35,10 @@ export default function AdminConfirmDialog({
       if (e.key === 'Escape' && !loading) onClose()
     }
     document.addEventListener('keydown', onKey)
-    document.body.style.overflow = 'hidden'
+    const unlockScroll = lockPageScroll()
     return () => {
       document.removeEventListener('keydown', onKey)
-      document.body.style.overflow = ''
+      unlockScroll()
     }
   }, [open, loading, onClose])
 

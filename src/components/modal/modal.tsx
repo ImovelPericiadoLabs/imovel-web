@@ -3,6 +3,7 @@
 import { useState, useEffect, cloneElement, isValidElement, ReactNode, ReactElement } from 'react'
 import ReactDOM from 'react-dom'
 import { X, ChevronLeft } from 'lucide-react'
+import { lockPageScroll } from '@/utils/page-scroll-lock'
 
 interface ModalProps {
   children?: ReactNode
@@ -40,10 +41,8 @@ export default function Modal({ children, content, title, open, onClose }: Modal
       : children
 
   useEffect(() => {
-    document.body.style.overflow = isOpen ? 'hidden' : ''
-    return () => {
-      document.body.style.overflow = ''
-    }
+    if (!isOpen) return
+    return lockPageScroll()
   }, [isOpen])
 
   const handleClose = () => {

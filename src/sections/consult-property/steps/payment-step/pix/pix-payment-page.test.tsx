@@ -126,7 +126,11 @@ describe('PixPaymentPage', () => {
       isPending: false, 
       data: null 
     })
-    ;(useQuery as Mock).mockReturnValue({ data: null })
+    ;(useQuery as Mock).mockReturnValue({
+      data: null,
+      isFetching: false,
+      refetch: vi.fn().mockResolvedValue({ data: { status: 'PENDING' }, error: null }),
+    })
   })
 
   afterEach(cleanup)
@@ -178,21 +182,99 @@ describe('PixPaymentPage', () => {
 
   it('deve interromper o polling e chamar onFinish quando CONFIRMED', async () => {
     let capturedOptions: any
+    const created = {
+      id: 'pay-confirmed',
+      billing_type: 'PIX',
+      payload: '000201-confirmed',
+    }
+    ;(useSession as Mock).mockReturnValue({
+      data: { user: { email: 'test@test.com' } },
+      status: 'authenticated',
+    })
+    ;(useMutation as Mock).mockImplementation((options) => ({
+      mutateAsync: async () => {
+        options.onSuccess?.(created)
+        return created
+      },
+      data: created,
+      isPending: false,
+    }))
     ;(useQuery as Mock).mockImplementation((options) => {
       if (options.queryKey?.[0] === queryKey.paymentStatus) {
         capturedOptions = options
+        return {
+          data: options.queryKey[1] ? { status: 'CONFIRMED' } : null,
+          isFetching: false,
+          refetch: vi.fn(),
+        }
       }
-      return { data: null }
+      return { data: null, isFetching: false, refetch: vi.fn() }
     })
 
     render(<PixPaymentPage onCancel={mockOnCancel} onFinish={mockOnFinish} placeId="p1" />)
+    fireEvent.change(screen.getByLabelText(/nome completo/i), { target: { value: 'João' } })
+    fireEvent.click(screen.getByText(/Pagar com PIX/i))
     
-    const shouldRefetch = capturedOptions.refetchInterval({ 
+    await waitFor(() => expect(mockOnFinish).toHaveBeenCalled())
+    const shouldRefetch = capturedOptions.refetchInterval({
       state: { data: { status: 'CONFIRMED' } } 
     })
 
     expect(shouldRefetch).toBe(false)
-    expect(mockOnFinish).toHaveBeenCalled()
+  })
+
+  it('orienta o retorno da página externa e permite verificar o cartão manualmente', async () => {
+    ;(useSession as Mock).mockReturnValue({
+      data: { user: { email: 'test@test.com' } },
+      status: 'authenticated',
+    })
+    vi.mocked(useFormContext).mockReturnValue({
+      getValues: (field?: string) => {
+        const values = {
+          address: 'Rua Teste',
+          placeId: 'p1',
+          document: { id: 'doc-1' },
+          paymentMethod: 'credit_card',
+          useBalance: false,
+          entryPath: 'document',
+          includeCertificates: true,
+        }
+        return field ? values[field as keyof typeof values] as never : values as never
+      },
+      watch: (field?: string) => {
+        if (field === 'paymentMethod') return 'credit_card'
+        if (field === 'entryPath') return 'document'
+        if (field === 'includeCertificates') return true
+        if (field === 'useBalance') return false
+        return undefined
+      },
+    } as unknown as ReturnType<typeof useFormContext>)
+
+    const invoice = {
+      id: 'pay-card-1',
+      billing_type: 'CREDIT_CARD',
+      invoice_url: 'https://payments.example/card',
+    }
+    const refetch = vi.fn().mockResolvedValue({ data: { status: 'PENDING' }, error: null })
+    ;(useMutation as Mock).mockReturnValue({
+      mutateAsync: vi.fn().mockResolvedValue(invoice),
+      data: invoice,
+      isPending: false,
+    })
+    ;(useQuery as Mock).mockReturnValue({ data: null, isFetching: false, refetch })
+    const open = vi.spyOn(window, 'open').mockImplementation(() => null)
+
+    render(<PixPaymentPage onCancel={mockOnCancel} onFinish={mockOnFinish} placeId="p1" />)
+    fireEvent.change(screen.getByLabelText(/nome completo/i), { target: { value: 'João' } })
+    fireEvent.click(screen.getByText(/Pagar com cartão/i))
+
+    expect(await screen.findByText(/pagamento abre em outra aba/i)).toBeInTheDocument()
+    fireEvent.click(screen.getByText(/^Pagar com cartão$/i))
+    expect(open).toHaveBeenCalledWith(invoice.invoice_url, '_blank', 'noopener,noreferrer')
+
+    fireEvent.click(screen.getByText(/Já paguei, verificar agora/i))
+    await waitFor(() => expect(refetch).toHaveBeenCalled())
+    expect(await screen.findByText(/ainda não foi confirmado/i)).toBeInTheDocument()
   })
 
   it('não mostra pagar com saldo quando o meio escolhido é boleto', () => {

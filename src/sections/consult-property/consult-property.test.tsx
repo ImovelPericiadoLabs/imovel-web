@@ -123,6 +123,7 @@ describe('ConsultProperty Flow', () => {
     renderConsult()
 
     expect(screen.getByTestId('entry-step')).toBeVisible()
+    expect(screen.queryByTestId('payment-confirmation-step')).not.toBeInTheDocument()
 
     fireEvent.click(screen.getByText('Pick Address Path'))
     expect(screen.getByTestId('address-step')).toBeVisible()
@@ -147,6 +148,7 @@ describe('ConsultProperty Flow', () => {
 
     fireEvent.click(screen.getByText('Finish Payment'))
     expect(screen.getByTestId('success-step')).toBeVisible()
+    expect(screen.queryByTestId('payment-confirmation-step')).not.toBeInTheDocument()
   })
 
   it('na entrada, voltar envia para a home', () => {

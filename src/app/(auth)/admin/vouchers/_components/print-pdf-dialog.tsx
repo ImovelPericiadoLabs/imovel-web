@@ -7,6 +7,7 @@ import Button from '@/components/button'
 import AdminSegmentedControl from '@/components/admin/admin-segmented-control'
 import { ADMIN_LABEL } from '@/components/admin/admin-styles'
 import { cn } from '@/utils/tailwind'
+import { lockPageScroll } from '@/utils/page-scroll-lock'
 import {
   DEFAULT_PRINT_CONFIG,
   type BatchPdfPrintConfig,
@@ -69,10 +70,10 @@ export default function PrintPdfDialog({
       if (e.key === 'Escape' && !loading) onClose()
     }
     document.addEventListener('keydown', onKey)
-    document.body.style.overflow = 'hidden'
+    const unlockScroll = lockPageScroll()
     return () => {
       document.removeEventListener('keydown', onKey)
-      document.body.style.overflow = ''
+      unlockScroll()
     }
   }, [open, loading, onClose])
 

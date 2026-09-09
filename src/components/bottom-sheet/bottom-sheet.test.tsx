@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import BottomSheet from './bottom-sheet'
+import { lockPageScroll } from '@/utils/page-scroll-lock'
 
 describe('BottomSheet', () => {
   it('should render children correctly', () => {
@@ -55,6 +56,19 @@ describe('BottomSheet', () => {
     )
 
     expect(screen.queryByTestId('overlay')).toBeNull()
+  })
+
+  it('não libera o lock pertencente a outro overlay quando está fechado', () => {
+    const releaseOtherOverlay = lockPageScroll()
+
+    render(
+      <BottomSheet isOpen={false}>
+        <div>Test</div>
+      </BottomSheet>,
+    )
+
+    expect(document.body.style.overflow).toBe('hidden')
+    releaseOtherOverlay()
   })
 
   it('should call onClose when clicking overlay', () => {
